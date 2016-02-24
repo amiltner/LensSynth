@@ -1,19 +1,34 @@
 open Lang
+open Lens
 open Core.Std
+
+let paren (s:string) : string = "(" ^ s ^ ")"
 
 let rec pp_regexp (r:regex) : string =
   begin match r with
-  | RegExBase c -> Char.to_string c
+  | RegExBase s -> s
   | RegExConcat (r1,r2) -> (pp_regexp r1) ^ (pp_regexp r2)
-  | RegExOr (r1,r2) -> "(" ^ (pp_regexp r1) ^ "|" ^ (pp_regexp r2) ^ ")"
-  | RegExStar (r') -> "(" ^ (pp_regexp r') ^ ")*"
+  | RegExOr (r1,r2) -> paren ((pp_regexp r1) ^ "|" ^ (pp_regexp r2))
+  | RegExStar (r') -> paren (pp_regexp r') ^ "*"
+  | RegExUserDefined s -> s
+  end
+
+let rec pp_lens (l:lens) : string =
+  begin match l with
+  | ConstLens (s1,s2) -> "const(" ^ s1 ^ "," ^ s2 ^ ")"
+  | ConcatLens (l1,l2) -> paren (pp_lens l1) ^ "." ^ (paren (pp_lens l2))
+  | SwapLens (l1,l2) -> "swap(" ^ (pp_lens l1) ^ "," ^ (pp_lens l2) ^ ")"
+  | UnionLens (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
+  | IterateLens (l') -> paren (pp_lens l') ^ "*"
+  | IdentityLens -> "id"
   end
 
 let rec pp_normalized_regex (r:normalized_regex) : string =
   let rec pp_basis_regex (r:basis_subex) : string =
     begin match r with
-    | NRXBase c -> Char.to_string c
+    | NRXBase s -> s
     | NRXStar r' -> "(" ^ (pp_normalized_regex r') ^ ")*"
+    | NRXUserDefined s -> s
     end
   in
   let rec pp_concated_regex (r:concated_subex) : string =
