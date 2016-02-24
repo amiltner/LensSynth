@@ -19,6 +19,7 @@ let symbols : (string * Parser.token) list =
   ; ("{", LBRACE)
   ; ("}", RBRACE)
   ; ("=", EQ)
+  ; (".", DOT)
   ]
 
 let create_token lexbuf =

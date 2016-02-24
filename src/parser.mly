@@ -25,6 +25,7 @@ exception Internal_error of string
 %token LBRACE     (* { *)
 %token RBRACE     (* } *)
 %token EQ         (* = *)
+%token DOT        (* . *)
 
 %token EOF
 
@@ -60,6 +61,7 @@ regex:
   | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
   | LPAREN r=regex RPAREN { r }
   | u=UID { RegExUserDefined u }
+  | DOT { RegExBase "" }
 
 (***** }}} *****)
 
