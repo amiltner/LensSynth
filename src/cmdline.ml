@@ -50,8 +50,8 @@ let print_lenses (ls:lens list) : unit =
     String.concat (List.map ~f:(fun l -> pp_lens l) ls) ~sep:"\n\n" in
   print_endline str
 
-let synthesize_prog ((r1,r2,exs):synth_problem) : lens list =
-  (gen_lenses [] r1 r2 exs)
+let synthesize_prog ((c,r1,r2,exs):synth_problem) : lens list =
+  (gen_lenses c r1 r2 exs)
   (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
   begin match Synth.synthesize s env tree with
   | Some e ->

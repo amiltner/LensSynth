@@ -5,7 +5,8 @@ open Parser
 exception Lexer_error of string
 
 let reserved_words : (string * Parser.token) list =
-  [   ]
+  [ ("let", LET)
+  ; ("in", IN)  ]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)
@@ -17,6 +18,7 @@ let symbols : (string * Parser.token) list =
   ; (")", RPAREN)
   ; ("{", LBRACE)
   ; ("}", RBRACE)
+  ; ("=", EQ)
   ]
 
 let create_token lexbuf =

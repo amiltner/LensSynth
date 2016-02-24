@@ -12,6 +12,9 @@ exception Internal_error of string
 (* integer constants translated to O, S(O), S(S(O)), etc. *)
 %token <int> INT
 
+%token LET        (* let *)
+%token IN         (* in *)
+
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
 %token COMMA      (* , *)
@@ -21,6 +24,7 @@ exception Internal_error of string
 %token RPAREN     (* ) *)
 %token LBRACE     (* { *)
 %token RBRACE     (* } *)
+%token EQ         (* = *)
 
 %token EOF
 
@@ -29,8 +33,23 @@ exception Internal_error of string
 %%
 
 synth_problem:
-  | r1=regex LEFTRIGHTFATARR r2=regex es=examples EOF
-        { (r1,r2,es) }
+  | c=context r1=regex LEFTRIGHTFATARR r2=regex es=examples EOF
+        { (c, r1,r2,es) }
+
+(***** Context {{{ *****)
+
+context:
+  | (* empty *)
+    { [] }
+  | d=decl c=context
+    { d::c }
+
+decl:
+  | LET u=UID EQ r=regex IN
+    { (u,r) }
+
+(***** }}} *****)
+
 
 (***** Regexes {{{ *****)
 
@@ -40,6 +59,7 @@ regex:
   | r=regex STAR { RegExStar r }
   | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
   | LPAREN r=regex RPAREN { r }
+  | u=UID { RegExUserDefined u }
 
 (***** }}} *****)
 
