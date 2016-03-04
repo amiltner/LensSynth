@@ -13,3 +13,7 @@ type basis_sublens =
 and concated_sublens = basis_sublens list
 
 and unioned_sublens = concated_sublens list
+
+type normalized_lens =
+  | Asdf of string
+  | Fdsa of string

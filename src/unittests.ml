@@ -5,6 +5,7 @@ open Lens
 open Lang
 open Pp
 open Gen
+open Permutation
 
 (* Lang tests *)
 let test_normalizization (expected:normalized_regex) (actual:normalized_regex) =
@@ -420,3 +421,69 @@ let gen_lens_suite = "gen_lens Unit Tests" >:::
 
 let _ = run_test_tt_main gen_lens_suite
 
+let test_int = assert_equal ~printer:string_of_int
+
+let test_permutation_create_invalid_0 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [0;2])
+
+let test_permutation_create_invalid_1 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [0;0])
+
+let test_permutation_create_invalid_2 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [-1])
+
+let test_permutation_apply_identity _ =
+  test_int
+    2
+    (Permutation.apply (Permutation.create [0;1;2]) 2)
+
+let test_permutation_apply_nonidentity _ =
+  test_int
+    0
+    (Permutation.apply (Permutation.create [1;2;0]) 2)
+    
+let test_permutation_apply_invalid _ =
+  assert_raises
+    (Failure "out of range")
+    (fun _ -> Permutation.apply (Permutation.create []) 0)
+
+let test_permutation_apply_inverse_identity _ =
+  test_int
+    2
+    (Permutation.apply_inverse (Permutation.create [0;1;2]) 2)
+
+let test_permutation_apply_inverse_nonidentity _ =
+  test_int
+    1
+    (Permutation.apply_inverse (Permutation.create [1;2;0]) 2)
+    
+let test_permutation_apply_inverse_invalid _ =
+  assert_raises
+    (Failure "out of range")
+    (fun _ -> Permutation.apply_inverse (Permutation.create []) 0)
+
+let test_permutation_create_all _ =
+  test_int
+    2
+    (List.length (Permutation.create_all 2))
+
+let permutation_suite = "permutation Unit Tests" >:::
+  ["test_permutation_create_invalid_0" >:: test_permutation_create_invalid_0;
+   "test_permutation_create_invalid_1" >:: test_permutation_create_invalid_1;
+   "test_permutation_create_invalid_2" >:: test_permutation_create_invalid_2;
+   "test_permutation_apply_identity" >:: test_permutation_apply_identity;
+   "test_permutation_apply_nonidentity" >:: test_permutation_apply_nonidentity;
+   "test_permutation_apply_invalid" >:: test_permutation_apply_invalid;
+   "test_permutation_apply_inverse_identity" >:: test_permutation_apply_inverse_identity;
+   "test_permutation_apply_inverse_nonidentity" >:: test_permutation_apply_inverse_nonidentity;
+   "test_permutation_apply_inverse_invalid" >:: test_permutation_apply_inverse_invalid;
+   "test_permutation_create_all" >:: test_permutation_create_all;
+  ]
+
+let _ = run_test_tt_main permutation_suite

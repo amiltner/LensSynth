@@ -11,6 +11,10 @@ let rec all_match (c:context) (r:regex) (ss:string list) : bool =
   ~init:true
   ss
 
+let rec gen_normalized_lenses (c:context) (s:normalized_regex)
+(t:normalized_regex) (exs:examples) : normalized_lens list =
+  []
+
 let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
   let structural_lenses = (begin match (s,t) with
   | (RegExBase s1, RegExBase s2) ->
