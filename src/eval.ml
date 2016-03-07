@@ -36,6 +36,15 @@ let rec eval_regex (c:context) (r:regex) (s:string) : bool =
       end
   end
 
+let rec eval_basis_subex (c:context) (r:basis_subex) (s:string) : bool =
+  false
+
+let rec eval_concated_subex (c:context) (r:concated_subex) (s:string) : bool =
+  false
+
+let rec eval_unioned_subex (c:context) (r:unioned_subex) (s:string) : bool =
+  false
+
 let rec retrieve_regex_or_choice (c:context)
   (r1:regex) (r2:regex) (s:string) : bool option =
     begin match (eval_regex c r1 s, eval_regex c r2 s) with
@@ -44,6 +53,20 @@ let rec retrieve_regex_or_choice (c:context)
     | (false,false) -> None
     | (true,true) -> failwith "not disjoint union"
     end
+
+let rec retrieve_regex_multior_choice (c:context)
+  (rs:concated_subex list) (s:string) : int option =
+    List.foldi
+    ~f:(fun i acc x ->
+      let accept = eval_concated_subex c x s in
+      begin match (acc,accept) with
+      | (None,true) -> Some i
+      | (None,false) -> None
+      | (Some _, false) -> acc
+      | (Some _, true) -> failwith "not disjoint union"
+      end)
+    ~init:None
+    rs
 
 let rec retrieve_regex_concat_split (c:context)
   (r1:regex) (r2:regex) (s:string) : (string * string) option =

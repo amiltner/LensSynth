@@ -26,9 +26,9 @@ let rec pp_lens (l:lens) : string =
 let rec pp_normalized_regex (r:normalized_regex) : string =
   let rec pp_basis_regex (r:basis_subex) : string =
     begin match r with
-    | NRXBase s -> s
     | NRXStar r' -> "(" ^ (pp_normalized_regex r') ^ ")*"
     | NRXUserDefined s -> s
+    | NRXBase c -> c
     end
   in
   let rec pp_concated_regex (r:concated_subex) : string =

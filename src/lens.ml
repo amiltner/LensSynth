@@ -1,3 +1,5 @@
+open Permutation
+
 type lens =
   | ConstLens of string * string
   | ConcatLens of lens * lens
@@ -7,13 +9,12 @@ type lens =
   | IdentityLens
 
 type basis_sublens =
-  | NLBase of string * string
+  | NLIdentityLens
   | NLStar of unioned_sublens
 
-and concated_sublens = basis_sublens list
+and concated_sublens = (basis_sublens list * Permutation.t *
+  (string option) list * (string option) list)
 
-and unioned_sublens = concated_sublens list
+and unioned_sublens = concated_sublens list * Permutation.t
 
-type normalized_lens =
-  | Asdf of string
-  | Fdsa of string
+type normalized_lens = unioned_sublens

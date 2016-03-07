@@ -1,25 +1,86 @@
 open Core.Std
+open Permutation
 open Lang
 open Lens
 open Eval
 open Util
 open Pp
 
-let rec all_match (c:context) (r:regex) (ss:string list) : bool =
+let rec all_match (evaluator:context -> 'a -> string -> bool)
+                  (c:context) (r:'a) (ss:string list) : bool =
   List.fold_left
-  ~f:(fun acc s -> acc && eval_regex c r s)
+  ~f:(fun acc s -> acc && evaluator c r s)
   ~init:true
   ss
 
+let rec gen_basis_sublens (c:context) (s:basis_subex)
+         (t:basis_subex) (exs:examples) : basis_sublens option =
+  begin match (s,t) with
+  | (NRXStar _, NRXStar _) -> None
+  | (NRXUserDefined _, NRXUserDefined _) ->
+      let (sexs,texs) = List.unzip exs in
+      if (s = t
+          && sexs = texs
+          && all_match eval_basis_subex c s sexs) then
+            (if ((all_match eval_basis_subex c s sexs) && (all_match
+            eval_basis_subex c t texs)) then
+              Some NLIdentityLens
+            else
+              None)
+      else
+        None
+  | _ -> None
+  end
+
+let rec gen_concated_sublens (c:context) (s:concated_subex)
+         (t:concated_subex) (exs:examples) : concated_sublens option =
+  None
+
 let rec gen_normalized_lenses (c:context) (s:normalized_regex)
-(t:normalized_regex) (exs:examples) : normalized_lens list =
-  []
+         (t:normalized_regex) (exs:examples) : normalized_lens option =
+  let length = List.length s in
+  if ((List.length t) <> length) then
+    None
+  else
+    List.fold_left
+      ~f:(fun acc permutation ->
+        begin match acc with
+        | None ->
+            let (sexs,texs) = List.unzip exs in
+            let sexs_splits = List.map
+              ~f:(retrieve_regex_multior_choice c s)
+              sexs in
+            let texs_splits = List.map
+              ~f:(retrieve_regex_multior_choice c t)
+              texs in
+            let concat_lenses = (List.foldi
+            ~f:(fun i acc x ->
+              begin match acc with
+              | Some acc' ->
+                  begin match gen_concated_sublens c x x exs with
+                  | None -> None
+                  | Some sl -> Some (sl::acc')
+                  end
+              | None -> None
+              end
+            )
+            ~init:(Some [])
+            s) in
+            begin match concat_lenses with
+            | None -> None
+            | Some concat_lenses' -> Some (List.rev concat_lenses', permutation)
+            end
+        | Some x -> Some x
+        end
+      )
+      ~init:None
+      (Permutation.create_all length)
 
 let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
   let structural_lenses = (begin match (s,t) with
   | (RegExBase s1, RegExBase s2) ->
       let (exss,exst) = List.unzip exs in
-      if ((all_match c s exss) && (all_match c t exst)) then
+      if ((all_match eval_regex c s exss) && (all_match eval_regex c t exst)) then
         [ConstLens (s1, s2)]
       else
         []
@@ -129,7 +190,7 @@ let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
   let (sexs,texs) = List.unzip exs in
   if (s = t
       && sexs = texs
-      && all_match c s sexs) then
+      && all_match eval_regex c s sexs) then
         IdentityLens :: structural_lenses
       else
         structural_lenses
