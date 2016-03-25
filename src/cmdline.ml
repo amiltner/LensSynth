@@ -45,13 +45,14 @@ let args =
   ]
   |> Arg.align
 
-let print_lenses (ls:lens list) : unit =
-  let str =
-    String.concat (List.map ~f:(fun l -> pp_lens l) ls) ~sep:"\n\n" in
-  print_endline str
+let print_lens (lo:dnf_lens option) : unit =
+  begin match lo with
+  | None -> print_endline "no lens found"
+  | Some ls -> print_endline (Pp.pp_dnf_lens ls)
+  end
 
-let synthesize_prog ((c,r1,r2,exs):synth_problem) : lens list =
-  (gen_lenses c r1 r2 exs)
+let synthesize_prog ((c,r1,r2,exs):synth_problem) : dnf_lens option =
+  (gen_dnf_lens c (to_dnf_regex r1) (to_dnf_regex r2) exs)
   (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
   begin match Synth.synthesize s env tree with
   | Some e ->
@@ -63,7 +64,7 @@ let synthesize_prog ((c,r1,r2,exs):synth_problem) : lens list =
   end;
   pTODO*)
 
-let collect_data (p:synth_problem) : lens list =
+let collect_data (p:synth_problem) : dnf_lens option =
   (*let (time, (x, vs, e)) = Util.time_action (fun _ ->
     let (s, g, env, x, t, es, vs, tree) = process_preamble p in
     (x, List.map ~f:snd vs, Synth.synthesize s env tree))
@@ -75,7 +76,7 @@ let collect_data (p:synth_problem) : lens list =
         (size e) time
     | None ->
       Printf.printf "<<< %s: error during synthesis >>>\n%!" x
-    end; pTODO*) []
+    end; pTODO*) None
 
 let main () =
   begin try
@@ -96,9 +97,9 @@ let main () =
         | Parse ->
             let _ = parse_file f in (*TODO: pp*) ()(*Printf.printf "%s\n"
             (Pp.pp_prog prog)*)
-        | Data -> parse_file f |> collect_data |> print_lenses
+        | Data -> parse_file f |> collect_data |> print_lens
         | Default | Synth ->
-            parse_file f |> synthesize_prog |> print_lenses
+            parse_file f |> synthesize_prog |> print_lens
         end
       end
     end

@@ -20,6 +20,7 @@ exception Internal_error of string
 %token COMMA      (* , *)
 %token STAR       (* * *)
 %token PIPE       (* | *)
+%token PLUS       (* + *)
 %token LPAREN     (* ( *)
 %token RPAREN     (* ) *)
 %token LBRACE     (* { *)
@@ -58,7 +59,7 @@ regex:
   | s=LID { RegExBase s }
   | r1=regex r2=regex { RegExConcat (r1,r2) }
   | r=regex STAR { RegExStar r }
-  | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
+  | r1=regex PLUS r2=regex { RegExOr (r1,r2) }
   | LPAREN r=regex RPAREN { r }
   | u=UID { RegExUserDefined u }
   | DOT { RegExBase "" }

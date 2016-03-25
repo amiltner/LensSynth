@@ -1,4 +1,6 @@
 open Core.Std
+open Permutation
+open Util
 open OUnit
 open Eval
 open Lens
@@ -7,29 +9,56 @@ open Pp
 open Gen
 
 (* Lang tests *)
-let test_normalizization (expected:normalized_regex) (actual:normalized_regex) =
+let test_dnf (expected:dnf_regex) (actual:dnf_regex) =
   assert_equal
-    ~printer:pp_normalized_regex
+    ~printer:pp_dnf_regex_as_regex
+    expected
+    actual
+
+let test_int = assert_equal ~printer:string_of_int
+
+let test_int_option =
+  assert_equal
+    ~printer:(fun int_option -> begin match int_option with
+    | None -> "None"
+    | Some x -> string_of_int x
+    end)
+
+let test_string_double_option
+  (expected:(string*string) option) (actual:(string*string) option) =
+  assert_equal
+    ~printer:(fun x -> begin match x with
+              | None -> "None"
+              | Some (x1,x2) -> "(" ^ x1 ^ "," ^ x2 ^ ")" end)
+    expected
+    actual
+
+let test_string_list_option
+  (expected:(string list) option) (actual:(string list) option) =
+  assert_equal
+    ~printer:(fun x -> begin match x with
+              | None -> "None"
+              | Some xs -> "[" ^ (String.concat xs ~sep:";") ^ "]" end)
     expected
     actual
 
 let test_to_normalized_exp_base _ =
-  test_normalizization
-    (to_normalized_exp (RegExBase "x"))
-    [[NRXBase "x"]]
+  test_dnf
+    (to_dnf_regex (RegExBase "x"))
+    [([],["x"])]
 
 let test_to_normalized_exp_concat_easy _ =
-  test_normalizization
-    [[NRXBase "a"; NRXBase "b"]]
-    (to_normalized_exp
+  test_dnf
+    [([],["ab"])]
+    (to_dnf_regex
       (RegExConcat
         (RegExBase "a",
         RegExBase "b")))
     
 let test_to_normalized_exp_concat_tree _ =
-  test_normalizization
-    [[NRXBase "a"; NRXBase "b"; NRXBase "c"; NRXBase "d"; NRXBase "e"]]
-    (to_normalized_exp
+  test_dnf
+    [([],["abcde"])]
+    (to_dnf_regex
       (RegExConcat
         (RegExConcat
           (RegExBase "a",
@@ -41,9 +70,9 @@ let test_to_normalized_exp_concat_tree _ =
             RegExBase "e")))))
 
 let test_to_normalized_exp_union_tree _ =
-  test_normalizization
-    [[NRXBase "a"]; [NRXBase "b"]; [NRXBase "c"]; [NRXBase "d"]; [NRXBase "e"]]
-    (to_normalized_exp
+  test_dnf
+    [([],["a"]);([],["b"]);([],["c"]);([],["d"]);([],["e"])]
+    (to_dnf_regex
       (RegExOr
         (RegExOr
           (RegExBase "a",
@@ -55,8 +84,8 @@ let test_to_normalized_exp_union_tree _ =
             RegExBase "e")))))
 
 let test_to_normalized_exp_append_distributeconcat _ =
-  test_normalizization
-    (to_normalized_exp
+  test_dnf
+    (to_dnf_regex
       (RegExConcat
         (RegExConcat
           (RegExBase "a",
@@ -64,12 +93,12 @@ let test_to_normalized_exp_append_distributeconcat _ =
             (RegExBase "b",
             RegExBase "c")),
         RegExBase "d")))
-    [[NRXBase "a"; NRXBase "b"; NRXBase "d"];
-     [NRXBase "a"; NRXBase "c"; NRXBase "d"]]
+    [([],["abd"]);([],["acd"])]
 
 let test_to_normalized_exp_complicated _ =
-  test_normalizization
-    (to_normalized_exp
+  test_dnf
+  ([([],["abg"]);([AStar ([([],["cef"]);([],["cdf"])])],["ag";""])])
+    (to_dnf_regex
     (RegExConcat
       (RegExConcat
         (RegExBase "a",
@@ -84,13 +113,6 @@ let test_to_normalized_exp_complicated _ =
                     RegExBase "e")),
                 RegExBase "f")))),
          RegExBase "g")))
-    [[NRXBase "a"; NRXBase "b"; NRXBase "g"];
-     [NRXBase "a";
-      NRXStar [
-        [NRXBase "c"; NRXBase "d"; NRXBase "f"];
-        [NRXBase "c"; NRXBase "e"; NRXBase "f"]
-      ];
-      NRXBase "g"]]
 
 
 let to_normalized_exp_suite = "to_normalized_exp Unit Tests" >:::
@@ -290,15 +312,6 @@ let eval_lens_suite = "eval_lens Unit Tests" >:::
 
 let _ = run_test_tt_main eval_lens_suite
 
-let test_string_double_option
-  (expected:(string*string) option) (actual:(string*string) option) =
-  assert_equal
-    ~printer:(fun x -> begin match x with
-              | None -> "None"
-              | Some (x1,x2) -> "(" ^ x1 ^ "," ^ x2 ^ ")" end)
-    expected
-    actual
-
 let test_retrieve_regex_concat_split _ =
   test_string_double_option
     (Some ("a","b"))
@@ -310,15 +323,6 @@ let retrieve_regex_concat_split_suite = "retrieve_regex_concat_split Unit Tests"
 
 let _ = run_test_tt_main retrieve_regex_concat_split_suite
 
-let test_string_list_option
-  (expected:(string list) option) (actual:(string list) option) =
-  assert_equal
-    ~printer:(fun x -> begin match x with
-              | None -> "None"
-              | Some xs -> "[" ^ (String.concat xs ~sep:";") ^ "]" end)
-    expected
-    actual
-
 let test_retrieve_regex_star_splits _ =
   test_string_list_option
     (Some ["a";"a"])
@@ -329,6 +333,30 @@ let retrieve_regex_star_splits_suite = "retrieve_regex_star_splits Unit Tests" >
   ]
 
 let _ = run_test_tt_main retrieve_regex_star_splits_suite
+
+let test_retrieve_dnf_clause_choices _ =
+  test_int_option
+    (Some 1)
+    (retrieve_dnf_clause_choices [] [([],["a"]);([],["b"])] "b")
+
+let retrieve_dnf_clause_choices_suite = "retrieve_dnf_clause_choices Unit Tests" >:::
+  ["test_retrieve_dnf_clause_choices" >:: test_retrieve_dnf_clause_choices;
+  ]
+
+let _ = run_test_tt_main retrieve_dnf_clause_choices_suite
+
+let test_retrieve_atom_splits _ =
+  test_string_list_option
+    (Some ["a";"b"])
+    (retrieve_atom_splits [("A",RegExBase "a");("B",RegExBase "b")]
+    ([AUserDefined "A"; AUserDefined "B"],["qwer";"asdf";"zxcv"])
+    "qweraasdfbzxcv")
+
+let retrieve_atom_splits_suite = "retrieve_atom_splits Unit Tests" >:::
+  ["test_retrieve_atom_splits" >:: test_retrieve_atom_splits;
+  ]
+
+let _ = run_test_tt_main retrieve_atom_splits_suite
 
 let test_lens_list (expected:lens list) (actual:lens list) =
   assert_equal
@@ -419,4 +447,242 @@ let gen_lens_suite = "gen_lens Unit Tests" >:::
   ]
 
 let _ = run_test_tt_main gen_lens_suite
+
+
+let test_int_list = assert_equal
+  ~printer:(fun is -> String.concat (List.map ~f:string_of_int is) ~sep:",")
+
+let test_permutation_create_invalid_0 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [0;2])
+
+let test_permutation_create_invalid_1 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [0;0])
+
+let test_permutation_create_invalid_2 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create [-1])
+
+let test_permutation_apply_identity _ =
+  test_int
+     2
+     (Permutation.apply (Permutation.create [0;1;2]) 2)
+
+let test_permutation_apply_nonidentity _ =
+  test_int
+    0
+    (Permutation.apply (Permutation.create [1;2;0]) 2)
+                
+let test_permutation_apply_invalid _ =
+  assert_raises
+    (Failure "out of range")
+    (fun _ -> Permutation.apply (Permutation.create []) 0)
+
+let test_permutation_apply_inverse_identity _ =
+  test_int
+    2
+    (Permutation.apply_inverse (Permutation.create [0;1;2]) 2)
+
+let test_permutation_apply_inverse_nonidentity _ =
+  test_int
+    1
+    (Permutation.apply_inverse (Permutation.create [1;2;0]) 2)
+                
+let test_permutation_apply_inverse_invalid _ =
+  assert_raises
+    (Failure "out of range")
+    (fun _ -> Permutation.apply_inverse (Permutation.create []) 0)
+
+let test_permutation_create_all _ =
+  test_int
+    2
+    (List.length (Permutation.create_all 2))
+
+let test_permutation_apply_to_list_identity _ =
+  test_int_list
+    [2;4;8]
+    (Permutation.apply_to_list (Permutation.create [0;1;2]) [2;4;8])
+
+let test_permutation_apply_to_list_c3 _ =
+  test_int_list
+    [2;4;8]
+    (Permutation.apply_to_list (Permutation.create [2;0;1]) [4;8;2])
+
+let test_permutation_apply_inverse_to_list_identity _ =
+  test_int_list
+    [2;4;8]
+    (Permutation.apply_inverse_to_list (Permutation.create [0;1;2]) [2;4;8])
+
+let test_permutation_apply_inverse_to_list_c3 _ =
+  test_int_list
+    [2;4;8]
+    (Permutation.apply_to_list (Permutation.create [2;0;1]) [8;2;4])
+
+let permutation_suite = "permutation Unit Tests" >:::
+  ["test_permutation_create_invalid_0" >:: test_permutation_create_invalid_0;
+   "test_permutation_create_invalid_1" >:: test_permutation_create_invalid_1;
+   "test_permutation_create_invalid_2" >:: test_permutation_create_invalid_2;
+   "test_permutation_apply_identity" >:: test_permutation_apply_identity;
+   "test_permutation_apply_nonidentity" >:: test_permutation_apply_nonidentity;
+   "test_permutation_apply_invalid" >:: test_permutation_apply_invalid;
+   "test_permutation_apply_inverse_identity" >:: test_permutation_apply_inverse_identity;
+   "test_permutation_apply_inverse_nonidentity" >:: test_permutation_apply_inverse_nonidentity;
+   "test_permutation_apply_inverse_invalid" >:: test_permutation_apply_inverse_invalid;
+   "test_permutation_create_all" >:: test_permutation_create_all;
+   "test_permutation_apply_to_list_identity" >:: test_permutation_apply_to_list_identity;
+   "test_permutation_apply_to_list_c3" >:: test_permutation_apply_to_list_c3;
+   "test_permutation_apply_inverse_to_list_identity" >:: test_permutation_apply_to_list_identity;
+   "test_permutation_apply_inverse_to_list_c3" >:: test_permutation_apply_to_list_c3;
+  ]
+
+let _ = run_test_tt_main permutation_suite
+
+let test_int_list_list = assert_equal
+  ~printer:(fun is ->
+    (String.concat
+    (["[" ^ "]"])
+      ~sep:"  ,  ")
+  )
+
+let test_bucketize_pairs_symmetric _ =
+  test_int_list_list
+    [[];['a'];[]]
+    (bucketize_pairs 3 [('a',1)])
+
+let test_bucketize_pairs_asymmetric _ =
+  test_int_list_list
+    [['a'];['b';'c'];[]]
+    (bucketize_pairs 3 [('b',1);('a',0);('c',1)])
+
+let util_suite = "Util Unit Tests" >:::
+  ["test_bucketize_pairs_symmetric" >:: test_bucketize_pairs_symmetric;
+   "test_bucketize_pairs_asmemetric" >:: test_bucketize_pairs_asymmetric
+  ]
+
+let _ = run_test_tt_main util_suite
+
+let test_dnf_lens_option (expected:dnf_lens option) (actual:dnf_lens option) =
+  assert_equal
+    ~printer:(fun l -> begin match l with
+    | None -> "None"
+    | Some l -> "Some " ^ Pp.pp_dnf_lens l end)
+    expected
+    actual
+
+let test_gen_dnf_lens_const_nosoln _ =
+  test_dnf_lens_option
+    None
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExBase "x"))
+      (to_dnf_regex (RegExBase "y"))
+      [("a","b")])
+
+let test_gen_dnf_lens_const_soln _ =
+  test_dnf_lens_option
+    (Some ([[],Permutation.create [], ["x"], ["y"]],Permutation.create [0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExBase "x"))
+      (to_dnf_regex (RegExBase "y"))
+      [("x","y")])
+
+let test_gen_lenses_union _ =
+  test_dnf_lens_option
+    (Some
+      ([[],Permutation.create [], ["a"], ["y"];
+        [],Permutation.create [], ["b"], ["x"]],
+      Permutation.create [1;0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExOr (RegExBase "a", RegExBase "b")))
+      (to_dnf_regex (RegExOr (RegExBase "x", RegExBase "y")))
+      [("a","y");("b","x")])
+
+let test_gen_lenses_three_union _ =
+  test_dnf_lens_option
+    (Some
+      ([[],Permutation.create [], ["a"], ["y"];
+        [],Permutation.create [], ["b"], ["z"];
+        [],Permutation.create [], ["c"], ["x"]],
+      Permutation.create [1;2;0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExOr (RegExBase "a", RegExOr (RegExBase "b", RegExBase "c"))))
+      (to_dnf_regex (RegExOr (RegExBase "x", RegExOr (RegExBase "y", RegExBase "z"))))
+      [("a","y");("b","z");("c","x")])
+
+let test_gen_lenses_userdef_ident _ =
+  test_dnf_lens_option
+    (Some
+      ([[AIdentity], Permutation.create [0], ["";""], ["";""]],
+      Permutation.create [0]))
+    (gen_dnf_lens ["A",RegExBase "a"; "B", RegExBase "b"]
+      (to_dnf_regex (RegExUserDefined "A"))
+      (to_dnf_regex (RegExUserDefined "A"))
+      [])
+
+let test_gen_lenses_concat_userdef _ =
+  test_dnf_lens_option
+    (Some
+      ([[AIdentity; AIdentity], Permutation.create [1;0],
+        ["";"";""], ["";"";""]],
+      Permutation.create [0]))
+    (gen_dnf_lens ["A",RegExBase "a"; "B", RegExBase "b"]
+      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "B")))
+      (to_dnf_regex (RegExConcat (RegExUserDefined "B", RegExUserDefined "A")))
+      ["ab","ba"])
+
+let test_gen_lenses_concat_userdef_hard _ =
+  test_dnf_lens_option
+    (Some
+      ([[AIdentity; AIdentity], Permutation.create [1;0],
+        ["";"";""], ["";"";""]],
+      Permutation.create [0]))
+    (gen_dnf_lens ["A",RegExOr (RegExBase "a", RegExBase "A")]
+      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "A")))
+      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "A")))
+      [("Aa","aA")])
+
+let test_gen_lenses_star _ =
+  test_dnf_lens_option
+  (Some ([[(AIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
+  [0]))], Permutation.create [0], ["";""], ["";""]], Permutation.create [0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExStar (RegExBase "a")))
+      (to_dnf_regex (RegExStar (RegExBase "b")))
+      ["aa","bb"])
+
+let test_gen_lenses_star_difficult _ =
+  test_dnf_lens_option
+  (Some ([
+    [(AIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
+    [0]));
+    (AIterate ([[], Permutation.create [], ["b"], ["a"]], Permutation.create
+    [0]))
+    ], Permutation.create [0;1], ["";"";""], ["";"";""]
+    ],
+    Permutation.create [0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExConcat
+        (RegExStar (RegExBase "a"),
+        RegExStar (RegExBase "b"))))
+      (to_dnf_regex (RegExConcat
+        (RegExStar (RegExBase "a"),
+        RegExStar (RegExBase "b"))))
+      ["abb","aab"])
+
+let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
+  ["test_gen_dnf_lens_const_nosoln" >:: test_gen_dnf_lens_const_nosoln;
+   "test_gen_dnf_lens_const_soln" >:: test_gen_dnf_lens_const_soln;
+   "test_gen_lenses_union" >:: test_gen_lenses_union;
+   "test_gen_lenses_three_union" >:: test_gen_lenses_three_union;
+   "test_gen_lenses_userdef_ident" >:: test_gen_lenses_userdef_ident;
+   "test_gen_lenses_concat_userdef" >:: test_gen_lenses_concat_userdef;
+   "test_gen_lenses_concat_userdef_hard" >:: test_gen_lenses_concat_userdef_hard;
+   "test_gen_lenses_star" >:: test_gen_lenses_star;
+   "test_gen_lenses_star_difficult" >:: test_gen_lenses_star_difficult;
+  ]
+
+let _ = run_test_tt_main gen_dnf_lens_suite
 

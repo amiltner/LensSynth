@@ -14,6 +14,7 @@ let symbols : (string * Parser.token) list =
   ; (",", COMMA)
   ; ("*", STAR)
   ; ("|", PIPE)
+  ; ("+", PLUS)
   ; ("(", LPAREN)
   ; (")", RPAREN)
   ; ("{", LBRACE)
@@ -55,7 +56,7 @@ rule token = parse
   | whitespace+ | newline+    { token lexbuf }
   | lowercase (digit | character | '_')* { create_token lexbuf }
   | uppercase (digit | character | '_')* { UID (lexeme lexbuf) }
-  | '?' | "|>" | '=' | "->" | "=>" | '*' | ',' | ':' | ';' | '|' | '(' | ')'
+  | '?' | "|>" | '=' | "->" | "=>" | '*' | ',' | ':' | ';' | '|' | '+' | '(' | ')'
   | '{' | '}' | '[' | ']' | '_' | '.' | "<=>" | "<->"
     { create_symbol lexbuf }
   | _ as c { raise @@ Lexer_error ("Unexpected character: " ^ Char.escaped c) }
