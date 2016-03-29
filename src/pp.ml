@@ -62,7 +62,7 @@ let rec pp_dnf_regex_as_regex (clauses:dnf_regex) : string =
     let pp_clause ((atoms,strings):clause) : string =
       begin match strings with
       | h::t -> let zipped_tail = List.zip_exn atoms t in
-          h ^ String.concat (List.map ~f:(fun (a,s) -> s ^ (pp_atom a)) zipped_tail)
+          h ^ String.concat (List.map ~f:(fun (a,s) -> (pp_atom a) ^ s) zipped_tail)
 
       | [] -> failwith "bad clause"
       end in

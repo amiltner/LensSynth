@@ -56,9 +56,14 @@ let rec split_by_first_exn (l:'a list) : ('a * 'a list) =
   | [] -> failwith "need len at least 1"
   end
 
-let rec split_by_last_exn (l:'a list) : 'a list * 'a =
+let split_by_last_exn (l:'a list) : 'a list * 'a =
   let (h,t) = split_by_first_exn (List.rev l) in
   (List.rev t, h)
+
+let split_by_first_last_exn (l:'a list) : 'a * 'a list * 'a =
+  let (h,t) = split_by_first_exn l in
+  let (m,e) = split_by_last_exn t in
+  (h,m,e)
 
 let rec weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
   let (head,torso1) = split_by_last_exn l1 in

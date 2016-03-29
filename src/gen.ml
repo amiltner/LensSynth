@@ -132,8 +132,78 @@ let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
       else
         structural_lenses
 
+let num_stars_current_level_clause ((atoms,_):clause) : int =
+  let num_stars_current_level_atom (a:atom) : int =
+    begin match a with
+    | AUserDefined _ -> 0
+    | AStar _ -> 1
+    end in
+  List.fold_left
+    ~f:(fun acc a -> acc + (num_stars_current_level_atom a))
+    ~init:0
+    atoms
+
+let num_stars_current_level_regex (r:dnf_regex) : int =
+  List.fold_left
+    ~f:(fun acc cl -> acc + (num_stars_current_level_clause cl))
+    ~init:0
+    r
+
+let expand_atom (r:dnf_regex) (expanded_atom:int) : dnf_regex =
+  let expand_starred_dnf_regex (r:dnf_regex) (s1:string) (s2:string) : dnf_regex =
+      (List.fold_left
+        ~f:(fun acc (atoms,strings) ->
+          begin match strings with
+          | [] -> failwith "invalid"
+          | [h] -> (atoms@[AStar r],[s1^h;s2])::acc
+          | _ -> let (f,m,e) = split_by_first_last_exn strings in
+                ((atoms@[AStar r]),(s1^f)::m @ [e;s2])::acc
+          end)
+        ~init:[]
+        r) @ [[],[s1^s2]] in
+
+  let expand_clause ((atoms,strings):clause) (num_atom:int) : clause list =
+    let concat_dnfs (clauses1:dnf_regex) (clauses2:dnf_regex) : dnf_regex =
+      cartesian_map
+        (fun (a1s,s1s) (a2s,s2s) -> ((a1s@a2s),weld_lists (^) s1s s2s))
+        clauses1
+        clauses2 in
+    let sas_list = begin match (atoms,strings) with
+    | (ha::ta,hs1::hs2::ts) -> (hs1,ha,hs2)::
+          (List.map
+            ~f:(fun (a,s) -> ("",a,s))
+            (List.zip_exn ta ts))
+
+    | _ -> failwith "should be a atom in here"
+    end in
+    let (expanded_clause,_) = List.fold_left
+      ~f:(fun (acc,atoms_passed) (s1,a,s2) ->
+        begin match a with
+        | AUserDefined _ -> (concat_dnfs acc [([a],[s1;s2])],atoms_passed)
+        | AStar r' ->
+            if atoms_passed = num_atom then
+              (concat_dnfs acc (expand_starred_dnf_regex r' s1 s2) ,atoms_passed+1)
+            else
+              (concat_dnfs acc [([a],[s1;s2])],atoms_passed+1)
+        end)
+      ~init:([[],[""]],0)
+      sas_list in
+    expanded_clause in
+
+  let (r',_) = List.fold_left
+    ~f:(fun (acc,atoms_passed) cl ->
+        let num_atoms_here = num_stars_current_level_clause cl in
+        if atoms_passed <= expanded_atom
+            && (expanded_atom < atoms_passed + num_atoms_here) then
+          (acc @ (expand_clause cl (expanded_atom-atoms_passed)),atoms_passed+num_atoms_here)
+        else
+          (acc @ [cl],atoms_passed+num_atoms_here))
+    ~init:([],0)
+    r in
+  r'
+
 let rec gen_atom_lens (c:context) (a1:atom) (a2:atom)
-                      (exs:examples) : atom_lens option =
+                      (exs:examples) (expand_count:int) : atom_lens option =
   begin match (a1,a2) with
   | (AStar r1, AStar r2) ->
       let (sexs,texs) = List.unzip exs in
@@ -161,7 +231,7 @@ let rec gen_atom_lens (c:context) (a1:atom) (a2:atom)
           begin match split_examples with
           | None ->  None
           | Some l ->
-              begin match gen_dnf_lens c r1 r2 l with
+              begin match gen_dnf_lens_internal c r1 r2 l expand_count with
                       | None -> None
                       | Some l -> Some (AIterate l)
                       end
@@ -186,7 +256,7 @@ let rec gen_atom_lens (c:context) (a1:atom) (a2:atom)
 
 and gen_clause_lens (c:context) ((atoms1,strings1):clause)
                     ((atoms2,strings2):clause)
-                    (exs:examples) : clause_lens option =
+                    (exs:examples) (expand_count:int) : clause_lens option =
   let len = List.length atoms1 in
   if len <> List.length atoms2 then
     None
@@ -216,7 +286,7 @@ and gen_clause_lens (c:context) ((atoms1,strings1):clause)
 in
                     let atom_lens_options = List.map
                       ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_atom_lens c c1 c2
-                      (List.zip_exn lexs rexs))
+                      (List.zip_exn lexs rexs) expand_count)
                       atom_examples_list in
                     begin match distribute_option atom_lens_options with
                     | None -> None
@@ -228,8 +298,8 @@ in
     | (_,_) -> None
     end
 
-and gen_dnf_lens (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
-                 (exs:examples) : dnf_lens option =
+and gen_dnf_lens_expand_beneath (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+                 (exs:examples) (expand_count:int) : dnf_lens option =
   let len = List.length clauses1 in
   if len <> List.length clauses2 then
     None
@@ -268,7 +338,7 @@ and gen_dnf_lens (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
                     let clause_exs_pairs = List.zip_exn zipped_clauses clause_exs in
                     let clause_lens_options = List.map
                       ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_clause_lens c c1 c2
-                        (List.zip_exn lexs rexs))
+                        (List.zip_exn lexs rexs) expand_count)
                       clause_exs_pairs in
                     begin match distribute_option clause_lens_options with
                     | None -> None
@@ -279,3 +349,46 @@ and gen_dnf_lens (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
         permutations
     | (_,_) -> None
     end
+
+and gen_dnf_lens_expand_here (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+                        (exs:examples) (expand_count:int) : dnf_lens option =
+  if expand_count = 0 then
+    None
+  else
+    let num_stars_left = num_stars_current_level_regex clauses1 in
+    let num_stars_right = num_stars_current_level_regex clauses2 in
+    let num_stars_current_level = num_stars_left + num_stars_right in
+    let split_locations = range 0 (num_stars_current_level - 1) in
+    List.fold_left
+      ~f:(fun acc loc ->
+        begin match acc with
+        | Some _ -> acc
+        | None -> let (clauses1',clauses2') =
+          (if loc < num_stars_left then
+              (expand_atom clauses1 loc, clauses2)
+            else
+              (clauses1, expand_atom clauses2 (loc-num_stars_left))) in
+          gen_dnf_lens_internal c clauses1' clauses2' exs (expand_count-1)
+        end)
+      ~init:None
+      split_locations
+
+and gen_dnf_lens_internal (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+                 (exs:examples) (expand_count:int) : dnf_lens option =
+  let expanded_here = gen_dnf_lens_expand_here c clauses1 clauses2 exs expand_count in
+  if expanded_here <> None then
+    expanded_here
+  else
+    gen_dnf_lens_expand_beneath c clauses1 clauses2 exs expand_count
+
+
+and gen_dnf_lens (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+                 (exs:examples) : dnf_lens option =
+  List.fold_left
+    ~f:(fun acc i -> begin match acc with
+          | Some _ -> acc
+          | None -> gen_dnf_lens_internal c clauses1 clauses2 exs i
+          end)
+    ~init:None
+    (range 0 99)
+
