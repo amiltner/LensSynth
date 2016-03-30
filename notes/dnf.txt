@@ -12,14 +12,14 @@ if RX = RX’*, RX’*!, and RX’ is unambiguous
 where .! is unambiguously concatable, and *! is unambiguously iterable
 
 Atom ::=
-  DNF_RX*
+  (DNF_RX)*
 | UserDefined
 
 Clause ::=
-  (Atom list * string list) where string list is 1 larger than atom list
+  ([Atom_1;...;Atom_n] , [string_1;...;string_{n+1}])
 
 DNF_RX ::=
-  Clause list
+  [Clause_1;...;Clause_n]
 
 A DNF_RX is unambiguous if:
 The clause list is pairwise disjoint, and each clause is unambiguous
@@ -80,19 +80,75 @@ General statements are DNF_RX1 => DNF_RX2, which means A can be rewritten to B.
 
 
 
-Clause_1 , ..., Clause_{i-1},
 
 
-(Atom_1 , ... , Atom_{j-1} ,
+****************SHORTHARD*******************
 
-( (Atom'_{1,1}, ... , Atom'_{1,z_1} ; string'_{1,1}, ..., string'_{1,z_1+1})
-, ... ,
-(Atom'_{y,1}, ... , Atom'_{y,z_y} ; string'_{y,1}, ..., string'_{1,z_y+1}) )*,
+let EMPTYSTRING = [ ([],[""]) ]
 
-Atom_{j+1} , ... Atom_m ) ; string_1, ..., string_{m+1}
+let Clause1 = ([a_1 ; ... ; a_n] , [s_1 ; ... ; s_{n+1}])
+let Clause2 = ([b_1 ; ... ; b_m] , [t_1 ; ... ; t_{m+1}])
+ConcatClause(Clause1,Clause2) : Clause =
+	([a_1 ; ... ; a_n ; b_1 ; ... ; b_m] , [s_1 ; ... ; s_n ; s_{n+1} ^ t_1 ; t_2 ; ... ; t_{m+1}])
+where ^ is string concat
+
+let DNF_RX1 = [C_1 ; ... ; C_n]
+let DNF_RX2 = [D_1 ; ... ; D_m]
+ConcatDNF_RX(DNF_RX1,DNF_RX2) : DNF_RX =
+	[ConcatClause(C_1,D_1) ; ... ; ConcatClause(C_1,D_m) ; ... ; ConcatClause(C_n,D_1) ; ... ; ConcatClause(C_n,D_m)]
+
+let DNF_RX = [C_1 ; ... ; C_n]
+let C a clause
+ConcatClauseRX(C,DNF_RX) : DNF_RX = [ConcatClause(C,C_1) ; ... ; ConcatClause(C,C_n)]
+ConcatRXClause(DNF_RX,C) : DNF_RX = [ConcatClause(C_1,C) ; ... ; ConcatClause(C_n,C)]
+
+let DNF_RX1 = [C_1 ; ... ; C_n]
+let DNF_RX2 = [D_1 ; ... ; D_m]
+OrRegEx(DNF_RX1,DNF_RX2) = [C_1 ; ... ; C_n ; D_1 ; ... ; D_m]
+
+let DNF_RX be a dnf_regex
+n a nat
+Exponentiate(DNF_RX,0) = EMPTYSTRING
+Exponentiate(DNF_RX,n) = ConcatDNF_RX(Exponentiate(DNF_RX,n-1),DNF_RX)
+
+let DNF_RX be a dnf_regex
+let n positive nat
+DNF_REGEXModn(DNF_RX,1) = EMPTYSTRING
+DNF_REGEXModn(DNF_RX,n) = OrRegEx(DNF_REGEXModn(DNF_RX,n-1) , Exponentiate(DNF_RX,n-1))
 
 
-Clause_{i+1} , ... , Clause_n
+
+
+
+*******************Atom Expansion******************
+
+General Typing Statements are of the form
+ATOM >=> DNF_REGEX
+
+--------------------------------------------------------------------
+--------------------------------------------------------------------
+(DNF_RX)* >=> OrRegEx(EMPTYSTRING, ConcatDNF_RX(DNF_RX,(DNF_RX)*)
+
+
+--------------------------------------------------------------------
+--------------------------------------------------------------------
+(DNF_RX)* >=> ConcatDNF_RX(DNF_REGEXModn(DNF_RX,n) , (Exponentiate(DNF_RX,n))*)
+
+
+
+
+********************Rewrites***********************
+
+General Typing Statements are of the form
+DNF_REGEX => DNF_REGEX
+
+ATOM >=> DNF_RX
+
+--------------------------------------------------------------------
+
+[Clause_1 ; ... ; Clause_{i-1} ;
+([atom_1;...;atom_{j-1};ATOM;atom_{j+1};...;atom_m],[string_1;...;string_{m+1}])
+; Clause_{i+1} ; ... ; Clause_n]
 
 
 
@@ -100,20 +156,18 @@ Clause_{i+1} , ... , Clause_n
 
 
 
+RegExOr([Clause_1 ; ... ; Clause_{i-1}] ,
+RegExOr(
+
+ConcatRXClause(
+	ConcatClauseRX(([atom_1;...;atom_{j-1}],[string_1;...;string_j]),DNF_RX)
+	, ([atom_{j+1} ; ... ; atom_m],[string_{j+1} ; ... ; string_{m+1}]))
+
+, [Clause_{i+1} ; ... ; Clause_n]))
+
+
+
 Clause_1 , ..., Clause_{i-1},
-
-Atom_1 , ... , Atom_{j-1}, Atom_{j+1}, ... Atom_m ; string_1 , ..., string_j++string_{j+1}, ... string_{m+1}
-
-Atom_1 , ... , Atom_{j-1}, Atom'_{1,1}, ..., Atom'{1,z_1}, Atom_{j+1}, ... Atom_m;
-string_1 , ... , string_j++string'_{1,1}, string'_{1,2},...,string'_{1,z_1},string'_{1,z_1+1}++string_{j+1},...,string_{m+1}
-
-...
-
-Atom_1 , ... , Atom_{j-1}, Atom'_{y,1}, ..., Atom'{y,z_1}, Atom_{j+1}, ... Atom_m;
-string_1 , ... , string_j++string'_{y,1}, string'_{y,2},...,string'_{y,z_1},string'_{y,z_1+1}++string_{j+1},...,string_{m+1}
-
-Clause_{i+1} , ... , Clause_n
-
 
 
 
