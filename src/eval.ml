@@ -222,6 +222,8 @@ let retrieve_dnf_star_splits (c:context)
         end
     in
     if (eval_dnf_regex c r "") then failwith "shouldn't match empty"
+    else if s = "" then
+      Some []
     else
       retrieve_regex_star_splits_internal s
 
@@ -231,3 +233,29 @@ let rec eval_lens (l:lens) (s:string) : string option =
   | ConcatLens (l1,l2) -> failwith "ahh"
   | _ -> failwith "ahh"
   end
+
+(*let rec count_maximum_expansions_regex (c:context) (r:regex) (es:string list)
+                                      : int option =
+  begin match r with
+  | RegExBase s ->
+      if List.for_all ~f:(fun e -> e = s) es then
+        None 
+      else
+        Some 0
+  | RegExConcat (r1,r2) ->
+      let example_splits = List.map
+        ~f:(fun e -> retrieve_regex_concat_split c r1 r2 e)
+        es in
+      begin match distribute_option example_splits with
+      | None -> None
+      | Some splits ->
+          let (left_side,right_side) = List.unzip splits in
+          let max_left_option = count_maximum_expansions_regex c r1 left_side in
+          let max_right_option = count_maximum_expansions_regex c r2 right_side in
+          begin match (max_left_option,max_right_option) with
+          | (Some c1, Some c2) -> Some (c1+c2)
+          | _ -> None
+          end
+      end
+  | _ -> failwith "bad idea"
+  end*)

@@ -119,3 +119,24 @@ let transpose_safe_empty_exn (row_count:int) (ls:'a list list) : 'a list list =
     duplicate [] row_count
   else
     List.transpose_exn ls
+
+let is_prime (n:int) : bool =
+  let rec loop (k:int) : bool =
+    if k*k > n then
+      true
+    else if n mod k = 0 then
+      false
+    else
+      loop (k+2)
+  in
+  if n=2 then
+    true
+  else if n < 2 || n mod 2 = 0 then
+    false
+  else
+    loop 3
+
+let primes_beneath_n (n:int) : int list =
+  List.filter
+  ~f:is_prime
+  (range 0 (n))

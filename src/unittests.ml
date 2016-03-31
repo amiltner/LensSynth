@@ -97,7 +97,7 @@ let test_to_normalized_exp_append_distributeconcat _ =
 
 let test_to_normalized_exp_complicated _ =
   test_dnf
-  ([([],["abg"]);([AStar ([([],["cef"]);([],["cdf"])])],["ag";""])])
+  ([([],["abg"]);([AStar ([([],["cdf"]);([],["cef"])])],["a";"g"])])
     (to_dnf_regex
     (RegExConcat
       (RegExConcat
@@ -352,8 +352,14 @@ let test_retrieve_atom_splits _ =
     ([AUserDefined "A"; AUserDefined "B"],["qwer";"asdf";"zxcv"])
     "qweraasdfbzxcv")
 
+let test_retrieve_atom_splits_star _ =
+  test_string_list_option
+    (Some [""])
+    (retrieve_atom_splits [] ([AStar [([],["a"])]],["a";""]) "a")
+
 let retrieve_atom_splits_suite = "retrieve_atom_splits Unit Tests" >:::
   ["test_retrieve_atom_splits" >:: test_retrieve_atom_splits;
+   "test_retrieve_atom_splits_star" >:: test_retrieve_atom_splits_star;
   ]
 
 let _ = run_test_tt_main retrieve_atom_splits_suite
@@ -569,23 +575,23 @@ let test_dnf_lens =
   assert_equal
   ~printer:Pp.pp_dnf_regex_as_regex
 
-let test_expand_atom_basic _ =
+let test_expand_atom_empty_basic _ =
   test_dnf_lens
     (to_dnf_regex (RegExOr (RegExBase "",RegExConcat (RegExBase "a",RegExStar
     (RegExBase "a")))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex (RegExStar (RegExBase "a")))
       0)
 
-let test_expand_atom_concat _ =
+let test_expand_atom_empty_concat _ =
   test_dnf_lens
     (to_dnf_regex (RegExOr (RegExBase "x", RegExConcat (RegExBase "xa",
     RegExStar (RegExBase "a")))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex (RegExConcat (RegExBase "x", RegExStar (RegExBase "a"))))
       0)
 
-let test_expand_atom_concat_harder _ =
+let test_expand_atom_empty_concat_harder _ =
   test_dnf_lens
     (to_dnf_regex
       (RegExOr
@@ -604,13 +610,13 @@ let test_expand_atom_concat_harder _ =
             (RegExConcat (RegExBase "a",
             RegExConcat (RegExUserDefined "T", RegExBase "p"))),
           RegExBase "q")))))))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex (RegExConcat (RegExConcat (RegExBase "x",RegExUserDefined
       "Z"), RegExConcat (RegExBase "m", RegExConcat (RegExStar (RegExConcat
       (RegExBase "a", RegExConcat (RegExUserDefined "T",RegExBase "p"))),RegExBase
       "q"))))) 0)
 
-let test_expand_atom_internal_union _ =
+let test_expand_atom_empty_internal_union _ =
   test_dnf_lens
     (to_dnf_regex
       (RegExOr
@@ -622,11 +628,11 @@ let test_expand_atom_internal_union _ =
         ,RegExConcat
           (RegExBase "b"
           ,RegExStar (RegExOr (RegExBase "a",RegExBase "b"))))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex
         (RegExStar (RegExOr (RegExBase "a", RegExBase "b")))) 0)
 
-let test_expand_atom_union_first _ =
+let test_expand_atom_empty_union_first _ =
   test_dnf_lens
     (to_dnf_regex
       (RegExOr
@@ -636,13 +642,13 @@ let test_expand_atom_union_first _ =
             (RegExBase "a"
             ,RegExStar (RegExBase "a")))
         ,RegExStar (RegExBase "b"))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex
         (RegExOr
           (RegExStar (RegExBase "a")
           ,RegExStar (RegExBase "b")))) 0)
 
-let test_expand_atom_union_second _ =
+let test_expand_atom_empty_union_second _ =
   test_dnf_lens
     (to_dnf_regex
       (RegExOr
@@ -652,22 +658,36 @@ let test_expand_atom_union_second _ =
         ,RegExConcat
           (RegExBase "b"
           ,RegExStar (RegExBase "b")))))
-    (expand_atom
+    (expand_atom_rewrite empty_or_not_star_expansion
       (to_dnf_regex
         (RegExOr
           (RegExStar (RegExBase "a")
           ,RegExStar (RegExBase "b")))) 1)
 
-let expand_atom_suite = "expand_atom Unit Tests" >:::
-  ["test_expand_atom_basic" >:: test_expand_atom_basic;
-   "test_expand_atom_concat" >:: test_expand_atom_concat;
-   "test_expand_atom_concat_harder" >:: test_expand_atom_concat_harder;
-   "test_expand_atom_internal_union" >:: test_expand_atom_internal_union;
-   "test_expand_atom_union_first" >:: test_expand_atom_union_first;
-   "test_expand_atom_union_second" >:: test_expand_atom_union_second;
+let test_expand_atom_quotient _ =
+  test_dnf_lens
+    (to_dnf_regex
+      (RegExOr
+        (RegExStar (RegExBase "aa")
+        ,RegExConcat
+          (RegExBase "a"
+          ,RegExStar (RegExBase "aa")))))
+    (expand_atom_rewrite
+      (quotient_product_expansion 2)
+      (to_dnf_regex (RegExStar (RegExBase "a")))
+      0)
+
+let expand_atom_rewrite_suite = "expand_atom_rewrite Unit Tests" >:::
+  ["test_expand_atom_empty_basic" >:: test_expand_atom_empty_basic;
+   "test_expand_atom_empty_concat" >:: test_expand_atom_empty_concat;
+   "test_expand_atom_empty_concat_harder" >:: test_expand_atom_empty_concat_harder;
+   "test_expand_atom_empty_internal_union" >:: test_expand_atom_empty_internal_union;
+   "test_expand_atom_empty_union_first" >:: test_expand_atom_empty_union_first;
+   "test_expand_atom_empty_union_second" >:: test_expand_atom_empty_union_second;
+   "test_expand_atom_quotient" >:: test_expand_atom_quotient;
   ]
 
-let _ = run_test_tt_main expand_atom_suite
+let _ = run_test_tt_main expand_atom_rewrite_suite
 
 let test_dnf_lens_option (expected:dnf_lens option) (actual:dnf_lens option) =
   assert_equal
@@ -789,7 +809,7 @@ let test_dnf_lens_star_expansion _ =
       (to_dnf_regex (RegExOr
         (RegExBase "",
         RegExConcat (RegExBase "a", RegExStar (RegExBase "a")))))
-      [])
+      ["a","a"])
 
 let test_dnf_lens_star_inner_expansion _ =
   test_dnf_lens_option
@@ -809,6 +829,60 @@ let test_dnf_lens_star_inner_expansion _ =
       "az", RegExStar (RegExBase "z"))))))
       [])
 
+let test_dnf_lens_quotient_expansion _ =
+  test_dnf_lens_option
+    (Some (
+      [
+        ([
+          (AIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
+        ],
+        Permutation.create [0],
+        ["";""],
+        ["";""]);
+        ([
+          (AIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
+        ],
+        Permutation.create [0],
+        ["a";""],
+        ["a";""]);
+      ], Permutation.create [0;1]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExStar (RegExBase "a")))
+      (to_dnf_regex (RegExOr (RegExStar (RegExBase "aa"),
+                            RegExConcat (RegExBase "a", RegExStar (RegExBase
+                            "aa")))))
+      [])
+
+let test_dnf_lens_inner_quotient_expansion _ =
+  test_dnf_lens_option
+  (Some (
+    [
+      ([
+        AIterate 
+(
+      [
+        ([
+          (AIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
+        ],
+        Permutation.create [0],
+        ["a";""],
+        ["a";""]);
+        ([
+          (AIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
+        ],
+        Permutation.create [0],
+        ["ab";""],
+        ["ab";""]);
+      ], Permutation.create [1;0])
+    ], Permutation.create [0], ["";""], ["";""])], Permutation.create [0]))
+    (gen_dnf_lens []
+      (to_dnf_regex (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
+    "b")))))
+      (to_dnf_regex (RegExStar (RegExConcat (RegExBase "a", RegExOr (RegExStar (RegExBase "bb"),
+                            RegExConcat (RegExBase "b", RegExStar (RegExBase
+                            "bb")))))))
+      [("a","a")])
+
 let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
   ["test_gen_dnf_lens_const_nosoln" >:: test_gen_dnf_lens_const_nosoln;
    "test_gen_dnf_lens_const_soln" >:: test_gen_dnf_lens_const_soln;
@@ -821,6 +895,8 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
    "test_gen_dnf_lens_star_difficult" >:: test_gen_dnf_lens_star_difficult;
    "test_dnf_lens_star_expansion" >:: test_dnf_lens_star_expansion;
    "test_dnf_lens_star_inner_expansion" >:: test_dnf_lens_star_inner_expansion;
+   "test_dnf_lens_quotient_expansion" >:: test_dnf_lens_quotient_expansion;
+   "test_dnf_lens_inner_quotient_expansion" >:: test_dnf_lens_inner_quotient_expansion;
   ]
 
 let _ = run_test_tt_main gen_dnf_lens_suite
