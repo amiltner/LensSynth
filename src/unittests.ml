@@ -547,27 +547,63 @@ let permutation_suite = "permutation Unit Tests" >:::
 
 let _ = run_test_tt_main permutation_suite
 
-let test_int_list_list = assert_equal
+let test_char_list_list = assert_equal
   ~printer:(fun is ->
     (String.concat
     (["[" ^ "]"])
       ~sep:"  ,  ")
   )
 
+let test_char_list_double = assert_equal
+
 let test_bucketize_pairs_symmetric _ =
-  test_int_list_list
+  test_char_list_list
     [[];['a'];[]]
     (bucketize_pairs 3 [('a',1)])
 
 let test_bucketize_pairs_asymmetric _ =
-  test_int_list_list
+  test_char_list_list
     [['a'];['b';'c'];[]]
     (bucketize_pairs 3 [('b',1);('a',0);('c',1)])
 
+let test_sub0_error_split_at_index_exn _ =
+  assert_raises
+    (Failure "invalid index")
+    (fun _ -> split_at_index_exn [] (-1))
+
+let test_overlen_error_split_at_index_exn _ =
+  assert_raises
+    (Failure "invalid index")
+    (fun _ -> split_at_index_exn [] (7))
+
+let test_0index_split_at_index_exn _ =
+  test_char_list_double
+    ([],['a'])
+    (split_at_index_exn ['a'] 0)
+
+let test_index_split_at_index_exn _ =
+  test_char_list_double
+    (['a'],['b'])
+    (split_at_index_exn ['a';'b'] 1)
+
+let test_sort_and_partition _ =
+  test_char_list_list
+    [['a';'a'];['b'];['c';'c';'c'];['z']]
+    (sort_and_partition
+      (fun x y -> (Char.to_int x) - (Char.to_int y))
+      ['a';'z';'b';'c';'c';'a';'c'])
+
 let util_suite = "Util Unit Tests" >:::
   ["test_bucketize_pairs_symmetric" >:: test_bucketize_pairs_symmetric;
-   "test_bucketize_pairs_asmemetric" >:: test_bucketize_pairs_asymmetric
+   "test_bucketize_pairs_asmemetric" >:: test_bucketize_pairs_asymmetric;
+   "test_sub0_error_split_at_index_exn" >:: test_sub0_error_split_at_index_exn;
+   "test_0index_split_at_index_exn" >:: test_0index_split_at_index_exn;
+   "test_index_split_at_index_exn" >:: test_index_split_at_index_exn;
+   "test_sort_and_partition" >:: test_sort_and_partition;
   ]
+
+let test_sort_and_partition _ =
+  test_char_list_list
 
 let _ = run_test_tt_main util_suite
 

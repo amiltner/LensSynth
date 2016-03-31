@@ -65,6 +65,21 @@ let split_by_first_last_exn (l:'a list) : 'a * 'a list * 'a =
   let (m,e) = split_by_last_exn t in
   (h,m,e)
 
+let split_at_index_exn (l:'a list) (i:int) : 'a list * 'a list =
+  let rec split_at_index_exn_internal (l:'a list) (i:int) : 'a list * 'a list =
+    begin match (l,i) with
+    | (_,0) -> ([],l)
+    | (h::t,_) ->
+        let (l1,l2) = split_at_index_exn_internal t (i-1) in
+        (h::l1,l2)
+    | _ -> failwith "index out of range"
+    end in
+  if i < 0 then
+    failwith "invalid index"
+  else
+    split_at_index_exn_internal l i
+  
+
 let rec weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
   let (head,torso1) = split_by_last_exn l1 in
   let (torso2,tail) = split_by_first_exn l2 in
@@ -140,3 +155,30 @@ let primes_beneath_n (n:int) : int list =
   List.filter
   ~f:is_prime
   (range 0 (n))
+
+let rec sort_and_partition (f:'a -> 'a -> int) (l:'a list) : 'a list list =
+  let rec merge_sorted_partitions (l1:'a list list) (l2:'a list list) : 'a list list =
+    begin match (l1,l2) with
+    | (h1::t1,h2::t2) ->
+        let rep1 = List.hd_exn h1 in
+        let rep2 = List.hd_exn h2 in
+        let comparison = f rep1 rep2 in
+        if (comparison = 0) then
+          ((h1@h2)::(merge_sorted_partitions t1 t2))
+        else if comparison < 0 then
+          (h1::(merge_sorted_partitions t1 l2))
+        else
+          (h2::(merge_sorted_partitions l1 t2))
+    | _ -> l1 @ l2
+    end in
+  begin match l with
+  | [] -> []
+  | [h] -> [[h]]
+  | _ ->
+      let len = List.length l in
+      let (l1, l2) = split_at_index_exn l (len/2) in
+      let sorted_partitioned_l1 = sort_and_partition f l1 in
+      let sorted_partitioned_l2 = sort_and_partition f l2 in
+      merge_sorted_partitions sorted_partitioned_l1 sorted_partitioned_l2
+  end
+
