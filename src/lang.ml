@@ -113,4 +113,18 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
   end
 
 
+let rec compare_atoms (a1:atom) (a2:atom) : comparison =
+  begin match (a1,a2) with
+  | (AUserDefined s1, AUserDefined s2) -> int_to_comparison (compare s1 s2)
+  | (AUserDefined  _, AStar         _) -> LT
+  | (AStar         _, AUserDefined  _) -> GT
+  | (AStar        r1, AStar        r2) -> compare_dnf_regexs r1 r2
+  end
+
+and compare_clauses ((atoms1,strings1):clause) ((atoms2,strings2):clause) : comparison =
+  ordered_partition_order compare_atoms atoms1 atoms2
+
+and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
+  ordered_partition_order compare_clauses r1 r2
+
 (***** }}} *****)

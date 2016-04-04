@@ -51,6 +51,9 @@ let print_lens (lo:dnf_lens option) : unit =
   | Some ls -> print_endline (Pp.pp_dnf_lens ls)
   end
 
+let ignore (x:'a) : unit =
+  ()
+
 let synthesize_prog ((c,r1,r2,exs):synth_problem) : dnf_lens option =
   (gen_dnf_lens c (to_dnf_regex r1) (to_dnf_regex r2) exs)
   (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
@@ -99,7 +102,7 @@ let main () =
             (Pp.pp_prog prog)*)
         | Data -> parse_file f |> collect_data |> print_lens
         | Default | Synth ->
-            parse_file f |> synthesize_prog |> print_lens
+            parse_file f |> synthesize_prog |> ignore
         end
       end
     end

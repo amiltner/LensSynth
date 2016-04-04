@@ -281,28 +281,33 @@ and gen_clause_lens (c:context) ((atoms1,strings1):clause)
     | (Some lexs_splits,Some rexs_splits) ->
         let left_atom_examples = transpose_safe_empty_exn len lexs_splits in
         let right_atom_examples = transpose_safe_empty_exn len rexs_splits in
-        let permutations = Permutation.create_all len in
-        List.fold_left
-        ~f:(fun acc perm ->
-          begin match acc with
-          | Some _ -> acc
-          | None -> let permuted_atoms2 = Permutation.apply_to_list perm atoms2 in
-                    let zipped_atoms = List.zip_exn atoms1 permuted_atoms2 in
-                    let atom_examples = List.zip_exn left_atom_examples
-                      (Permutation.apply_to_list perm right_atom_examples) in
-                    let atom_examples_list = List.zip_exn zipped_atoms atom_examples
-in
-                    let atom_lens_options = List.map
-                      ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_atom_lens c c1 c2
-                      (List.zip_exn lexs rexs) expand_count)
-                      atom_examples_list in
-                    begin match distribute_option atom_lens_options with
-                    | None -> None
-                    | Some ls -> Some (ls,perm,strings1,strings2)
-                    end
-          end)
-        ~init:None
-        permutations
+        fold_until_completion
+          (fun (invalid_parts,valid_parts) ->
+            let perm_guess_option = Permutation.create_from_constraints
+                          len
+                          invalid_parts
+                          valid_parts in
+            begin match perm_guess_option with
+            | None -> Right None
+            | Some (perm, guesses) ->
+              let permuted_atoms2 = Permutation.apply_to_list_exn perm atoms2 in
+              let zipped_atoms = List.zip_exn atoms1 permuted_atoms2 in
+              let atom_examples = List.zip_exn left_atom_examples
+                (Permutation.apply_to_list_exn perm right_atom_examples) in
+              let atom_examples_list = List.zip_exn zipped_atoms atom_examples in
+              let atom_lens_options = List.map
+                ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_atom_lens c c1 c2
+                (List.zip_exn lexs rexs) expand_count)
+                atom_examples_list in
+              begin match distribute_option atom_lens_options with
+              | None -> let (goods,bads) = List.partition_tf
+                          ~f:(fun (i,j) -> (List.nth atom_lens_options i) = None)
+                          guesses in
+                        Left (bads@invalid_parts,goods@valid_parts)
+              | Some ls -> Right (Some (ls,perm,strings1,strings2))
+              end
+            end)
+            ([],[])
     | (_,_) -> None
     end
 
@@ -324,37 +329,45 @@ and gen_dnf_lens_expand_beneath (c:context) (clauses1:dnf_regex) (clauses2:dnf_r
     begin match (lexs_choices_option, rexs_choices_option) with
     | (Some lexs_choices, Some rexs_choices) -> 
         let choices = List.zip_exn lexs_choices rexs_choices in
-        let permutations = Permutation.create_all len in
-        List.fold_left
-        ~f:(fun acc perm ->
-          begin match acc with
-          | Some _ -> acc
-          | None -> let valid_perm = List.for_all
-                      ~f:(fun (lchoice,rchoice) -> Permutation.apply perm
-                      lchoice = rchoice)
-                      choices in
-                    if not valid_perm then None else
+        let dedup_choices = List.dedup choices in
+        fold_until_completion
+          (fun (invalid_parts,required_parts) ->
+            let perm_guess_option = Permutation.create_from_constraints
+                          len
+                          invalid_parts
+                          required_parts in
+            begin match perm_guess_option with
+            | None -> Right None
+            | Some (perm, guesses) ->
                     let (lchoices,rchoices) = List.unzip choices in
                     let lchoice_lexample_pairs = List.zip_exn lexs lchoices in
                     let rchoice_rexample_pairs = List.zip_exn rexs rchoices in
                     let lclauseexs = bucketize_pairs len lchoice_lexample_pairs in
-                    let rclauseexs = Permutation.apply_to_list perm
+                    let rclauseexs = Permutation.apply_to_list_exn perm
                       (bucketize_pairs len rchoice_rexample_pairs) in
                     let clause_exs = List.zip_exn lclauseexs rclauseexs in
-                    let permuted_clauses2 = Permutation.apply_to_list perm clauses2 in
+                    let permuted_clauses2 = Permutation.apply_to_list_exn perm clauses2 in
                     let zipped_clauses = List.zip_exn clauses1 permuted_clauses2 in
                     let clause_exs_pairs = List.zip_exn zipped_clauses clause_exs in
-                    let clause_lens_options = List.map
-                      ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_clause_lens c c1 c2
+                    let clause_lens_options = List.mapi
+                      ~f:(fun i ((c1,c2),(lexs,rexs)) ->
+                        gen_clause_lens c c1 c2
                         (List.zip_exn lexs rexs) expand_count)
                       clause_exs_pairs in
                     begin match distribute_option clause_lens_options with
-                    | None -> None
-                    | Some ls -> Some (ls,perm)
+                    | None -> let (goods,bads) = List.partition_tf
+                          ~f:(fun (i,j) -> (List.nth clause_lens_options i) = None)
+                          guesses in
+                        if (List.length bads) = 0 then
+                          Right None
+                        else
+                          Left (bads@invalid_parts,goods@required_parts)
+
+                    | Some ls -> Right (Some (ls,perm))
                     end
-          end)
-        ~init:None
-        permutations
+            end
+          )
+          ([],dedup_choices)
     | (_,_) -> None
     end
 

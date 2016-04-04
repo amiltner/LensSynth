@@ -42,6 +42,33 @@ let test_string_list_option
     expected
     actual
 
+let test_comparison =
+  assert_equal
+    ~printer:Pp.pp_comparison
+
+let test_permutation_option =
+  assert_equal
+    ~printer:(fun x -> begin match x with
+                       | None -> "None"
+                       | Some p -> "Some " ^ (Permutation.pp p)
+                       end)
+
+let test_permutation_guesses_option =
+  assert_equal
+    ~printer:(fun x -> begin match x with
+              | None -> "None"
+              | Some (p,g) ->
+                  "Some (" ^
+                  (Permutation.pp p) ^ "   ,   [" ^
+                  String.concat
+                    ~sep:" ; "
+                    (List.map
+                      ~f:(fun (i,j) -> (string_of_int i) ^ "->" ^ (string_of_int
+                      j))
+                      g)
+                    ^ "])"
+    end)
+
 let test_to_normalized_exp_base _ =
   test_dnf
     (to_dnf_regex (RegExBase "x"))
@@ -124,6 +151,25 @@ let to_normalized_exp_suite = "to_normalized_exp Unit Tests" >:::
    "test_to_normalized_exp_complicated" >:: test_to_normalized_exp_complicated]
 
 let _ = run_test_tt_main to_normalized_exp_suite
+
+let test_compare_dnf_regexs_userdefineds_eq _ =
+  test_comparison
+    EQ
+    (compare_dnf_regexs [[AUserDefined "a"],["";"1qaz"]]
+    [[AUserDefined "a"],["";"2wsx"]])
+
+let test_compare_dnf_regexs_userdefineds_lt _ =
+  test_comparison
+    LT
+    (compare_dnf_regexs [[AUserDefined "a"],["";"1qaz"]]
+    [[AUserDefined "b"],["";"2wsx"]])
+
+let compare_dnf_regexs_suite = "compare_dnf_regexs Unit Tests" >:::
+  ["test_compare_dnf_regexs_userdefineds_eq" >:: test_compare_dnf_regexs_userdefineds_eq;
+   "test_compare_dnf_regexs_userdefineds_lt" >:: test_compare_dnf_regexs_userdefineds_lt;
+  ]
+
+let _ = run_test_tt_main compare_dnf_regexs_suite
 
 
 (* Eval tests *)
@@ -473,6 +519,46 @@ let test_permutation_create_invalid_2 _ =
     (Failure "Not Bijection")
     (fun _ -> Permutation.create [-1])
 
+let test_permutation_create_from_doubles_invalid_0 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create_from_doubles [(0,2);(1,0)])
+
+let test_permutation_create_from_doubles_invalid_1 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create_from_doubles [(0,1);(0,0)])
+
+let test_permutation_create_from_doubles_invalid_2 _ =
+  assert_raises
+    (Failure "Not Bijection")
+    (fun _ -> Permutation.create_from_doubles [(0,1);(1,1)])
+
+let test_permutation_create_from_constraints_none_0 _ =
+  test_permutation_guesses_option
+    None
+    (Permutation.create_from_constraints 3 [(0,2);(0,1);(0,0)] [])
+
+let test_permutation_create_from_constraints_none_1 _ =
+  test_permutation_guesses_option
+    None
+    (Permutation.create_from_constraints 3 [(0,0);(1,0);(2,0)] [])
+
+let test_permutation_create_from_constraints_identity _ =
+  test_permutation_guesses_option
+    (Some ((Permutation.create [0;1;2]), [(0,0);(1,1);(2,2)]))
+    (Permutation.create_from_constraints 3 [] [])
+
+let test_permutation_create_from_constraints_withvalid _ =
+  test_permutation_guesses_option
+    (Some ((Permutation.create [1;0;2]), [(1,0);(2,2)]))
+    (Permutation.create_from_constraints 3 [] [(0,1)])
+
+let test_permutation_create_from_constraints_withinvalid _ =
+  test_permutation_guesses_option
+    (Some ((Permutation.create [1;0;2]), [(0,1);(1,0);(2,2)]))
+    (Permutation.create_from_constraints 3 [(0,0)] [])
+
 let test_permutation_apply_identity _ =
   test_int
      2
@@ -482,6 +568,13 @@ let test_permutation_apply_nonidentity _ =
   test_int
     0
     (Permutation.apply (Permutation.create [1;2;0]) 2)
+
+let test_permutation_apply_from_doubles _ =
+  test_int
+    0
+    (Permutation.apply
+      (Permutation.create_from_doubles [(1,2);(2,0);(0,1)])
+      2)
                 
 let test_permutation_apply_invalid _ =
   assert_raises
@@ -511,12 +604,12 @@ let test_permutation_create_all _ =
 let test_permutation_apply_to_list_identity _ =
   test_int_list
     [2;4;8]
-    (Permutation.apply_to_list (Permutation.create [0;1;2]) [2;4;8])
+    (Permutation.apply_to_list_exn (Permutation.create [0;1;2]) [2;4;8])
 
 let test_permutation_apply_to_list_c3 _ =
   test_int_list
-    [2;4;8]
-    (Permutation.apply_to_list (Permutation.create [2;0;1]) [4;8;2])
+    [8;2;4]
+    (Permutation.apply_to_list_exn (Permutation.create [2;0;1]) [4;8;2])
 
 let test_permutation_apply_inverse_to_list_identity _ =
   test_int_list
@@ -525,15 +618,24 @@ let test_permutation_apply_inverse_to_list_identity _ =
 
 let test_permutation_apply_inverse_to_list_c3 _ =
   test_int_list
-    [2;4;8]
-    (Permutation.apply_to_list (Permutation.create [2;0;1]) [8;2;4])
+    [4;8;2]
+    (Permutation.apply_to_list_exn (Permutation.create [2;0;1]) [8;2;4])
 
 let permutation_suite = "permutation Unit Tests" >:::
   ["test_permutation_create_invalid_0" >:: test_permutation_create_invalid_0;
    "test_permutation_create_invalid_1" >:: test_permutation_create_invalid_1;
    "test_permutation_create_invalid_2" >:: test_permutation_create_invalid_2;
+   "test_permutation_create_from_doubles_invalid_0" >:: test_permutation_create_from_doubles_invalid_0;
+   "test_permutation_create_from_doubles_invalid_1" >:: test_permutation_create_from_doubles_invalid_1;
+   "test_permutation_create_from_doubles_invalid_2" >:: test_permutation_create_from_doubles_invalid_2;
+   "test_permutation_create_from_constraints_none_0" >:: test_permutation_create_from_constraints_none_0;
+   "test_permutation_create_from_constraints_none_1" >:: test_permutation_create_from_constraints_none_1;
+   "test_permutation_create_from_constraints_identity" >:: test_permutation_create_from_constraints_identity;
+   "test_permutation_create_from_constraints_withvalid" >:: test_permutation_create_from_constraints_withvalid;
+   "test_permutation_create_from_constraints_withinvalid" >:: test_permutation_create_from_constraints_withinvalid;
    "test_permutation_apply_identity" >:: test_permutation_apply_identity;
    "test_permutation_apply_nonidentity" >:: test_permutation_apply_nonidentity;
+   "test_permutation_apply_from_doubles" >:: test_permutation_apply_from_doubles;
    "test_permutation_apply_invalid" >:: test_permutation_apply_invalid;
    "test_permutation_apply_inverse_identity" >:: test_permutation_apply_inverse_identity;
    "test_permutation_apply_inverse_nonidentity" >:: test_permutation_apply_inverse_nonidentity;
@@ -590,7 +692,7 @@ let test_sort_and_partition _ =
   test_char_list_list
     [['a';'a'];['b'];['c';'c';'c'];['z']]
     (sort_and_partition
-      (fun x y -> (Char.to_int x) - (Char.to_int y))
+      (fun x y -> compare_ints (Char.to_int x) (Char.to_int y))
       ['a';'z';'b';'c';'c';'a';'c'])
 
 let util_suite = "Util Unit Tests" >:::
@@ -935,5 +1037,5 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
    "test_dnf_lens_inner_quotient_expansion" >:: test_dnf_lens_inner_quotient_expansion;
   ]
 
-let _ = run_test_tt_main gen_dnf_lens_suite
+(*let _ = run_test_tt_main gen_dnf_lens_suite*)
 

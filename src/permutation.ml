@@ -6,13 +6,18 @@ module type Permutation_Sig = sig
 
   val create : int list -> t
 
+  val create_from_doubles : (int * int) list -> t
+
+  val create_from_constraints : int -> (int * int) list
+                                    -> (int * int) list -> (t * ((int * int) list)) option
+
   val create_all : int -> t list
 
   val apply : t -> int -> int
 
   val apply_inverse : t -> int -> int
   
-  val apply_to_list : t -> 'a list -> 'a list
+  val apply_to_list_exn : t -> 'a list -> 'a list
 
   val apply_inverse_to_list : t -> 'a list -> 'a list
 
@@ -33,6 +38,101 @@ module Permutation : Permutation_Sig = struct
           x::acc)
       ~init:[]
       mapping)
+
+  let rec create_from_doubles (mapping:(int*int) list) : t =
+    let len = List.length mapping in
+    let (mapping_ls,mapping_rs) = List.unzip mapping in
+    let contains_dup_l = List.contains_dup
+        ~compare:(fun x y -> x - y)
+        mapping_ls in
+    let contains_dup_r = List.contains_dup
+        ~compare:(fun x y -> x - y)
+        mapping_rs in
+    let out_of_range = List.exists
+        ~f:(fun (x,y) -> x >= len || x < 0 || y >= len || y < 0)
+        mapping in
+    if contains_dup_l || contains_dup_r || out_of_range then
+      failwith "Not Bijection"
+    else
+      let sorted_by_first = List.sort
+        ~cmp:(fun (x,_) (y,_) -> x - y)
+        mapping in
+      List.map ~f:(fun (x,y) -> y) sorted_by_first
+
+  let create_from_constraints (len:int) (invalid_parts:(int*int) list)
+                              (required_parts:(int*int) list)
+                              : (t * ((int*int) list)) option =
+
+    let rec create_from_constraints_internal (len:int)
+                                             (invalid_parts:(int*int) list)
+                                             (required_parts:(int*int) list)
+                                             (unused_partsl:int list)
+                                             (unused_partsr:int list)
+                                             (guessed_parts:(int*int) list)
+                                             (continuation:
+                                               ((t * ((int*int) list)) option)
+                                            -> ((t * ((int*int) list)) option))
+                                             (unused_l:int)
+                                           : (t * ((int*int) list)) option =
+      begin match unused_partsl with
+      | [] -> Some (create_from_doubles required_parts, guessed_parts)
+      | hl::tl ->
+          let choice = split_by_first_satisfying
+            (fun x -> not (List.mem invalid_parts (hl,x)))
+            unused_partsr in
+          begin match choice with
+          | None -> continuation None
+          | Some (hr,tr) ->
+              let ctn = (fun potential_solution ->
+                begin match potential_solution with
+              | None ->
+                  create_from_constraints_internal
+                          len
+                          ((hl,hr)::invalid_parts)
+                          required_parts
+                          unused_partsl
+                          unused_partsr
+                          guessed_parts
+                          continuation
+                          unused_l
+              | Some _ -> continuation(potential_solution)
+              end) in
+              create_from_constraints_internal
+                len
+                invalid_parts
+                ((hl,hr)::required_parts)
+                tl
+                tr
+                ((hl,hr)::guessed_parts)
+                ctn
+                (unused_l-1)
+          end
+      end in
+  if (List.exists
+        ~f:(fun invalid_part -> List.mem required_parts invalid_part)
+        invalid_parts) then
+    None
+  else
+    let available_parts = range 0 (len - 1) in
+    let (used_partsl,used_partsr) = List.unzip required_parts in
+    let (unused_partsl,unused_partsr) = List.fold_left
+      ~f:(fun (l,r) x ->
+            let unused_in_left = not (List.mem used_partsl x) in
+            let unused_in_right = not (List.mem used_partsr x) in
+            let l' = if unused_in_left then x::l else l in
+            let r' = if unused_in_right then x::r else r in
+            (l',r'))
+      ~init:([],[])
+      available_parts in
+    create_from_constraints_internal
+      len
+      invalid_parts
+      required_parts
+      unused_partsl
+      unused_partsr
+      []
+      (fun x -> x)
+      (List.length unused_partsl)
 
   let rm x l = List.filter ~f:((<>) x) l  
 
@@ -59,10 +159,13 @@ module Permutation : Permutation_Sig = struct
       end in
     find n permutation
 
-  let apply_to_list (permutation:t) (l:'a list) : 'a list =
-    List.map
-    ~f:(fun v -> List.nth_exn l v)
-    permutation
+  let apply_to_list_exn (permutation:t) (l:'a list) : 'a list =
+    let permutation_list_combo = List.zip_exn permutation l in
+    let sorted_by_perm = List.sort
+      ~cmp:(fun (p1,x1) (p2,x2) -> p1 - p2)
+      permutation_list_combo in
+    let (_,l') = List.unzip sorted_by_perm in
+    l'
 
   let apply_inverse_to_list (permutation:t) (l:'a list) : 'a list =
     let indexed_permutation = List.mapi

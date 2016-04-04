@@ -2,6 +2,7 @@ open Lang
 open Lens
 open Core.Std
 open Permutation
+open Util
 
 let paren (s:string) : string = "(" ^ s ^ ")"
 
@@ -99,3 +100,10 @@ let rec pp_dnf_lens ((clause_lenses, permutation):dnf_lens) : string =
   paren (
     Permutation.pp permutation
   )
+
+let pp_comparison (c:comparison) : string =
+  begin match c with
+  | EQ -> "EQ"
+  | LT -> "LT"
+  | GT -> "GT"
+  end
