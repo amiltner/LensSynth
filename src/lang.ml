@@ -127,4 +127,12 @@ and compare_clauses ((atoms1,strings1):clause) ((atoms2,strings2):clause) : comp
 and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
   ordered_partition_order compare_clauses r1 r2
 
+type exampled_atom =
+  | EAUserDefined of string * string list
+  | EAStar of exampled_dnf_regex
+
+and exampled_clause = (exampled_atom) list * string list * int list
+
+and exampled_dnf_regex = exampled_clause list
+
 (***** }}} *****)

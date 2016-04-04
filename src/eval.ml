@@ -259,3 +259,122 @@ let rec eval_lens (l:lens) (s:string) : string option =
       end
   | _ -> failwith "bad idea"
   end*)
+
+(* ASSUMES EXAMPLES MATCH REGEXS *)
+let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
+                        : exampled_dnf_regex option =
+  let rec to_exampled_atom_bare (a:atom) : exampled_atom =
+    begin match a with
+    | AUserDefined s -> EAUserDefined (s,[])
+    | AStar r -> EAStar (to_exampled_dnf_regex_bare r)
+    end
+  and to_exampled_clause_bare ((atoms,strings):clause) : exampled_clause =
+    (List.map ~f:(fun a -> to_exampled_atom_bare a) atoms,strings,[])
+  and to_exampled_dnf_regex_bare (r:dnf_regex) : exampled_dnf_regex =
+    List.map ~f:(fun c -> to_exampled_clause_bare c) r
+  in
+
+  let rec add_atom_example (a:exampled_atom) (s:string)
+                        : exampled_atom option =
+    let rec add_atom_example_internal (a:exampled_atom) (s:string) (i:int)
+                          : exampled_atom option =
+      begin match a with
+      | EAUserDefined (v,exs) ->
+          begin match List.Assoc.find c v with
+          | Some rex ->
+              if (eval_regex c rex s) then
+                Some (EAUserDefined (v,s::exs))
+              else
+                None
+          | None -> failwith "not in the context"
+          end
+      | EAStar dnf ->
+          if (s = "") then Some a
+          else
+            let strlen = String.length s in
+            List.fold_left
+              ~f:(fun acc x ->
+                begin match acc with
+                | None ->
+                    begin match add_dnf_regex_example dnf (String.sub s 0 x) i with
+                    | None -> None
+                    | Some dnf' -> add_atom_example_internal
+                                    (EAStar dnf')
+                                    (String.sub s x (strlen-x))
+                                    (i+1)
+                    end
+                | Some _ -> acc
+                end)
+              ~init:None
+              (range 1 strlen)
+      end
+    in
+  add_atom_example_internal a s 0
+
+  and add_clause_example ((atoms,strings,choices):exampled_clause) (s:string) (i:int)
+                        : (exampled_clause option) =
+    let rec retrieve_splits_string (atoms:exampled_atom list)
+                        (strings:string list)
+                        (s:string) : exampled_atom list option =
+      begin match strings with
+      | [] -> failwith "invalid clause"
+      | h::t -> begin match String.chop_prefix s ~prefix:h with
+                | None -> None
+                | Some s' -> retrieve_splits_atom atoms t s'
+                end
+      end
+    and retrieve_splits_atom (atoms:exampled_atom list)
+                          (strings:string list)
+                          (s:string) : exampled_atom list option =
+      begin match atoms with
+      | [] -> if s = "" then Some [] else None
+      | h::t -> List.fold_left
+        ~f:(fun acc pos ->
+          begin match acc with
+          | None ->
+              begin match add_atom_example h (String.prefix s pos) with
+              | None -> None
+              | Some a ->
+                begin match retrieve_splits_string t strings
+                (String.drop_prefix s pos) with
+                | None -> None
+                | Some x -> (Some (a::x))
+                end
+              end
+          | Some _ -> acc
+          end)
+        ~init:None
+        (range 0 (String.length s))
+      end
+    in
+
+    begin match retrieve_splits_string atoms strings s with
+    | None -> None
+    | Some atoms' -> Some (atoms',strings,i::choices)
+    end
+
+  and add_dnf_regex_example (r:exampled_dnf_regex) (s:string) (i:int)
+                        : exampled_dnf_regex option =
+    let (r',found) = List.fold_right
+      ~f:(fun c (acc,found) ->
+        if found then
+          (c::acc,true)
+        else
+          begin match add_clause_example c s i with
+          | None -> (c::acc,false)
+          | Some c' -> (c'::acc,true)
+          end)
+      ~init:([],false)
+      r in
+    if found then Some r' else None
+  in
+
+  List.foldi
+    ~f:(fun i acc s ->
+      begin match acc with
+      | None -> None
+      | Some acc' ->
+          add_dnf_regex_example acc' s i
+      end)
+    ~init: (Some (to_exampled_dnf_regex_bare r))
+    exs_side

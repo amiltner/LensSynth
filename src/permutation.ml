@@ -19,7 +19,7 @@ module type Permutation_Sig = sig
   
   val apply_to_list_exn : t -> 'a list -> 'a list
 
-  val apply_inverse_to_list : t -> 'a list -> 'a list
+  val apply_inverse_to_list_exn : t -> 'a list -> 'a list
 
   val pp : t -> string
 end
@@ -54,10 +54,10 @@ module Permutation : Permutation_Sig = struct
     if contains_dup_l || contains_dup_r || out_of_range then
       failwith "Not Bijection"
     else
-      let sorted_by_first = List.sort
-        ~cmp:(fun (x,_) (y,_) -> x - y)
+      let sorted_by_second = List.sort
+        ~cmp:(fun (_,x) (_,y) -> x - y)
         mapping in
-      List.map ~f:(fun (x,y) -> y) sorted_by_first
+      List.map ~f:(fun (x,y) -> x) sorted_by_second
 
   let create_from_constraints (len:int) (invalid_parts:(int*int) list)
                               (required_parts:(int*int) list)
@@ -146,12 +146,6 @@ module Permutation : Permutation_Sig = struct
     permutations (range 0 (n-1))
 
   let apply (permutation:t) (n:int) =
-    begin match (List.nth permutation n) with
-    | None -> failwith "out of range"
-    | Some i -> i
-    end
-
-  let apply_inverse (permutation:t) (n:int) =
     let rec find x lst =
       begin match lst with
       | [] -> failwith "out of range"
@@ -159,7 +153,18 @@ module Permutation : Permutation_Sig = struct
       end in
     find n permutation
 
+  let apply_inverse (permutation:t) (n:int) =
+    begin match (List.nth permutation n) with
+    | None -> failwith "out of range"
+    | Some i -> i
+    end
+
   let apply_to_list_exn (permutation:t) (l:'a list) : 'a list =
+    List.map
+      ~f:(fun x -> List.nth_exn l x)
+      permutation
+
+  let apply_inverse_to_list_exn (permutation:t) (l:'a list) : 'a list =
     let permutation_list_combo = List.zip_exn permutation l in
     let sorted_by_perm = List.sort
       ~cmp:(fun (p1,x1) (p2,x2) -> p1 - p2)
@@ -167,23 +172,10 @@ module Permutation : Permutation_Sig = struct
     let (_,l') = List.unzip sorted_by_perm in
     l'
 
-  let apply_inverse_to_list (permutation:t) (l:'a list) : 'a list =
-    let indexed_permutation = List.mapi
-      ~f:(fun i x -> (i,x))
-      permutation in
-    List.map
-      ~f:(fun v ->
-        let (index,_) = List.find_exn
-          ~f:(fun (i,x) -> x = v)
-          indexed_permutation in
-        List.nth_exn l index
-      )
-      (range 0 ((List.length l)-1))
-
   let pp (permutation:t) : string =
     String.concat
       (List.mapi
-        ~f:(fun x y -> (string_of_int x) ^ "->" ^ (string_of_int y))
+        ~f:(fun x y -> (string_of_int x) ^ "<-" ^ (string_of_int y))
         permutation)
       ~sep: " , "
     

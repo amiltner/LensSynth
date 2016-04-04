@@ -69,6 +69,14 @@ let test_permutation_guesses_option =
                     ^ "])"
     end)
 
+let test_exampled_dnf_option =
+  assert_equal
+    ~printer:(fun ro ->
+      begin match ro with
+      | None -> "None"
+      | Some r -> Pp.pp_exampled_dnf_regex r
+      end)
+
 let test_to_normalized_exp_base _ =
   test_dnf
     (to_dnf_regex (RegExBase "x"))
@@ -566,7 +574,7 @@ let test_permutation_apply_identity _ =
 
 let test_permutation_apply_nonidentity _ =
   test_int
-    0
+    1
     (Permutation.apply (Permutation.create [1;2;0]) 2)
 
 let test_permutation_apply_from_doubles _ =
@@ -588,7 +596,7 @@ let test_permutation_apply_inverse_identity _ =
 
 let test_permutation_apply_inverse_nonidentity _ =
   test_int
-    1
+    0
     (Permutation.apply_inverse (Permutation.create [1;2;0]) 2)
                 
 let test_permutation_apply_inverse_invalid _ =
@@ -609,17 +617,17 @@ let test_permutation_apply_to_list_identity _ =
 let test_permutation_apply_to_list_c3 _ =
   test_int_list
     [8;2;4]
-    (Permutation.apply_to_list_exn (Permutation.create [2;0;1]) [4;8;2])
+    (Permutation.apply_to_list_exn (Permutation.create [2;0;1]) [2;4;8])
 
 let test_permutation_apply_inverse_to_list_identity _ =
   test_int_list
     [2;4;8]
-    (Permutation.apply_inverse_to_list (Permutation.create [0;1;2]) [2;4;8])
+    (Permutation.apply_inverse_to_list_exn (Permutation.create [0;1;2]) [2;4;8])
 
 let test_permutation_apply_inverse_to_list_c3 _ =
   test_int_list
     [4;8;2]
-    (Permutation.apply_to_list_exn (Permutation.create [2;0;1]) [8;2;4])
+    (Permutation.apply_inverse_to_list_exn (Permutation.create [2;0;1]) [2;4;8])
 
 let permutation_suite = "permutation Unit Tests" >:::
   ["test_permutation_create_invalid_0" >:: test_permutation_create_invalid_0;
@@ -643,8 +651,8 @@ let permutation_suite = "permutation Unit Tests" >:::
    "test_permutation_create_all" >:: test_permutation_create_all;
    "test_permutation_apply_to_list_identity" >:: test_permutation_apply_to_list_identity;
    "test_permutation_apply_to_list_c3" >:: test_permutation_apply_to_list_c3;
-   "test_permutation_apply_inverse_to_list_identity" >:: test_permutation_apply_to_list_identity;
-   "test_permutation_apply_inverse_to_list_c3" >:: test_permutation_apply_to_list_c3;
+   "test_permutation_apply_inverse_to_list_identity" >:: test_permutation_apply_inverse_to_list_identity;
+   "test_permutation_apply_inverse_to_list_c3" >:: test_permutation_apply_inverse_to_list_c3;
   ]
 
 let _ = run_test_tt_main permutation_suite
@@ -868,7 +876,7 @@ let test_gen_lenses_three_union _ =
       ([[],Permutation.create [], ["a"], ["y"];
         [],Permutation.create [], ["b"], ["z"];
         [],Permutation.create [], ["c"], ["x"]],
-      Permutation.create [1;2;0]))
+      Permutation.create [2;0;1]))
     (gen_dnf_lens []
       (to_dnf_regex (RegExOr (RegExBase "a", RegExOr (RegExBase "b", RegExBase "c"))))
       (to_dnf_regex (RegExOr (RegExBase "x", RegExOr (RegExBase "y", RegExBase "z"))))
@@ -1037,5 +1045,51 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
    "test_dnf_lens_inner_quotient_expansion" >:: test_dnf_lens_inner_quotient_expansion;
   ]
 
-(*let _ = run_test_tt_main gen_dnf_lens_suite*)
+let _ = run_test_tt_main gen_dnf_lens_suite
 
+
+let test_to_exampled_dnf_constant_noex _ =
+  test_exampled_dnf_option
+    (Some [([],["a"],[])])
+    (to_exampled_dnf_regex []
+      [([],["a"])]
+      [])
+
+let test_to_exampled_dnf_constant_2ex _ =
+  test_exampled_dnf_option
+    (Some [([],["a"],[1;0])])
+    (to_exampled_dnf_regex []
+      [([],["a"])]
+      ["a";"a"])
+
+let test_to_exampled_dnf_or _ =
+  test_exampled_dnf_option
+    (Some [([],["a"],[1]);([],["b"],[0])])
+    (to_exampled_dnf_regex []
+      [([],["a"]);([],["b"])]
+      ["b";"a"])
+
+let test_to_exampled_dnf_userdefined _ =
+  test_exampled_dnf_option
+    (Some [([EAUserDefined ("A",["a"])],["";""],[0])])
+    (to_exampled_dnf_regex ["A",RegExBase "a"]
+      [([AUserDefined "A"],["";""])]
+      ["a"])
+
+let test_to_exampled_dnf_star _ =
+  test_exampled_dnf_option
+    (Some [([EAStar [[],["a"],[1;0]]],["";""],[0])])
+    (to_exampled_dnf_regex []
+      [([AStar [([],["a"])]],["";""])]
+      ["aa"])
+
+
+let test_to_exampled_dnf_suite = "to_exampled_dnf_regex Unit Tests" >:::
+  ["test_to_exampled_dnf_constant_noex" >:: test_to_exampled_dnf_constant_noex;
+   "test_to_exampled_dnf_constant_2ex" >:: test_to_exampled_dnf_constant_2ex;
+   "test_to_exampled_dnf_or" >:: test_to_exampled_dnf_or;
+   "test_to_exampled_dnf_userdefined" >:: test_to_exampled_dnf_userdefined;
+   "test_to_exampled_dnf_star" >:: test_to_exampled_dnf_star;
+  ]
+
+let _ = run_test_tt_main test_to_exampled_dnf_suite

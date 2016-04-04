@@ -6,6 +6,8 @@ open Util
 
 let paren (s:string) : string = "(" ^ s ^ ")"
 
+let bracket (s:string) : string = "[" ^ s ^ "]"
+
 let rec pp_regexp (r:regex) : string =
   begin match r with
   | RegExBase s -> s
@@ -42,17 +44,52 @@ let rec pp_normalized_regex (r:normalized_regex) : string =
   in
   String.concat (List.map ~f:pp_concated_regex r) ~sep:"|"
 
+let rec pp_exampled_dnf_regex (r:exampled_dnf_regex) : string =
+  String.concat
+  ~sep:" + "
+  (List.map ~f:pp_exampled_clause r)
+
+and pp_exampled_clause ((atoms,strings,examples):exampled_clause) : string =
+  paren (bracket (
+    String.concat
+    ~sep:";"
+    (List.map ~f:pp_exampled_atom atoms)))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+    strings))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+    (List.map ~f:string_of_int examples)))
+
+and pp_exampled_atom (a:exampled_atom) : string =
+  begin match a with
+  | EAUserDefined (s,sl) -> paren (
+      s ^ "," ^
+      bracket (
+        String.concat
+        ~sep:";"
+        sl)
+      )
+  | EAStar r -> (paren (pp_exampled_dnf_regex r)) ^ "*"
+  end
+
 let rec pp_dnf_regex_as_dnf_regex (clauses:dnf_regex) : string =
-  let pp_atom (a:atom) : string =
-    begin match a with
-    | AStar dnf_rx -> (paren (pp_dnf_regex_as_dnf_regex dnf_rx)) ^ "*"
-    | AUserDefined s -> s
-    end in
-    let pp_clause ((atoms,strings):clause) : string =
-      paren ((paren (String.concat (List.map ~f:pp_atom atoms) ~sep:","))
-        ^ ","
-        ^ (paren (String.concat strings ~sep:","))) in
-    (String.concat (List.map ~f:(fun c -> paren (pp_clause c)) clauses) ~sep:"+")
+  (String.concat (List.map ~f:(fun c -> paren (pp_clause c)) clauses) ~sep:"+")
+
+and pp_atom (a:atom) : string =
+  begin match a with
+  | AStar dnf_rx -> (paren (pp_dnf_regex_as_dnf_regex dnf_rx)) ^ "*"
+  | AUserDefined s -> s
+  end
+
+and pp_clause ((atoms,strings):clause) : string =
+  paren ((paren (String.concat (List.map ~f:pp_atom atoms) ~sep:","))
+    ^ ","
+    ^ (paren (String.concat strings ~sep:",")))
 
 let rec pp_dnf_regex_as_regex (clauses:dnf_regex) : string =
   let pp_atom (a:atom) : string =

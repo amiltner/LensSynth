@@ -290,10 +290,10 @@ and gen_clause_lens (c:context) ((atoms1,strings1):clause)
             begin match perm_guess_option with
             | None -> Right None
             | Some (perm, guesses) ->
-              let permuted_atoms2 = Permutation.apply_to_list_exn perm atoms2 in
+              let permuted_atoms2 = Permutation.apply_inverse_to_list_exn perm atoms2 in
               let zipped_atoms = List.zip_exn atoms1 permuted_atoms2 in
               let atom_examples = List.zip_exn left_atom_examples
-                (Permutation.apply_to_list_exn perm right_atom_examples) in
+                (Permutation.apply_inverse_to_list_exn perm right_atom_examples) in
               let atom_examples_list = List.zip_exn zipped_atoms atom_examples in
               let atom_lens_options = List.map
                 ~f:(fun ((c1,c2),(lexs,rexs)) -> gen_atom_lens c c1 c2
@@ -343,10 +343,10 @@ and gen_dnf_lens_expand_beneath (c:context) (clauses1:dnf_regex) (clauses2:dnf_r
                     let lchoice_lexample_pairs = List.zip_exn lexs lchoices in
                     let rchoice_rexample_pairs = List.zip_exn rexs rchoices in
                     let lclauseexs = bucketize_pairs len lchoice_lexample_pairs in
-                    let rclauseexs = Permutation.apply_to_list_exn perm
+                    let rclauseexs = Permutation.apply_inverse_to_list_exn perm
                       (bucketize_pairs len rchoice_rexample_pairs) in
                     let clause_exs = List.zip_exn lclauseexs rclauseexs in
-                    let permuted_clauses2 = Permutation.apply_to_list_exn perm clauses2 in
+                    let permuted_clauses2 = Permutation.apply_inverse_to_list_exn perm clauses2 in
                     let zipped_clauses = List.zip_exn clauses1 permuted_clauses2 in
                     let clause_exs_pairs = List.zip_exn zipped_clauses clause_exs in
                     let clause_lens_options = List.mapi
