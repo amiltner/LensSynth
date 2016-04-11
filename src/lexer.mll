@@ -21,6 +21,16 @@ let symbols : (string * Parser.token) list =
   ; ("}", RBRACE)
   ; ("=", EQ)
   ; (".", DOT)
+  ; ("/", SLASH)
+  ; ("' '", SPACE)
+  ; ("\\", BACKSLASH)
+  ; (":", COLON)
+  ; ("<", LT)
+  ; (">", GT)
+  ; ("-", HYPHEN)
+  ; ("\\n", NEWLINE)
+  ; ("[", LBRACKET)
+  ; ("]", RBRACKET)
   ]
 
 let create_token lexbuf =
@@ -39,10 +49,17 @@ let create_proj lexbuf =
   let str = lexeme lexbuf in
   let len = String.length str in
   PROJ (int_of_string (String.sub str 1 (len - 1)))
+
+let remove_quotes lexbuf =
+  let str = lexeme lexbuf in
+  let len = String.length str in
+  String.sub str 1 (len-2)
 }
+
 
 let newline    = '\n' | ('\r' '\n') | '\r'
 let whitespace = ['\t' ' ']
+let string = '"' [^'"']* '"'
 let lowercase  = ['a'-'z']
 let uppercase  = ['A'-'Z']
 let character  = uppercase | lowercase
@@ -50,15 +67,17 @@ let digit      = ['0'-'9']
 
 rule token = parse
   | eof   { EOF }
-  | digit { INT (int_of_string (lexeme lexbuf)) }
+  | digit { INT (lexeme lexbuf) }
   | "#" digit+ { create_proj lexbuf } 
   | "(*" {comments 0 lexbuf}
   | whitespace+ | newline+    { token lexbuf }
   | lowercase (digit | character | '_')* { create_token lexbuf }
   | uppercase (digit | character | '_')* { UID (lexeme lexbuf) }
   | '?' | "|>" | '=' | "->" | "=>" | '*' | ',' | ':' | ';' | '|' | '+' | '(' | ')'
-  | '{' | '}' | '[' | ']' | '_' | '.' | "<=>" | "<->"
+  | '{' | '}' | '[' | ']' | '_' | '.' | "<=>" | "<->" | "/"
+  | "' '" | "\\" | ":" | ">" | "<" | "-" | "\\n" | "[" | "]"
     { create_symbol lexbuf }
+  | string { STR (remove_quotes lexbuf) }
   | _ as c { raise @@ Lexer_error ("Unexpected character: " ^ Char.escaped c) }
 
 and comments level = parse

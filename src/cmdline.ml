@@ -19,10 +19,10 @@ let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
 let mode : driver_mode ref = ref Default
 
-let parse_file (f:string) : synth_problem =
+let parse_file (f:string) : synth_problems =
   Preproc.preprocess_file f
     |> Lexing.from_string
-    |> Parser.synth_problem Lexer.token
+    |> Parser.synth_problems Lexer.token
 
 let set_opt (d:driver_mode) =
   match !mode with
@@ -45,17 +45,26 @@ let args =
   ]
   |> Arg.align
 
-let print_lens (lo:dnf_lens option) : unit =
-  begin match lo with
-  | None -> print_endline "no lens found"
-  | Some ls -> print_endline (Pp.pp_dnf_lens ls)
-  end
+let print_lenses (lss:(string * dnf_lens option) list) : unit =
+  List.iter
+    ~f:(fun (s,lo) ->
+      print_endline "\n\n";
+      print_endline (s ^ ":");
+      begin match lo with
+      | None -> print_endline "no lens found"
+      | Some ls -> print_endline (Pp.pp_dnf_lens ls)
+      end)
+    lss
 
 let ignore (x:'a) : unit =
   ()
 
-let synthesize_prog ((c,r1,r2,exs):synth_problem) : dnf_lens option =
-  (gen_dnf_lens c (to_dnf_regex r1) (to_dnf_regex r2) exs)
+let synthesize_prog ((c,ss):synth_problems) : (string * dnf_lens option) list =
+  List.map
+    ~f:(fun (n,r1,r2,exs) -> (n,(gen_dnf_lens c r1 
+    r2 exs)))
+    ss
+  
   (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
   begin match Synth.synthesize s env tree with
   | Some e ->
@@ -67,7 +76,7 @@ let synthesize_prog ((c,r1,r2,exs):synth_problem) : dnf_lens option =
   end;
   pTODO*)
 
-let collect_data (p:synth_problem) : dnf_lens option =
+let collect_data (p:synth_problems) : (string * dnf_lens option) list =
   (*let (time, (x, vs, e)) = Util.time_action (fun _ ->
     let (s, g, env, x, t, es, vs, tree) = process_preamble p in
     (x, List.map ~f:snd vs, Synth.synthesize s env tree))
@@ -79,7 +88,7 @@ let collect_data (p:synth_problem) : dnf_lens option =
         (size e) time
     | None ->
       Printf.printf "<<< %s: error during synthesis >>>\n%!" x
-    end; pTODO*) None
+    end; pTODO*) []
 
 let main () =
   begin try
@@ -100,9 +109,9 @@ let main () =
         | Parse ->
             let _ = parse_file f in (*TODO: pp*) ()(*Printf.printf "%s\n"
             (Pp.pp_prog prog)*)
-        | Data -> parse_file f |> collect_data |> print_lens
+        | Data -> parse_file f |> collect_data |> print_lenses
         | Default | Synth ->
-            parse_file f |> synthesize_prog |> ignore
+            parse_file f |> synthesize_prog |> print_lenses
         end
       end
     end

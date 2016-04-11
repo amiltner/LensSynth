@@ -8,6 +8,20 @@ let paren (s:string) : string = "(" ^ s ^ ")"
 
 let bracket (s:string) : string = "[" ^ s ^ "]"
 
+let pp_int_list (il:int list) : string =
+  bracket (
+    String.concat
+      ~sep:";"
+      (List.map ~f:string_of_int il)
+  )
+
+let pp_int_list_list (ill:int list list) : string =
+  bracket (
+    String.concat
+      ~sep:";"
+      (List.map ~f:pp_int_list ill)
+  )
+
 let rec pp_regexp (r:regex) : string =
   begin match r with
   | RegExBase s -> s
@@ -63,7 +77,10 @@ and pp_exampled_clause ((atoms,strings,examples):exampled_clause) : string =
   (bracket (
     String.concat
     ~sep:";"
-    (List.map ~f:string_of_int examples)))
+        (List.map ~f:
+          (fun il -> bracket (String.concat ~sep:";"
+          (List.map ~f:string_of_int il)))
+          examples)))
 
 and pp_exampled_atom (a:exampled_atom) : string =
   begin match a with
@@ -75,6 +92,25 @@ and pp_exampled_atom (a:exampled_atom) : string =
         sl)
       )
   | EAStar r -> (paren (pp_exampled_dnf_regex r)) ^ "*"
+  end
+
+let rec pp_exampled_regex (r:exampled_regex) : string =
+  begin match r with
+  | ERegExBase (s,ill) -> paren (s ^ pp_int_list_list ill)
+  | ERegExConcat (r1,r2,ill) -> paren ((pp_exampled_regex r1) ^ (pp_exampled_regex
+  r2) ^ pp_int_list_list ill)
+  | ERegExOr (r1,r2,ill) ->
+      paren(
+      paren (pp_exampled_regex r1)
+      ^ "+"
+      ^ paren (pp_exampled_regex r2)
+      ^ pp_int_list_list ill)
+  | ERegExStar (r',ill) ->
+      paren (paren (pp_exampled_regex r') ^ "*" ^ pp_int_list_list ill)
+  | ERegExUserDefined (s,ss,ill) -> paren (s ^ (bracket (
+      String.concat
+      ~sep:";"
+      ss) ^ pp_int_list_list ill))
   end
 
 let rec pp_dnf_regex_as_dnf_regex (clauses:dnf_regex) : string =

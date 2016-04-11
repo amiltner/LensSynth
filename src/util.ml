@@ -13,6 +13,21 @@ let int_to_comparison (n:int) : comparison =
   else
     GT
 
+let comparison_to_int (c:comparison) : int =
+  begin match c with
+  | EQ -> 0
+  | LT -> -1
+  | GT -> 1
+  end
+
+let comparer_to_int_comparer (f:'a -> 'a -> comparison) (x:'a) (y:'a)
+  : int =
+    comparison_to_int (f x y)
+
+let int_comparer_to_comparer (f:'a -> 'a -> int) (x:'a) (y:'a)
+  : comparison =
+    int_to_comparison (f x y)
+
 let compare_ints (n1:int) (n2:int) : comparison =
   int_to_comparison (compare n1 n2)
 
@@ -27,10 +42,10 @@ let rec fold_until_completion (f: 'a -> ('a,'b) either) (acc:'a) : 'b =
   end
 
 let cartesian_map (f:'a -> 'b -> 'c) (l1:'a list) (l2:'b list) : 'c list =
-  (List.fold_left
-    ~f:(fun acc x ->
-      (List.fold_left
-        ~f:(fun acc2 y ->
+  (List.fold_right
+    ~f:(fun x acc ->
+      (List.fold_right
+        ~f:(fun y acc2 ->
           (f x y)::acc2)
         ~init:[]
         l2)@acc)
@@ -94,18 +109,20 @@ let split_by_first_last_exn (l:'a list) : 'a * 'a list * 'a =
   (h,m,e)
 
 let split_at_index_exn (l:'a list) (i:int) : 'a list * 'a list =
-  let rec split_at_index_exn_internal (l:'a list) (i:int) : 'a list * 'a list =
+  let rec split_at_index_exn_internal (l:'a list) (i:int)
+            (continuation:('a list * 'a list) -> ('a list * 'a list))
+          : 'a list * 'a list =
     begin match (l,i) with
-    | (_,0) -> ([],l)
+    | (_,0) -> continuation ([],l)
     | (h::t,_) ->
-        let (l1,l2) = split_at_index_exn_internal t (i-1) in
-        (h::l1,l2)
+        split_at_index_exn_internal t (i-1)
+            (fun (l1,l2) -> continuation (h::l1,l2)) 
     | _ -> failwith "index out of range"
     end in
   if i < 0 then
     failwith "invalid index"
   else
-    split_at_index_exn_internal l i
+    split_at_index_exn_internal l i (fun x -> x)
 
 let rec weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
   let (head,torso1) = split_by_last_exn l1 in
@@ -210,7 +227,7 @@ let rec sort_and_partition (f:'a -> 'a -> comparison) (l:'a list) : 'a list list
 
 let sort_and_partition_with_indices (f:'a -> 'a -> comparison)
                         (l:'a list) : ('a * int) list list =
-  let rec merge_sorted_partitions (l1:('a * int) list list)
+  (*let rec merge_sorted_partitions (l1:('a * int) list list)
                 (l2:('a * int) list list) : ('a * int) list list =
     begin match (l1,l2) with
     | (h1::t1,h2::t2) ->
@@ -225,8 +242,30 @@ let sort_and_partition_with_indices (f:'a -> 'a -> comparison)
     | _ -> l1 @ l2
     end in
   let rec sort_and_partition_with_indices_internal (l:('a * int) list)
-                      : ('a * int) list list =
-    begin match l with
+                      : ('a * int) list list =*)
+  let rec merge_grouped_things (remaining:('a * int) list) (currentacc:('a*int) list)
+  (accacc:('a*int) list list) : ('a*int) list list =
+    begin match remaining with
+    | [] -> currentacc :: accacc
+    | (h,i)::t -> let currenthd = fst (List.hd_exn currentacc) in
+      begin match f h currenthd with
+      | EQ -> merge_grouped_things t ((h,i)::currentacc) accacc
+      | _ -> merge_grouped_things t [(h,i)] (currentacc::accacc)
+      end
+    end
+  in
+
+
+  let sorted = List.sort
+    ~cmp:(fun (x,_) (y,_) -> comparison_to_int (f x y))
+    (List.mapi ~f:(fun i x -> (x,i)) l) in
+
+  begin match sorted with
+  | [] -> []
+  | h::t -> merge_grouped_things t [h] []
+  end
+
+    (*begin match l with
     | [] -> []
     | [h] -> [[h]]
     | _ ->
@@ -237,7 +276,7 @@ let sort_and_partition_with_indices (f:'a -> 'a -> comparison)
         merge_sorted_partitions sorted_partitioned_l1 sorted_partitioned_l2
     end in
   sort_and_partition_with_indices_internal
-    (List.mapi ~f:(fun x i -> (x,i)) l)
+    (List.mapi ~f:(fun i x -> (x,i)) l)*)
 
 let ordered_partition_order (f:'a -> 'a -> comparison)
                             (l1:'a list) (l2:'a list)
@@ -261,3 +300,49 @@ let ordered_partition_order (f:'a -> 'a -> comparison)
   | c -> c
   end
 
+let rec dictionary_order (f:'a -> 'a -> comparison)
+  (l1:'a list) (l2:'a list) : comparison =
+    begin match (l1,l2) with
+    | ([],[]) -> EQ
+    | (_::_,[]) -> GT
+    | ([],_::_) -> LT
+    | (h1::t1,h2::t2) ->
+        begin match f h1 h2 with
+        | EQ -> dictionary_order f t1 t2
+        | x -> x
+        end
+    end
+
+let partition_dictionary_order (f:'a -> 'a -> comparison)
+  : 'a list list -> 'a list list -> comparison =
+    dictionary_order
+      (fun x y -> f (List.hd_exn x) (List.hd_exn y))
+
+let ordered_partition_dictionary_order (f:'a -> 'a -> comparison)
+  : ('a * int) list list -> ('a * int) list list -> comparison =
+    dictionary_order
+      (fun x y ->
+        begin match int_to_comparison (compare (List.length x) (List.length y)) with
+        | EQ -> f (fst (List.hd_exn x)) (fst (List.hd_exn y))
+        | x -> x
+        end)
+
+let intersect_lose_order_no_dupes (cmp:'a -> 'a -> comparison)
+                                  (l1:'a list) (l2:'a list)
+                                  : 'a list =
+  let rec intersect_ordered (l1:'a list) (l2:'a list) : 'a list =
+    begin match (l1,l2) with
+    | (h1::t1,h2::t2) ->
+        begin match (cmp h1 h2) with
+        | EQ -> h1::(intersect_ordered t1 t2)
+        | LT -> intersect_ordered t1 l2
+        | GT -> intersect_ordered l1 t2
+        end
+    | ([],_) -> []
+    | (_,[]) -> []
+    end
+  in
+  let int_comparer = comparer_to_int_comparer cmp in
+  let ordered_l1 = List.sort ~cmp:int_comparer l1 in
+  let ordered_l2 = List.sort ~cmp:int_comparer l2 in
+  intersect_ordered ordered_l1 ordered_l2

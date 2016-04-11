@@ -1,4 +1,5 @@
 open Core.Std
+open Fasteval
 open Permutation
 open Util
 open OUnit
@@ -7,6 +8,7 @@ open Lens
 open Lang
 open Pp
 open Gen
+open Transform
 
 (* Lang tests *)
 let test_dnf (expected:dnf_regex) (actual:dnf_regex) =
@@ -160,6 +162,52 @@ let to_normalized_exp_suite = "to_normalized_exp Unit Tests" >:::
 
 let _ = run_test_tt_main to_normalized_exp_suite
 
+let test_to_exampled_dnf_constant_noex _ =
+  test_exampled_dnf_option
+    (Some [([],["a"],[])])
+    (regex_to_exampled_dnf_regex []
+      (RegExBase "a")
+      [])
+
+let test_to_exampled_dnf_constant_2ex _ =
+  test_exampled_dnf_option
+  (Some [([],["a"],[[1];[0]])])
+    (regex_to_exampled_dnf_regex []
+      (RegExBase "a")
+      ["a";"a"])
+
+let test_to_exampled_dnf_or _ =
+  test_exampled_dnf_option
+  (Some [([],["a"],[[1]]);([],["b"],[[0]])])
+    (regex_to_exampled_dnf_regex []
+      (RegExOr (RegExBase "a", RegExBase "b"))
+      ["b";"a"])
+
+let test_to_exampled_dnf_userdefined _ =
+  test_exampled_dnf_option
+  (Some [([EAUserDefined ("A",["a"])],["";""],[[0]])])
+    (regex_to_exampled_dnf_regex ["A",RegExBase "a"]
+      (RegExUserDefined "A")
+      ["a"])
+
+let test_to_exampled_dnf_star _ =
+  test_exampled_dnf_option
+  (Some [([EAStar [[],["a"],[[1;0];[0;0]]]],["";""],[[0]])])
+    (regex_to_exampled_dnf_regex []
+      (RegExStar (RegExBase "a"))
+      ["aa"])
+
+
+let test_to_exampled_dnf_suite = "to_exampled_dnf_regex Unit Tests" >:::
+  ["test_to_exampled_dnf_constant_noex" >:: test_to_exampled_dnf_constant_noex;
+   "test_to_exampled_dnf_constant_2ex" >:: test_to_exampled_dnf_constant_2ex;
+   "test_to_exampled_dnf_or" >:: test_to_exampled_dnf_or;
+   "test_to_exampled_dnf_userdefined" >:: test_to_exampled_dnf_userdefined;
+   "test_to_exampled_dnf_star" >:: test_to_exampled_dnf_star;
+  ]
+
+let _ = run_test_tt_main test_to_exampled_dnf_suite
+
 let test_compare_dnf_regexs_userdefineds_eq _ =
   test_comparison
     EQ
@@ -179,6 +227,33 @@ let compare_dnf_regexs_suite = "compare_dnf_regexs Unit Tests" >:::
 
 let _ = run_test_tt_main compare_dnf_regexs_suite
 
+let test_compare_exampled_dnf_regexs_userdefineds_eq _ =
+  test_comparison
+    EQ
+    (compare_exampled_dnf_regexs [[EAUserDefined
+    ("a",["a";"aa"])],["";"1qaz"],[[0];[1]]]
+    [[EAUserDefined ("a",["a";"aa"])],["";"2wsx"],[[0];[1]]])
+
+let test_compare_exampled_dnf_regexs_userdefineds_lt1 _ =
+  test_comparison
+    LT
+    (compare_exampled_dnf_regexs [[EAUserDefined ("a",["b"])],["";"1qaz"],[[0]]]
+    [[EAUserDefined ("b",["a"])],["";"2wsx"],[[0]]])
+
+let test_compare_exampled_dnf_regexs_userdefineds_lt2 _ =
+  test_comparison
+    LT
+    (compare_exampled_dnf_regexs [[EAUserDefined ("a",["a"])],["";"1qaz"],[[0]]]
+    [[EAUserDefined ("a",["b"])],["";"2wsx"],[[0]]])
+
+let compare_equivalent_dnf_regexs_suite = "compare_dnf_regexs Unit Tests" >:::
+  ["test_compare_exampled_dnf_regexs_userdefineds_eq" >:: test_compare_exampled_dnf_regexs_userdefineds_eq;
+   "test_compare_exampled_dnf_regexs_userdefineds_lt1" >:: test_compare_exampled_dnf_regexs_userdefineds_lt1;
+   "test_compare_exampled_dnf_regexs_userdefineds_lt2" >:: test_compare_exampled_dnf_regexs_userdefineds_lt2;
+  ]
+
+let _ = run_test_tt_main compare_equivalent_dnf_regexs_suite
+
 
 (* Eval tests *)
 let test_bools (expected:bool) (actual:bool) =
@@ -187,77 +262,77 @@ let test_bools (expected:bool) (actual:bool) =
     expected
     actual
 
-let test_eval_regex_base_positive _ =
+let test_fast_eval_base_positive _ =
   test_bools
     true
-    (eval_regex [] (RegExBase "x") "x")
+    (fast_eval [] (RegExBase "x") "x")
 
-let test_eval_regex_base_negative1 _ =
+let test_fast_eval_base_negative1 _ =
   test_bools
     false
-    (eval_regex [] (RegExBase "x") "y")
+    (fast_eval [] (RegExBase "x") "y")
 
-let test_eval_regex_base_negative2 _ =
+let test_fast_eval_base_negative2 _ =
   test_bools
     false
-    (eval_regex [] (RegExBase "x") "xx")
+    (fast_eval [] (RegExBase "x") "xx")
 
-let test_eval_regex_concat_positive1 _ =
+let test_fast_eval_concat_positive1 _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExBase "x",
         RegExConcat
           (RegExBase "y",
           RegExBase "z"))) "xyz")
 
-let test_eval_regex_concat_positive2 _ =
+let test_fast_eval_concat_positive2 _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExConcat
           (RegExBase "x",
           RegExBase "y"),
         RegExBase "z")) "xyz")
 
-let test_eval_regex_concat_negative1 _ =
+let test_fast_eval_concat_negative1 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "x")
 
-let test_eval_regex_concat_negative2 _ =
+let test_fast_eval_concat_negative2 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "xz")
 
-let test_eval_regex_concat_negative3 _ =
+let test_fast_eval_concat_negative3 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "yx")
 
-let test_eval_regex_concat_negative4 _ =
+let test_fast_eval_concat_negative4 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "xyz")
 
-let test_eval_regex_or_positive _ =
+let test_fast_eval_or_positive _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExOr
         (RegExOr
           (RegExBase "a",
@@ -266,10 +341,10 @@ let test_eval_regex_or_positive _ =
           (RegExBase "c",
           RegExBase "d")))) "c")
 
-let test_eval_regex_or_negative _ =
+let test_fast_eval_or_negative _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExOr
         (RegExOr
           (RegExBase "a",
@@ -278,70 +353,121 @@ let test_eval_regex_or_negative _ =
           (RegExBase "c",
           RegExBase "d")))) "x")
 
-let test_eval_regex_star_empty _ =
+let test_fast_eval_star_empty _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "")
 
-let test_eval_regex_star_one _ =
+let test_fast_eval_star_one _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "a")
 
-let test_eval_regex_star_two _ =
+let test_fast_eval_star_two _ =
   test_bools
     true
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "aa")
 
-let test_eval_regex_star_negative1 _ =
+let test_fast_eval_star_choice _ =
+  test_bools
+    true
+    (fast_eval []
+      (RegExStar
+        (RegExOr
+          (RegExBase "a"
+          ,RegExBase "b"))
+      ) "aab" )
+
+let test_fast_eval_star_negative1 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "b")
 
-let test_eval_regex_star_negative2 _ =
+let test_fast_eval_star_negative2 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "ab")
 
-let test_eval_regex_star_negative3 _ =
+let test_fast_eval_star_negative3 _ =
   test_bools
     false
-    (eval_regex []
+    (fast_eval []
       (RegExStar
         (RegExBase "a")) "ba")
 
+let test_fast_eval_userdef_positive _ =
+  test_bools
+    true
+    (fast_eval ["A",RegExBase "a"]
+      (RegExUserDefined "A") "a")
 
-let eval_regex_suite = "eval_regex Unit Tests" >:::
-  ["test_eval_regex_base_positive" >:: test_eval_regex_base_positive;
-   "test_eval_regex_base_negative1" >:: test_eval_regex_base_negative1;
-   "test_eval_regex_base_negative2" >:: test_eval_regex_base_negative2;
-   "test_eval_regex_concat_positive1" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_concat_positive2" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_concat_negative1" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_concat_negative2" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_concat_negative3" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_concat_negative4" >:: test_eval_regex_concat_negative4;
-   "test_eval_regex_or_negative" >:: test_eval_regex_or_negative;
-   "test_eval_regex_or_positive" >:: test_eval_regex_or_positive;
-   "test_eval_regex_star_empty" >:: test_eval_regex_star_empty;
-   "test_eval_regex_star_one" >:: test_eval_regex_star_one;
-   "test_eval_regex_star_two" >:: test_eval_regex_star_two;
-   "test_eval_regex_star_negative1" >:: test_eval_regex_star_negative1;
-   "test_eval_regex_star_negative2" >:: test_eval_regex_star_negative2;
-   "test_eval_regex_star_negative3" >:: test_eval_regex_star_negative3;
+let test_fast_eval_userdef_negative _ =
+  test_bools
+    false
+    (fast_eval ["A",RegExBase "a"]
+      (RegExUserDefined "A") "b")
+
+let test_fast_eval_concat_userdef _ =
+  test_bools
+  true
+  (fast_eval [("A", RegExBase "a");("B", RegExBase "b")]
+    (RegExConcat (RegExUserDefined "A", RegExUserDefined "B"))
+    "ab")
+
+let test_fast_eval_nested_userdef _ =
+  test_bools
+  true
+  (fast_eval [("A", RegExBase "a");("B", RegExUserDefined "A")]
+    (RegExUserDefined "B") "a")
+
+let test_fast_eval_fast _ =
+  test_bools
+  true
+  (fast_eval [("A", RegExConcat (RegExBase "c", RegExConcat (RegExStar
+  (RegExBase "a"), RegExStar (RegExBase "b"))))]
+  (RegExConcat (RegExStar (RegExUserDefined "A"), RegExConcat (RegExBase "z",
+  RegExStar (RegExConcat (RegExConcat (RegExUserDefined "A", RegExBase "q"),
+  RegExStar (RegExConcat (RegExUserDefined "A", RegExOr (RegExBase "t",
+  RegExBase "m"))))))))
+  "caaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbzcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbm")
+
+let fast_eval_suite = "fast_eval Unit Tests" >:::
+  ["test_fast_eval_base_positive" >:: test_fast_eval_base_positive;
+   "test_fast_eval_base_negative1" >:: test_fast_eval_base_negative1;
+   "test_fast_eval_base_negative2" >:: test_fast_eval_base_negative2;
+   "test_fast_eval_concat_positive1" >:: test_fast_eval_concat_positive1;
+   "test_fast_eval_concat_positive2" >:: test_fast_eval_concat_positive2;
+   "test_fast_eval_concat_negative1" >:: test_fast_eval_concat_negative1;
+   "test_fast_eval_concat_negative2" >:: test_fast_eval_concat_negative2;
+   "test_fast_eval_concat_negative3" >:: test_fast_eval_concat_negative3;
+   "test_fast_eval_concat_negative4" >:: test_fast_eval_concat_negative4;
+   "test_fast_eval_or_negative" >:: test_fast_eval_or_negative;
+   "test_fast_eval_or_positive" >:: test_fast_eval_or_positive;
+   "test_fast_eval_star_empty" >:: test_fast_eval_star_empty;
+   "test_fast_eval_star_one" >:: test_fast_eval_star_one;
+   "test_fast_eval_star_two" >:: test_fast_eval_star_two;
+   "test_fast_eval_star_choice" >:: test_fast_eval_star_choice;
+   "test_fast_eval_star_negative1" >:: test_fast_eval_star_negative1;
+   "test_fast_eval_star_negative2" >:: test_fast_eval_star_negative2;
+   "test_fast_eval_star_negative3" >:: test_fast_eval_star_negative3;
+   "test_fast_eval_userdef_positive" >:: test_fast_eval_userdef_positive;
+   "test_fast_eval_userdef_negative" >:: test_fast_eval_userdef_negative;
+   "test_fast_eval_concat_userdef" >:: test_fast_eval_concat_userdef;
+   "test_fast_eval_nested_userdef" >:: test_fast_eval_nested_userdef;
+   "test_fast_eval_fast" >:: test_fast_eval_fast;
   ]
 
-let _ = run_test_tt_main eval_regex_suite
+let _ = run_test_tt_main fast_eval_suite
 
 let test_string_options (expected:string option) (actual:string option) =
   assert_equal
@@ -721,119 +847,14 @@ let test_dnf_lens =
   assert_equal
   ~printer:Pp.pp_dnf_regex_as_regex
 
-let test_expand_atom_empty_basic _ =
-  test_dnf_lens
-    (to_dnf_regex (RegExOr (RegExBase "",RegExConcat (RegExBase "a",RegExStar
-    (RegExBase "a")))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex (RegExStar (RegExBase "a")))
-      0)
+let test_regex_list =
+  assert_equal
+  ~printer:(fun rs -> "[" ^
+    (String.concat
+    ~sep:";"
+    (List.map ~f:Pp.pp_regexp rs))
+    ^ "]")
 
-let test_expand_atom_empty_concat _ =
-  test_dnf_lens
-    (to_dnf_regex (RegExOr (RegExBase "x", RegExConcat (RegExBase "xa",
-    RegExStar (RegExBase "a")))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex (RegExConcat (RegExBase "x", RegExStar (RegExBase "a"))))
-      0)
-
-let test_expand_atom_empty_concat_harder _ =
-  test_dnf_lens
-    (to_dnf_regex
-      (RegExOr
-        (RegExConcat
-          (RegExConcat
-            (RegExBase "x", RegExUserDefined "Z")
-          ,RegExConcat
-            (RegExBase "m", RegExBase "q"))
-        ,RegExConcat
-          (RegExBase "x",
-          RegExConcat (RegExUserDefined "Z",
-          RegExConcat (RegExBase "ma",
-          RegExConcat (RegExUserDefined "T",
-          RegExConcat (RegExBase "p",
-          RegExConcat (RegExStar
-            (RegExConcat (RegExBase "a",
-            RegExConcat (RegExUserDefined "T", RegExBase "p"))),
-          RegExBase "q")))))))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex (RegExConcat (RegExConcat (RegExBase "x",RegExUserDefined
-      "Z"), RegExConcat (RegExBase "m", RegExConcat (RegExStar (RegExConcat
-      (RegExBase "a", RegExConcat (RegExUserDefined "T",RegExBase "p"))),RegExBase
-      "q"))))) 0)
-
-let test_expand_atom_empty_internal_union _ =
-  test_dnf_lens
-    (to_dnf_regex
-      (RegExOr
-        (RegExOr
-          (RegExBase ""
-          ,RegExConcat
-            (RegExBase "a"
-            ,RegExStar (RegExOr (RegExBase "a", RegExBase "b"))))
-        ,RegExConcat
-          (RegExBase "b"
-          ,RegExStar (RegExOr (RegExBase "a",RegExBase "b"))))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex
-        (RegExStar (RegExOr (RegExBase "a", RegExBase "b")))) 0)
-
-let test_expand_atom_empty_union_first _ =
-  test_dnf_lens
-    (to_dnf_regex
-      (RegExOr
-        (RegExOr
-          (RegExBase ""
-          ,RegExConcat
-            (RegExBase "a"
-            ,RegExStar (RegExBase "a")))
-        ,RegExStar (RegExBase "b"))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex
-        (RegExOr
-          (RegExStar (RegExBase "a")
-          ,RegExStar (RegExBase "b")))) 0)
-
-let test_expand_atom_empty_union_second _ =
-  test_dnf_lens
-    (to_dnf_regex
-      (RegExOr
-        (RegExOr
-          (RegExStar (RegExBase "a")
-          ,RegExBase "")
-        ,RegExConcat
-          (RegExBase "b"
-          ,RegExStar (RegExBase "b")))))
-    (expand_atom_rewrite empty_or_not_star_expansion
-      (to_dnf_regex
-        (RegExOr
-          (RegExStar (RegExBase "a")
-          ,RegExStar (RegExBase "b")))) 1)
-
-let test_expand_atom_quotient _ =
-  test_dnf_lens
-    (to_dnf_regex
-      (RegExOr
-        (RegExStar (RegExBase "aa")
-        ,RegExConcat
-          (RegExBase "a"
-          ,RegExStar (RegExBase "aa")))))
-    (expand_atom_rewrite
-      (quotient_product_expansion 2)
-      (to_dnf_regex (RegExStar (RegExBase "a")))
-      0)
-
-let expand_atom_rewrite_suite = "expand_atom_rewrite Unit Tests" >:::
-  ["test_expand_atom_empty_basic" >:: test_expand_atom_empty_basic;
-   "test_expand_atom_empty_concat" >:: test_expand_atom_empty_concat;
-   "test_expand_atom_empty_concat_harder" >:: test_expand_atom_empty_concat_harder;
-   "test_expand_atom_empty_internal_union" >:: test_expand_atom_empty_internal_union;
-   "test_expand_atom_empty_union_first" >:: test_expand_atom_empty_union_first;
-   "test_expand_atom_empty_union_second" >:: test_expand_atom_empty_union_second;
-   "test_expand_atom_quotient" >:: test_expand_atom_quotient;
-  ]
-
-let _ = run_test_tt_main expand_atom_rewrite_suite
 
 let test_dnf_lens_option (expected:dnf_lens option) (actual:dnf_lens option) =
   assert_equal
@@ -847,16 +868,16 @@ let test_gen_dnf_lens_const_nosoln _ =
   test_dnf_lens_option
     None
     (gen_dnf_lens []
-      (to_dnf_regex (RegExBase "x"))
-      (to_dnf_regex (RegExBase "y"))
+      (RegExBase "x")
+      (RegExBase "y")
       [("a","b")])
 
 let test_gen_dnf_lens_const_soln _ =
   test_dnf_lens_option
     (Some ([[],Permutation.create [], ["x"], ["y"]],Permutation.create [0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExBase "x"))
-      (to_dnf_regex (RegExBase "y"))
+      (RegExBase "x")
+      (RegExBase "y")
       [("x","y")])
 
 let test_gen_lenses_union _ =
@@ -866,8 +887,8 @@ let test_gen_lenses_union _ =
         [],Permutation.create [], ["b"], ["x"]],
       Permutation.create [1;0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExOr (RegExBase "a", RegExBase "b")))
-      (to_dnf_regex (RegExOr (RegExBase "x", RegExBase "y")))
+      (RegExOr (RegExBase "a", RegExBase "b"))
+      (RegExOr (RegExBase "x", RegExBase "y"))
       [("a","y");("b","x")])
 
 let test_gen_lenses_three_union _ =
@@ -878,8 +899,8 @@ let test_gen_lenses_three_union _ =
         [],Permutation.create [], ["c"], ["x"]],
       Permutation.create [2;0;1]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExOr (RegExBase "a", RegExOr (RegExBase "b", RegExBase "c"))))
-      (to_dnf_regex (RegExOr (RegExBase "x", RegExOr (RegExBase "y", RegExBase "z"))))
+      (RegExOr (RegExBase "a", RegExOr (RegExBase "b", RegExBase "c")))
+      (RegExOr (RegExBase "x", RegExOr (RegExBase "y", RegExBase "z")))
       [("a","y");("b","z");("c","x")])
 
 let test_gen_lenses_userdef_ident _ =
@@ -888,8 +909,8 @@ let test_gen_lenses_userdef_ident _ =
       ([[AIdentity], Permutation.create [0], ["";""], ["";""]],
       Permutation.create [0]))
     (gen_dnf_lens ["A",RegExBase "a"; "B", RegExBase "b"]
-      (to_dnf_regex (RegExUserDefined "A"))
-      (to_dnf_regex (RegExUserDefined "A"))
+      (RegExUserDefined "A")
+      (RegExUserDefined "A")
       [])
 
 let test_gen_lenses_concat_userdef _ =
@@ -899,8 +920,8 @@ let test_gen_lenses_concat_userdef _ =
         ["";"";""], ["";"";""]],
       Permutation.create [0]))
     (gen_dnf_lens ["A",RegExBase "a"; "B", RegExBase "b"]
-      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "B")))
-      (to_dnf_regex (RegExConcat (RegExUserDefined "B", RegExUserDefined "A")))
+      (RegExConcat (RegExUserDefined "A", RegExUserDefined "B"))
+      (RegExConcat (RegExUserDefined "B", RegExUserDefined "A"))
       ["ab","ba"])
 
 let test_gen_lenses_concat_userdef_hard _ =
@@ -910,8 +931,8 @@ let test_gen_lenses_concat_userdef_hard _ =
         ["";"";""], ["";"";""]],
       Permutation.create [0]))
     (gen_dnf_lens ["A",RegExOr (RegExBase "a", RegExBase "A")]
-      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "A")))
-      (to_dnf_regex (RegExConcat (RegExUserDefined "A", RegExUserDefined "A")))
+      (RegExConcat (RegExUserDefined "A", RegExUserDefined "A"))
+      (RegExConcat (RegExUserDefined "A", RegExUserDefined "A"))
       [("Aa","aA")])
 
 let test_gen_lenses_star _ =
@@ -919,8 +940,8 @@ let test_gen_lenses_star _ =
   (Some ([[(AIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
   [0]))], Permutation.create [0], ["";""], ["";""]], Permutation.create [0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExStar (RegExBase "a")))
-      (to_dnf_regex (RegExStar (RegExBase "b")))
+      (RegExStar (RegExBase "a"))
+      (RegExStar (RegExBase "b"))
       ["aa","bb"])
 
 let test_gen_dnf_lens_star_difficult _ =
@@ -934,12 +955,12 @@ let test_gen_dnf_lens_star_difficult _ =
     ],
     Permutation.create [0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExConcat
+      (RegExConcat
         (RegExStar (RegExBase "a"),
-        RegExStar (RegExBase "b"))))
-      (to_dnf_regex (RegExConcat
+        RegExStar (RegExBase "b")))
+      (RegExConcat
         (RegExStar (RegExBase "a"),
-        RegExStar (RegExBase "b"))))
+        RegExStar (RegExBase "b")))
       ["abb","aab"])
 
 let test_dnf_lens_star_expansion _ =
@@ -951,10 +972,10 @@ let test_dnf_lens_star_expansion _ =
     ],
     Permutation.create [0;1]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExStar (RegExBase "a")))
-      (to_dnf_regex (RegExOr
+      (RegExStar (RegExBase "a"))
+      (RegExOr
         (RegExBase "",
-        RegExConcat (RegExBase "a", RegExStar (RegExBase "a")))))
+        RegExConcat (RegExBase "a", RegExStar (RegExBase "a"))))
       ["a","a"])
 
 let test_dnf_lens_star_inner_expansion _ =
@@ -969,10 +990,10 @@ let test_dnf_lens_star_inner_expansion _ =
       ["";""]
       ],Permutation.create [0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
-      "z")))))
-      (to_dnf_regex (RegExStar (RegExOr (RegExBase "a", RegExConcat (RegExBase
-      "az", RegExStar (RegExBase "z"))))))
+      (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
+      "z"))))
+      (RegExStar (RegExOr (RegExBase "a", RegExConcat (RegExBase
+      "az", RegExStar (RegExBase "z")))))
       [])
 
 let test_dnf_lens_quotient_expansion _ =
@@ -993,10 +1014,10 @@ let test_dnf_lens_quotient_expansion _ =
         ["a";""]);
       ], Permutation.create [0;1]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExStar (RegExBase "a")))
-      (to_dnf_regex (RegExOr (RegExStar (RegExBase "aa"),
+      (RegExStar (RegExBase "a"))
+      (RegExOr (RegExStar (RegExBase "aa"),
                             RegExConcat (RegExBase "a", RegExStar (RegExBase
-                            "aa")))))
+                            "aa"))))
       [])
 
 let test_dnf_lens_inner_quotient_expansion _ =
@@ -1019,14 +1040,14 @@ let test_dnf_lens_inner_quotient_expansion _ =
         Permutation.create [0],
         ["ab";""],
         ["ab";""]);
-      ], Permutation.create [1;0])
+      ], Permutation.create [0;1])
     ], Permutation.create [0], ["";""], ["";""])], Permutation.create [0]))
     (gen_dnf_lens []
-      (to_dnf_regex (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
-    "b")))))
-      (to_dnf_regex (RegExStar (RegExConcat (RegExBase "a", RegExOr (RegExStar (RegExBase "bb"),
+      (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
+    "b"))))
+      (RegExStar (RegExConcat (RegExBase "a", RegExOr (RegExStar (RegExBase "bb"),
                             RegExConcat (RegExBase "b", RegExStar (RegExBase
-                            "bb")))))))
+                            "bb"))))))
       [("a","a")])
 
 let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
@@ -1048,48 +1069,3 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
 let _ = run_test_tt_main gen_dnf_lens_suite
 
 
-let test_to_exampled_dnf_constant_noex _ =
-  test_exampled_dnf_option
-    (Some [([],["a"],[])])
-    (to_exampled_dnf_regex []
-      [([],["a"])]
-      [])
-
-let test_to_exampled_dnf_constant_2ex _ =
-  test_exampled_dnf_option
-    (Some [([],["a"],[1;0])])
-    (to_exampled_dnf_regex []
-      [([],["a"])]
-      ["a";"a"])
-
-let test_to_exampled_dnf_or _ =
-  test_exampled_dnf_option
-    (Some [([],["a"],[1]);([],["b"],[0])])
-    (to_exampled_dnf_regex []
-      [([],["a"]);([],["b"])]
-      ["b";"a"])
-
-let test_to_exampled_dnf_userdefined _ =
-  test_exampled_dnf_option
-    (Some [([EAUserDefined ("A",["a"])],["";""],[0])])
-    (to_exampled_dnf_regex ["A",RegExBase "a"]
-      [([AUserDefined "A"],["";""])]
-      ["a"])
-
-let test_to_exampled_dnf_star _ =
-  test_exampled_dnf_option
-    (Some [([EAStar [[],["a"],[1;0]]],["";""],[0])])
-    (to_exampled_dnf_regex []
-      [([AStar [([],["a"])]],["";""])]
-      ["aa"])
-
-
-let test_to_exampled_dnf_suite = "to_exampled_dnf_regex Unit Tests" >:::
-  ["test_to_exampled_dnf_constant_noex" >:: test_to_exampled_dnf_constant_noex;
-   "test_to_exampled_dnf_constant_2ex" >:: test_to_exampled_dnf_constant_2ex;
-   "test_to_exampled_dnf_or" >:: test_to_exampled_dnf_or;
-   "test_to_exampled_dnf_userdefined" >:: test_to_exampled_dnf_userdefined;
-   "test_to_exampled_dnf_star" >:: test_to_exampled_dnf_star;
-  ]
-
-let _ = run_test_tt_main test_to_exampled_dnf_suite

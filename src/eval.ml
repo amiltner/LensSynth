@@ -350,7 +350,7 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
 
     begin match retrieve_splits_string atoms strings s with
     | None -> None
-    | Some atoms' -> Some (atoms',strings,i::choices)
+    | Some atoms' -> Some (atoms',strings,[i]::choices)
     end
 
   and add_dnf_regex_example (r:exampled_dnf_regex) (s:string) (i:int)
@@ -374,7 +374,10 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
       begin match acc with
       | None -> None
       | Some acc' ->
-          add_dnf_regex_example acc' s i
+          begin match add_dnf_regex_example acc' s i with
+          | Some x -> Some x
+          | None -> failwith s
+          end
       end)
     ~init: (Some (to_exampled_dnf_regex_bare r))
     exs_side

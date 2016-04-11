@@ -8,6 +8,8 @@ module type Permutation_Sig = sig
 
   val create_from_doubles : (int * int) list -> t
 
+  val create_from_doubles_unsafe : (int * int) list -> t
+
   val create_from_constraints : int -> (int * int) list
                                     -> (int * int) list -> (t * ((int * int) list)) option
 
@@ -58,6 +60,12 @@ module Permutation : Permutation_Sig = struct
         ~cmp:(fun (_,x) (_,y) -> x - y)
         mapping in
       List.map ~f:(fun (x,y) -> x) sorted_by_second
+
+  let create_from_doubles_unsafe (mapping:(int*int) list) : t =
+    let sorted_by_second = List.sort
+      ~cmp:(fun (_,x) (_,y) -> x - y)
+      mapping in
+    List.map ~f:(fun (x,y) -> x) sorted_by_second
 
   let create_from_constraints (len:int) (invalid_parts:(int*int) list)
                               (required_parts:(int*int) list)
