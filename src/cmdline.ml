@@ -59,11 +59,12 @@ let print_lenses (lss:(string * dnf_lens option) list) : unit =
 let ignore (x:'a) : unit =
   ()
 
-let synthesize_prog ((c,ss):synth_problems) : (string * dnf_lens option) list =
+let synthesize_prog (ps:synth_problems) : (string * dnf_lens option) list =
+  let problem_list = problems_to_problem_list ps in
   List.map
-    ~f:(fun (n,r1,r2,exs) -> (n,(gen_dnf_lens c r1 
+    ~f:(fun (c,e_c,n,r1,r2,exs) -> (n,(gen_dnf_lens c e_c r1 
     r2 exs)))
-    ss
+    problem_list
   
   (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
   begin match Synth.synthesize s env tree with

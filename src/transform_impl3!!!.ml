@@ -21,59 +21,56 @@ let rec exponentiate (r:regex) (n:int) : regex =
       (exponentiate r (n-1)
       ,r)
 
-let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) * int =
-  let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
-    : ((string * int) Counters.t) * int =
-      begin match r with
-      | RegExBase _ -> (Counters.create comparison_compare,1)
-      | RegExUserDefined s ->
-            (Counters.add
-                         (Counters.create (comparison_compare))
-                         (s,depth),1)
-      | RegExOr (r1,r2) ->
-          let (counters_r1,width1) =
-            calculate_userdef_distribution_internal r1 depth in
-          let (counters_r2,width2) =
-            calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> x + y) counters_r1 counters_r2,width1+width2)
-      | RegExConcat (r1,r2) ->
-          let (counters_r1,width1) =
-            calculate_userdef_distribution_internal r1 depth in
-          let (counters_r2,width2) =
-            calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> (x*width2 + y*width1)) counters_r1 counters_r2,width1*width2)
-      | RegExStar r' ->
-          (fst (calculate_userdef_distribution_internal r' (depth+1)),1)
-      end
-  in
-  calculate_userdef_distribution_internal r 0
-  (*let rec calculate_atom_userdef_distribution (a:atom) (depth:int) : (string * int) Counters.t =
+let rec calculate_userdef_distribution (r:regex) : ((string * int) * int) list =
+  let rec calculate_atom_userdef_distribution (a:atom)
+                                              (depth:int)
+                                              (acc:(string * int) list)
+                                              : (string * int) list =
     begin match a with
-    | AUserDefined s ->
-        Counters.add
-          (Counters.create (comparison_compare))
-          (s,depth)
-    | AStar r' -> calculate_dnf_userdef_distribution r' (depth+1)
+    | AUserDefined s -> [(s,depth)]
+    | AStar r' -> calculate_dnf_userdef_distribution r' (depth+1) acc
     end
-  and calculate_clause_userdef_distribution ((atoms,strings):clause) (depth:int) : (string * int) Counters.t =
+  and calculate_clause_userdef_distribution ((atoms,strings):clause)
+                                            (depth:int) 
+                                            (acc:(string * int) list)
+                                            : (string * int) list =
     List.fold_left
       ~f:(fun acc a ->
-        Counters.merge
-          acc
-          (calculate_atom_userdef_distribution a depth))
-      ~init:(Counters.create comparison_compare)
+        calculate_atom_userdef_distribution a depth acc)
+      ~init:acc
       atoms
-  and calculate_dnf_userdef_distribution (clauses:dnf_regex) (depth:int) : (string * int) Counters.t =
+  and calculate_dnf_userdef_distribution (clauses:dnf_regex)
+                                         (depth:int)
+                                         (acc:(string * int) list)
+                                         : (string * int) list =
     List.fold_left
       ~f:(fun acc c ->
-        Counters.merge
-          acc
-          (calculate_clause_userdef_distribution c depth))
-      ~init:(Counters.create comparison_compare)
+          (calculate_clause_userdef_distribution c depth acc))
+      ~init:acc
       clauses
   in
+  let rec retrieve_counts_in_ordered_list (counts:'a list)
+                                          (acc:('a * int) list)
+                                          : ('a * int) list =
+    begin match counts with
+    | [] -> acc
+    | h::t ->
+        retrieve_counts_in_ordered_list
+          t
+          (begin match acc with
+          | [] -> [(h,1)]
+          | (hd,i)::tl ->
+              begin match comparison_compare hd h with
+              | EQ -> (hd,i+1)::tl
+              | _ -> (h,1)::acc
+              end
+          end)
+    end
+  in
 
-  calculate_dnf_userdef_distribution (to_dnf_regex r) 0*)
+  let data_list = calculate_dnf_userdef_distribution (to_dnf_regex r) 0 [] in
+  let ordered_data_list = List.sort ~cmp:compare data_list in
+  List.rev (retrieve_counts_in_ordered_list ordered_data_list [])
 
   (*begin match r with
   | RegExBase _ -> Counters.create (comparison_compare)
@@ -93,6 +90,9 @@ let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) *
   end*)
 
 let retrieve_priority (r1:regex) (r2:regex) : float =
+  print_endline "here slow!";
+  print_endline (Pp.pp_regexp r1);
+  print_endline (Pp.pp_regexp r2);
   let rec retrieve_priority_internal (cs1:((string * int) * int) list)
                                  (cs2:((string * int) * int) list)
                                  : float =
@@ -118,10 +118,10 @@ let retrieve_priority (r1:regex) (r2:regex) : float =
         cs2
     end
   in
-  let userdef_dist_r1 = Counters.as_ordered_assoc_list (fst (
-    (calculate_userdef_distribution r1)) )in
-  let userdef_dist_r2 = Counters.as_ordered_assoc_list (fst (
-    (calculate_userdef_distribution r2)) )in
+  let userdef_dist_r1 = 
+    (calculate_userdef_distribution r1) in
+  let userdef_dist_r2 = 
+    (calculate_userdef_distribution r2) in
   let ans = (retrieve_priority_internal
     userdef_dist_r1
     userdef_dist_r2)

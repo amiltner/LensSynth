@@ -6,7 +6,9 @@ exception Lexer_error of string
 
 let reserved_words : (string * Parser.token) list =
   [ ("let", LET)
-  ; ("in", IN)  ]
+  ; ("typedef", TYPEDEF)
+  ; ("in", IN)
+  ; ("sharing", SHARING)  ]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)
@@ -31,6 +33,7 @@ let symbols : (string * Parser.token) list =
   ; ("\\n", NEWLINE)
   ; ("[", LBRACKET)
   ; ("]", RBRACKET)
+  ; (";", SEMI)
   ]
 
 let create_token lexbuf =
@@ -75,7 +78,7 @@ rule token = parse
   | uppercase (digit | character | '_')* { UID (lexeme lexbuf) }
   | '?' | "|>" | '=' | "->" | "=>" | '*' | ',' | ':' | ';' | '|' | '+' | '(' | ')'
   | '{' | '}' | '[' | ']' | '_' | '.' | "<=>" | "<->" | "/"
-  | "' '" | "\\" | ":" | ">" | "<" | "-" | "\\n" | "[" | "]"
+  | "' '" | "\\" | ":" | ">" | "<" | "-" | "\\n" | "[" | "]" | ";"
     { create_symbol lexbuf }
   | string { STR (remove_quotes lexbuf) }
   | _ as c { raise @@ Lexer_error ("Unexpected character: " ^ Char.escaped c) }

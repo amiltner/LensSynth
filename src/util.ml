@@ -28,6 +28,8 @@ let int_comparer_to_comparer (f:'a -> 'a -> int) (x:'a) (y:'a)
   : comparison =
     int_to_comparison (f x y)
 
+let comparison_compare = fun x y -> int_to_comparison (compare x y)
+
 let compare_ints (n1:int) (n2:int) : comparison =
   int_to_comparison (compare n1 n2)
 
@@ -346,3 +348,23 @@ let intersect_lose_order_no_dupes (cmp:'a -> 'a -> comparison)
   let ordered_l1 = List.sort ~cmp:int_comparer l1 in
   let ordered_l2 = List.sort ~cmp:int_comparer l2 in
   intersect_ordered ordered_l1 ordered_l2
+
+let set_minus_lose_order (cmp:'a -> 'a -> comparison)
+                                  (l1:'a list) (l2:'a list)
+                                  : 'a list =
+  let rec set_minus_ordered (l1:'a list) (l2:'a list) : 'a list =
+    begin match (l1,l2) with
+    | (h1::t1,h2::t2) ->
+        begin match (cmp h1 h2) with
+        | EQ -> set_minus_ordered t1 t2
+        | LT -> h1::(set_minus_ordered t1 l2)
+        | GT -> set_minus_ordered l1 t2
+        end
+    | ([],_) -> []
+    | (_,[]) -> []
+    end
+  in
+  let int_comparer = comparer_to_int_comparer cmp in
+  let ordered_l1 = List.dedup (List.sort ~cmp:int_comparer l1) in
+  let ordered_l2 = List.dedup (List.sort ~cmp:int_comparer l2) in
+  set_minus_ordered ordered_l1 ordered_l2

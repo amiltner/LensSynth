@@ -14,7 +14,9 @@ exception Internal_error of string
 %token <string> INT
 
 %token LET        (* let *)
+%token TYPEDEF    (* typedef *)
 %token IN         (* in *)
+%token SHARING    (* sharing *)
 
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
@@ -38,6 +40,7 @@ exception Internal_error of string
 %token NEWLINE    (* \\n *)
 %token LBRACKET   (* [ *)
 %token RBRACKET   (* ] *)
+%token SEMI       (* ; *)
 
 %token EOF
 
@@ -58,8 +61,10 @@ context:
     { d::c }
 
 decl:
-  | LET u=UID EQ r=regex IN
-    { (u,r) }
+  | TYPEDEF u=UID EQ r=regex SEMI SEMI
+    { (u,r,false) }
+  | TYPEDEF u=UID SHARING EQ r=regex SEMI SEMI
+    { (u,r,true) }
 
 (***** }}} *****)
 
@@ -102,6 +107,9 @@ base:
   | GT    { ">" }
   | HYPHEN { "-" }
   | NEWLINE { "\n" }
+  | EQ { "=" }
+  | LBRACE { "{" }
+  | RBRACE { "}" }
 
 (***** }}} *****)
 

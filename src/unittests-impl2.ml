@@ -185,38 +185,50 @@ let _ = run_test_tt_main to_normalized_exp_suite
 let test_counters_add_same _ =
   test_ordered_string_assoc_list
     [("a",2)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "a") "a"))
+    (Counters.as_ordered_assoc_list
+      (Counters.create_from_data
+        comparison_compare
+        ["a";"a"]))
 
 let test_counters_add_different _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "a") "b"))
+    (Counters.as_ordered_assoc_list
+      (Counters.create_from_data
+        comparison_compare
+        ["a";"b"]))
 
 let test_counters_add_different_rev _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "b") "a"))
+    (Counters.as_ordered_assoc_list
+      (Counters.create_from_data
+        comparison_compare
+        ["b";"a"]))
 
 let test_counters_merge_same _ =
   test_ordered_string_assoc_list
     [("a",2)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counters.as_ordered_assoc_list
+      (Counters.merge_unsafe
+      [Counters.create_from_datum comparison_compare "a";
+       Counters.create_from_datum comparison_compare "a"]))
 
 let test_counters_merge_different _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "b"))))
+    (Counters.as_ordered_assoc_list
+      (Counters.merge_unsafe
+      [Counters.create_from_datum comparison_compare "a";
+       Counters.create_from_datum comparison_compare "b"]))
 
 let test_counters_merge_different_rev _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "b")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counters.as_ordered_assoc_list
+      (Counters.merge_unsafe
+      [Counters.create_from_datum comparison_compare "b";
+       Counters.create_from_datum comparison_compare "a"]))
 
 let counters_suite = "compare_dnf_regexs Unit Tests" >:::
   ["test_counters_add_same" >:: test_counters_add_same;
@@ -227,7 +239,6 @@ let counters_suite = "compare_dnf_regexs Unit Tests" >:::
    "test_counters_merge_different_rev" >:: test_counters_merge_different_rev;
   ]
 
-let _ = run_test_tt_main counters_suite
 
 
 let test_to_exampled_dnf_constant_noex _ =
@@ -1181,3 +1192,4 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
 let _ = run_test_tt_main gen_dnf_lens_suite
 
 let _ = run_test_tt_main test_to_exampled_dnf_suite
+let _ = run_test_tt_main counters_suite

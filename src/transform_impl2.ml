@@ -21,59 +21,27 @@ let rec exponentiate (r:regex) (n:int) : regex =
       (exponentiate r (n-1)
       ,r)
 
-let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) * int =
-  let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
-    : ((string * int) Counters.t) * int =
-      begin match r with
-      | RegExBase _ -> (Counters.create comparison_compare,1)
-      | RegExUserDefined s ->
-            (Counters.add
-                         (Counters.create (comparison_compare))
-                         (s,depth),1)
-      | RegExOr (r1,r2) ->
-          let (counters_r1,width1) =
-            calculate_userdef_distribution_internal r1 depth in
-          let (counters_r2,width2) =
-            calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> x + y) counters_r1 counters_r2,width1+width2)
-      | RegExConcat (r1,r2) ->
-          let (counters_r1,width1) =
-            calculate_userdef_distribution_internal r1 depth in
-          let (counters_r2,width2) =
-            calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> (x*width2 + y*width1)) counters_r1 counters_r2,width1*width2)
-      | RegExStar r' ->
-          (fst (calculate_userdef_distribution_internal r' (depth+1)),1)
-      end
-  in
-  calculate_userdef_distribution_internal r 0
-  (*let rec calculate_atom_userdef_distribution (a:atom) (depth:int) : (string * int) Counters.t =
+let rec calculate_userdef_distribution (r:regex) : (string * int) Counters.t =
+  let rec calculate_atom_userdef_distribution (a:atom) (depth:int) : (string * int) Counters.t =
+    print_endline "at an atom";
     begin match a with
     | AUserDefined s ->
-        Counters.add
-          (Counters.create (comparison_compare))
-          (s,depth)
+        Counters.create_from_datum comparison_compare (s,depth)
     | AStar r' -> calculate_dnf_userdef_distribution r' (depth+1)
     end
   and calculate_clause_userdef_distribution ((atoms,strings):clause) (depth:int) : (string * int) Counters.t =
-    List.fold_left
-      ~f:(fun acc a ->
-        Counters.merge
-          acc
-          (calculate_atom_userdef_distribution a depth))
-      ~init:(Counters.create comparison_compare)
-      atoms
+    Counters.merge_unsafe
+      (List.map ~f:(fun a -> calculate_atom_userdef_distribution a depth) atoms)
   and calculate_dnf_userdef_distribution (clauses:dnf_regex) (depth:int) : (string * int) Counters.t =
-    List.fold_left
-      ~f:(fun acc c ->
-        Counters.merge
-          acc
-          (calculate_clause_userdef_distribution c depth))
-      ~init:(Counters.create comparison_compare)
-      clauses
+    Counters.merge_unsafe
+      (List.map ~f:(fun c -> calculate_clause_userdef_distribution c depth) clauses)
   in
-
-  calculate_dnf_userdef_distribution (to_dnf_regex r) 0*)
+ print_endline "1111";
+ let dnfr = to_dnf_regex r in
+ print_endline "3333?";
+  let q = calculate_dnf_userdef_distribution (to_dnf_regex r) 0 in
+  print_endline "2222";
+  q
 
   (*begin match r with
   | RegExBase _ -> Counters.create (comparison_compare)
@@ -93,6 +61,9 @@ let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) *
   end*)
 
 let retrieve_priority (r1:regex) (r2:regex) : float =
+  print_endline "here slow!";
+  print_endline (Pp.pp_regexp r1);
+  print_endline (Pp.pp_regexp r2);
   let rec retrieve_priority_internal (cs1:((string * int) * int) list)
                                  (cs2:((string * int) * int) list)
                                  : float =
@@ -118,10 +89,10 @@ let retrieve_priority (r1:regex) (r2:regex) : float =
         cs2
     end
   in
-  let userdef_dist_r1 = Counters.as_ordered_assoc_list (fst (
-    (calculate_userdef_distribution r1)) )in
-  let userdef_dist_r2 = Counters.as_ordered_assoc_list (fst (
-    (calculate_userdef_distribution r2)) )in
+  let userdef_dist_r1 = Counters.as_ordered_assoc_list
+    (calculate_userdef_distribution r1) in
+  let userdef_dist_r2 = Counters.as_ordered_assoc_list
+    (calculate_userdef_distribution r2) in
   let ans = (retrieve_priority_internal
     userdef_dist_r1
     userdef_dist_r2)

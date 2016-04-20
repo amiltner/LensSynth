@@ -19,9 +19,13 @@ type examples = (string * string) list
 
 type specification = (string * regex * regex * (string * string) list)
 
-type synth_problems = (string * regex) list * (specification list) 
+type context = (string * regex) list
 
-type synth_problem = (((string * regex) list) * string * regex * regex * (string * string) list)
+type evaluation_context = context
+
+type synth_problems = (string * regex * bool) list * (specification list) 
+
+type synth_problem = (context * evaluation_context * string * regex * regex * (string * string) list)
 
 type unioned_subex = concated_subex list
 
@@ -38,10 +42,16 @@ type normalized_synth_problem = ((string * normalized_regex) list)
                                 * normalized_regex * normalized_regex
                                 * (string * string) list
 
-type context = (string * regex) list
-
-let problems_to_problem_list ((c,ss):synth_problems) : synth_problem list =
-  List.map ~f:(fun (n,r1,r2,exl) -> (c,n,r1,r2,exl)) ss
+let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
+  let e_c = List.map ~f:(fun (t,d,_) -> (t,d)) ds in
+  let c = List.filter_map
+    ~f:(fun (t,d,s) ->
+      if s then
+        Some (t,d)
+      else
+        None)
+    ds in
+  List.map ~f:(fun (n,r1,r2,exl) -> (c,e_c,n,r1,r2,exl)) ss
 
 let rec to_normalized_exp (r:regex) : normalized_regex =
   begin match r with
@@ -53,7 +63,7 @@ let rec to_normalized_exp (r:regex) : normalized_regex =
   | RegExUserDefined s -> [[NRXUserDefined s]]
   end
 
-let rec to_normalized_synth_problem ((c,n,r1,r2,es):synth_problem)
+let rec to_normalized_synth_problem ((c,e_c,n,r1,r2,es):synth_problem)
 : normalized_synth_problem =
   (List.map ~f:(fun (s,r) -> (s, to_normalized_exp r)) c, to_normalized_exp r1, to_normalized_exp r2, es)
 
@@ -135,12 +145,12 @@ and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
   ordered_partition_order compare_clauses r1 r2
 
 type exampled_atom =
-  | EAUserDefined of string * string list
-  | EAStar of exampled_dnf_regex
+  | EAUserDefined of string * string list * int list list
+  | EAStar of exampled_dnf_regex * int list list
 
 and exampled_clause = (exampled_atom) list * string list * (int list list)
 
-and exampled_dnf_regex = exampled_clause list
+and exampled_dnf_regex = exampled_clause list * int list list
 
 type exampled_regex =
   | ERegExBase of string * (int list list)
@@ -170,7 +180,7 @@ and ordered_exampled_dnf_regex = (ordered_exampled_clause * int) list list
 let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
   comparison =
     begin match (a1,a2) with
-    | (EAUserDefined (s1,el1), EAUserDefined (s2,el2)) ->
+    | (EAUserDefined (s1,el1,_), EAUserDefined (s2,el2,_)) ->
         begin match (int_to_comparison (compare s1 s2)) with
         | EQ -> ordered_partition_order
                   (fun x y -> int_to_comparison (compare x y))
@@ -178,7 +188,7 @@ let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
                   el2
         | x -> x
         end
-    | (EAStar r1, EAStar r2) -> compare_exampled_dnf_regexs r1 r2
+    | (EAStar (r1,_), EAStar (r2,_)) -> compare_exampled_dnf_regexs r1 r2
     | _ -> EQ
     end 
 
@@ -193,7 +203,7 @@ and compare_exampled_clauses ((atoms1,strings1,ints1):exampled_clause)
   | c -> c
   end
 
-and compare_exampled_dnf_regexs (r1:exampled_dnf_regex) (r2:exampled_dnf_regex) : comparison =
+and compare_exampled_dnf_regexs ((r1,_):exampled_dnf_regex) ((r2,_):exampled_dnf_regex) : comparison =
   ordered_partition_order
     compare_exampled_clauses
       r1
@@ -240,8 +250,8 @@ and compare_ordered_exampled_dnf_regexs (r1:ordered_exampled_dnf_regex)
 
 let rec to_ordered_exampled_atom (a:exampled_atom) : ordered_exampled_atom =
   begin match a with
-  | EAUserDefined (s,el) -> OEAUserDefined (s,el)
-  | EAStar r -> OEAStar (to_ordered_exampled_dnf_regex r)
+  | EAUserDefined (s,el,_) -> OEAUserDefined (s,el)
+  | EAStar (r,_) -> OEAStar (to_ordered_exampled_dnf_regex r)
   end
 
 and to_ordered_exampled_clause ((atoms,strings,exnums):exampled_clause) : ordered_exampled_clause =
@@ -252,21 +262,33 @@ and to_ordered_exampled_clause ((atoms,strings,exnums):exampled_clause) : ordere
       ordered_atoms in
   (ordered_ordered_atoms,strings,exnums)
 
-and to_ordered_exampled_dnf_regex (r:exampled_dnf_regex)
+and to_ordered_exampled_dnf_regex ((r,_):exampled_dnf_regex)
         : ordered_exampled_dnf_regex =
   let ordered_clauses = List.map ~f:to_ordered_exampled_clause r in
   sort_and_partition_with_indices
     compare_ordered_exampled_clauses
     ordered_clauses
 
-let rec size (r:regex) : int =
+let rec or_size (r:regex) : int =
   begin match r with
   | RegExBase _ -> 1
-  | RegExConcat (r1,r2) -> (size r1) * (size r2)
-  | RegExOr (r1,r2) -> (size r1) + (size r2)
-  | RegExStar r' -> size r'
+  | RegExConcat (r1,r2) -> (or_size r1) * (or_size r2)
+  | RegExOr (r1,r2) -> (or_size r1) + (or_size r2)
+  | RegExStar r' -> or_size r'
   | RegExUserDefined _ -> 1
   end
 
+let rec true_max_size (c:context) (r:regex) : int =
+  begin match r with
+  | RegExBase _ -> 1
+  | RegExConcat (r1,r2) -> (true_max_size c r1) * (true_max_size c r2)
+  | RegExOr (r1,r2) -> (true_max_size c r1) + (true_max_size c r2)
+  | RegExStar r' -> true_max_size c r'
+  | RegExUserDefined t ->
+      begin match List.Assoc.find c t with
+      | None -> 1
+      | Some r' -> true_max_size c r'
+      end
+  end
 
 (***** }}} *****)

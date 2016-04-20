@@ -265,13 +265,13 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
                         : exampled_dnf_regex option =
   let rec to_exampled_atom_bare (a:atom) : exampled_atom =
     begin match a with
-    | AUserDefined s -> EAUserDefined (s,[])
-    | AStar r -> EAStar (to_exampled_dnf_regex_bare r)
+    | AUserDefined s -> EAUserDefined (s,[],[])
+    | AStar r -> EAStar (to_exampled_dnf_regex_bare r,[])
     end
   and to_exampled_clause_bare ((atoms,strings):clause) : exampled_clause =
     (List.map ~f:(fun a -> to_exampled_atom_bare a) atoms,strings,[])
   and to_exampled_dnf_regex_bare (r:dnf_regex) : exampled_dnf_regex =
-    List.map ~f:(fun c -> to_exampled_clause_bare c) r
+    (List.map ~f:(fun c -> to_exampled_clause_bare c) r,[])
   in
 
   let rec add_atom_example (a:exampled_atom) (s:string)
@@ -279,16 +279,16 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
     let rec add_atom_example_internal (a:exampled_atom) (s:string) (i:int)
                           : exampled_atom option =
       begin match a with
-      | EAUserDefined (v,exs) ->
+      | EAUserDefined (v,exs,ill) ->
           begin match List.Assoc.find c v with
           | Some rex ->
               if (eval_regex c rex s) then
-                Some (EAUserDefined (v,s::exs))
+                Some (EAUserDefined (v,s::exs,ill))
               else
                 None
           | None -> failwith "not in the context"
           end
-      | EAStar dnf ->
+      | EAStar (dnf,ill) ->
           if (s = "") then Some a
           else
             let strlen = String.length s in
@@ -299,7 +299,7 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
                     begin match add_dnf_regex_example dnf (String.sub s 0 x) i with
                     | None -> None
                     | Some dnf' -> add_atom_example_internal
-                                    (EAStar dnf')
+                                    (EAStar (dnf',ill))
                                     (String.sub s x (strlen-x))
                                     (i+1)
                     end
@@ -353,7 +353,7 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
     | Some atoms' -> Some (atoms',strings,[i]::choices)
     end
 
-  and add_dnf_regex_example (r:exampled_dnf_regex) (s:string) (i:int)
+  and add_dnf_regex_example ((r,ill):exampled_dnf_regex) (s:string) (i:int)
                         : exampled_dnf_regex option =
     let (r',found) = List.fold_right
       ~f:(fun c (acc,found) ->
@@ -366,7 +366,7 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
           end)
       ~init:([],false)
       r in
-    if found then Some r' else None
+    if found then Some (r',ill) else None
   in
 
   List.foldi

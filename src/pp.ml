@@ -58,10 +58,10 @@ let rec pp_normalized_regex (r:normalized_regex) : string =
   in
   String.concat (List.map ~f:pp_concated_regex r) ~sep:"|"
 
-let rec pp_exampled_dnf_regex (r:exampled_dnf_regex) : string =
-  String.concat
+let rec pp_exampled_dnf_regex ((r,ill):exampled_dnf_regex) : string =
+  paren ((String.concat
   ~sep:" + "
-  (List.map ~f:pp_exampled_clause r)
+  (List.map ~f:pp_exampled_clause r)) ^ "," ^ (pp_int_list_list ill))
 
 and pp_exampled_clause ((atoms,strings,examples):exampled_clause) : string =
   paren (bracket (
@@ -84,15 +84,54 @@ and pp_exampled_clause ((atoms,strings,examples):exampled_clause) : string =
 
 and pp_exampled_atom (a:exampled_atom) : string =
   begin match a with
-  | EAUserDefined (s,sl) -> paren (
+  | EAUserDefined (s,sl,ill) -> paren (
       s ^ "," ^
       bracket (
         String.concat
         ~sep:";"
-        sl)
+        sl) ^ "," ^ pp_int_list_list ill
       )
-  | EAStar r -> (paren (pp_exampled_dnf_regex r)) ^ "*"
+  | EAStar (r,ill) -> (paren ((pp_exampled_dnf_regex r) ^ (pp_int_list_list ill))) ^ "*"
   end
+
+(*let rec pp_exampled_ordered_dnf_regex ((r):ordered_exampled_dnf_regex) : string =
+  paren ((String.concat
+  ~sep:" + "
+  (List.map (fun cs -> (String.concat ~sep:"\n"
+    (List.map ~f:(fun (x,i) -> pp_ordered_exampled_clause x) cs))) r)))
+
+and pp_ordered_exampled_clause ((atomintl,strings,ill):ordered_exampled_clause) : string =
+  paren (bracket (
+    String.concat
+    ~sep:";"
+    (List.map ~f:pp_exampled_atom atomintl)))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+    strings))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+        (List.map ~f:
+          (fun il -> bracket (String.concat ~sep:";"
+          (List.map ~f:string_of_int il)))
+          ill)))
+
+and pp_ordered_exampled_atom (a:exampled_atom) : string =
+  begin match a with
+  | EAUserDefined (s,sl,ill) -> paren (
+      s ^ "," ^
+      bracket (
+        String.concat
+        ~sep:";"
+        sl) ^ "," ^ pp_int_list_list ill
+      )
+  | EAStar (r,ill) -> (paren ((pp_exampled_dnf_regex r) ^ (pp_int_list_list ill))) ^ "*"
+  end*)
+
+
 
 let rec pp_exampled_regex (r:exampled_regex) : string =
   begin match r with

@@ -8,6 +8,7 @@ open Util
 open Pp
 open Permutation
 open Transform
+open Priority_queue
 
 let rec all_match (c:context) (r:regex) (ss:string list) : bool =
   List.fold_left
@@ -467,31 +468,81 @@ and gen_dnf_lens_zipper_internal (r1:ordered_exampled_dnf_regex)
    clause_lens_perm_part_list_by_left_clause in
    (clause_lenses,Permutation.create_from_doubles_unsafe perm_parts)
 
-and gen_dnf_lens_zipper (c:context)
+and gen_dnf_lens_internal (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+                 (exs:examples) (expand_count:int) : dnf_lens option =
+  let expanded_here = gen_dnf_lens_expand_here c clauses1 clauses2 exs expand_count in
+  if expanded_here <> None then
+    expanded_here
+  else
+    gen_dnf_lens_expand_beneath c clauses1 clauses2 exs expand_count
+
+let gen_dnf_lens_zipper (c:context)
+                        (e_c:evaluation_context)
                         (r1:regex)
                         (r2:regex)
                         (exs:examples)
                       : dnf_lens option =
-  let max_size = max (size r1) (size r2) in
   let (lexs,rexs) = List.unzip exs in
-  List.fold_left
+  let max_size = max (true_max_size c r1) (true_max_size c r2) in
+  let rec gen_dnf_lens_zipper_queueing
+        (queue:(regex * regex * int) Priority_Queue.t)
+        : dnf_lens option =
+    begin match Priority_Queue.pop queue with
+    | None -> None
+    | Some ((r1,r2,star_expansions),p,q) ->
+        if star_expansions <= 0 then
+          gen_dnf_lens_zipper_queueing q
+        else
+          begin match expand_required_expansions c r1 r2 with
+          | Some (r1',r2') ->
+              (*print_endline ("\n\n\npopped " ^ (Float.to_string p));
+              print_endline (Pp.pp_regexp r1');
+              print_endline (Pp.pp_regexp r2');*)
+          let exampled_r1_opt = regex_to_exampled_dnf_regex e_c r1' lexs in
+          let exampled_r2_opt = regex_to_exampled_dnf_regex e_c r2' rexs in
+          begin match (exampled_r1_opt,exampled_r2_opt) with
+          | (Some exampled_r1,Some exampled_r2) ->
+              print_endline "\n\n\n";
+              print_endline (Pp.pp_exampled_dnf_regex exampled_r1);
+              print_endline "\n";
+              print_endline (Pp.pp_exampled_dnf_regex exampled_r2);
+              let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
+              let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
+              begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
+              | EQ -> 
+                  Some (gen_dnf_lens_zipper_internal e_o_r1 e_o_r2)
+              | _ ->
+                  let rx_list = apply_transformations max_size c r1' r2' 1 in
+                  gen_dnf_lens_zipper_queueing
+                    (Priority_Queue.push_all q
+                    (List.map
+                      ~f:(fun (r1,r2) ->
+                        (((r1,r2,star_expansions-1),
+                        (2.0 ** (Float.of_int (10-star_expansions)))
+                        *.
+                        (retrieve_priority r1 r2))))
+                      rx_list))
+              end
+          | _ -> None
+          end
+          | None -> gen_dnf_lens_zipper_queueing q
+          end
+    end
+  in
+  gen_dnf_lens_zipper_queueing (Priority_Queue.create_from_list
+  [((r1,r2,10),1.0)])
+
+  (*List.fold_left
   ~f:(fun acc n ->
     begin match acc with
-    | None ->
-        let splits =
-          List.map ~f:(fun m -> (m,n-m)) (range 0 n) in
-        let combos = List.concat_map
-          ~f:(fun (ln,rn) ->
-            let left_exps = expand_stars r1 ln max_size in
-            let right_exps = expand_stars r2 rn max_size in
-            cartesian_map (fun x y -> (x,y)) left_exps right_exps)
-          splits in
+   | None ->
+        let combos = apply_transformations c r1 r2 n in
         List.fold_left
           ~f:(fun acc' (r1',r2') ->
             begin match acc' with
             | None -> 
-                let exampled_r1_opt = regex_to_exampled_dnf_regex c r1' lexs in
-                let exampled_r2_opt = regex_to_exampled_dnf_regex c r2' rexs in
+                let exampled_r1_opt = regex_to_exampled_dnf_regex e_c r1' lexs in
+                let exampled_r2_opt = regex_to_exampled_dnf_regex e_c r2' rexs in
                 begin match (exampled_r1_opt,exampled_r2_opt) with
                 | (Some exampled_r1,Some exampled_r2) ->
                     let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
@@ -507,24 +558,15 @@ and gen_dnf_lens_zipper (c:context)
             end)
           ~init:None
           combos
-            | _ -> acc
+    | _ -> acc
     end)
   ~init:None
-  (range 0 2)
+  (range 0 7)*)
 
 
-and gen_dnf_lens_internal (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
-                 (exs:examples) (expand_count:int) : dnf_lens option =
-  let expanded_here = gen_dnf_lens_expand_here c clauses1 clauses2 exs expand_count in
-  if expanded_here <> None then
-    expanded_here
-  else
-    gen_dnf_lens_expand_beneath c clauses1 clauses2 exs expand_count
-
-
-and gen_dnf_lens (c:context) (r1:regex) (r2:regex)
+let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
                  (exs:examples) : dnf_lens option =
-                   gen_dnf_lens_zipper c r1 r2 exs
+  gen_dnf_lens_zipper c e_c r1 r2 exs
   (*let (lexs,rexs) = List.unzip exs in
   let exampled_r1_opt = regex_to_exampled_dnf_regex c r1 lexs in
   let exampled_r2_opt = regex_to_exampled_dnf_regex c r2 rexs in
