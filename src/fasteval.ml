@@ -347,3 +347,12 @@ let regex_to_exampled_dnf_regex (c:context)
                                 : exampled_dnf_regex option =
   let er_option = regex_to_exampled_regex c r es in
   Option.map ~f:exampled_regex_to_exampled_dnf_regex er_option
+
+let regex_to_ordered_exampled_compressed_dnf_regex
+      (c:context)
+      (r:regex)
+      (es:string list)
+      : ordered_exampled_compressed_dnf_regex option =
+  let er_option = regex_to_exampled_regex c r es in
+  let ans = Option.map ~f:to_ordered_exampled_compressed_dnf_regex er_option in
+  ans

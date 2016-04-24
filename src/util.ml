@@ -329,25 +329,27 @@ let ordered_partition_dictionary_order (f:'a -> 'a -> comparison)
         | x -> x
         end)
 
+let rec intersect_ordered_no_dupes (cmp:'a -> 'a -> comparison)
+                                   (l1:'a list) (l2:'a list)
+                                   : 'a list =
+  begin match (l1,l2) with
+  | (h1::t1,h2::t2) ->
+      begin match (cmp h1 h2) with
+      | EQ -> h1::(intersect_ordered_no_dupes cmp t1 t2)
+      | LT -> intersect_ordered_no_dupes cmp t1 l2
+      | GT -> intersect_ordered_no_dupes cmp l1 t2
+      end
+  | ([],_) -> []
+  | (_,[]) -> []
+  end
+
 let intersect_lose_order_no_dupes (cmp:'a -> 'a -> comparison)
                                   (l1:'a list) (l2:'a list)
                                   : 'a list =
-  let rec intersect_ordered (l1:'a list) (l2:'a list) : 'a list =
-    begin match (l1,l2) with
-    | (h1::t1,h2::t2) ->
-        begin match (cmp h1 h2) with
-        | EQ -> h1::(intersect_ordered t1 t2)
-        | LT -> intersect_ordered t1 l2
-        | GT -> intersect_ordered l1 t2
-        end
-    | ([],_) -> []
-    | (_,[]) -> []
-    end
-  in
   let int_comparer = comparer_to_int_comparer cmp in
   let ordered_l1 = List.sort ~cmp:int_comparer l1 in
   let ordered_l2 = List.sort ~cmp:int_comparer l2 in
-  intersect_ordered ordered_l1 ordered_l2
+  intersect_ordered_no_dupes cmp ordered_l1 ordered_l2
 
 let set_minus_lose_order (cmp:'a -> 'a -> comparison)
                                   (l1:'a list) (l2:'a list)
@@ -368,3 +370,11 @@ let set_minus_lose_order (cmp:'a -> 'a -> comparison)
   let ordered_l1 = List.dedup (List.sort ~cmp:int_comparer l1) in
   let ordered_l2 = List.dedup (List.sort ~cmp:int_comparer l2) in
   set_minus_ordered ordered_l1 ordered_l2
+
+let discrete_metric (cmp:'a -> 'a -> comparison)
+                    (x:'a) (y:'a)
+                    : int =
+  begin match cmp x y with
+  | EQ -> 1
+  | _ -> 0
+  end

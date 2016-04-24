@@ -1,4 +1,5 @@
 open Lang
+open Counter
 open Lens
 open Core.Std
 open Permutation
@@ -21,6 +22,29 @@ let pp_int_list_list (ill:int list list) : string =
       ~sep:";"
       (List.map ~f:pp_int_list ill)
   )
+
+let rec pp_ordered_exampled_compressed_atom
+  (a:ordered_exampled_compressed_atom) : string =
+    begin match a with
+    | OECAUserDefined (s,sl,ill) -> paren (
+        s ^ "," ^
+        bracket (
+          String.concat
+          ~sep:";"
+          sl) ^ "," ^ pp_int_list_list ill
+        )
+    | OECAStar (r,ill) -> (paren ((pp_ordered_exampled_compressed_dnf_regex r) ^ (pp_int_list_list ill))) ^ "*"
+    end
+
+and pp_ordered_exampled_compressed_clause
+  ((ac,ill):ordered_exampled_compressed_clause) : string =
+   paren ((Counter.pp pp_ordered_exampled_compressed_atom ac)
+    ^ "," ^ pp_int_list_list ill)
+
+and pp_ordered_exampled_compressed_dnf_regex
+  ((cc,ill):ordered_exampled_compressed_dnf_regex) : string =
+   paren ((Counter.pp pp_ordered_exampled_compressed_clause cc)
+    ^ "," ^ pp_int_list_list ill)
 
 let rec pp_regexp (r:regex) : string =
   begin match r with

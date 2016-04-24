@@ -1,5 +1,5 @@
 open Core.Std
-open Counters
+open Counter
 open Priority_queue
 open Fasteval
 open Permutation
@@ -37,12 +37,12 @@ let test_string_double_option
     expected
     actual
 
-let test_int_float_int_priority_queue_option =
+let test_int_int_int_priority_queue_option =
   assert_equal
     ~printer:(fun x ->
       begin match x with
       | None -> "None"
-      | Some (d,p,q) -> "(" ^ (string_of_int d) ^ "," ^ (Float.to_string p) ^
+      | Some (d,p,q) -> "(" ^ (string_of_int d) ^ "," ^ (string_of_int p) ^
       "," ^
       (Priority_Queue.pp string_of_int q) ^ ")"
       end)
@@ -95,6 +95,14 @@ let test_exampled_dnf_option =
       begin match ro with
       | None -> "None"
       | Some r -> Pp.pp_exampled_dnf_regex r
+      end)
+
+let test_ordered_exampled_compressed_dnf_regex_option =
+  assert_equal
+    ~printer:(fun ro ->
+      begin match ro with
+      | None -> "None"
+      | Some r -> Pp.pp_ordered_exampled_compressed_dnf_regex r
       end)
 
 let test_to_normalized_exp_base _ =
@@ -185,38 +193,38 @@ let _ = run_test_tt_main to_normalized_exp_suite
 let test_counters_add_same _ =
   test_ordered_string_assoc_list
     [("a",2)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
+    (Counter.as_ordered_assoc_list (Counter.add (Counter.add (Counter.create
     comparison_compare) "a") "a"))
 
 let test_counters_add_different _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
+    (Counter.as_ordered_assoc_list (Counter.add (Counter.add (Counter.create
     comparison_compare) "a") "b"))
 
 let test_counters_add_different_rev _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
+    (Counter.as_ordered_assoc_list (Counter.add (Counter.add (Counter.create
     comparison_compare) "b") "a"))
 
 let test_counters_merge_same _ =
   test_ordered_string_assoc_list
     [("a",2)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counter.as_ordered_assoc_list ((Counter.merge (Counter.add (Counter.create comparison_compare) "a")
+    (Counter.add (Counter.create comparison_compare) "a"))))
 
 let test_counters_merge_different _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "b"))))
+    (Counter.as_ordered_assoc_list ((Counter.merge (Counter.add (Counter.create comparison_compare) "a")
+    (Counter.add (Counter.create comparison_compare) "b"))))
 
 let test_counters_merge_different_rev _ =
   test_ordered_string_assoc_list
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "b")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counter.as_ordered_assoc_list ((Counter.merge (Counter.add (Counter.create comparison_compare) "b")
+    (Counter.add (Counter.create comparison_compare) "a"))))
 
 let counters_suite = "compare_dnf_regexs Unit Tests" >:::
   ["test_counters_add_same" >:: test_counters_add_same;
@@ -265,10 +273,65 @@ let test_to_exampled_dnf_star _ =
       (RegExStar (RegExBase "a"))
       ["aa"])
 
-let test_to_exampled_dnf_star_udef_or_concat _ =
+(*let test_to_exampled_dnf_star_udef_or_concat _ =
   test_exampled_dnf_option
     (Some ([],[[0]]))
     (regex_to_exampled_dnf_regex ["A",RegExBase "a"]
+      (RegExConcat
+        ((RegExStar (RegExUserDefined "A"))
+        ,(RegExOr (RegExBase "c",RegExBase "d"))))
+      ["aac"])*)
+
+
+let test_to_exampled_dnf_suite = "to_exampled_dnf_regex Unit Tests" >:::
+  ["test_to_exampled_dnf_constant_noex" >:: test_to_exampled_dnf_constant_noex;
+   "test_to_exampled_dnf_constant_2ex" >:: test_to_exampled_dnf_constant_2ex;
+   "test_to_exampled_dnf_or" >:: test_to_exampled_dnf_or;
+   "test_to_exampled_dnf_userdefined" >:: test_to_exampled_dnf_userdefined;
+   "test_to_exampled_dnf_star" >:: test_to_exampled_dnf_star;
+   (*"test_to_exampled_dnf_star_udef_or_concat" >::
+     test_to_exampled_dnf_star_udef_or_concat;*)
+  ]
+
+let test_to_exampled_dnf_constant_noex _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex []
+      (RegExBase "a")
+      [])
+
+let test_to_exampled_dnf_constant_2ex _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex []
+      (RegExBase "a")
+      ["a";"a"])
+
+let test_to_exampled_dnf_or _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex []
+      (RegExOr (RegExBase "a", RegExBase "b"))
+      ["b";"a"])
+
+let test_to_exampled_dnf_userdefined _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex ["A",RegExBase "a"]
+      (RegExUserDefined "A")
+      ["a"])
+
+let test_to_exampled_dnf_star _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex []
+      (RegExStar (RegExBase "a"))
+      ["aa"])
+
+let test_to_exampled_dnf_star_udef_or_concat _ =
+  test_ordered_exampled_compressed_dnf_regex_option
+    (Some (additive_identity []))
+    (regex_to_ordered_exampled_compressed_dnf_regex ["A",RegExBase "a"]
       (RegExConcat
         ((RegExStar (RegExUserDefined "A"))
         ,(RegExOr (RegExBase "c",RegExBase "d"))))
@@ -281,9 +344,13 @@ let test_to_exampled_dnf_suite = "to_exampled_dnf_regex Unit Tests" >:::
    "test_to_exampled_dnf_or" >:: test_to_exampled_dnf_or;
    "test_to_exampled_dnf_userdefined" >:: test_to_exampled_dnf_userdefined;
    "test_to_exampled_dnf_star" >:: test_to_exampled_dnf_star;
-   "test_to_exampled_dnf_star_udef_or_concat" >:: test_to_exampled_dnf_star_udef_or_concat;
+   "test_to_exampled_dnf_star_udef_or_concat" >::
+     test_to_exampled_dnf_star_udef_or_concat;
   ]
 
+let _ = run_test_tt_main test_to_exampled_dnf_suite
+
+let _ = run_test_tt_main test_to_exampled_dnf_suite
 
 let test_compare_dnf_regexs_userdefineds_eq _ =
   test_comparison
@@ -936,19 +1003,19 @@ let test_regex_list =
     ^ "]")
 
 let test_priority_queue_pop_empty _ =
-  test_int_float_int_priority_queue_option
+  test_int_int_int_priority_queue_option
     None
     (Priority_Queue.pop (Priority_Queue.create))
 
 let test_priority_queue_pop_forward _ =
-  test_int_float_int_priority_queue_option
-    (Some (2, 0.5, Priority_Queue.create_from_list [(1,1.0)]))
-    (Priority_Queue.pop (Priority_Queue.create_from_list [(1,1.0);(2,0.5)]))
+  test_int_int_int_priority_queue_option
+    (Some (2, 0, Priority_Queue.create_from_list [(1,1)]))
+    (Priority_Queue.pop (Priority_Queue.create_from_list [(1,1);(2,0)]))
 
 let test_priority_queue_pop_backwards _ =
-  test_int_float_int_priority_queue_option
-    (Some (2, 0.5, Priority_Queue.create_from_list [(1,1.0)]))
-    (Priority_Queue.pop (Priority_Queue.create_from_list [(2,0.5);(1,1.0)]))
+  test_int_int_int_priority_queue_option
+    (Some (2, 0, Priority_Queue.create_from_list [(1,1)]))
+    (Priority_Queue.pop (Priority_Queue.create_from_list [(2,0);(1,1)]))
 
 let priority_queue_suite = "Priority_Queue Unit Tests" >:::
   ["test_priority_queue_pop_empty" >:: test_priority_queue_pop_empty;
@@ -1180,4 +1247,3 @@ let gen_dnf_lens_suite = "gen_dnf_lens Unit Tests" >:::
 
 let _ = run_test_tt_main gen_dnf_lens_suite
 
-let _ = run_test_tt_main test_to_exampled_dnf_suite

@@ -1,4 +1,5 @@
 open Core.Std
+open Counter
 open Printf
 open Util
 open Fn
@@ -176,6 +177,255 @@ and ordered_exampled_clause = ((ordered_exampled_atom * int) list) list * string
 list * (int list list)
 
 and ordered_exampled_dnf_regex = (ordered_exampled_clause * int) list list
+
+let compare_int_list_list : int list list
+                            -> int list list
+                            -> comparison =
+  ordered_partition_order
+    comparison_compare
+
+type ordered_exampled_compressed_atom =
+  | OECAUserDefined of string * string list * int list list
+  | OECAStar of ordered_exampled_compressed_dnf_regex * int list list
+
+and ordered_exampled_compressed_clause =
+  (ordered_exampled_compressed_atom Counter.t
+  * int list list)
+
+and ordered_exampled_compressed_dnf_regex =
+  (ordered_exampled_compressed_clause Counter.t
+  * int list list)
+
+let rec clean_exampledness_atom (choices:int list list)
+(a:ordered_exampled_compressed_atom)  : ordered_exampled_compressed_atom =
+  begin match a with
+  | OECAUserDefined (s,el,cs) ->
+      let udef_choice_zip = List.zip_exn el cs in
+      let actual_choices =
+        List.filter
+          ~f:(fun (el,c) -> List.mem choices c )
+          udef_choice_zip
+        in
+        let (strs,cs) = List.unzip actual_choices in
+      OECAUserDefined (s,strs,cs)
+  | OECAStar (r,cs) ->
+      
+  let actual_choices =
+    List.filter
+      ~f:(fun ch -> List.mem choices ch)
+      cs
+        in
+      
+      OECAStar (clean_exampledness_dnf_regex actual_choices r, actual_choices)
+  end
+and clean_exampledness_clause (above_choices:int list list)
+((atom_counter,current_choices):ordered_exampled_compressed_clause) :
+  ordered_exampled_compressed_clause =
+
+
+  let actual_choices =
+    List.filter
+      ~f:(fun ch -> List.mem above_choices ch)
+      current_choices
+        in
+
+  (
+    Counter.map (clean_exampledness_atom actual_choices) atom_counter,
+    actual_choices)
+
+
+and clean_exampledness_dnf_regex (above_choices:int list list)
+((clause_counter,current_choices):ordered_exampled_compressed_dnf_regex)  :
+  ordered_exampled_compressed_dnf_regex =
+
+  let rec is_suplist (lowerc:int list) (upperc:int list) : bool =
+    begin match (lowerc,upperc) with
+    | (h1::t1,h2::t2) ->
+        if h1 = h2 then
+          is_suplist t1 t2
+        else
+          false
+    | (_,[]) -> true
+    | _ -> false
+    end
+  in
+  let rec contains_sublist (viable_choices:int list list) (lowerc:int list) 
+    : bool =
+      List.exists ~f:(is_suplist (List.rev lowerc)) (List.map ~f:List.rev
+      viable_choices)
+  in
+
+  let viable_choices = List.filter ~f:(contains_sublist above_choices)
+  current_choices in
+
+
+
+  (Counter.map (clean_exampledness_clause viable_choices) clause_counter,viable_choices)
+
+
+let rec compare_ordered_exampled_compressed_atoms
+        (a1:ordered_exampled_compressed_atom)
+        (a2:ordered_exampled_compressed_atom)
+        : comparison =
+  begin match (a1,a2) with
+  | (OECAUserDefined (s1,sl1,ill1), OECAUserDefined (s2,sl2,ill2)) ->
+      begin match comparison_compare s1 s2 with
+      | EQ -> begin match comparison_compare sl1 sl2 with
+              | EQ ->
+                  begin match ordered_partition_order
+                                comparison_compare
+                                sl1
+                                sl2 with
+                  | EQ -> compare_int_list_list ill1 ill2
+                  | x -> x
+                  end
+              | x -> x
+              end
+       | x -> x
+      end
+  | (OECAStar (r1,ill1), OECAStar (r2,ill2)) ->
+      begin match compare_ordered_exampled_compressed_dnf_regexs
+                    r1
+                    r2 with
+      | EQ -> compare_int_list_list ill1 ill2
+      | x -> x
+      end
+  | (OECAUserDefined _, OECAStar _) -> LT
+  | (OECAStar _, OECAUserDefined _) -> GT
+  end
+
+and compare_ordered_exampled_compressed_clauses
+      ((c1,ill1):ordered_exampled_compressed_clause)
+      ((c2,ill2):ordered_exampled_compressed_clause)
+      : comparison =
+  begin match Counter.compare_counts
+                c1
+                c2 with
+  | EQ -> compare_int_list_list ill1 ill2
+  | x -> x
+  end
+
+and compare_ordered_exampled_compressed_dnf_regexs
+      ((r1,ill1):ordered_exampled_compressed_dnf_regex)
+      ((r2,ill2):ordered_exampled_compressed_dnf_regex)
+      : comparison =
+  begin match Counter.compare_counts
+                r1
+                r2 with
+  | EQ -> compare_int_list_list ill1 ill2
+  | x -> x
+  end
+
+let initial_atom_counter
+  : ordered_exampled_compressed_atom Counter.t =
+    Counter.create compare_ordered_exampled_compressed_atoms
+
+let initial_clause_counter
+  : ordered_exampled_compressed_clause Counter.t =
+    Counter.create compare_ordered_exampled_compressed_clauses
+
+let additive_identity (ill:int list list) =
+  (initial_clause_counter, ill)
+
+let multiplicative_identity_clause (ill:int list list) =
+  (initial_atom_counter, ill)
+
+let base_additive_identity = additive_identity []
+let base_multiplicative_identity_clause =
+  multiplicative_identity_clause []
+let base_multiplicative_identity_atom =
+  OECAStar (additive_identity [], [])
+
+let rec ordered_exampled_compressed_atom_metric
+        (a1:ordered_exampled_compressed_atom)
+        (a2:ordered_exampled_compressed_atom)
+        : int =
+  begin match (a1,a2) with
+  | (OECAUserDefined (s1,sl1,ill1), OECAUserDefined (s2,sl2,ill2)) ->
+      discrete_metric comparison_compare (s1,sl1,ill1) (s2,sl2,ill2)
+  | (OECAStar (r1,ill1), OECAStar (r2,ill2)) ->
+      (ordered_exampled_compressed_dnf_regex_metric r1 r2)
+      + (discrete_metric comparison_compare ill1 ill2)
+  | (_, OECAStar (r,_)) ->
+      1 + (ordered_exampled_compressed_dnf_regex_metric
+        r
+        (base_additive_identity))
+  | (OECAStar (r,_), _) ->
+      1 + (ordered_exampled_compressed_dnf_regex_metric
+            r
+            (base_additive_identity))
+  end
+
+and ordered_exampled_compressed_clause_metric
+        ((c1,ill1):ordered_exampled_compressed_clause)
+        ((c2,ill2):ordered_exampled_compressed_clause)
+        : int =
+  (counter_metric
+    compare_ordered_exampled_compressed_atoms
+    base_multiplicative_identity_atom
+    ordered_exampled_compressed_atom_metric
+    c1
+    c2)
+  + (discrete_metric comparison_compare ill1 ill2)
+
+and ordered_exampled_compressed_dnf_regex_metric
+        ((r1,ill1):ordered_exampled_compressed_dnf_regex)
+        ((r2,ill2):ordered_exampled_compressed_dnf_regex)
+        : int =
+  (counter_metric
+    compare_ordered_exampled_compressed_clauses
+    base_multiplicative_identity_clause
+    ordered_exampled_compressed_clause_metric
+    r1
+    r2)
+  + (discrete_metric comparison_compare ill1 ill2)
+
+let rec to_ordered_exampled_compressed_dnf_regex (r:exampled_regex)
+  : ordered_exampled_compressed_dnf_regex =
+    let create_singleton_atom
+      (a:ordered_exampled_compressed_atom)
+      (ill:int list list) :
+        ordered_exampled_compressed_dnf_regex =
+          (Counter.add
+            initial_clause_counter
+            (Counter.add
+              initial_atom_counter a, ill), ill)
+    in
+    begin match r with
+    | ERegExBase (s,ill) ->
+        (Counter.add
+          initial_clause_counter
+          (multiplicative_identity_clause ill), ill)
+    | ERegExUserDefined (t,sl,ill) ->
+        create_singleton_atom (OECAUserDefined (t,sl,ill)) ill
+    | ERegExStar (r',ill) ->
+        let oecar' = to_ordered_exampled_compressed_dnf_regex r' in
+        create_singleton_atom (OECAStar (oecar', ill)) ill
+    | ERegExOr (r1,r2,ill) ->
+        let (oecar1,ill1) =
+          to_ordered_exampled_compressed_dnf_regex r1 in
+        let (oecar2,ill2) =
+          to_ordered_exampled_compressed_dnf_regex r2 in
+        (Counter.merge oecar1 oecar2, ill)
+    | ERegExConcat (r1,r2,ill) ->
+        let (oecar1,ill1) =
+          to_ordered_exampled_compressed_dnf_regex r1 in
+        let (oecar2,ill2) =
+          to_ordered_exampled_compressed_dnf_regex r2 in
+        let newdnf = Counter.multiply_merge
+          (fun (c1,ill1) (c2,ill2) ->
+            let newill = intersect_ordered_no_dupes
+              comparison_compare
+              ill1 ill2 in
+            (Counter.merge c1 c2,newill))
+          oecar1
+          oecar2
+        in
+        let newnewdnf = clean_exampledness_dnf_regex ill (newdnf,ill) in
+        newnewdnf
+    end
+
+
 
 let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
   comparison =

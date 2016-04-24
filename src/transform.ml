@@ -1,5 +1,5 @@
 open Core.Std
-open Counters
+open Counter
 open Fasteval
 open Util
 open Lang
@@ -21,27 +21,27 @@ let rec exponentiate (r:regex) (n:int) : regex =
       (exponentiate r (n-1)
       ,r)
 
-let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) * int =
+let rec calculate_userdef_distribution (r:regex) : ((string * int) Counter.t) * int =
   let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
-    : ((string * int) Counters.t) * int =
+    : ((string * int) Counter.t) * int =
       begin match r with
-      | RegExBase _ -> (Counters.create comparison_compare,1)
+      | RegExBase _ -> (Counter.create comparison_compare,1)
       | RegExUserDefined s ->
-            (Counters.add
-                         (Counters.create (comparison_compare))
+            (Counter.add
+                         (Counter.create comparison_compare)
                          (s,depth),1)
       | RegExOr (r1,r2) ->
           let (counters_r1,width1) =
             calculate_userdef_distribution_internal r1 depth in
           let (counters_r2,width2) =
             calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> x + y) counters_r1 counters_r2,width1+width2)
+          (Counter.merge counters_r1 counters_r2,width1+width2)
       | RegExConcat (r1,r2) ->
           let (counters_r1,width1) =
             calculate_userdef_distribution_internal r1 depth in
           let (counters_r2,width2) =
             calculate_userdef_distribution_internal r2 depth in
-          (Counters.merge (fun x y -> (x*width2 + y*width1)) counters_r1 counters_r2,width1*width2)
+          (Counter.merge counters_r1 counters_r2,width1*width2)
       | RegExStar r' ->
           (fst (calculate_userdef_distribution_internal r' (depth+1)),1)
       end
@@ -92,10 +92,17 @@ let rec calculate_userdef_distribution (r:regex) : ((string * int) Counters.t) *
         s
   end*)
 
-let retrieve_priority (r1:regex) (r2:regex) : float =
-  let rec retrieve_priority_internal (cs1:((string * int) * int) list)
+let retrieve_priority (c:context) (r1:regex) (r2:regex) (lexs:string list) (rexs:string
+list) : int =
+  let oecro1 = regex_to_ordered_exampled_compressed_dnf_regex c r1 lexs in
+  let oecro2 = regex_to_ordered_exampled_compressed_dnf_regex c r2 lexs in
+  begin match (oecro1,oecro2) with
+  | (Some oecr1, Some oecr2) ->
+  let ans =
+  (ordered_exampled_compressed_dnf_regex_metric oecr1 oecr2)
+  (*let rec retrieve_priority_internal (cs1:((string * int) * int) list)
                                  (cs2:((string * int) * int) list)
-                                 : float =
+                                 : int =
     begin match (cs1,cs2) with
     | ((s1,c1)::t1,(s2,c2)::t2) ->
         begin match comparison_compare s1 s2 with
@@ -118,18 +125,18 @@ let retrieve_priority (r1:regex) (r2:regex) : float =
         cs2
     end
   in
-  let userdef_dist_r1 = Counters.as_ordered_assoc_list (fst (
+  let userdef_dist_r1 = Counter.as_ordered_assoc_list (fst (
     (calculate_userdef_distribution r1)) )in
-  let userdef_dist_r2 = Counters.as_ordered_assoc_list (fst (
-    (calculate_userdef_distribution r2)) )in
-  let ans = (retrieve_priority_internal
+  let userdef_dist_r2 = Counter.as_ordered_assoc_list (fst (
+    (calculate_userdef_distribution r2)) )in*)
+    (*(retrieve_priority_internal
     userdef_dist_r1
-    userdef_dist_r2)
+    userdef_dist_r2)*)
     (**. (2.0 ** (Float.of_int (size r1)))*)
     (**. (2.0 ** (Float.of_int (size r2)))*)
     (**. (Float.of_int (or_size r1))
     *. (Float.of_int (or_size r2))*)
-    *. (2.0 ** (Float.of_int (abs ((or_size r1) - (or_size r2)))))
+    + (abs ((or_size r1) - (or_size r2)))
     (**. (4.0 ** (Float.of_int (List.length userdef_dist_r1)))
     *. (4.0 ** (Float.of_int (List.length userdef_dist_r2)))*) in
         (*print_endline "\n\n\nr1";
@@ -146,6 +153,8 @@ let retrieve_priority (r1:regex) (r2:regex) : float =
     userdef_dist_r2)));*)
         (*print_endline ("total:" ^ (Float.to_string ans));*)
   ans
+  | _ -> 100000000000
+  end
 
 let rec quotiented_star (r:regex) (n:int) : regex =
   if n < 1 then

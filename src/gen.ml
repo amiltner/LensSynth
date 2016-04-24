@@ -495,17 +495,17 @@ let gen_dnf_lens_zipper (c:context)
         else
           begin match expand_required_expansions c r1 r2 with
           | Some (r1',r2') ->
-              (*print_endline ("\n\n\npopped " ^ (Float.to_string p));
+              print_endline ("\n\n\npopped " ^ (string_of_int p));
               print_endline (Pp.pp_regexp r1');
-              print_endline (Pp.pp_regexp r2');*)
+              print_endline (Pp.pp_regexp r2');
           let exampled_r1_opt = regex_to_exampled_dnf_regex e_c r1' lexs in
           let exampled_r2_opt = regex_to_exampled_dnf_regex e_c r2' rexs in
           begin match (exampled_r1_opt,exampled_r2_opt) with
           | (Some exampled_r1,Some exampled_r2) ->
-              print_endline "\n\n\n";
+              (*print_endline "\n\n\n";
               print_endline (Pp.pp_exampled_dnf_regex exampled_r1);
               print_endline "\n";
-              print_endline (Pp.pp_exampled_dnf_regex exampled_r2);
+              print_endline (Pp.pp_exampled_dnf_regex exampled_r2);*)
               let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
               let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
               begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
@@ -518,9 +518,9 @@ let gen_dnf_lens_zipper (c:context)
                     (List.map
                       ~f:(fun (r1,r2) ->
                         (((r1,r2,star_expansions-1),
-                        (2.0 ** (Float.of_int (10-star_expansions)))
-                        *.
-                        (retrieve_priority r1 r2))))
+                        (10-star_expansions)
+                        *
+                        (retrieve_priority e_c r1 r2 lexs rexs))))
                       rx_list))
               end
           | _ -> None
@@ -530,7 +530,7 @@ let gen_dnf_lens_zipper (c:context)
     end
   in
   gen_dnf_lens_zipper_queueing (Priority_Queue.create_from_list
-  [((r1,r2,10),1.0)])
+  [((r1,r2,10),1)])
 
   (*List.fold_left
   ~f:(fun acc n ->
