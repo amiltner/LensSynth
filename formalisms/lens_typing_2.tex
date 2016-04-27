@@ -1,0 +1,100 @@
+\input{macros}
+
+
+
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{mathpartir}
+\usepackage{empheq}
+\begin{document}
+
+\begin{mathpar}
+\inferrule[Constant Lens]
+{
+\String_1 \in \Sigma^*\\
+\String_2 \in \Sigma^*
+}
+{
+\Delta \vdash const(\String_1,\String_2) : (\String_1,\ExampleNumberListList) \Leftrightarrow (\String_2,\ExampleNumberListList)
+}
+
+\inferrule[Identity Lens Base]
+{
+}
+{
+\Delta \cup \{(\Regex,\UserDefined)\} \vdash \IdentityLens : (\UserDefined,[],[]) \Leftrightarrow (\UserDefined,[],[])
+}
+
+\inferrule[Identity Lens AddExample]
+{
+\Delta \cup \{(\Regex,\UserDefined)\} \vdash
+\IdentityLens : (\UserDefined,\StringList_1,\ExampleNumberListList_1) \Leftrightarrow (\UserDefined,\StringList_2,\ExampleNumberListList_2)\\
+\Delta \vdash \String : \Regex\\
+}
+{
+\Delta \cup \{(\Regex,\UserDefined)\} \vdash
+\IdentityLens : (\UserDefined,\String::\StringList_1,\ExampleNumberList::\ExampleNumberListList_1) \Leftrightarrow (\UserDefined,\String::\StringList_2,\ExampleNumberList::\ExampleNumberListList_2)\\
+}
+
+\inferrule[Iterate Lens]
+{
+\Delta \vdash \Lens : (\Regex_1,\ExampleNumberListList_1) \Leftrightarrow (\Regex_2,\ExampleNumberListList_2)\\
+\ValidCombine{\Combine}{\ExampleNumberListList_1}\\
+\ValidCombine{\Combine}{\ExampleNumberListList_2}\\
+\Regex_1^{!*}\\
+\Regex_2^{!*}
+}
+{
+\Delta \vdash \IterateLens{\Lens} :
+(\Star{(\Regex_1,\ExampleNumberListList_1)},\CombineList{\ExampleNumberListList_1}) \Leftrightarrow
+(\Star{(\Regex_2,\ExampleNumberListList_2)},\CombineList{\ExampleNumberListList_2})
+}
+
+\inferrule[Concat Lens]
+{
+\Delta \vdash \Lens_1 : (\Regex_{1,1},\ExampleNumberListList_{1}) \Leftrightarrow (\Regex_{1,2},\ExampleNumberListList_{2})\\
+\Delta \vdash \Lens_2 : (\Regex_{2,1},\ExampleNumberListList_{1}) \Leftrightarrow (\Regex_{2,2},\ExampleNumberListList_{2})\\
+\Regex_{1,1} .! \Regex_{2,1}\\
+\Regex_{1,2} .! \Regex_{2,2}\\
+}
+{
+\Delta \vdash \ConcatLens{\Lens_1}{\Lens_2} : ((\Regex_{1,1},\ExampleNumberListList_1)(\Regex_{2,1},\ExampleNumberListList_1),\ExampleNumberListList_{1}) \Leftrightarrow ((\Regex_{1,2},\ExampleNumberListList_2)(\Regex_{2,2},\ExampleNumberListList_2),\ExampleNumberListList_{2})\\
+}
+
+\inferrule[Swap Lens]
+{
+\Delta \vdash \Lens_1 : (\Regex_{1,1},\ExampleNumberListList_{1}) \Leftrightarrow (\Regex_{1,2},\ExampleNumberListList_{2})\\
+\Delta \vdash \Lens_2 : (\Regex_{2,1},\ExampleNumberListList_{1}) \Leftrightarrow (\Regex_{2,2},\ExampleNumberListList_{2})\\
+\Regex_{1,1} .! \Regex_{2,1}\\
+\Regex_{2,2} .! \Regex_{1,2}\\
+}
+{
+\Delta \vdash \SwapLens{\Lens_1}{\Lens_2} : ((\Regex_{1,1},\ExampleNumberListList_1)(\Regex_{2,1},\ExampleNumberListList_1),\ExampleNumberListList_{1}) \Leftrightarrow ((\Regex_{2,2},\ExampleNumberListList_2)(\Regex_{1,2},\ExampleNumberListList_2),\ExampleNumberListList_{2})\\
+}
+
+\inferrule[Or Lens]
+{
+\Delta \vdash \Lens_1 : (\Regex_{1,1},\ExampleNumberListList_{1,1}) \Leftrightarrow (\Regex_{1,2},\ExampleNumberListList_{1,2}) \\
+\Delta \vdash \Lens_2 : (\Regex_{2,1},\ExampleNumberListList_{2,1}) \Leftrightarrow (\Regex_{2,2},\ExampleNumberListList_{2,2}) \\
+\Regex_{1,1} \cap \Regex_{2,1} = \emptyset\\
+\Regex_{1,2} \cap \Regex_{2,2} = \emptyset\\
+\ExampleNumberListList_{1,1} \cap \ExampleNumberListList_{2,1} = \emptyset\\
+\ExampleNumberListList_{1,2} \cap \ExampleNumberListList_{2,2} = \emptyset\\
+}
+{
+\Delta \vdash \OrLens{\Lens_1}{\Lens_2} : ((\Regex_{1,1},\ExampleNumberList_{1,1}) | (\Regex_{2,1},\ExampleNumberList_{2,1}),\Interleave{\ExampleNumberList_{1,1}}{\ExampleNumberList_{2,1}}) \Leftrightarrow ((\Regex_{1,2},\ExampleNumberList_{1,2}) | (\Regex_{2,2},\ExampleNumberList_{2,2}),\Interleave{\ExampleNumberList_{1,2}}{\ExampleNumberList_{2,2}}) \{s_{1,1,1} \leftrightarrow s_{1,1,2}, \ldots s_{1,n,1}, \leftrightarrow s_{1,n,2},
+s_{2,1,1} \leftrightarrow s_{2,1,2}, \ldots s_{2,m,1}, \leftrightarrow s_{2,m,2}\}
+}
+
+\inferrule[Compose Lens]
+{
+\Delta \vdash \Lens_1 : \ExampledRegex_1 \Leftrightarrow \ExampledRegex_2 \\
+\Delta \vdash \Lens_2 : \ExampledRegex_2 \Leftrightarrow \ExampledRegex_3 \\
+}
+{
+\Delta \vdash \ComposeLens{\Lens_2}{\Lens_1} : \ExampledRegex_1 \Leftrightarrow \ExampledRegex_3
+}
+\end{mathpar}
+
+
+\end{document}

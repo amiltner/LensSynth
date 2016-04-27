@@ -1,0 +1,95 @@
+\input{macros}
+
+
+
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+\usepackage{empheq}
+\begin{document}
+
+\begin{mathpar}
+\inferrule[Constant Example]
+{
+\String \in \Sigma^*
+}
+{
+\Delta \vdash (\String,\ExampleNumberListList) : \String (\String , \ldots , \String)
+}
+
+\inferrule[Userdef Base]
+{
+}
+{
+\Delta' \cup \{(\Regex,\UserDefined)\} \vdash (\UserDefined, [], []) : (\UserDefined, [])
+}
+
+\inferrule[Userdef Example]
+{
+\Delta' \vdash \String : \Regex\\
+\Delta' \cup \{(\Regex,\UserDefined)\} \vdash (\UserDefined, \StringList, \ExampleNumberListList) : (\UserDefined, \ExampleStringList)
+}
+{
+\Delta' \cup \{(\Regex,\UserDefined)\} \vdash (\UserDefined, s::\StringList, \ExampleNumberList::\ExampleNumberListList) : (\UserDefined, s::\ExampleStringList)
+}
+
+\inferrule[Concat Example]
+{
+\Delta \vdash (\Regex_1,\ExampleNumberListList) : (\Regex_1,[\String_{1,1},\ldots,\String_{1,n}]) \\
+\Delta \vdash (\Regex_2,\ExampleNumberListList) : (\Regex_2,[\String_{2,1},\ldots,\String_{2,n}]) \\
+}
+{
+\Delta \vdash ((\Regex_1,\ExampleNumberListList)(\Regex_2,\ExampleNumberListList),\ExampleNumberListList) : \Regex_1\Regex_2,[\String_{1,1}\String_{2,1},\ldots,\String_{1,n}\String_{2,n}]
+}
+
+\inferrule[Or Example]
+{
+\Delta \vdash (\Regex_1,\ExampleNumberListList_1) : (\Regex_1,\ExampleStringList_1)\\
+\Delta \vdash (\Regex_2,\ExampleNumberListList_2) : (\Regex_2,\ExampleStringList_2)\\
+}
+{
+\Delta \vdash ((\Regex_1,\ExampleNumberListList_1)|(\Regex_2,\ExampleNumberListList_2),interleave(\ExampleNumberListList_1,\ExampleNumberListList_2))
+: (\Regex_1 | \Regex_2, interleave(\ExampleStringList_1,\ExampleStringList_2)) \\
+}
+
+\inferrule[Star]
+{
+\Delta \vdash (\Regex,\ExampleNumberListList) : (\Regex,\ExampleStringList)\\
+\ValidCombine{\Combine}{\ExampleNumberListList}
+}
+{
+\Delta \vdash ((\Regex,\ExampleNumberListList)^*,\CombineList{\ExampleNumberListList}) :
+(\Regex,\CombineString{\ExampleStringList})
+}
+\end{mathpar}
+\\\\
+Define \Parented{\ExampleNumberListList} to be held if $\ExampleNumberListList =
+[0::\ExampleNumberList ; \ldots ; (\Length{\ExampleNumberListList}-1)::\ExampleNumberList]$ for some
+\ExampleNumberList .
+If an \ExampleNumberListList is parented, define \Parent{\ExampleNumberListList} as that \ExampleNumberList \\\\
+
+Define $\Delta \vdash (\Regex,\ExampleNumberListList) : (\Regex, \ExampleStringList)$ as closed if:
+\begin{itemize}
+\item \Length{\ExampleNumberListList} = \Length{\ExampleStringList}
+\item \Parented{\ExampleNumberListList} and \Parent{\ExampleNumberListList}=[]
+\end{itemize}
+
+Let $\Combine : [0,n] \twoheadrightarrow [0,m]$\\\\
+Define $\ValidCombine{\Combine}{\ExampleNumberListList}$ to be held if 
+\begin{itemize}
+\item \Parented{\ExampleNumberListList[\Combine^{-1}(i)]}
+\item $\Parent{\ExampleNumberListList[\Combine^{-1}(i)} = \Parent{\ExampleNumberListList[\Combine^{-1}(j)} \Rightarrow i = j$
+\end{itemize}
+
+If $\ValidCombine{\Combine}{\ExampleNumberListList}$\\
+Define $\CombineList{\ExampleNumberListList} = [\Parent{\ExampleNumberListList[\Combine^{-1}(0)]} ; \ldots ; \Parent{\ExampleNumberListList[\Combine^{-1}(\Length{\ExampleNumberListList})]}]$\\\\
+Define $\CombineString{\ExampleStringList} = [concat(\ExampleStringList[\Combine^{-1}(0)]) ; \ldots ; concat(\ExampleStringList[\Combine^{-1}(\Length{\ExampleStringList})])]$\\\\
+
+Define \Interleaving{\Interleave} to be held, where $\Interleave(\List_1,\List_2)=\List_3$ and $\List_1 \cap \List_2 = \emptyset$, if\\
+\begin{itemize}
+\item $elements(\List_1)\cup elements(\List_2) = elements(\List_3)$
+\item $pos(x,\List_1) < pos(y,\List_1) \Rightarrow pos(x,\List_3) < pos(y,\List_3)$
+\item $pos(x,\List_2) < pos(y,\List_2) \Rightarrow pos(x,\List_3) < pos(y,\List_3)$
+\end{itemize}
+\end{document}
