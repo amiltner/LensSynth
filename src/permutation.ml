@@ -1,6 +1,43 @@
 open Core.Std
 open Util
 
+type swap_concat_compose_tree =
+  | SCCTSwap of swap_concat_compose_tree * swap_concat_compose_tree
+  | SCCTConcat of swap_concat_compose_tree * swap_concat_compose_tree
+  | SCCTCompose of swap_concat_compose_tree * swap_concat_compose_tree
+  | SCCTLeaf
+
+let rec size_scct (scct:swap_concat_compose_tree) : int =
+  begin match scct with
+  | SCCTSwap (s1,s2) -> (size_scct s1) + (size_scct s2)
+  | SCCTConcat (s1,s2) -> (size_scct s1) + (size_scct s2)
+  | SCCTCompose (s1,s2) -> max (size_scct s1) (size_scct s2)
+  | SCCTLeaf -> 1
+  end
+
+let rec pp_swap_concat_compose_tree (scct:swap_concat_compose_tree)
+  : string =
+    begin match scct with
+    | SCCTSwap (scct1,scct2) -> "swap ("
+        ^ (pp_swap_concat_compose_tree scct1)
+        ^ ","
+        ^ (pp_swap_concat_compose_tree scct2)
+        ^ ")"
+    | SCCTConcat (scct1,scct2) -> "concat ("
+        ^ (pp_swap_concat_compose_tree scct1)
+        ^ ","
+        ^ (pp_swap_concat_compose_tree scct2)
+        ^ ")"
+    | SCCTCompose (scct1,scct2) -> "compose ("
+        ^ (pp_swap_concat_compose_tree scct1)
+        ^ ","
+        ^ (pp_swap_concat_compose_tree scct2)
+        ^ ")"
+    | SCCTLeaf -> "."
+    end
+
+
+
 module type Permutation_Sig = sig
   type t
 
@@ -22,6 +59,8 @@ module type Permutation_Sig = sig
   val apply_to_list_exn : t -> 'a list -> 'a list
 
   val apply_inverse_to_list_exn : t -> 'a list -> 'a list
+
+  val to_swap_concat_compose_tree : t -> swap_concat_compose_tree
 
   val pp : t -> string
 end
@@ -186,5 +225,69 @@ module Permutation : Permutation_Sig = struct
         ~f:(fun x y -> (string_of_int x) ^ "<-" ^ (string_of_int y))
         permutation)
       ~sep: " , "
+
+  let rec to_swap_concat_compose_tree (l:t) : swap_concat_compose_tree =
+    let stupidconcat (l:t) : swap_concat_compose_tree =
+      let (h,t) = split_by_first_exn l in
+      List.fold_left
+        ~f:(fun acc _ ->
+          SCCTConcat (acc,SCCTLeaf))
+        ~init:SCCTLeaf
+        t
+    in
+    if List.length l = 0 then
+      failwith "bad input"
+    else if List.length l = 1 then
+      SCCTLeaf
+    else
+      let valid_split =
+        List.fold_left
+        ~f:(fun acc i ->
+          begin match acc with
+          | None ->
+              let (l1,l2) = split_at_index_exn l i in
+              if pairwise_maintain_invariant (<) l1 l2 then
+                Some (i,true)
+              else if pairwise_maintain_invariant (>) l1 l2 then
+                Some (i,false)
+              else
+                None
+          | _ -> acc
+          end)
+        ~init:None
+        (range 1 ((List.length l)-1)) in
+      begin match valid_split with
+      | None ->
+          let (ge,i) =
+            List.foldi
+            ~f:(fun i' (acc,i) x ->
+              if acc > x then
+                (acc,i)
+              else
+                (x,i'))
+            ~init:(-1,-1)
+            l in
+          let (l1,l2) = split_at_index_exn l i in
+          let (h,t) = split_by_first_exn l2 in
+          SCCTCompose
+            (to_swap_concat_compose_tree (l1@t@[h])
+            ,SCCTConcat
+              (stupidconcat l1
+              ,SCCTSwap
+                (SCCTLeaf
+                ,stupidconcat t)))
+      | Some (i,b) ->
+          let (l1,l2) = split_at_index_exn l i in
+          if b then
+            SCCTConcat
+              (to_swap_concat_compose_tree l1
+              ,to_swap_concat_compose_tree l2)
+          else
+            SCCTSwap
+              (to_swap_concat_compose_tree l2
+              ,to_swap_concat_compose_tree l1)
+      end
+
+
     
 end

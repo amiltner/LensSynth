@@ -1,10 +1,12 @@
 open Permutation
+open Lang
 
 type lens =
   | ConstLens of string * string
   | ConcatLens of lens * lens
   | SwapLens of lens * lens
   | UnionLens of lens * lens
+  | ComposeLens of lens * lens
   | IterateLens of lens
   | IdentityLens
 

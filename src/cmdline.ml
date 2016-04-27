@@ -45,24 +45,24 @@ let args =
   ]
   |> Arg.align
 
-let print_lenses (lss:(string * dnf_lens option) list) : unit =
+let print_lenses (lss:(string * lens option) list) : unit =
   List.iter
     ~f:(fun (s,lo) ->
       print_endline "\n\n";
       print_endline (s ^ ":");
       begin match lo with
       | None -> print_endline "no lens found"
-      | Some ls -> print_endline (Pp.pp_dnf_lens ls)
+      | Some ls -> print_endline (Pp.pp_lens ls)
       end)
     lss
 
 let ignore (x:'a) : unit =
   ()
 
-let synthesize_prog (ps:synth_problems) : (string * dnf_lens option) list =
+let synthesize_prog (ps:synth_problems) : (string * lens option) list =
   let problem_list = problems_to_problem_list ps in
   List.map
-    ~f:(fun (c,e_c,n,r1,r2,exs) -> (n,(gen_dnf_lens c e_c r1 
+    ~f:(fun (c,e_c,n,r1,r2,exs) -> (n,(gen_lens c e_c r1 
     r2 exs)))
     problem_list
   
@@ -77,7 +77,7 @@ let synthesize_prog (ps:synth_problems) : (string * dnf_lens option) list =
   end;
   pTODO*)
 
-let collect_data (p:synth_problems) : (string * dnf_lens option) list =
+let collect_data (p:synth_problems) : (string * lens option) list =
   (*let (time, (x, vs, e)) = Util.time_action (fun _ ->
     let (s, g, env, x, t, es, vs, tree) = process_preamble p in
     (x, List.map ~f:snd vs, Synth.synthesize s env tree))
@@ -89,7 +89,7 @@ let collect_data (p:synth_problems) : (string * dnf_lens option) list =
         (size e) time
     | None ->
       Printf.printf "<<< %s: error during synthesis >>>\n%!" x
-    end; pTODO*) []
+    end; pTODO*) [] 
 
 let main () =
   begin try

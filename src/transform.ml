@@ -338,3 +338,283 @@ let rec apply_transformations (max_size:int) (c:context) (r1:regex) (r2:regex) (
       let right_exps = expand_stars r2 rn max_size in
       cartesian_map (fun x y -> (x,y)) left_exps right_exps)
     splits*)
+
+
+let rec atom_lens_to_lens (a:atom_lens) : lens =
+  begin match a with
+  | AIterate d -> IterateLens (dnf_lens_to_lens d)
+  | AIdentity -> IdentityLens
+  end
+
+and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
+  : lens =
+    let rec combine_scct_and_atom_lenses
+            (atom_lenses:lens list)
+            (scct:swap_concat_compose_tree)
+            : (lens * lens list) =
+      begin match scct with
+      | SCCTSwap (s1,s2) ->
+          let (l1,remaining_left) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              remaining_left
+              s2 in
+          (SwapLens(l1,l2),remaining_total)
+      | SCCTConcat (s1,s2) ->
+          let (l1,remaining_left) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              remaining_left
+              s2 in
+          (ConcatLens(l1,l2),remaining_total)
+      | SCCTCompose (s1,s2) ->
+          let s2size = size_scct s2 in
+          let identity_copies = duplicate IdentityLens s2size in
+          let (l1,_) =
+            combine_scct_and_atom_lenses
+              identity_copies
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s2 in
+          (ComposeLens(l1,l2),remaining_total)
+      | SCCTLeaf -> split_by_first_exn atom_lenses
+      end
+    in
+    let string_combos = List.zip_exn strings1 strings2 in
+    let string_combo_lss = List.map ~f:(fun (x,y) -> ConstLens (x,y)) string_combos in
+    let (string_combos_lss_hd,string_combos_lss_tl) =
+      split_by_first_exn string_combo_lss in
+    let atom_lenses =
+      List.map ~f:atom_lens_to_lens atoms in
+    let atom_string_zips = List.zip_exn atom_lenses string_combos_lss_tl in
+    let atom_string_concats =
+      List.map ~f:(fun (x,y) -> ConcatLens (x,y)) atom_string_zips in
+    begin match atom_string_concats with
+    | [] -> string_combos_lss_hd
+    | _ ->
+      let permutation_scct =
+        Permutation.to_swap_concat_compose_tree permutation in
+      ConcatLens(string_combos_lss_hd,
+        (fst (combine_scct_and_atom_lenses
+          atom_string_concats
+          permutation_scct)))
+    end
+
+
+and dnf_lens_to_lens ((clauses,permutation):dnf_lens) : lens =
+  let rec combine_scct_and_clause_lenses
+          (clause_lenses:lens list)
+          (scct:swap_concat_compose_tree)
+          : (lens * lens list) =
+    let (hd,tl) = split_by_first_exn clause_lenses in
+    (List.fold_left
+    ~f:(fun acc l -> UnionLens (acc, l))
+    ~init:hd
+    tl,[])
+    (*begin match scct with
+    | SCCTSwap (s1,s2) ->
+        let (l1,remaining_left) =
+          combine_scct_and_clause_lenses
+            clause_lenses
+            s1 in
+        let (l2,remaining_total) =
+          combine_scct_and_clause_lenses
+            remaining_left
+            s2 in
+        (SwapLens(l1,l2),remaining_total)
+    | SCCTConcat (s1,s2) ->
+        let (l1,remaining_left) =
+          combine_scct_and_clause_lenses
+            clause_lenses
+            s1 in
+        let (l2,remaining_total) =
+          combine_scct_and_clause_lenses
+            remaining_left
+            s2 in
+        (ConcatLens(l1,l2),remaining_total)
+    | SCCTCompose (s1,s2) ->
+        let s2size = size_scct s2 in
+        let identity_copies = duplicate IdentityLens s2size in
+        let (l1,_) =
+          combine_scct_and_clause_lenses
+            identity_copies
+            s1 in
+        let (l2,remaining_total) =
+          combine_scct_and_clause_lenses
+            clause_lenses
+            s2 in
+        (ComposeLens(l1,l2),remaining_total)
+    | SCCTLeaf -> split_by_first_exn clause_lenses
+    end*)
+  in
+  let clause_lenses =
+    List.map ~f:clause_lens_to_lens clauses in
+  begin match clause_lenses with
+  | [] -> IdentityLens
+  | _ ->
+    let permutation_scct =
+      Permutation.to_swap_concat_compose_tree permutation in
+        fst (combine_scct_and_clause_lenses
+          clause_lenses
+          permutation_scct)
+  end
+
+let rec simplify_lens (l:lens) : lens =
+  let rec is_leftmost_all_concats_identity (l:lens) : bool =
+    begin match l with
+    | ConcatLens (l1,l2) -> is_leftmost_all_concats_identity l1
+    | IdentityLens -> true
+    | _ -> false
+    end
+  in
+  let rec is_rightmost_all_concats_identity (l:lens) : bool =
+    begin match l with
+    | ConcatLens (l1,l2) -> is_leftmost_all_concats_identity l2
+    | IdentityLens -> true
+    | _ -> false
+    end
+  in
+  let rec contains_ored_identity (l:lens) : bool =
+    begin match l with
+    | UnionLens (l1,l2) -> contains_ored_identity l
+    | IdentityLens -> true
+    | _ -> false
+    end
+  in
+  let rec remove_rightmost_all_concats_identity (l:lens) : lens =
+    begin match l with
+    | ConcatLens (l1,IdentityLens) -> l1
+    | ConcatLens (l1,l2) ->
+        ConcatLens (l1,remove_rightmost_all_concats_identity l2)
+    | _ -> failwith "bad input"
+    end
+  in
+  let rec try_remove_leftmost_concats_const
+          (l:lens)
+          : (lens * string * string) option =
+    begin match l with
+    | ConcatLens (ConstLens(s1,s2),l2) ->
+        Some (l2,s1,s2)
+    | ConcatLens (l1,l2) ->
+        Option.map
+          ~f:(fun (l1',s1,s2) -> (ConcatLens (l1',l2),s1,s2))
+          (try_remove_leftmost_concats_const l1)
+    | _ -> None
+    end
+  in
+  let rec try_replace_leftmost_concats_const
+          (l:lens)
+          (s1:string)
+          (s2:string)
+          : lens option =
+    begin match l with
+    | ConcatLens (l1,l2) ->
+        Option.map
+          ~f:(fun x -> ConcatLens (x,l2))
+          (try_replace_leftmost_concats_const l1 s1 s2)
+    | ConstLens (s1',s2') -> Some (ConstLens (s1^s1',s2^s2'))
+    | _ -> None
+    end
+  in
+  let rec try_replace_rightmost_concats_const
+          (l:lens)
+          (s1:string)
+          (s2:string)
+          : lens option =
+    begin match l with
+    | ConcatLens (l1,l2) ->
+        Option.map
+          ~f:(fun x -> ConcatLens (l1,x))
+          (try_replace_rightmost_concats_const l2 s1 s2)
+    | ConstLens (s1',s2') -> Some (ConstLens (s1^s1',s2^s2'))
+    | _ -> None
+    end
+  in
+
+  let ans = begin match l with
+    | ConstLens (s1,s2) ->
+        if s1 = s2 then
+          IdentityLens
+        else
+          l
+    | ConcatLens (l1,l2) ->
+        let l1 = simplify_lens l1 in
+        let l2 = simplify_lens l2 in
+        begin match (l1,l2) with
+        | (IdentityLens,l2) ->
+            if is_leftmost_all_concats_identity l2 then
+              l2
+            else
+              ConcatLens (l1,l2)
+        | (l1,IdentityLens) ->
+            if is_rightmost_all_concats_identity l1 then
+              l1
+            else
+              ConcatLens (l1,l2)
+        | (ConstLens(s1,s2),l2) ->
+            begin match try_replace_leftmost_concats_const l2 s1 s2 with
+            | None -> ConcatLens(l1,l2)
+            | Some l' -> l'
+            end
+        | (l1,ConstLens(s1,s2)) ->
+            begin match try_replace_rightmost_concats_const l1 s1 s2 with
+            | None -> ConcatLens(l1,l2)
+            | Some l' -> l'
+            end
+        | _ ->
+            if is_leftmost_all_concats_identity l2
+              && is_rightmost_all_concats_identity l1 then
+                ConcatLens (remove_rightmost_all_concats_identity l1,l2)
+            else
+              begin match try_remove_leftmost_concats_const l2 with
+              | Some (l2',s1,s2) ->
+                  begin match try_replace_rightmost_concats_const l1 s1 s2 with
+                  | Some l1' -> ConcatLens (l1',l2')
+                  | None -> ConcatLens (l1,l2)
+                  end
+              | None -> ConcatLens (l1,l2)
+              end
+        end
+    | UnionLens (l1,l2) ->
+        let l1 = simplify_lens l1 in
+        let l2 = simplify_lens l2 in
+        if l1 = IdentityLens && contains_ored_identity l2 then
+          l2
+        else if l2 = IdentityLens && contains_ored_identity l1 then
+          l1
+        else
+          UnionLens (l1,l2)
+    | SwapLens (l1,l2) ->
+        SwapLens (simplify_lens l1,simplify_lens l2)
+    | ComposeLens (l1,l2) ->
+        let l1 = simplify_lens l1 in
+        let l2 = simplify_lens l2 in
+        if l1 = IdentityLens then
+          l2
+        else if l2 = IdentityLens then
+          l1
+        else
+          ComposeLens (l1,l2)
+    | IterateLens l' ->
+        let l' = simplify_lens l' in
+        if l' = IdentityLens then
+          IdentityLens
+        else
+          IterateLens l'
+    | IdentityLens -> IdentityLens
+    end
+  in
+  if ans = l then
+    ans else 
+  simplify_lens ans
+
+
+

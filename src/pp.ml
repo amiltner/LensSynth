@@ -33,8 +33,9 @@ let rec pp_regexp (r:regex) : string =
 
 let rec pp_lens (l:lens) : string =
   begin match l with
-  | ConstLens (s1,s2) -> "const(" ^ s1 ^ "," ^ s2 ^ ")"
+  | ConstLens (s1,s2) -> "const('" ^ s1 ^ "','" ^ s2 ^ "')"
   | ConcatLens (l1,l2) -> paren (pp_lens l1) ^ "." ^ (paren (pp_lens l2))
+  | ComposeLens (l1,l2) -> paren (pp_lens l1) ^ ";" ^ (paren (pp_lens l2))
   | SwapLens (l1,l2) -> "swap(" ^ (pp_lens l1) ^ "," ^ (pp_lens l2) ^ ")"
   | UnionLens (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
   | IterateLens (l') -> paren (pp_lens l') ^ "*"
@@ -198,11 +199,12 @@ let rec pp_dnf_lens ((clause_lenses, permutation):dnf_lens) : string =
       )
       ^ " , " ^
       paren (
-        String.concat strings1 ~sep:","
+        String.concat (List.map ~f:(fun x -> "'"^x^"'") strings1) ~sep:","
+
       )
       ^ " , " ^
       paren (
-        String.concat strings2 ~sep:","
+        String.concat (List.map ~f:(fun x -> "'"^x^"'") strings2) ~sep:","
       )
     ) in
   paren (

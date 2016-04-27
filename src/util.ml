@@ -368,3 +368,18 @@ let set_minus_lose_order (cmp:'a -> 'a -> comparison)
   let ordered_l1 = List.dedup (List.sort ~cmp:int_comparer l1) in
   let ordered_l2 = List.dedup (List.sort ~cmp:int_comparer l2) in
   set_minus_ordered ordered_l1 ordered_l2
+
+let pairwise_maintain_invariant
+        (invariant:'a -> 'a -> bool)
+        (l1:'a list)
+        (l2:'a list)
+        : bool =
+  List.for_all
+    ~f:(fun x ->
+      List.for_all
+        ~f:(invariant x)
+        l2)
+    l1
+
+
+

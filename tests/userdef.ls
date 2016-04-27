@@ -1,3 +1,3 @@
-let A = a in
+typedef A = a;;
 
-A <=> A {}
+id = [\A <=> \A {}]

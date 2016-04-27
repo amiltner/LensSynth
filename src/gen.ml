@@ -502,10 +502,10 @@ let gen_dnf_lens_zipper (c:context)
           let exampled_r2_opt = regex_to_exampled_dnf_regex e_c r2' rexs in
           begin match (exampled_r1_opt,exampled_r2_opt) with
           | (Some exampled_r1,Some exampled_r2) ->
-              print_endline "\n\n\n";
+              (*print_endline "\n\n\n";
               print_endline (Pp.pp_exampled_dnf_regex exampled_r1);
               print_endline "\n";
-              print_endline (Pp.pp_exampled_dnf_regex exampled_r2);
+              print_endline (Pp.pp_exampled_dnf_regex exampled_r2);*)
               let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
               let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
               begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
@@ -567,6 +567,13 @@ let gen_dnf_lens_zipper (c:context)
 let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
                  (exs:examples) : dnf_lens option =
   gen_dnf_lens_zipper c e_c r1 r2 exs
+
+let gen_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
+             (exs:examples) : lens option =
+  let dnf_lens_option = gen_dnf_lens_zipper c e_c r1 r2 exs in
+  Option.map
+    ~f:(Fn.compose simplify_lens dnf_lens_to_lens)
+    dnf_lens_option
   (*let (lexs,rexs) = List.unzip exs in
   let exampled_r1_opt = regex_to_exampled_dnf_regex c r1 lexs in
   let exampled_r2_opt = regex_to_exampled_dnf_regex c r2 rexs in
