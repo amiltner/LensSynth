@@ -1,0 +1,116 @@
+
+\section{Syntax Driven Lenses}
+Unfortunately, with retyping rule, it is a difficult task.
+There are an infinite number of possible retypings.
+They are still relevant, depending on what the examples are.
+Retyping is needed to express all lenses.
+
+For example, consider $r_1=a*$, $r_2=b*$, with examples $a \leftrightarrow bb, aa \leftrightarrow b, aaa \leftrightarrow bbb$.
+Without retyping, the only possible lens is $iterate(const(a,b))$, which doesn't express it correctly.
+However, using retyping, we can first retype to $\epsilon + a + aa + aaaa*$ and $\epsilon + b + bb + bbbb*$.
+This is able to be solved.
+
+Because of the difficulty for lenses including retyping, lets first only worry about syntactic lenses, lenses that don't include retyping.
+\input{fig_syntactic-lens-typing.tex}
+
+For these syntactic lenses, one can prove that composition and identity can
+be applied only on Userdefs without losing expressibility.
+
+We now have the means to enumerate all possible syntactic lenses between two regular
+expressions in a terminating way.  We merely enumerate all the possible
+terms of a certain type, which there are a finite number of.  Then we can
+run all the lenses on the inputs until we find a lens that satisfies the inputs.
+
+However, this is inefficient, as the number of lenses are possibly exponential in the size of the regular expression.  We can prune some of the possible
+lenses very quickly with a key insight, when we reduce the synthesis of
+the lens into subproblems, we can also make sub-problems for the input-output examples.
+
+For example, consider the problem of synthesizing a lens $l$ between $\Star{a}\Star{b}$ and $\Star{z}\Star{y}$ that satisfies the example $a \leftrightarrow y$.
+We can apply either a swap or a concat rule to this.
+If we apply a concat rule, we get the subproblems of synthesizing lenses between
+$\Star{a}$ and $\Star{z}$, and synthesizing lenses betwen $\Star{b}$ and $\Star{y}$.
+By the underlying function of concat, we know that for this concat lens to work on the provided example,
+we must have the lens between $\Star{a}$ and $\Star{z}$ send $a$ to $\epsilon$,
+and must have the lens between $\Star{b}$ and $\Star{y}$ send $\epsilon$ to $y$.
+However, when trying to apply an iterate rule for $\Star{a}$ and $\Star{z}$, we immediately see there is no satisfying lens,
+as parsing $a$ into $\Star{a}$, we see $a$ mathes the inner regular expression $a$ once.
+However, on parsing $\epsilon$ into $\Star{z}$, we see $\epsilon$ matches the inner regular expression $z$ zero times.
+Through the underlying function of iterate, we know this cannot be done,
+so there is no lens that does this.
+So we immediately know that there is no concat lens between
+$\Star{a}\Star{b}$ and $\Star{z}\Star{y}$ that sends $a$ to $y$.
+We can then continue with trying the swap lens, which will eventually provide a lens.
+\input{fig_parsetree-definition.tex}
+\input{fig_parsetree-typing.tex}
+
+We can formalize this first by definining a data structure for how a regular
+expression parses a string, as in Figure~\ref{fig:parsetree-definition},
+and typing for that data structure as in Figure~\ref{fig:parsetree-typing}.
+
+\input{fig_lens-parsetree-typing.tex}
+
+With the data structure for parsing, we can now define a typing for a lens
+which satisfies the parse tree of an example in Figure~\ref{fig:lens-parsetree-typing}.  Now, to generate a lens for an input output example,
+between two regular expressions,
+needs to generate the parse tree for the example with those expressions,
+and then find a lens between those two regular expressions and between the parse trees.
+
+We say a lens $l : \Regex \Leftrightarrow \RegexAlt$ satisfies a set of parse tree input output examples $\ParseTree_1 \leftrightarrow \ParseTreeAlt_1, \ldots, \ParseTree_n \leftrightarrow \ParseTreeAlt_n$
+if we can show $l : \Regex \Leftrightarrow \RegexAlt, \ParseTree_i \leftrightarrow \ParseTreeAlt_i$ for all $i$ between $1$ and $n$.
+
+\iffalse
+We now can prove some inversion properties.
+\begin{itemize}
+\item $concat(\Lens_1,\Lens_2) : \Regex \Leftrightarrow \RegexAlt$ or
+$swap(\Lens_1,\Lens_2) : \Regex \Leftrightarrow \RegexAlt$
+if, and only if $\Regex = \Regex_1\Regex_2$, and $\RegexAlt = \RegexAlt_1\RegexAlt_2$ for some $\Regex_1$,$\Regex_2$
+\end{itemize}
+This provides us with a nice, syntax driven strategy for synthesis.
+We now have an inversion property, where i
+
+When does there exist a lens between two regular expressions.
+More, formally, given two regular expressions $r$ and $s$, when does there exist a lens $l : r \Leftrightarrow s$.
+We can say that $\SynSim{r}{s}$ if there is such an $l$.
+We can prove $\SynSim{r}{s}$ if, and only if:
+\begin{itemize}
+\item If $r = r_1 r_2$ then either $s = s_1 s_2$ or $s = s_2 s_1$, and $\SynSim{r_1}{s_1}$ and $\SynSim{r_2}{s_2}$
+\item If $r = r_1 | r_2$ then $s = s_1 | s_2$ and $\SynSim{r_1}{s_1}$ and $\SynSim{r_2}{s_2}$
+\item If $r = \Star{r'}$ then $s = \Star{s'}$ and $\SynSim{r'}{s'}$.
+\item If $r = x\in\Star{\Sigma}$, then $s = y\in\Star{\Sigma}$.
+\item If $r = u\in\Delta$, then $s = u\in\Delta$
+\end{itemize}
+
+With this, it is easy to recursively check whether there exists a syntactic lens between two regular expressions.
+
+How can we see if there exists a lens between two regular expressions, given a set of examples.
+Intuitively, a lens matches a set of examples if it brings the parse trees of the left example to the parse trees of the right example.
+So, for example, for an example $e\leftrightarrow f$ to be possible under $r_1|r_2 \Leftrightarrow s_1|s_2$, we need if $e$ matches $r_1$, $f$ must match $s_1$.
+To formalize that, we can define parse trees as figure \ref{fig:parsetree-definition}.
+Given two regular expressions $\Regex$, $\RegexAlt$, and a list of examples $\{e_1\leftrightarrow f_1,\ldots,e_n\leftrightarrow f_n\}$.
+We define a relation between parse trees and regular expressions, $\SynSim{(\Regex_1,\ParseTrees)}{(\Regex_2,\ParseTreeAlts)}$ as follows:
+\begin{itemize}
+\item If $\Regex = \Regex_1 \Regex_2$,
+$\RegexAlt = \RegexAlt_1 \RegexAlt_2$,
+$\ParseTrees = [\ParseTree_{1,1}\ParseTree_{1,2}, \ldots, \ParseTree_{n,1}\ParseTree_{n,2}]$,
+and $\ParseTreeAlts = [\ParseTreeAlt_{1,1}\ParseTreeAlt_{1,2}, \ldots, \ParseTreeAlt_{n,1}\ParseTreeAlt_{n,2}]$
+and either\\
+($\SynSim{(\Regex_1,[\ParseTree_{1,1}, \ldots,\ParseTree_{n,1}])}{(\RegexAlt_1,[\ParseTreeAlt_{1,1}, \ldots, \ParseTreeAlt_{n,1}])}$\\
+and
+$\SynSim{(\Regex_2,[\ParseTree_{1,2}, \ldots,\ParseTree_{n,2}])}{(\RegexAlt_2,[\ParseTreeAlt_{1,2}, \ldots, \ParseTreeAlt_{n,2}])}$)\\
+or ($\SynSim{(\Regex_1,[\ParseTree_{1,1}, \ldots,\ParseTree_{n,1}])}{(\RegexAlt_2,[\ParseTreeAlt_{1,2}, \ldots, \ParseTreeAlt_{n,2}])}$\\
+and
+$\SynSim{(\Regex_2,[\ParseTree_{1,2}, \ldots,\ParseTree_{n,2}])}{(\RegexAlt_1,[\ParseTreeAlt_{1,1}, \ldots, \ParseTreeAlt_{n,1}]})$)
+\item If $\Regex = \Regex_1 | \Regex_2$,
+$\RegexAlt = \RegexAlt_1 \RegexAlt_2$,
+$\ParseTrees = [\ParseTree_1;\ldots;\ParseTree_n]$, $\ParseTreeAlts = [\ParseTreeAlt_1;\ldots;\ParseTreeAlt_n]$,
+($\ParseTree_i = \LeftChoiceParse{\ParseTree_i'}$ or $\ParseTree_i = \RightChoiceParse{\ParseTree_i'}$),
+and if $\ParseTree_i = \LeftChoiceParse{\ParseTree_i'}$ then $\ParseTreeAlt_i = \LeftChoiceParse{\ParseTreeAlt_i'}$,
+and if $\ParseTree_i = \RightChoiceParse{\ParseTree_i'}$ then $\ParseTreeAlt_i = \RightChoiceParse{\ParseTreeAlt_i'}$,
+and (define $\ParseTrees_l$ = [$\ParseTree_i'$ for each $\ParseTree_i$ = $\LeftChoiceParse{\ParseTree_i'}$ in \ParseTrees],
+define $\ParseTrees_r$ = [$\ParseTree_i'$ for each $\ParseTree_i$ = $\RightChoiceParse{\ParseTree_i'}$ in \ParseTrees],
+define $\ParseTreeAlts_l$ = [$\ParseTreeAlt_i'$ for each $\ParseTreeAlt_i$ = $\LeftChoiceParse{\ParseTreeAlt_i'}$ in \ParseTreeAlts],
+define $\ParseTreeAlts_r$ = [$\ParseTreeAlt_i'$ for each $\ParseTreeAlt_i = \RightChoiceParse{\ParseTreeAlt_i'}$ in \ParseTreeAlts]
+)\SynSim{(\Regex_1,)}{a})
+\end{itemize}
+\ref{fig:syntactic-lens-typing}
+\fi
