@@ -484,7 +484,9 @@ let rec simplify_lens (l:lens) : lens =
   in
   let rec contains_ored_identity (l:lens) : bool =
     begin match l with
-    | UnionLens (l1,l2) -> contains_ored_identity l
+    | UnionLens (l1,l2) ->
+        (contains_ored_identity l1) ||
+          (contains_ored_identity l2)
     | IdentityLens -> true
     | _ -> false
     end

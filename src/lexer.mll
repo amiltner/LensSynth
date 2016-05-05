@@ -34,6 +34,7 @@ let symbols : (string * Parser.token) list =
   ; ("[", LBRACKET)
   ; ("]", RBRACKET)
   ; (";", SEMI)
+  ; ("#", HASH)
   ]
 
 let create_token lexbuf =
@@ -62,7 +63,7 @@ let remove_quotes lexbuf =
 
 let newline    = '\n' | ('\r' '\n') | '\r'
 let whitespace = ['\t' ' ']
-let string = '"' [^'"']* '"'
+let string = ('"''"') | ('"' ("\\\"" | [^'"'])* '"')
 let lowercase  = ['a'-'z']
 let uppercase  = ['A'-'Z']
 let character  = uppercase | lowercase
@@ -78,7 +79,7 @@ rule token = parse
   | uppercase (digit | character | '_')* { UID (lexeme lexbuf) }
   | '?' | "|>" | '=' | "->" | "=>" | '*' | ',' | ':' | ';' | '|' | '+' | '(' | ')'
   | '{' | '}' | '[' | ']' | '_' | '.' | "<=>" | "<->" | "/"
-  | "' '" | "\\" | ":" | ">" | "<" | "-" | "\\n" | "[" | "]" | ";"
+  | "' '" | "\\" | ":" | ">" | "<" | "-" | "\\n" | "[" | "]" | ";" | "#"
     { create_symbol lexbuf }
   | string { STR (remove_quotes lexbuf) }
   | _ as c { raise @@ Lexer_error ("Unexpected character: " ^ Char.escaped c) }

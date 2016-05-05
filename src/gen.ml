@@ -570,6 +570,10 @@ let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
 
 let gen_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
              (exs:examples) : lens option =
+  print_endline (Pp.pp_regexp r1);
+  print_endline (Pp.pp_regexp r2);
+  print_endline (String.concat ~sep:";" (List.map ~f:(fun (s1,s2) ->
+    "("^s1^","^s2^")") exs));
   let dnf_lens_option = gen_dnf_lens_zipper c e_c r1 r2 exs in
   Option.map
     ~f:(Fn.compose simplify_lens dnf_lens_to_lens)

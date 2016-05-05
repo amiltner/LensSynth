@@ -1,5 +1,6 @@
 %{
 open Lang
+open Str
 
 exception Internal_error of string
 
@@ -41,6 +42,7 @@ exception Internal_error of string
 %token LBRACKET   (* [ *)
 %token RBRACKET   (* ] *)
 %token SEMI       (* ; *)
+%token HASH       (* # *)
 
 %token EOF
 
@@ -97,7 +99,10 @@ regex:
 base:
   | s=LID { s }
   | s=UID { s }
+  | s=str { s }
   | DOT { "" }
+  | HASH { "#" }
+  | BACKSLASH { "\\" }
   | SLASH { "/" }
   | SPACE { " " }
   | s=INT { s }
@@ -128,7 +133,13 @@ examples_inner:
     { [ex] }
 
 example:
-  | s1=STR LEFTRIGHTARR s2=STR
+  | s1=str LEFTRIGHTARR s2=str
     { (s1,s2) }
+
+str:
+  | s=STR
+    { Str.global_replace (Str.regexp "\\\\\\\\") "\\\\"
+      (Str.global_replace (Str.regexp "\\\\n") "\n"
+      (Str.global_replace (Str.regexp "\\\\\"") "\"" s)) }
 
 (***** }}} *****)

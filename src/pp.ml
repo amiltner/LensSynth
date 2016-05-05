@@ -25,7 +25,7 @@ let pp_int_list_list (ill:int list list) : string =
 let rec pp_regexp (r:regex) : string =
   begin match r with
   | RegExBase s -> s
-  | RegExConcat (r1,r2) -> (pp_regexp r1) ^ (pp_regexp r2)
+  | RegExConcat (r1,r2) -> paren ((pp_regexp r1) ^ (pp_regexp r2))
   | RegExOr (r1,r2) -> paren ((pp_regexp r1) ^ "|" ^ (pp_regexp r2))
   | RegExStar (r') -> paren (pp_regexp r') ^ "*"
   | RegExUserDefined s -> s

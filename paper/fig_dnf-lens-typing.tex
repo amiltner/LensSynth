@@ -4,41 +4,42 @@
 {
 }
 {
-\IdentityLens : \Regex \Leftrightarrow \Regex 
+\Delta \vdash \IdentityLens : \UserDefined \Leftrightarrow \UserDefined
 }
 
 \inferrule[Iterate Atom Lens]
 {
-\DNFLens : \DNFRegex_1 \Leftrightarrow \DNFRegex_2\\
-\DNFRegex_1^{!*}\\
-\DNFRegex_2^{!*}\\
+\Delta \vdash \DNFLens : \DNFRegex_1 \Leftrightarrow \DNFRegex_2\\
+\UnambigIt{\LanguageOf{\Delta}{\DNFRegex_1}}\\
+\UnambigIt{\LanguageOf{\Delta}{\DNFRegex_2}}\\
 }
 {
-\IterateLens{\DNFLens} : \Star{\DNFRegex_1} \Leftrightarrow \Star{\DNFRegex_2}
+\Delta \vdash \IterateLens{\DNFLens} : \Star{\DNFRegex_1} \Leftrightarrow \Star{\DNFRegex_2}
 }
 
 \inferrule[Clause Lens]
 {
-\AtomLens_1 : \Atom_{1,1} \Leftrightarrow \Atom_{1,2}\\
-\ldots\\
-\AtomLens_n : \Atom_{n,1} \Leftrightarrow \Atom_{n,2}\\
-\Atom_{i,j} .! \Atom_{i+1,j}\\
+\lambda i:\RangeIncInc{1}{n}.(\Delta \vdash \AtomLens_i : \Atom_i \Leftrightarrow \AtomAlt_i)\\
+\sigma \in \RangeIncInc{1}{n} \rightarrowtail \RangeIncInc{1}{n}\\
+\UnambigConcat{\LanguageOf{\Delta}{\String_{i-1}\Atom_i\epsilon}}{\LanguageOf{\Delta}{\String_i\Atom_{i+1}\epsilon}}\\
+\UnambigConcat{\LanguageOf{\Delta}{\StringAlt_{i-1}\AtomAlt_{\sigma(i)}\epsilon}}{\LanguageOf{\Delta}{\StringAlt_i\AtomAlt_{\sigma(i+1)}\epsilon}}\\
 }
 {
-([(\String_{1,1},\String_{1,2}) ; \AtomLens_1 ; \ldots; \AtomLens_n (\String_{n+1,1},\String_{n+1,2})],\sigma) :\\
-([\Atom_{1,1};\ldots;\Atom_{n,1}],[\String_{1,1};\ldots;\String_{n+1,1}]) \Leftrightarrow\\
-([\Atom_{\sigma(1),2};\ldots;\Atom_{\sigma(n),2}],[\String_{1,2};\ldots;\String_{n+1,2}])
+\Delta \vdash (\lambda i:\RangeIncInc{0}{n}.(\String_i,\StringAlt_i),\lambda i:\RangeIncInc{1}{n}.\Atom_i,\sigma) :\\
+(\lambda i:\RangeIncInc{1}{n}.\Atom_i,\lambda i:\RangeIncInc{0}{n}.\String_i)\Leftrightarrow
+((\lambda i:\RangeIncInc{1}{n}.\AtomAlt_i)\circ \sigma,\lambda i:\RangeIncInc{0}{n}.\StringAlt_i)\\
 }
 
 \inferrule[DNF Regex Lens]
 {
-\ClauseLens_1 : \Clause_{1,1} \Leftrightarrow \Clause_{1,2}\\
-\ldots\\
-\ClauseLens_n : \Clause_{n,1} \Leftrightarrow \Clause_{n,2}\\
-\Clause_{i} \cap \Clause_{j}=\emptyset\\
+\Delta \vdash \ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i\\
+\sigma \in \RangeIncInc{1}{n} \rightarrowtail \RangeIncInc{1}{n}\\
+i \neq j \Rightarrow \Clause_{i} \cap \Clause_{j}=\emptyset\\
+i \neq j \Rightarrow \ClauseAlt_{i} \cap \ClauseAlt_{j}=\emptyset\\
 }
 {
-([\ClauseLens_1;\ldots;\ClauseLens_n],\sigma) : [\Clause_{1,1};\ldots;\Clause_{n,1}] \Leftrightarrow [\Clause_{\sigma^{-1}(1),2};\ldots;\Clause_{\sigma^{-1}(n),2}]
+\Delta \vdash (\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i,\sigma) : (\lambda i:\RangeIncInc{1}{n}.\Clause_i)
+\Leftrightarrow (\lambda i:\RangeIncInc{1}{n}.\ClauseAlt_i \circ \sigma)
 }
 \end{mathpar}
 \caption{DNF Lens Typing}
