@@ -48,7 +48,7 @@ For all $\Delta$, $\LanguageOf{\Delta}{RepRegex(\DNFRegex)} = \LanguageOf{\Delta
 \end{lemma}
 
 \begin{theorem}[Soundness of DNF Regular Expressions]
-For any regular expression \Regex{}, there exists a DNF regular expression, \DNFRegex{},
+For any dnf regular expression \DNFRegex{}, there exists a regular expression, \DNFRegex{},
 such that for all $\Delta$, $\LanguageOf{\Delta}{\DNFRegex} = \LanguageOf{\Delta}{\Regex}$.
 \begin{proof}
 Consider $\DNFRegex=RepDnfRegex(\Regex)$.  By above lemma, $\LanguageOf{\Delta}{\DNFRegex}=\LanguageOf{\Delta}{\Regex}$.
@@ -64,6 +64,26 @@ By induction on regular expressions
 \item[\Regex=\UserDefined] a
 \end{enumerate}
 \end{proof}
+\end{lemma}
+
+\begin{lemma}[DNF Inversion]
+\label{lem:dnf-inversion}
+\leavevmode
+\begin{enumerate}
+\item If $\Delta \vdash (\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i,\sigma \in \RangeIncInc{1}{n} \rightarrowtail \RangeIncInc{1}{n} : \lambda i:\RangeIncInc{1}{n}.\Clause_i \Leftrightarrow \lambda i:\RangeIncInc{1}{n}.\ClauseAlt_i \circ \sigma$
+then for all $i \in \RangeIncInc{1}{n}$, $\Delta \vdash \ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i$,
+and for all $i \neq j$, $\Clause_i \cap \Clause_j = \emptyset$ and $\ClauseAlt_i \cap \ClauseAlt_j = \emptyset$
+\item If $\Delta \vdash (\lambda i:\RangeIncInc{1}{n}.\Atom_i,\lambda i:\RangeIncInc{0}{n}.(\String_i,\StringAlt_i),\sigma \in \RangeIncInc{1}{n} \rightarrowtail \RangeIncInc{1}{n}) : (\lambda i:\RangeIncInc{1}{n}.\Atom_i,\lambda i:\RangeIncInc{0}{n}.\String_i)\Leftrightarrow
+((\lambda i:\RangeIncInc{1}{n}.\AtomAlt_i)\circ \sigma,\lambda i:\RangeIncInc{0}{n}.\StringAlt_i)$, then for all
+$i \in \RangeIncInc{1}{n}$, $\Delta \vdash \AtomLens_i : \Atom_i \Leftrightarrow \AtomAlt_i$ and for all
+$i \in \RangeIncInc{1}{n-1}$, 
+$\UnambigConcat{\LanguageOf{\Delta}{\String_{i-1}\Atom_i\epsilon}}{\LanguageOf{\Delta}{\String_i\Atom_{i+1}\epsilon}}$ and
+$\UnambigConcat{\LanguageOf{\Delta}{\StringAlt_{i-1}\AtomAlt_{\sigma(i)}\epsilon}}{\LanguageOf{\Delta}{\StringAlt_i\AtomAlt_{\sigma(i+1)}\epsilon}}$
+\item If $\Delta \vdash \IterateLens{\DNFLens} : \Star{\DNFRegex} \Leftrightarrow \Star{\DNFRegexAlt}$, then
+$\DNFLens : \DNFRegex \Leftrightarrow \DNFRegex$,
+$\UnambigIt{\LanguageOf{\Delta}{\DNFRegex_1}}$,
+ and $\UnambigIt{\LanguageOf{\Delta}{\DNFRegex_2}}$
+\end{enumerate}
 \end{lemma}
 
 \subsection{Soundness}
@@ -85,9 +105,10 @@ We define a representative regex for a dnf regex as follows:
 \end{definition}
 
 \begin{lemma}[Equivalence of repregex]
-$\LanguageOf{\DNFRegex}=\LanguageOf{repregex(\DNFRegex)}$,
-$\LanguageOf{\Clause} = \LanguageOf{repregex(\Clause)}$,
-and $\LanguageOf{\Atom} = \LanguageOf{repregex(\Atom)}$
+\label{lem:repregex-equiv}
+$\LanguageOf{\Delta}{\DNFRegex}=\LanguageOf{\Delta}{repregex(\DNFRegex)}$,
+$\LanguageOf{\Delta}{\Clause} = \LanguageOf{\Delta}{repregex(\Clause)}$,
+and $\LanguageOf{\Delta}{\Atom} = \LanguageOf{\Delta}{repregex(\Atom)}$
 \begin{proof}
 By induction on the structure of \DNFRegex, \Clause, and \Atom
 \end{proof}
@@ -126,14 +147,102 @@ By the semantics, they are the same.
 \end{proof}
 \end{lemma}
 
+\begin{definition}[well-founded relation on DNF Lenses, Clauses, and Atoms]
+The well founded relation is the transitive closure of
+DO I NEED TO DO THIS FORMALLY?
+\begin{itemize}
+\item $([\ClauseLens],id \in S_1) \prec \ClauseLens$
+\item $\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i$
+\end{itemize}
+\end{definition}
+
+\begin{definition}[replens]
+We define a representative lens for a dnf lens, a clause lens, and an atom lens as follows:
+\begin{itemize}
+\item $replens([\ClauseLens],id\in S_1) = replens(\ClauseLens)$
+\item $replens(\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i,id\in S_n) =$\\
+$\OrLens{replens(\lambda i:\RangeIncInc{1}{n-1}.\ClauseLens_i, id\in S_{n-1})}{replens(\ClauseLens_n)}$
+\item $replens(\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i,\sigma\in S_n) =$\\
+$replens(\lambda i:\RangeIncInc{1}{n}.\ClauseLens_i,id\in S_n)$
+\item $replens([(\String_i,\StringAlt_i)],id\in S_0)=\ConstLens{\String_i}{\StringAlt_i}$
+\item $replens(\lambda i:\RangeIncInc{1}{n}.\AtomLens_i,\lambda i:\RangeIncInc{0}{n}.(\String_i,\StringAlt_i),id\in S_n)=$\\
+$\ConcatLens{\ConcatLens{replens(\lambda i:\RangeIncInc{1}{n-1}.\AtomLens_i,\lambda i:\RangeIncInc{0}{n-1}.(\String_i,\StringAlt_i),id\in S_{n-1})}{replens(\AtomLens_i)}}{\ConstLens{\String_n}{\StringAlt_n}}$
+\item $replens(\lambda i:\RangeIncInc{1}{n}.\AtomLens_i,\lambda i:\RangeIncInc{0}{n}.(\String_i,\StringAlt_i),\sigma \in S_n)=$\\
+$\ComposeLens{permlens(\lambda i:\RangeIncInc{0}{n} \StringAlt_i,\sigma \in S_n)}{replens(\lambda i:\RangeIncInc{1}{n}.\AtomLens_i,\lambda i:\RangeIncInc{0}{n}.(\String_i,\StringAlt_i),id \in S_n)}$
+\item $replens(\IdentityLens)=\IdentityLens$
+\item $replens(\IterateLens{\DNFLens})=\IterateLens{replens(\DNFLens)}$
+\end{itemize}
+\end{definition}
+
+\begin{lemma}[Denotational Equivalence of $replens$]\leavevmode
+\begin{enumerate}
+\item For a DNF Lens $\DNFLens$, $\denot{\DNFLens}=\denot{replens(\DNFLens)}$
+\item For a Clause Lens $\ClauseLens$, $\denot{\ClauseLens}=\denot{replens(\ClauseLens)}$
+\item For a DNF Lens $\DNFLens$, $\denot{\DNFLens}=\denot{replens(\DNFLens)}$
+\end{enumerate}
+By induction on the well-founded relation underlying the 
+\end{lemma}
+
+\begin{lemma}[Soundness of DNF Lenses, Clauses, and Atoms]\leavevmode
+\begin{enumerate}
+\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \DNFRegex{}
+and \DNFRegexAlt{} be two dnf regular expressions, if
+\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\DNFRegex{}} and
+\LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\DNFRegexAlt{}}
+then if there exists a dnf lens
+$\Delta \vdash \DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt$
+then there exists a lens
+$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
+such that \denot{\DNFLens} = \denot{\Lens}
+
+\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \Clause{}
+and \ClauseAlt{} be two dnf regular expressions, if
+\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Clause{}} and
+\LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\ClauseAlt{}}
+then if there exists a clause lens
+$\Delta \vdash \ClauseLens : \Clause \Leftrightarrow \ClauseAlt$
+then there exists a lens
+$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
+such that \denot{\ClauseLens} = \denot{\Lens}
+
+\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \Atom{}
+and \AtomAlt{} be two dnf regular expressions, if
+\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Atom{}} and
+\LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\AtomAlt{}}
+then if there exists a clause lens
+$\Delta \vdash \AtomLens : \Atom \Leftrightarrow \AtomAlt$
+then there exists a lens
+$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
+such that \denot{\AtomLens} = \denot{\Lens}
+\end{enumerate}
+\begin{proof}
+\begin{enumerate}
+\item[DNF Lens Intro] Let $\Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],\sigma) : [\Clause_{1,1}, \ldots, \Clause_{n,1}] \Leftrightarrow [\Clause_{\sigma(1),2}, \ldots, \Clause_{\sigma(n),2}]$.\\
+By Lemma~\ref{lem:dnf-inversion}, for all $i\in\RangeIncInc{1}{n}$,
+$\Delta \vdash \ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i$, and for all $i \neq j$, $\Clause_i \cap \Clause_j = \emptyset$ and $\ClauseAlt_i \cap \ClauseAlt_j = \emptyset$\\
+Consider $\Regex_i = repregex(\Clause_i)$ and $\RegexAlt_i = repregex(\ClauseAlt_i)$.\\
+By Lemma~\ref{lem:repregex-equiv}, $\LanguageOf{\Delta}{\Clause_i} = \LanguageOf{\Delta}{\Regex_i}$, and $\LanguageOf{\Delta}{\ClauseAlt_i} = \LanguageOf{\Delta}{\RegexAlt_i}$.\\
+By induction assumption, there exists lenses $\Lens_i$ for $i \in \RangeIncInc{1}{n}$ such that $\Delta \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$, and $\denot{Lens_i}=\denot{\ClauseLens_i}$.
+
+This comes from the derivations that $\Delta \vdash \ClauseLens_i : \Clause_{i,1} \Leftrightarrow \Clause_{i,2}$ for all $i$.
+Consider instead the lens $\DNFLens' = \Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],\sigma_id) : [\Clause_{1,1}, \ldots, \Clause_{n,1}] \Leftrightarrow[\Clause_{1,2}, \ldots, \Clause_{n,2}]$.
+By Lemma (TODO: this lemma), these two lenses are semantically equivalent.
+By Lemma (TODO: this lemma), $\Delta \vdash repregex(\DNFLens') : repregex(\DNFRegex_1) \Leftrightarrow repregex(\DNFRegex_2')$, with $repregex(\DNFLens)$ semantically equivalent to $\DNFLens$.
+So $repregex(\DNFLens')$ is semantically equivalent to $\DNFLens'$, and $DNFLens'$ is semantically equivalent $\DNFLens$, so $repregex(\DNFLens')$ is
+semantically equivalent to $\DNFLens$.  Merely adding in a retyping rule at
+the end of $repregex(\DNFLens')$ (as they have the same type), completes this case.
+\end{enumerate}
+\end{proof}
+\end{lemma}
+
 \begin{theorem}[Soundness]
 Let \Regex{} and \RegexAlt{} be two regular expressions, and \DNFRegex{} and \DNFRegexAlt{} be two dnf regular expressions.
-If \LanguageOf{\Regex{}} = \LanguageOf{\DNFRegex{}} and \LanguageOf{\RegexAlt} = \LanguageOf{\DNFRegexAlt{}},
+If \LanguageOf{\Delta}{\Regex{}} = \LanguageOf{\Delta}{\DNFRegex{}} and \LanguageOf{\Delta}{\RegexAlt} = \LanguageOf{\Delta}{\DNFRegexAlt{}},
 then if there exists a dnf lens $\DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt$,
 then there exists a lens $\Lens : \Regex \Leftrightarrow \RegexAlt$ such that
 $\DNFLens.putr = \Lens.putr$.
 \begin{proof}
-By induction on the typing \DNFLens{}.
+By mutual induction on the typing \DNFLens{}, the typing of \ClauseLens{}, and the typing of \AtomLens{}.
 \begin{enumerate}
 \item[DNF Lens Intro] Let $\Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],\sigma) : [\Clause_{1,1}, \ldots, \Clause_{n,1}] \Leftrightarrow [\Clause_{\sigma(1),2}, \ldots, \Clause_{\sigma(n),2}]$.
 This comes from the derivations that $\Delta \vdash \ClauseLens_i : \Clause_{i,1} \Leftrightarrow \Clause_{i,2}$ for all $i$.
