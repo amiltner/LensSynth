@@ -5,7 +5,7 @@ expressions.
 \begin{definition}[RepDnfRegex]
 We define a representative dnf regex for a regex as follows:
 \begin{itemize}
-\item[variable] $RepDnfRegex(\UserDefined)=[([\UserDefined],[\epsilon,\epsilon])]$
+\item[variable] $RepDnfRegex(\RegexVariable)=[([\RegexVariable],[\epsilon,\epsilon])]$
 \item[base] $RepDnfRegex(\String)=[([],[\String])]$
 \item[star] $RepDnfRegex(\Star{\Regex}) = [([\Star{RepDnfRegex(\Regex)}],[\epsilon,\epsilon])]$
 \item[concat] $RepDnfRegex(\Regex_1\Regex_2) = Concat(RepDnfRegex(\Regex_1),RepDnfRegex(\Regex_2))$ where $Concat$ is defined via something horrible
@@ -33,7 +33,7 @@ expressions.
 \begin{definition}[RepRegex]
 We define a representative regex for a DNF regex, clause, and atom as follows:
 \begin{itemize}
-\item[userdef] $RepRegex(\UserDefined)=[([\UserDefined],[\epsilon,\epsilon])]$
+\item[userdef] $RepRegex(\RegexVariable)=[([\RegexVariable],[\epsilon,\epsilon])]$
 \item[star] $RepRegex(\String)=[([],[\String])]$
 \item[clause] $RepRegex(\Star{\Regex}) = [([\Star{RepDnfRegex(\Regex)}],[\epsilon,\epsilon])]$
 \item[dnf regex] $RepRegex(\Regex_1\Regex_2) = Concat(RepDnfRegex(\Regex_1),RepDnfRegex(\Regex_2))$ where $Concat$ is defined via something horrible
@@ -61,7 +61,7 @@ Identity is expressible in the language of DNF Lenses
 \begin{proof}
 By induction on regular expressions
 \begin{enumerate}
-\item[\Regex=\UserDefined] a
+\item[\Regex=\RegexVariable] a
 \end{enumerate}
 \end{proof}
 \end{lemma}
@@ -99,7 +99,7 @@ We define a representative regex for a dnf regex as follows:
 \item $repregex([\Clause_1 ; \ldots ; \Clause_n])$ =\\ $repregex(\Clause_1)| repregex([\Clause_2 ; \ldots ; \Clause_n]))$
 \item $regregex([\String]) = \String$
 \item $repregex([\String_1 ; \Atom_1 ; \ldots ; \Atom_n ; \String_{n+1}])$ =\\ $\String_1 (repregex(\Atom_1) repregex([\String_2 ; \Atom_2 ; \ldots ; \String_{n+1}]))$
-\item $repregex(\UserDefined) = \UserDefined$
+\item $repregex(\RegexVariable) = \RegexVariable$
 \item $repregex(\Star{\DNFRegex}) = \Star{repregex(\DNFRegex)}$
 \end{itemize}
 \end{definition}
@@ -110,7 +110,7 @@ $\LanguageOf{\Delta}{\DNFRegex}=\LanguageOf{\Delta}{repregex(\DNFRegex)}$,
 $\LanguageOf{\Delta}{\Clause} = \LanguageOf{\Delta}{repregex(\Clause)}$,
 and $\LanguageOf{\Delta}{\Atom} = \LanguageOf{\Delta}{repregex(\Atom)}$
 \begin{proof}
-By induction on the structure of \DNFRegex, \Clause, and \Atom
+By induction on the structure of \DNFRegex{}, \Clause{}, and \Atom{}
 \end{proof}
 \end{lemma}
 
@@ -131,6 +131,7 @@ By inspection, this lens is equivalent to the adjacent swapping permutation.
 \end{lemma}
 
 \begin{lemma}[Expressibility of Permutation]
+\label{lem:perm-exp}
 The language of lenses can express $([(\String_1,\String_1) ; \IdentityLens ; \ldots ; \IdentityLens ; (\String_n,\String_n)], \sigma)$
 for any permutation $\sigma$.
 \begin{proof}
@@ -183,55 +184,223 @@ $\ComposeLens{permlens(\lambda i:\RangeIncInc{0}{n} \StringAlt_i,\sigma \in S_n)
 By induction on the well-founded relation underlying the 
 \end{lemma}
 
+\begin{lemma}[Creation of Lens from Identity Perm DNF Lens]
+\label{lem:id-dnf}
+If $\Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],id) : [\Clause_1 ; \ldots ; \Clause_n] \Leftrightarrow [\ClauseAlt_1 ; \ldots ; \ClauseAlt_n]$,
+and for each $\ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i$,
+there exists a $\Delta \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$ such that
+$\LanguageOf{\Delta}{\Clause_i}=\LanguageOf{\Delta}{\Regex_i}$, and $\Lens_i.putr = \ClauseLens_i.putr$,
+then there exists a $\Lens : \Regex \Leftrightarrow \RegexAlt$ such that $\Lens.putr = ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],id).putr$, $\LanguageOf{\Delta}{[\Clause_1 ; \ldots ; \Clause_n]}$ = $\LanguageOf{\Delta}{\Regex}$,
+and $\LanguageOf{\Delta}{[\ClauseAlt_1 ; \ldots ; \ClauseAlt_n]}$ = $\LanguageOf{\Delta}{\RegexAlt}$.
+\begin{proof}
+Base case: $\FullContext \vdash [\ClauseLens_1] : [\Clause_1] \Leftrightarrow [\ClauseAlt_1]$.  Then consider $\Lens$ = $\Lens_1$, $\Regex = \Regex_1$, $\RegexAlt = \RegexAlt_1$.
+$\LanguageOf{\Delta}{[\Clause_1]} = \LanguageOf{\Delta}{\Clause_1}$ by definition.\\
+$\LanguageOf{\Delta}{[\Clause_1]} = \LanguageOf{\Delta}{\Regex_1}$ by problem assumption.
+
+Symmetrically for $\LanguageOf{\Delta}{[\ClauseAlt_1]}$.\\
+$\PutRight{[\ClauseLens]} = \PutRight{\ClauseLens}$ by definition\\
+$\PutRight{[\ClauseLens]} = \PutRight{\Lens_1}$ by problem assumption.
+\\\\\\
+
+
+
+By induction assumption, I know
+there exists a $\Lens : \Regex \Leftrightarrow \RegexAlt$ such that
+$\Lens.putr = ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],id).putr$,
+$\LanguageOf{\Delta}{[\Clause_1 ; \ldots ; \Clause_n]}$ =
+$\LanguageOf{\Delta}{\Regex}$,
+and $\LanguageOf{\Delta}{[\ClauseAlt_1 ; \ldots ; \ClauseAlt_n}$ = $\LanguageOf{\Delta}{\RegexAlt}$.\\
+By assumption, I know that there exists a $\Delta \vdash \Lens_{n+1} : \Regex_{n+1} \Leftrightarrow \RegexAlt_{n+1}$ such that $\LanguageOf{\Delta}{\Regex_{n+1}}=\LanguageOf{\Delta}{\Clause_{n+1}}$
+and $\LanguageOf{\Delta}{\RegexAlt_{n+1}}=\LanguageOf{\Delta}{\ClauseAlt_{n+1}}$, where $\Lens_{n+1}.putr=\ClauseLens_{n+1}$.\\
+Consider the lens $\FullContext \vdash \OrLens{\Lens}{\Lens_{n+1}} : \RegexOr{\Regex}{\Regex_{n+1}} \Leftrightarrow \RegexOr{\RegexAlt}{\RegexAlt_{n+1}}$.\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \LanguageOf{\Delta}{\Regex}\cup\LanguageOf{\Delta}{\Regex_{n+1}}$
+by definition\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \LanguageOf{\Delta}{[\Clause_1; \ldots ; \Clause_n]}
+\cup\LanguageOf{\Delta}{\Regex_{n+1}}$ by induction assumption.\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \bigcup_{i=1\ldots n}\LanguageOf{\Delta}{\Clause_i}
+\cup\LanguageOf{\Delta}{\Regex_{n+1}}$ by definition.\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \bigcup_{i=1\ldots n}\LanguageOf{\Delta}{\Clause_i}
+\cup\LanguageOf{\Delta}{\Clause_{n+1}}$ by problem assumption.\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \bigcup_{i=1\ldots n+1}\LanguageOf{\Delta}{\Clause_i}$ by distributivity of $\cup$.\\
+$\LanguageOf{\Delta}{\RegexOr{\Regex}{\Regex_{n+1}}}
+= \LanguageOf{\Delta}{[\Clause_1; \ldots ; \Clause_n]}$ by definition.
+
+Similarly for
+$\LanguageOf{\Delta}{\RegexOr{\RegexAlt}{\RegexAlt_{n+1}}}
+= \LanguageOf{\Delta}{[\ClauseAlt_1; \ldots ; \ClauseAlt_n]}$ TODO, split into lemma?.\\
+\[
+\PutRight{\OrLens{\Lens}{\Lens_{n+1}}}(\String) =
+  \begin{cases}
+    \PutRight{\Lens}(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Regex}\\
+    \Lens_{n+1}.putr(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Regex_{n+1}}
+  \end{cases}
+\] by definition.\\
+\[
+\PutRight{\OrLens{\Lens}{\Lens_{n+1}}}(\String) =
+  \begin{cases}
+    \PutRight{[\ClauseLens_1;\ldots;\ClauseLens_n}(\String)& \text{if } \String \in \LanguageOf{[\Clause_1 ; \ldots ; \Clause_n]}{\Regex}\\
+    \Lens_{n+1}.putr(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Regex_{n+1}}
+  \end{cases}
+\] by induction assumption.\\
+\[
+\PutRight{\OrLens{\Lens}{\Lens_{n+1}}}(\String) =
+  \begin{cases}
+    \PutRight{\ClauseLens_1}(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Clause_1}\\
+\ldots \\
+    \PutRight{\ClauseLens_n(\String)}& \text{if } \String \in \LanguageOf{\Delta}{\Clause_n}\\
+    \Lens_{n+1}.putr(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Regex_{n+1}}
+  \end{cases}
+\] by definition of putr.\\
+\[
+\PutRight{\OrLens{\Lens}{\Lens_{n+1}}}(\String) =
+  \begin{cases}
+    \PutRight{\ClauseLens_1}(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Clause_1}\\
+\ldots \\
+    \PutRight{\ClauseLens_n(\String)}& \text{if } \String \in \LanguageOf{\Delta}{\Clause_n}\\
+    \Clause_{n+1}.putr(\String)& \text{if } \String \in \LanguageOf{\Delta}{\Clause_{n+1}}
+  \end{cases}
+\] by problem assumption.\\
+$\PutRight{\OrLens{\Lens}{\Lens_{n+1}}}(\String) =
+\PutRight{[\ClauseLens_1; \ldots ; \ClauseLens_{n+1}]}(\String)$ by definition of putr.\\
+\end{proof}
+\end{lemma}
+
+\begin{lemma}[Creation of Lens from Identity Perm Clause Lens]
+\label{lem:id-clause}
+If $\Delta \vdash ([(\String_0,\StringAlt_0);\AtomLens_1 ; \ldots ; \AtomLens_n;(\String_n,\StringAlt_n)],id) : [\String_0 ; \Atom_1 ; \ldots ; \Atom_n; \String_n] \Leftrightarrow [\StringAlt_0 ; \AtomAlt_1 ; \ldots ; \AtomAlt_n ; \StringAlt_n]$,
+and for each $\AtomLens_i : \Atom_i \Leftrightarrow \AtomAlt_i$,
+there exists a $\Delta \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$ such that
+$\LanguageOf{\Delta}{\Atom_i}=\LanguageOf{\Delta}{\Regex_i}$, and $\Lens_i.putr = \ClauseLens_i.putr$,
+then there exists a $\Lens : \Regex \Leftrightarrow \RegexAlt$ such that $\Lens.putr = ([\AtomLens_1 ; \ldots ; \AtomLens_n],id).putr$, $\LanguageOf{\Delta}{[\String_0 ; \Atom_1 ; \ldots ; \Clause_n ; \String_n]}$ = $\LanguageOf{\Delta}{\Regex}$,
+and $\LanguageOf{\Delta}{[\StringAlt_0 ; \AtomAlt_1 ; \ldots ; \AtomAlt_n ; \StringAlt_n]}$ = $\LanguageOf{\Delta}{\RegexAlt}$.
+\begin{proof}
+Base case: $\FullContext \vdash [(\String_0,\StringAlt_0)] : [\String_0] \Leftrightarrow [\StringAlt_0]$.
+Then consider $\Lens$ = $\ConstLens{\String_0}{\StringAlt_0}$, $\Regex = \String$, $\RegexAlt = \StringAlt$.
+$\LanguageOf{\Delta}{[\String_0]} = \String_0 = \LanguageOf{\Delta}{\String_0}$ by definition.\\
+$\LanguageOf{\Delta}{[\StringAlt_0]} = \StringAlt_0 = \LanguageOf{\Delta}{\String_0}$ by definition.\\
+$\PutRight{[(\String_0,\StringAlt_0)]}(\String_0)=\StringAlt_0=\PutRight{\ConstLens{\String}{\StringAlt}}(\String_0)$.
+\\\\\\
+
+By induction assumption, I know
+there exists a $\Lens : \Regex \Leftrightarrow \RegexAlt$ such that
+$\Lens.putr = ([(\String_0,\StringAlt_0);\AtomLens_1 ; \ldots ; \AtomLens_n;(\String_n,\StringAlt_n)],id).putr$,
+$\LanguageOf{\Delta}{[\String_0 ; \Atom_1 ; \ldots ; \Atom_n ; \String_n]}$ =
+$\LanguageOf{\Delta}{\Regex}$,
+and $\LanguageOf{\Delta}{[\StringAlt_0 ; \AtomAlt_1 ; \ldots ; \Atom_n ; \StringAlt_n]}$ = $\LanguageOf{\Delta}{\RegexAlt}$.\\
+By assumption, I know that there exists a $\Delta \vdash \Lens_{n+1} : \Regex_{n+1} \Leftrightarrow \RegexAlt_{n+1}$ such that $\LanguageOf{\Delta}{\Regex_{n+1}}=\LanguageOf{\Delta}{\Atom_{n+1}}$
+and $\LanguageOf{\Delta}{\RegexAlt_{n+1}}=\LanguageOf{\Delta}{\AtomAlt_{n+1}}$, where $\Lens_{n+1}.putr=\AtomLens_{n+1}$.\\
+Consider the lens $\FullContext \vdash \ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}} : \RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}} \Leftrightarrow \RegexConcat{\RegexAlt}{\RegexConcat{\RegexAlt_{n+1}}{\StringAlt_{n+1}}}$.\\
+$\LanguageOf{\Delta}{\RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}}}
+= \LanguageOf{\Delta}{\Regex}\Concat\LanguageOf{\Delta}{\Regex_{n+1}}\Concat\{\String_{n+1}\}$
+by definition\\
+$\LanguageOf{\Delta}{\RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}}}
+= \LanguageOf{\Delta}{[\String_0;\Atom_1; \ldots ; \Atom_n;\String_n]}
+\Concat\LanguageOf{\Delta}{\Regex_{n+1}}\Concat\{\String_{n+1}\}$ by induction assumption.\\
+$\LanguageOf{\Delta}{\RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}}}
+= \{\String_0\}\Concat\LanguageOf{\Delta}{\Atom_1}\Concat\ldots\Concat\LanguageOf{\Delta}{\Atom_n}\Concat\{\String_n\}
+\Concat\LanguageOf{\Delta}{\Regex_{n+1}}\Concat\{\String_{n+1}\}$ by definition.\\
+$\LanguageOf{\Delta}{\RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}}}
+= \{\String_0\}\Concat\LanguageOf{\Delta}{\Atom_1}\Concat\ldots\Concat\LanguageOf{\Delta}{\Atom_n}\Concat\{\String_n\}
+\Concat\LanguageOf{\Delta}{\Atom_{n+1}}\Concat\{\String_{n+1}\}$ by problem assumption.\\
+$\LanguageOf{\Delta}{\RegexConcat{\Regex}{\RegexConcat{\Regex_{n+1}}{\String_{n+1}}}}
+= \LanguageOf{\Delta}{[\String_0;\Atom_0;\ldots;\Atom_{n+1};\String_{n+1}]}$ by definition.\\
+
+Similarly for
+$\LanguageOf{\Delta}{\RegexConcat{\RegexAlt}{\RegexConcat{\RegexAlt_{n+1}}{\StringAlt_{n+1}}}}
+= \LanguageOf{\Delta}{[\StringAlt_0;\AtomAlt_0;\ldots;\AtomAlt_{n+1};\StringAlt_{n+1}]}$
+ TODO, split into lemma?.\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\PutRight{\Lens}(\String_0\String_1'\ldots\String_n'\String_n)\PutRight{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}(\String_{n+1}'\String_{n+1})$ by definition\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\PutRight{\Lens}(\String_0\String_1'\ldots\String_n'\String_n)\PutRight{\Lens_{n+1}}(\String_{n+1}')\PutRight{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}(\String_{n+1})$ by definition\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\PutRight{[(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)]}(\String_0\String_1'\ldots\String_n'\String_n)\PutRight{\Lens_{n+1}}(\String_{n+1}')\PutRight{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}(\String_{n+1})$ by induction assumption\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\PutRight{[(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)]}(\String_0\String_1'\ldots\String_n'\String_n)\PutRight{\AtomLens_{n+1}}(\String_{n+1}')\PutRight{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}(\String_{n+1})$ by problem assumption\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\StringAlt_0\Concat\PutRight{\AtomLens_1}(\String_1')\Concat\ldots\Concat\PutRight{\AtomLens_n}(\String_n')\Concat\StringAlt_n\Concat\PutRight{\AtomLens_{n+1}}(\String_{n+1}')\Concat\StringAlt_{n+1}$ by definition\\
+\\
+$\PutRight{\ConcatLens{\Lens}{\ConcatLens{\Lens_{n+1}}{\ConstLens{\String_{n+1}}{\StringAlt_{n+1}}}}}
+(\String_0\String_1'\ldots\String_{n+1}'\String_{n+1}) =$\\
+$\PutRight{[(\String_0,\StringAlt_0);\AtomLens_0;\ldots;\AtomLens_{n+1};(\String_{n+1},\StringAlt_{n+1})]}(\String_0\String_0'\ldots\String_{n+1}'\String_{n+1})$ by definition
+\end{proof}
+\end{lemma}
+
 \begin{lemma}[Soundness of DNF Lenses, Clauses, and Atoms]\leavevmode
 \begin{enumerate}
-\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \DNFRegex{}
-and \DNFRegexAlt{} be two dnf regular expressions, if
-\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\DNFRegex{}} and
+\item Let \DNFRegex{} and \DNFRegexAlt{} be two dnf regular expressions, and $\FullContext \vdash \DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt$.  Then there exists a \Lens{}, \Regex{}, and \RegexAlt{} such that $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$, \PutRight{\Lens}=\PutRight{\DNFLens}, \LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{\DNFRegex}, and \LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{\DNFRegexAlt}.  \LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\DNFRegex{}} and
 \LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\DNFRegexAlt{}}
-then if there exists a dnf lens
-$\Delta \vdash \DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt$
-then there exists a lens
-$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
-such that \denot{\DNFLens} = \denot{\Lens}
 
-\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \Clause{}
-and \ClauseAlt{} be two dnf regular expressions, if
-\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Clause{}} and
+\item Let \Clause{} and \ClauseAlt{} be two clauses, and $\FullContext \vdash \ClauseLens : \Clause \Leftrightarrow \ClauseAlt$.  Then there exists a \Lens{}, \Regex{}, and \RegexAlt{} such that $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$, \PutRight{\Lens}=\PutRight{\ClauseLens}, \LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{\Clause}, and \LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{\ClauseAlt}.  \LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Clause{}} and
 \LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\ClauseAlt{}}
-then if there exists a clause lens
-$\Delta \vdash \ClauseLens : \Clause \Leftrightarrow \ClauseAlt$
-then there exists a lens
-$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
-such that \denot{\ClauseLens} = \denot{\Lens}
 
-\item Let \Regex{} and \RegexAlt{} be two regular expressions, and \Atom{}
-and \AtomAlt{} be two dnf regular expressions, if
-\LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Atom{}} and
+\item Let \Atom{} and \AtomAlt{} be two atoms, and $\FullContext \vdash \AtomLens : \Atom \Leftrightarrow \AtomAlt$.  Then there exists a \Lens{}, \Regex{}, and \RegexAlt{} such that $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$, \PutRight{\Lens}=\PutRight{\AtomLens}, \LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{\Atom}, and \LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{\AtomAlt}.  \LanguageOf{\Delta{}}{\Regex{}} = \LanguageOf{\Delta{}}{\Atom{}} and
 \LanguageOf{\Delta{}}{\RegexAlt{}} = \LanguageOf{\Delta{}}{\AtomAlt{}}
-then if there exists a clause lens
-$\Delta \vdash \AtomLens : \Atom \Leftrightarrow \AtomAlt$
-then there exists a lens
-$\Delta \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$
-such that \denot{\AtomLens} = \denot{\Lens}
 \end{enumerate}
 \begin{proof}
-\begin{enumerate}
-\item[DNF Lens Intro] Let $\Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],\sigma) : [\Clause_{1,1}, \ldots, \Clause_{n,1}] \Leftrightarrow [\Clause_{\sigma(1),2}, \ldots, \Clause_{\sigma(n),2}]$.\\
-By Lemma~\ref{lem:dnf-inversion}, for all $i\in\RangeIncInc{1}{n}$,
-$\Delta \vdash \ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i$, and for all $i \neq j$, $\Clause_i \cap \Clause_j = \emptyset$ and $\ClauseAlt_i \cap \ClauseAlt_j = \emptyset$\\
-Consider $\Regex_i = repregex(\Clause_i)$ and $\RegexAlt_i = repregex(\ClauseAlt_i)$.\\
-By Lemma~\ref{lem:repregex-equiv}, $\LanguageOf{\Delta}{\Clause_i} = \LanguageOf{\Delta}{\Regex_i}$, and $\LanguageOf{\Delta}{\ClauseAlt_i} = \LanguageOf{\Delta}{\RegexAlt_i}$.\\
-By induction assumption, there exists lenses $\Lens_i$ for $i \in \RangeIncInc{1}{n}$ such that $\Delta \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$, and $\denot{Lens_i}=\denot{\ClauseLens_i}$.
+\begin{itemize}\leavevmode\\
+\item $\FullContext \vdash ([\ClauseLens_1;\ldots;\ClauseLens_n],\sigma) : [\Clause_1;\ldots;\Clause_n] \Leftrightarrow [\ClauseAlt_{\sigma(1)};\ldots;\ClauseAlt_{\sigma(n)}]$\\
+By Induction assumption, for each $\FullContext \vdash \ClauseLens_i : \Clause_i \Leftrightarrow \ClauseAlt_i$ there exists a $\FullContext \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$.\\
+By Lemma~\ref{lem:id-dnf} there exists a $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$ such that $\PutRight{\Lens}=\PutRight{([\ClauseLens_1;\ldots\ClauseLens_n],id)}$,
+$\LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{[\Clause_1;\ldots;\Clause_n]}$, and
+$\LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{[\ClauseAlt_1;\ldots;\ClauseAlt_n]}$.\\
+By Lemma TODO, $\PutRight{([\ClauseLens_1;\ldots\ClauseLens_n],id)}=\PutRight{([\ClauseLens_1;\ldots\ClauseLens_n],\sigma)}$.\\
+By Lemma TODO, $\LanguageOf{\Delta}{[\ClauseAlt_1;\ldots;\ClauseAlt_n]}=\LanguageOf{\Delta}{[\ClauseAlt_{\sigma(1)};\ldots;\ClauseAlt_{\sigma(n)}]}$.\\
+As such, $\PutRight{\Lens}=\PutRight{([\ClauseLens_1;\ldots\ClauseLens_n],\sigma)}$,
+$\LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{[\Clause_1;\ldots;\Clause_n]}$,
+and $\LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{[\ClauseAlt_{\sigma(1)};\ldots;\ClauseAlt_{\sigma(n)}]}$.\\
 
-This comes from the derivations that $\Delta \vdash \ClauseLens_i : \Clause_{i,1} \Leftrightarrow \Clause_{i,2}$ for all $i$.
-Consider instead the lens $\DNFLens' = \Delta \vdash ([\ClauseLens_1 ; \ldots ; \ClauseLens_n],\sigma_id) : [\Clause_{1,1}, \ldots, \Clause_{n,1}] \Leftrightarrow[\Clause_{1,2}, \ldots, \Clause_{n,2}]$.
-By Lemma (TODO: this lemma), these two lenses are semantically equivalent.
-By Lemma (TODO: this lemma), $\Delta \vdash repregex(\DNFLens') : repregex(\DNFRegex_1) \Leftrightarrow repregex(\DNFRegex_2')$, with $repregex(\DNFLens)$ semantically equivalent to $\DNFLens$.
-So $repregex(\DNFLens')$ is semantically equivalent to $\DNFLens'$, and $DNFLens'$ is semantically equivalent $\DNFLens$, so $repregex(\DNFLens')$ is
-semantically equivalent to $\DNFLens$.  Merely adding in a retyping rule at
-the end of $repregex(\DNFLens')$ (as they have the same type), completes this case.
-\end{enumerate}
+\item$\FullContext \vdash ([(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)],\sigma \in S_n) : [\String_0 ; \Atom_1 ; \ldots ; \Atom_n ; \String_n] \Leftrightarrow [\StringAlt_0; \AtomAlt_{\sigma(1)} ; \ldots ; \AtomAlt_{\sigma(n)} ; \StringAlt_n]$\\
+From induction assumption, I know for each $\FullContext \vdash \AtomLens_i : \Atom_i \Leftrightarrow \AtomAlt_i$, there exists a $\FullContext \vdash \Lens_i : \Regex_i \Leftrightarrow \RegexAlt_i$ such that $\PutRight{\AtomLens_i}=\PutRight{\Lens_i}$,
+and $\LanguageOf{\Delta}{\Regex_i}=\LanguageOf{\Delta}{\Atom_i}$ and $\LanguageOf{\Delta}{\RegexAlt_i}=\LanguageOf{\Delta}{\AtomAlt_i}$.\\
+By Lemma~\ref{lem:id-clause}, there exists a $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$ such that $\PutRight{\Lens}=\PutRight{([(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)],id)}$,
+$\LanguageOf{\Delta}{\Regex}=\LanguageOf{\Delta}{[\String_0;\Clause_1;\ldots;\Clause_n;\String_{n+1}]}$,
+$\LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{[\StringAlt_0;\ClauseAlt_1;\ldots;\ClauseAlt_n;\StringAlt_{n+1}]}$.\\
+By Lemma~\ref{lem:perm-exp} there exists a $\FullContext \vdash \Lens_{\sigma} : \Regex' \Leftrightarrow \RegexAlt'$,
+such that $\PutRight{\Lens_{\sigma}}(\StringAlt_0;\StringAlt_1';\StringAlt_1;\ldots;\StringAlt_n'\StringAlt_n)=\StringAlt_0;\StringAlt_{\sigma(1)}';\StringAlt_1;\ldots;\StringAlt_{\sigma(n)}'\StringAlt_n$,
+$\LanguageOf{\Delta}{\Regex'}=\LanguageOf{\Delta}{[\String_0;\Clause_1;\ldots;\Clause_n;\String_{n+1}]}$, and
+$\LanguageOf{\Delta}{\RegexAlt'}=\LanguageOf{\Delta}{[\String_0;\Clause_{\sigma(1)};\ldots;\Clause_{\sigma(n)}\String_{n+1}]}$.\\
+Consider the lens $\Delta \vdash \ComposeLens{\Lens_{\sigma}}{\Lens} : \Regex \Leftrightarrow \RegexAlt'$.\\
+$\PutRight{\ComposeLens{\Lens_{\sigma}}{\Lens}}(\String_0\String_1'\ldots\String_n'\String_n)=\PutRight{\Lens_{\sigma}}(\PutRight{\Lens}(\String_0\String_1'\ldots\String_n'\String_n))$ by definition of compose\\
+$\PutRight{\ComposeLens{\Lens_{\sigma}}{\Lens}}(\String_0\String_1'\ldots\String_n'\String_n)=\PutRight{\Lens_{\sigma}}(\StringAlt_1\PutRight{\AtomLens_1}(\String_1')\ldots\PutRight{\AtomLens_n}(\String_n')\StringAlt_n)$ by definition of \Lens{}\\
+$\PutRight{\ComposeLens{\Lens_{\sigma}}{\Lens}}(\String_0\String_1'\ldots\String_n'\String_n)=\StringAlt_1\PutRight{\AtomLens_{\sigma(1)}}(\String_{\sigma(1)}')\ldots\PutRight{\AtomLens_{\sigma(n)}}(\String_{\sigma(n)}')\StringAlt_n$ by definition of $\Lens_{\sigma}$\\
+$\PutRight{\ComposeLens{\Lens_{\sigma}}{\Lens}}(\String_0\String_1'\ldots\String_n'\String_n)=([(\String_0,\StringAlt_0);\AtomLens_0;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)],\sigma)(\String_0\String_1'\ldots\String_n'\String_n)$ by definition of clause lens\\
+\\
+\item$\FullContext \vdash \IterateLens{\DNFLens} : \Star{\DNFRegex} \Leftrightarrow \Star{\DNFRegexAlt}$\\
+From induction assumption, I know that there exists $\FullContext \vdash \Lens : \Regex \Leftrightarrow \RegexAlt$, such that
+$\PutRight{\DNFLens}=\PutRight{\Lens}$,
+\LanguageOf{\RegexContext}{\Regex}=\LanguageOf{\RegexContext}{\DNFRegex}, and
+$\LanguageOf{\Delta}{\RegexAlt}=\LanguageOf{\Delta}{\DNFRegexAlt}$.\\
+Consider $\FullContext \vdash \IterateLens{\Lens} : \Star{\Regex} \Leftrightarrow \Star{\RegexAlt}$.\\
+$\LanguageOf{\Delta}{\Star{\Regex}} = \String_0\ldots\String_n$ such that $\String_i \in \LanguageOf{\Delta}{\Regex}$ by definition of \LanguageOf{\Delta}{\Star{\Regex}}.\\
+$\LanguageOf{\Delta}{\Star{\Regex}} = \String_0\ldots\String_n$ such that $\String_i \in \LanguageOf{\Delta}{\DNFRegex}$ as $\LanguageOf{\Delta}{\DNFRegex}=\LanguageOf{\Delta}{\Regex}$.\\
+$\LanguageOf{\RegexContext}{\Star{\Regex}} = \LanguageOf{\RegexContext}{\Star{\DNFRegex}}$ by definition of \LanguageOf{\RegexContext}{\Star{\DNFRegex}}.
+
+Similarly for \LanguageOf{\RegexContext}{\Star{\RegexAlt}}\\\\
+$\PutRight{\IterateLens{\Lens}}(\String_0\ldots\String_n)=\PutRight{\Lens}(\String_0)\ldots\PutRight{\Lens}(\String_n)$ by definition of $\PutRight{\IterateLens{\Lens}}$.\\
+$\PutRight{\IterateLens{\Lens}}(\String_0\ldots\String_n)=\PutRight{\DNFLens}(\String_0)\ldots\PutRight{\DNFLens}(\String_n)$ as \PutRight{\DNFLens}=\PutRight{\Lens}.\\
+$\PutRight{\IterateLens{\Lens}}(\String_0\ldots\String_n)=\PutRight{\IterateLens{\DNFLens}}(\String_0\ldots\String_n)$ by definition of $\PutRight{\IterateLens{\DNFLens}}$.\\
+\\
+\item$\FullContext \vdash \IdentityLens : \RegexVariable \Leftrightarrow \RegexVariable$\\
+Consider $\FullContext \vdash \IdentityLens : \RegexVariable \Leftrightarrow \RegexVariable$\\
+$\PutRight{\IdentityLens}(\String)=\String$ by definition of dnf \PutRight{\IdentityLens{}}.\\
+$\PutRight{\IdentityLens}(\String)=\PutRight{\IdentityLens}(\String)$ by definition of normal $\PutRight{\IdentityLens{}}$.
+\end{itemize}
 \end{proof}
 \end{lemma}
 
