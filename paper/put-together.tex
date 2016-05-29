@@ -37,13 +37,13 @@ The constraints the type systems of these languages make the search space
 tighter, and allow us to synthesize very complicated
 programs very quickly.
 
-\input{fig_regex-definition}
+\input{fig_regex-syntax}
 \input{fig_regex-semantics}
 However, if we are to use the types to direct, and the types are
 regular expressions, we would like to allow for users to easily engineer
 regular expressions.
 For this we have created a language of regular expressions with a context,
-with syntax defined in Figure~\ref{fig:regex-definition}, and semantics defined
+with syntax defined in Figure~\ref{fig:regex-syntax}, and semantics defined
 in Figure~\ref{fig:regex-semantics}.  In this, we only allow the context to
 have finite size.
 We show that adding in a context doesn't increase expressibility.
@@ -110,6 +110,10 @@ $\emptyset,\emptyset \DerivesLens \Lens' \OfType \MapsBetweenTypeOf{\Regex'}{\Re
 \begin{proof}
 Through induction on typing derivations.
 \end{proof}
+However, despite the fact these variables are not needed, they are useful for nice
+separation of concerns.
+Lenses in the context are likely to be used, much like when programming, one
+doesn't import libraries for no reason.
 
 In this, all of the rules except Retype Lens have a clear synthesis algorithm.
 For example, given the type $\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$.
@@ -123,32 +127,92 @@ Without the Retype Lens rule, it would not be possible to have a lens of the typ
 $a\Concat (b\Concat (c\Concat d))\Leftrightarrow(a\Concat b)\Concat(c\Concat d)$,
 despite the fact that we expect this lens to be inhabited by the lens \IdentityLens{}.
 
-\input{fig_dnf-lens-syntax}
-\input{fig_dnf-lens-alternate-alternate-semantics}
 
+\input{fig_dnf-regex-syntax}
+\input{fig_dnf-regex-semantics}
+\input{fig_dnf-regex-functions}
+\input{fig_dnf-regex-rewrites}
 Because of this, to synthesize lenses, we instead create a new, equivalent language,
 who handles many of the equivalences of regular expressions through exploiting a normal form.
+We define this normal form of regular expression DNF Regular expression, with syntax
+defined as in Figure~\ref{fig:dnf-regex-syntax}, and with semantics defined as
+in Figure~\ref{fig:dnf-regex-semantics}.  These semantics rely on some functions
+defined in Figure~\ref{fig:dnf-regex-functions},
+and some rewrite rules defined in Figure~\ref{fig:dnf-regex-rewrites}.
+This normal form is called a DNF regular expression, as it is similar to the
+sentences in logical disjunctive normal form.
+These DNF regular expression expresses exactly the same amount as standard regular
+expressions.
+\begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
+\label{thm:completeness-dnf-lenses}
+There exists a function $\ToDNFRegex\OfType\ArrowTypeOf{\mathit{Regex}}{\mathit{DNF Regex}}$,
+such that, for all $\RegexContext$, $\LanguageOf{\RegexContext}{\Regex}=\LanguageOf{\RegexContext}{\ToDNFRegex(\Regex)}$.
+\end{restatable}
+
+\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
+\label{thm:soundness-dnf-lenses}
+The function \ToDNFRegex{} has a right inverse \FromDNFRegex{}.
+\end{restatable}
+
+
+\input{fig_dnf-lens-syntax}
+\input{fig_dnf-lens-alternate-alternate-semantics}
 We have created a language which can handle many of the equivalences of regular
-expressions through its normal form, and adds additional structure to the search
+expressions through operation on dnf regular expressions,
+and adds additional structure to the search
 space, constraining it and minimizing the traversal through equivalent elements.
-We call this language, the language of DNF lenses, due to the fact these lenses are
-put into a form similar to the disjunctive normal form of logic.
+We call this language, the language of DNF lenses, due to the fact the lenses
+operate on DNF regular expressions.
 The syntax for these lenses is provided in Figure~\ref{fig:dnf-lens-syntax}.
 The typing and semantics for these lenses is provided in Figure~\ref{fig:dnf-lens-alternate-alternate-semantics}.
+DNF Lenses express exactly the same amount as standard lenses.
+\begin{restatable}[Completeness of DNF Lenses]{theorem}{dnflc}
+\label{thm:completeness-dnf-lenses}
+If there exists a derivation of $\FullContext \DerivesLens \Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt} \HasSemantics \PutRight,\PutLeft$,
+then there exists a derivation of $\FullContext \DerivesDNFLens \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt} \HasSemantics \PutRight,\PutLeft$ such that
+$\LanguageOf{\RegexContext}{\DNFRegex}=\LanguageOf{\RegexContext}{\Regex}$, and
+$\LanguageOf{\RegexContext}{\DNFRegexAlt}=\LanguageOf{\RegexContext}{\RegexAlt}$.
+\end{restatable}
+
+\begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
+\label{thm:soundness-dnf-lenses}
+If there exists a derivation of $\FullContext \DerivesDNFLens \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt} \HasSemantics \PutRight,\PutLeft$,
+then there exists a derivation of $\FullContext \DerivesLens \Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt} \HasSemantics \PutRight,\PutLeft$ such that
+$\LanguageOf{\RegexContext}{\Regex}=\LanguageOf{\RegexContext}{\DNFRegex}$, and
+$\LanguageOf{\RegexContext}{\RegexAlt}=\LanguageOf{\RegexContext}{\DNFRegexAlt}$.
+\end{restatable}
 
 DNF lenses handle the equivalences of concatenation associativity,
 or associativity, or commutativity, and and-or distributivity.
-Furthermore, they do not require concatenation to be complete,
+Furthermore, they do not require composition to be complete,
 though we do allow for concatenation of lenses in the lens context.
-While these are not needed, this is under the assumption that if lenses are present
+While these are not needed for full expressibility because of Theorem~\ref{thm:empty-context-regex-completeness}
+and Theorem~\ref{thm:completeness-dnf-lenses},
+we choose to use these contextual lenses and regular expression.
+This is under the assumption that if lenses are present
 in the context, they are likely to be used.
+However, this does add in additional choices for synthesis, but we've found
+that in practice, it simplifies the algorithm (TODO: this analysis).
 Because of this, the choices needed to be done by the synthesis algorithm
 are fairly minimal.  There are only
 a few types of equivalences related to stars and use of regular expressions
 in the context that need to be explored for completeness.
 Furthermore, there is the difficulty of determining which permutations create
 well typed regular expressions, but our implentation reduces the problem of
-finding a valid permutation, to ordering of terms under a specific order.
+finding a valid permutation to ordering the terms under a specific order.
+
+\input{fig_regex-equivalence-rules}
+Two regular expressions are said to be equivalent if they are equivalent through
+any of the rules specified in Figure~\ref{fig:regex-equivalence-rules}.
+Indeed, after ordering we have put our regular expressions in a very normal form.
+If we normalize two regular expressions, and those two regular expressions are
+equivalent through any number of applications of equivalences 1 through 8, then
+their ordered DNF regular expressions will be equivalent.
+What's more, we can use the ordering on ordered DNF regular expressions to create another
+equivalence class.  The ordering on DNF regular expressions says two ordered
+dnf regular expressions are equal if, and only if, there exists a lens between
+then, where the lens typing doesn't include the DNF Rewrite Lens rule.  The purpose
+of the DNF Rewrite rule is to handle the other types of equivalences.
 
 
 
