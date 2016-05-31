@@ -1,0 +1,251 @@
+\input{fig_regex-syntax}
+\input{fig_regex-semantics}
+
+Regular expressions are a nice way to formalize a set of strings, called a language.
+They have nice computational properties.  The syntax for nonempty regular expressions
+is given in Figure~\ref{fig:regex-syntax}.
+These regular expressions have an underlying semantics, which expresses languages,
+formalized in Figure~\ref{fig:regex-semantics}.
+
+\input{fig_lens-syntax}
+\input{fig_lens-alternate-alternate-semantics}
+There are things called views, which allow one a different perspective on data.
+Lenses are updatable views, which satisfy the get-put laws.
+One can approach creating lenses that satisfy the laws through a language approach.
+We focus our attentions currently on the language of bijective lenses, where the
+functions between views are bijections, and inverses to each other.
+We define the syntax for these bijective lenses in Figure~\ref{fig:lens-syntax}.
+The semantics and typing for these lenses is defined in Figure~\ref{fig:lens-alternate-alternate-semantics}.
+The semantics is only defined alongside the typing, as the functions are only
+well defined when the term is well typed.
+
+A close inspection of the laws behind the lenses shows that the typing of the
+lenses corresponds tightly with the actual lenses.
+For example, consider the concatenation rule:
+
+\begin{mathpar}
+\inferrule*
+{
+\Lens_1 : \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 : \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+\UnambigConcat{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
+\UnambigConcat{\LanguageOf{\Regex_2}}{\LanguageOf{\RegexAlt_2}}\\
+}
+{
+\ConcatLens{\Lens_1}{\Lens_2} :
+\RegexConcat{\Regex_1}{\Regex_2} \Leftrightarrow
+\RegexConcat{\RegexAlt_1}{\RegexAlt_2}
+}
+\end{mathpar}
+
+Concatenation lenses come alongside a regular expression concatenation.
+Perhaps, instead of writing out lenses explicitly, we can merely
+write its type, and the lenses can be inferred from the types.
+Utilizing types for synthesis is not a new idea, and has been explored
+in systems like Myth \cite{tds-pldi}.
+However, we have found that type directed synthesis is well suited
+for domain specific languages like the language of lenses.
+The constraints of the type systems of these languages make the search space
+tighter, and allow us to synthesize very complicated
+programs very quickly.
+
+Our approach to synthesis is one of enumeration.
+We would like to enumerate the programs that satisfy the desired typing until
+we find one that satisfies the examples.
+We enumerate these programs by creating subproblems based on typing rules
+could potentially create the desired type.
+
+For example, given the type $\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$.
+We know that it can be created from a Concat Lens rule,
+which would create the subproblems of finding a lens of type $\Regex_1\Leftrightarrow\RegexAlt_1$
+and a lens of type $\Regex_2\Leftrightarrow\RegexAlt_2$.
+However, this is made more difficult due to the Compose Lens rule,
+and the Retype Lens rule.
+Both of these rules can be applied to any type, and the subproblems are not immediately apparent.
+For example, if the lens of type
+$\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$
+came from a Compose Lens rule, then for some regular expression $\Regex$,
+we would have the subproblems of finding a lens with type
+$\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\Regex$,
+and finding a lens with type
+$\Regex\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$.
+However, merely from the resulting type,
+$\RegexConcat{\Regex_1}{\Regex_2} \Leftrightarrow \RegexConcat{\RegexAlt_1}{\RegexAlt_2}$,
+we do not know which regular expression \Regex{} to use.
+
+Similarly, if the lens of type
+$\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$
+came from a Retype Lens rule, then for some regular expressions $\Regex$, and $\RegexAlt$,
+where $\LanguageOf{\Regex}=\LanguageOf{\RegexConcat{\Regex_1}{\Regex_2}}$
+and $\LanguageOf{\RegexAlt}=\LanguageOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}}$,
+we have the subproblem of finding a lens with type
+$\Regex\Leftrightarrow\RegexAlt$.
+However, merely from the resulting type,
+$\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$,
+we do not know which regular expressions \Regex{} and \RegexAlt{} to
+use, we only know that they have to meet some semantic restrictions.
+
+However, neither of these rules are admissible and both are important.
+Without the Retype Lens rule, it would not be possible to have a lens of the type
+$a\Concat (b\Concat (c\Concat d))\Leftrightarrow(a\Concat b)\Concat(c\Concat d)$,
+despite the fact that we expect this lens to be inhabited by the lens \IdentityLens{}.
+Without the Compose Lens rule, it would not be possible to have a lens $\Lens$ of the type
+$\RegexConcat{\Star{a}}{\RegexConcat{\Star{b}}{\RegexConcat{\Star{c}}{\Star{d}}}} \Leftrightarrow
+\RegexConcat{\Star{c}}{\RegexConcat{\Star{a}}{\RegexConcat{\Star{d}}{\Star{b}}}}$,
+which has $\PutRightOf{\Lens}(a^h\Concat b^i \Concat c^j \Concat d^k)=c^j\Concat a^h\Concat d^k\Concat b^i$, a simple permutation of the letters.
+
+\input{fig_regex-equivalence-rules}
+These rules are important, but on each application of the rules, there are an
+infinite number of potential subproblems.
+Making the composition admissible is not the most complicated problem,
+as it's lack of admissibility comes a bit from the rigid structure of the rules,
+and only arises in an edge case.
+However, retyping is not so easily made admissible.
+For the handling of the Retype Lens
+rule, we can create a search space for these potential subproblems by
+searching through the lenses of equivalent regular expressions.
+For this, we use the equational theory presented by Conway \cite{conway},
+and proven complete by Krob \cite{Krob},
+shown in Figure~\ref{fig:regex-equivalence-rules}.
+
+However, enumerating through all possible regular expressions for lenses is inefficient.
+Beyond that, we are not merely searching for the applications of these rules to
+a single regular expression, but instead the applications of these to two regular expressions.
+This makes this search space incredibly broad.
+Instead of searching through this search space, we would instead like to find
+a normal form for regular expressions, and find a way to create lenses on
+regular expressions of that form.
+
+\input{fig_dnf-regex-syntax}
+\input{fig_dnf-regex-semantics}
+To this end, we have created DNF regular expressions.  Intuitively, a DNF regular
+expression is a regular expression with the distributivity laws (6 and 7) always
+applied, with no associativity between operations of the same type,
+and with base regular expressions at fixed locations.
+We formalize the syntax of this language in Figure~\ref{fig:dnf-regex-syntax}.
+
+The outermost layer is a list of conjuncts.
+This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
+The second layer is a list of alternating strings and stars.
+After the choice has been made about what will be expressed,
+the base strings and iterated portions remains to be expressed.
+We keep it in a normal form, by requiring a (possibly empty) string between
+each clause.
+The clause corresponds to the concatenated data, and is a concatenation of the
+fixed data of base strings, and the iterated data of stars.
+Finally is the atom, which is a star.
+This corresponds to the iteration that takes place in normal stars.
+There is no fixed way to break the choices of this into the clause,
+as there is an arbitrarily large number of choices made in the stars.
+This intuition is formalized by the semantics, given in Figure~\ref{fig:dnf-regex-semantics}.
+
+\input{fig_dnf-regex-functions}
+We can create a dnf regular expression from a regular expression through repeated
+application of the distributivity rule, and through removal of association information.  To do this, we require some functions defined on DNF regular expressions,
+which we define in Figure~\ref{fig:dnf-regex-functions}.
+From this we can define a function which converts a regular expression into
+an equivalent DNF regular expression, \ToDNFRegex{}.
+\begin{definition}
+\leavevmode
+\begin{itemize}
+\item $\ToDNFRegex(\String)=[[\String]]$
+\item $\ToDNFRegex(\Star{\Regex}) = [[\Star{\ToDNFRegex(\Regex)}]]$
+\item $\ToDNFRegex(\RegexConcat{\Regex_1}{\Regex_2}) =$\\
+\hspace*{1em}$\ConcatDNF(\ToDNFRegex(\Regex_1),\ToDNFRegex(\Regex_2))$
+\item $\ToDNFRegex(\RegexOr{\Regex_1}{\Regex_2}) =$\\
+\hspace*{1em}$\OrDNF(\ToDNFRegex(\Regex_1),\ToDNFRegex(\Regex_2))$
+\end{itemize}
+\end{definition}
+We show that this transformation is a valid transformation.
+\begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
+\label{thm:completeness-dnf-lenses}
+For all regular expressions \Regex{},
+$\LanguageOf{\Regex}=\LanguageOf{\ToDNFRegex(\Regex)}$.
+\end{restatable}
+
+Furthermore, we can use this to prove that the language of DNF regular expressions is sound.
+
+\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
+\label{thm:soundness-dnf-lenses}
+The function \ToDNFRegex{} has a right inverse \FromDNFRegex{}.
+\end{restatable}
+
+We can further normalize the DNF regular expressions by providing an order on conjuncts,
+and ordering the conjuncts in the DNF regular expression according to that order.
+With this, we have normalized the regular expression equivalences 1-7.
+In other words, if two regular expressions, $\Regex_1$ and $\Regex_2$,
+are equivalent up to the transformations of regular expressions in equivalences 1-7,
+then $\ToDNFRegex(\Regex_1)=\ToDNFRegex(\Regex_2)$.
+A reasonable approach to further normalizing this is to attempt to minimize the
+regular expression as much as possible, using the star laws.
+Unfortunately, while this approach works well for normalizing, it doesn't work
+well for finding lenses.  For example, there is clearly a lens of type
+$\MapsBetweenTypeOf{\RegexOr{\EmptyString}{(\RegexConcat{a}{\Star{a}})}}{\RegexOr{b}{(\RegexConcat{c}{\Star{d}})}}$,
+namely $\OrLens{\ConstLens{\EmptyString}{a}}{\ConcatLens{\ConstLens{a}{b}}{\IterateLens{\ConstLens{a}{d}}}}$.
+However, if one simplifies as much as possible, then they will have to find a lens
+of type $\MapsBetweenTypeOf{\Star{a}}{\RegexOr{b}{(\RegexConcat{c}{\Star{d}})}}$.
+Unlike the type before being minified, where there was a type directed way to find
+this lens, there is no longer a type directed way: should the lens be an iterate lens
+or an or lens.
+We interpret this as the need to gain semantic information through the expansion of
+the regular expressions.
+A regular expression merely of the form $\Star{a}$ only cares about how the iterated case is handled, where a regular expression of the form
+$\RegexOr{\EmptyString}{(\RegexConcat{a}{\Star{a}})}$ potentially acts differently on the empty
+string case than on the nonempty case.
+
+\input{fig_dnf-regex-rewrites}
+Because of this, instead of writing equivalences for DNF regular expressions like
+exist for normal regular expressions,
+instead we write rewrite rules as shown in Figure~\ref{fig:dnf-regex-rewrites}.
+Intuitively, these rewrite rules correspond to breaking a regular expression
+into a regular expression that encodes additional semantics.
+We define these rules as rewrites that turn atoms into DNF Regular expressions,
+and a rule that expresses how these rewrites can become rewrites on
+the DNF regular expressions themselves.
+
+Roughly, the Atom Sumstar rewrite corresponds to Regular Expression equivalence 8,
+the Atom Unrollstar rewrite corresponds to Regular Expression equivalence 9,
+and the Atom Powerstar rewrite corresponds to Regular Expression equivalence 11.
+There is no rewrite corresponding to Regular Expression equivalence 10, as that
+equivalence is an ambiguity introducing equivalence.
+An application of Atom Sumstar corresponds to doing different things after the last time a certain event has occured, and before the last time that event occurs.
+An application of Atom Unrollstar corresponds to making a different action for
+the empty case of an iteration, the first case of an iteration, and all further cases of the iteration.
+An application of Atom Powerstar corresponds to doing different things if the iteration
+is occuring a different number of times, modulo n, for some fixed n.
+
+\input{fig_dnf-lens-syntax}
+\input{fig_dnf-lens-alternate-alternate-semantics}
+Armed with these rewrites, we have the capabilities to define a sufficiently
+strong language for lenses on these regular expressions.
+The syntax is defined in Figure~\ref{fig:dnf-lens-syntax}.
+Similarly to the language of lenses, we aim to have the typing of the lenses
+correspond closely to the syntax for the lenses themselves.
+The typing and semantics of these dnf lenses are defined in Figure~\ref{fig:dnf-lens-alternate-alternate-semantics}.
+Intuitively, a DNF Regex Lens corresponds roughly to an n-ary version of an or lens,
+a Conjunct Lens corresponds to const lenses for the strings, and a combination of
+Concat and Swap lenses for the Atoms.
+Furthermore, these lenses are sufficiently strong that Compose Lenses are not
+necessary.
+Indeed, these lenses are strong enough to express everything expressible in the language of lenses.
+\begin{restatable}[Completeness of DNF Lenses]{theorem}{dnflc}
+\label{thm:completeness-dnf-lenses}
+If there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt} \HasSemantics \PutRight,\PutLeft$,
+then there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt} \HasSemantics \PutRight,\PutLeft$ such that
+$\LanguageOf{\DNFRegex}=\LanguageOf{\Regex}$, and
+$\LanguageOf{\DNFRegexAlt}=\LanguageOf{\RegexAlt}$.
+\end{restatable}
+Furthermore, they only express things expressible in the language of lenses.
+\begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
+\label{thm:soundness-dnf-lenses}
+If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt} \HasSemantics \PutRight,\PutLeft$,
+then there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt} \HasSemantics \PutRight,\PutLeft$ such that
+$\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$, and
+$\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$.
+\end{restatable}
+
+However, these lenses are much more suited to synthesis.
+The vast majority of the rules have a syntax directed synthesis algorithm.
+Furthermore, even the rewrite rules that don't have an immediate syntax directed
+synthesis algorithm have an underlying semantic meaning which can be used
+to direct the solution.
