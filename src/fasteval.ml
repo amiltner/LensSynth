@@ -183,7 +183,7 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
                 [(new_end_ref,(s,er,rc,is,so))]) in
           inner_end_ref := (State new_inner_end_fun);
           (ref new_start_state,new_end_ref)
-      | None -> failwith "not in context"
+      | None -> failwith ("not in context: " ^ t)
       end
   end
 

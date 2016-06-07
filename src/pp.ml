@@ -40,6 +40,8 @@ let rec pp_lens (l:lens) : string =
   | UnionLens (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
   | IterateLens (l') -> paren (pp_lens l') ^ "*"
   | IdentityLens -> "id"
+  | RetypeLens (l,r1,r2) -> "retype(" ^ pp_lens l ^ "," ^ pp_regexp r1 ^ "," ^
+  pp_regexp r2 ^ ")"
   end
 
 let rec pp_normalized_regex (r:normalized_regex) : string =

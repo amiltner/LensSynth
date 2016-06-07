@@ -157,28 +157,45 @@ let rec quotiented_star (r:regex) (n:int) : regex =
       ((quotiented_star r (n-1))
       ,(exponentiate r (n-1)))
 
-let rec empty_or_not_star_expansion (r:regex) : regex =
+let rec empty_or_not_star_expansion_right (r:regex) : regex =
+  RegExOr
+    (RegExBase ""
+    ,RegExConcat
+      (RegExStar r
+      ,r))
+
+
+let rec empty_or_not_star_expansion_left (r:regex) : regex =
   RegExOr
     (RegExBase ""
     ,RegExConcat
       (r
       ,RegExStar r))
 
-let rec quotient_product_expansion (n:int) (r:regex) : regex =
+let rec quotient_product_expansion_right (n:int) (r:regex) : regex =
   RegExConcat
     ((quotiented_star r n)
     ,(RegExStar
       (exponentiate r n)))
+
+let rec quotient_product_expansion_left (n:int) (r:regex) : regex =
+  RegExConcat
+    ((RegExStar
+      (exponentiate r n))
+    ,(quotiented_star r n))
 
 let rec expand_stars (r:regex) (n:int) (max_size:int) : regex list =
     if n = 0 then
       [r]
     else
       let relevant_primes = primes_beneath_n max_size in
-      let transformations = empty_or_not_star_expansion::
-        (List.map
-          ~f:(fun p -> quotient_product_expansion p)
-          relevant_primes) in
+      let transformations = empty_or_not_star_expansion_left::
+        empty_or_not_star_expansion_right::
+        List.concat_map
+          ~f:(fun p ->
+            [quotient_product_expansion_left p;
+             quotient_product_expansion_left p])
+          relevant_primes in
       let rec expand_stars_internal (r:regex) : regex list =
         begin match r with
         | RegExBase _ -> []
@@ -302,6 +319,8 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
 
   let r1_transitive_userdefs = retrieve_transitive_userdefs r1 in
   let r2_transitive_userdefs = retrieve_transitive_userdefs r2 in
+  (*print_endline (String.concat ~sep:";\n" r1_transitive_userdefs);
+  print_endline (String.concat ~sep:";\n" r2_transitive_userdefs);*)
   let r1trans_not_in_r2trans = set_minus_lose_order comparison_compare
       r1_transitive_userdefs
       r2_transitive_userdefs in
@@ -612,6 +631,9 @@ let rec simplify_lens (l:lens) : lens =
         else
           IterateLens l'
     | IdentityLens -> IdentityLens
+    | RetypeLens (l',r1,r2) ->
+        let l' = simplify_lens l' in
+        RetypeLens (l',r1,r2)
     end
   in
   if ans = l then

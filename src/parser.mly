@@ -17,7 +17,9 @@ exception Internal_error of string
 %token LET        (* let *)
 %token TYPEDEF    (* typedef *)
 %token IN         (* in *)
-%token SHARING    (* sharing *)
+%token ABSTRACT   (* abstract *)
+%token TEST       (* test *)
+%token MATCHES    (* matches *)
 
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
@@ -46,9 +48,24 @@ exception Internal_error of string
 
 %token EOF
 
-%start <Lang.synth_problems> synth_problems
+%start <Lang.program> program
 
 %%
+
+program:
+  | d=decl p=program
+    { (d::p) }
+  | EOF
+    { [] }
+
+decl:
+  | d=defn
+    { DeclUserdefCreation d }
+  | s=specification
+    { DeclSynthesizeProgram s}
+  | TEST r=regex MATCHES s=str SEMI SEMI
+    { DeclTestString (r,s) }
+
 
 synth_problems:
   | c=context ss=specifications EOF
@@ -59,14 +76,14 @@ synth_problems:
 context:
   | (* empty *)
     { [] }
-  | d=decl c=context
+  | d=defn c=context
     { d::c }
 
-decl:
+defn:
   | TYPEDEF u=UID EQ r=regex SEMI SEMI
-    { (u,r,false) }
-  | TYPEDEF u=UID SHARING EQ r=regex SEMI SEMI
     { (u,r,true) }
+  | ABSTRACT u=UID EQ r=regex SEMI SEMI
+    { (u,r,false) }
 
 (***** }}} *****)
 
@@ -92,29 +109,17 @@ regex:
   | s=base { RegExBase s }
   | r1=regex r2=regex { RegExConcat (r1,r2) }
   | r=regex STAR { RegExStar r }
-  | r1=regex PLUS r2=regex { RegExOr (r1,r2) }
+  | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
+  | r=regex PLUS { RegExConcat (r,RegExStar(r)) }
   | LPAREN r=regex RPAREN { r }
-  | BACKSLASH u=UID { RegExUserDefined u }
+  | u=UID { RegExUserDefined u }
 
 base:
-  | s=LID { s }
-  | s=UID { s }
   | s=str { s }
   | DOT { "" }
-  | HASH { "#" }
   | BACKSLASH { "\\" }
   | SLASH { "/" }
-  | SPACE { " " }
-  | s=INT { s }
-  | COMMA { "," }
-  | COLON { ":" }
-  | LT    { "<" }
-  | GT    { ">" }
   | HYPHEN { "-" }
-  | NEWLINE { "\n" }
-  | EQ { "=" }
-  | LBRACE { "{" }
-  | RBRACE { "}" }
 
 (***** }}} *****)
 

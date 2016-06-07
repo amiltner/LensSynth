@@ -8,6 +8,7 @@ type lens =
   | UnionLens of lens * lens
   | ComposeLens of lens * lens
   | IterateLens of lens
+  | RetypeLens of lens * regex * regex
   | IdentityLens
 
 type atom_lens =

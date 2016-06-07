@@ -23,6 +23,13 @@ type context = (string * regex) list
 
 type evaluation_context = context
 
+type declaration =
+  | DeclUserdefCreation of (string * regex * bool)
+  | DeclTestString of (regex * string)
+  | DeclSynthesizeProgram of specification
+
+type program = declaration list
+
 type synth_problems = (string * regex * bool) list * (specification list) 
 
 type synth_problem = (context * evaluation_context * string * regex * regex * (string * string) list)
@@ -260,7 +267,7 @@ and to_ordered_exampled_clause ((atoms,strings,exnums):exampled_clause) : ordere
     sort_and_partition_with_indices
       compare_ordered_exampled_atoms
       ordered_atoms in
-  (ordered_ordered_atoms,strings,exnums)
+  (ordered_ordered_atoms,strings,(List.sort ~cmp:compare exnums))
 
 and to_ordered_exampled_dnf_regex ((r,_):exampled_dnf_regex)
         : ordered_exampled_dnf_regex =

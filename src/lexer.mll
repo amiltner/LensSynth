@@ -7,8 +7,10 @@ exception Lexer_error of string
 let reserved_words : (string * Parser.token) list =
   [ ("let", LET)
   ; ("typedef", TYPEDEF)
-  ; ("in", IN)
-  ; ("sharing", SHARING)  ]
+  ; ("abstract", ABSTRACT)
+  ; ("test", TEST)
+  ; ("matches", MATCHES)
+  ; ("in", IN)  ]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)
