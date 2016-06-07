@@ -8,9 +8,9 @@ import subprocess
 import sys
 import time
 
-TEST_EXT = '.ml'
+TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
-FLAGS = ['-nosugar', '-noincomplete-warning']
+FLAGS = []
 
 def find_tests(root):
     tests = []
@@ -35,6 +35,7 @@ def gen_baseline(prog, path, base):
     except subprocess.CalledProcessError as err:
         output_string = "An error was raised by this test: {0}\n{1}".format(err.returncode, err.output)
         print("Encountered an error running test {0}".format(test_path))
+	print(output_string)
     with open(baseline_path, 'w') as f:
         f.write(gen_timestamp() + '\n')
         f.write(output_string)
