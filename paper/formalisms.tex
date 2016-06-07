@@ -85,10 +85,12 @@ and a lens of type $\Regex_2\Leftrightarrow\RegexAlt_2$.
 \input{fig_dnf-regex-syntax}
 \input{fig_dnf-regex-semantics}
 A DNF regular esxpression is, intuitively
-a regular expression with the distributivity laws (6 and 7) always
-applied, with no associativity between operations of the same type,
+a regular expression which is completely distributed
+applied, with no associativity information through a list representation,
 and with base regular expressions only at fixed locations.
 We formalize the syntax of this language in Figure~\ref{fig:dnf-regex-syntax}.
+We will use the shorthand $\DNFOf{\ConjunctOf{\Atom_1\ConjunctSep\ldots\ConjunctSep\Atom_n}}$
+for $\DNFOf{\ConjunctOf{\EmptyString\ConjunctSep\Atom_1\ConjunctSep\ldots\ConjunctSep\Atom_n\ConjunctSep\EmptyString}}$.
 
 The outermost layer is a list of conjuncts.
 This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
@@ -115,7 +117,7 @@ an equivalent DNF regular expression, \ToDNFRegex{}.
 \leavevmode
 \begin{itemize}
 \item $\ToDNFRegex(\String)=\DNFOf{\ConjunctOf{\String}}$
-\item $\ToDNFRegex(\StarOf{\Regex}) = \AtomToDNFRegexOf{(\StarOf{\ToDNFRegex(\Regex)})}$
+\item $\ToDNFRegex(\StarOf{(\Regex)}) = \DNFOf{\ConjunctOf{(\StarOf{\ToDNFRegex(\Regex)})}}$
 \item $\ToDNFRegex(\RegexConcat{\Regex_1}{\Regex_2}) =$\\
 \hspace*{1em}$\ConcatDNFOf{\ToDNFRegex(\Regex_1)}{\ToDNFRegex(\Regex_2)}$
 \item $\ToDNFRegex(\RegexOr{\Regex_1}{\Regex_2}) =$\\
@@ -138,13 +140,13 @@ The function \ToDNFRegex{} has a right inverse \FromDNFRegex{}.
 
 We can further normalize the DNF regular expressions by providing an order on conjuncts,
 and ordering the conjuncts in the DNF regular expression according to that order.
-With this, we have normalized the regular expression equivalences 1-7.
+With this, we have normalized all regular expression equivalences not involving stars.
 In other words, if two regular expressions, $\Regex_1$ and $\Regex_2$,
 are equivalent up to the transformations of regular expressions in equivalences 1-7,
 then $\ToDNFRegex(\Regex_1)=\ToDNFRegex(\Regex_2)$.
 A reasonable approach to further normalizing this is to attempt to minimize the
 regular expression as much as possible, using the star laws.
-Unfortunately, while this approach works well for normalizing, it doesn't work
+Unfortunately, this doesn't work
 well for finding lenses.  For example, there is clearly a lens of type
 $\MapsBetweenTypeOf{\RegexOr{\EmptyString}{(\RegexConcat{a}{\StarOf{a}})}}{\RegexOr{b}{(\RegexConcat{c}{\StarOf{d}})}}$,
 namely $\OrLens{\ConstLens{\EmptyString}{a}}{\ConcatLens{\ConstLens{a}{b}}{\IterateLens{\ConstLens{a}{d}}}}$.
@@ -163,21 +165,22 @@ string case than on the nonempty case.
 Because of this, instead of writing equivalences for DNF regular expressions like
 exist for normal regular expressions,
 instead we write rewrite rules as shown in
-Figure~\ref{fig:dnf-regex-rewrites}.\bcp{Don't understand what's going on here.}
-Intuitively, these rewrite rules correspond to breaking a regular expression
-into a regular expression that encodes additional semantics.
+Figure~\ref{fig:dnf-regex-rewrites}.
+Intuitively, these rewrite rules correspond to expanding a regular expression
+into a regular expression which can be used in a more complicated lens, without requiring retyping.
 We define these rules as rewrites that turn atoms into DNF Regular expressions,
 and a rule that expresses how these rewrites can become rewrites on
 the DNF regular expressions themselves.
 
 Roughly, the \AtomSumstarRule{} rewrite corresponds to Regular Expression equivalence 8,
-the \AtomUnrollstarRule{} rewrite corresponds to Regular Expression equivalence 9,
+the \AtomUnrollstarLeftRule{} and \AtomUnrollstarRightRule{} rewrites correspond to Regular Expression equivalence 9,
 and the \AtomPowerstarRule{} rewrite corresponds to Regular Expression equivalence 11.
 There is no rewrite corresponding to Regular Expression equivalence 10, as that
 equivalence is an ambiguity introducing equivalence.
 An application of \AtomSumstarRule{} corresponds to doing different things after the last time a certain event has occured, and before the last time that event occurs.
-An application of \AtomUnrollstarRule{} corresponds to making a different action for
-the empty case of an iteration, the first case of an iteration, and all further cases of the iteration.
+An application of \AtomUnrollstarLeftRule{} corresponds to making a different action for
+the empty case of an iteration, the first case of an iteration, and all further cases of the iteration,
+and similarly with \AtomUnrollstarRightRule{} for the empty case, the last case, and all previous cases, of the iteration.
 An application of \AtomPowerstarRule{} corresponds to doing different things if the iteration
 is occuring a different number of times, modulo n, for some fixed n.
 
