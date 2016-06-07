@@ -1,4 +1,4 @@
-let A = a in
-let B = b in
+typedef A = "a";;
+typedef B = "b";;
 
-(B | A) <=> (A | B) {}
+x = [(B | A) <=> (A | B) {}]

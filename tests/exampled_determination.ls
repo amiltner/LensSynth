@@ -1,2 +1,2 @@
 
-(hellomynameis a*) + b* <=> a* + b* { hellomynameisa <-> b, b <-> a }
+x = [("hellomynameis" ("a"*)) | ("b"*) <=> ("t" ("a"*)) | ("b"*) { "hellomynameis" <-> "", "bb" <-> "taa", "hellomynameisa" <-> "b"}]

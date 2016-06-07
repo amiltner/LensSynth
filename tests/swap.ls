@@ -1,4 +1,4 @@
-let A = a in
-let B = b in
+typedef A = "a";;
+typedef B = "b";;
 
-A B <=> B A {}
+x = [A B <=> B A {}]

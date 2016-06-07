@@ -1,5 +1,5 @@
-let A = a in
-let B = b in
-let C = c in
+typedef A = "a";;
+typedef B = "b";;
+typedef C = "c";;
 
-(x A*) (y A*) <=> (x A*) (y A*) {xaaya <-> xayaa}
+x = [("x" A*) ("y" A*) <=> ("x" A*) ("y" A*) {"xaaya" <-> "xayaa"}]

@@ -1,3 +1,3 @@
-typedef A = a;;
+typedef A = "a";;
 
-id = [\A <=> \A {}]
+id = [A <=> A {}]

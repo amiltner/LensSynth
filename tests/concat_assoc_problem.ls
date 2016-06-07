@@ -1,5 +1,5 @@
-let A = a in
-let B = b in
-let C = c in
+typedef A = "a";;
+typedef B = "b";;
+typedef C = "c";;
 
-A (B C) <=> (A B) C {}
+x = [A (B C) <=> (A B) C {}]
