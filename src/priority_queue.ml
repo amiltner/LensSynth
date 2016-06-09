@@ -30,9 +30,7 @@ module Priority_Queue : Priority_Queue_Sig = struct
     let rec push_internal (queue:'a t) (continuation:'a t -> 'a t) : 'a t =
       begin match queue with
       | (d,p)::t ->
-          if p = priority && d = data then
-            continuation queue
-          else if p >= priority then
+          if p >= priority then
             continuation ((data,priority)::queue)
           else
             push_internal

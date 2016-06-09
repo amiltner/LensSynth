@@ -202,6 +202,11 @@ let primes_beneath_n (n:int) : int list =
   ~f:is_prime
   (range 0 (n))
 
+let primes_between (n:int) (m:int) : int list =
+  List.filter
+  ~f:is_prime
+  (range n m)
+
 let rec sort_and_partition (f:'a -> 'a -> comparison) (l:'a list) : 'a list list =
   let rec merge_sorted_partitions (l1:'a list list) (l2:'a list list) : 'a list list =
     begin match (l1,l2) with
@@ -361,7 +366,7 @@ let set_minus_lose_order (cmp:'a -> 'a -> comparison)
         | GT -> set_minus_ordered l1 t2
         end
     | ([],_) -> []
-    | (_,[]) -> []
+    | (_,[]) -> l1
     end
   in
   let int_comparer = comparer_to_int_comparer cmp in

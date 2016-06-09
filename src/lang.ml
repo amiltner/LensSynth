@@ -298,4 +298,9 @@ let rec true_max_size (c:context) (r:regex) : int =
       end
   end
 
+type queue_element =
+  | QERegexCombo of regex * regex * int
+  | QEGenerator of (unit -> ((queue_element * float) list))
+
+
 (***** }}} *****)
