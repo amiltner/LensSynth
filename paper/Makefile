@@ -8,3 +8,7 @@ watch :
 
 clean :
 	latexmk -C
+
+fast:
+	-pdflatex main
+	-bibtex main
