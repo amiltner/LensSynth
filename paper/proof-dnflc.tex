@@ -1,136 +1,633 @@
-First we will prove some lemmas.
-\begin{lemma}[Equivalence of \ConcatConjunct{} and \Concat{}]
-If $\LanguageOf{\Regex}=\LanguageOf{\Conjunct}$,
-and $\LanguageOf{\RegexAlt}=\LanguageOf{\ConjunctAlt}$,
-then $\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}=\LanguageOf{\ConcatConjunctOf{\Conjunct}{\ConjunctAlt}}$.
-\end{lemma}
 \begin{proof}
-Let $\Conjunct=\ConjunctOf{\String_0\ConjunctSep\Atom_1\ConjunctSep\ldots
-\ConjunctSep\Atom_n\ConjunctSep\String_n}$, and
-let\\ $\ConjunctAlt=[\StringAlt_0\ConjunctSep\AtomAlt_1\ConjunctSep\ldots
-\ConjunctSep\AtomAlt_m\ConjunctSep\StringAlt_m]$\\
+
+\begin{lemma}[Completeness of Composition]\leavevmode
+\begin{enumerate}
+\item If there are two atom lenses
+$\AtomLens_1 \OfType \Atom_1 \Leftrightarrow \Atom_2$ and
+$\AtomLens_2 \OfType \Atom_2 \Leftrightarrow \Atom_3$,
+then there exists an atom lens
+$\AtomLens \OfType \Atom_1 \Leftrightarrow \Atom_3$, such that
+$\SemanticsOf{\AtomLens}=\SetOf{(\String_1,\String_3)\SuchThat
+\exists\String_2
+(\String_1,\String_2)\in\SemanticsOf{\AtomLens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\AtomLens_2}}$
+
+\item If there are two conjunct lenses
+$\ConjunctLens_1 \OfType \Conjunct_1 \Leftrightarrow \Conjunct_2$ and
+$\ConjunctLens_2 \OfType \Conjunct_2 \Leftrightarrow \Conjunct_3$,
+then there exists an conjunct lens
+$\ConjunctLens \OfType \Conjunct_1 \Leftrightarrow \Conjunct_3$, such that
+$\SemanticsOf{\ConjunctLens}=\SetOf{(\String_1,\String_3)\SuchThat
+\exists\String_2
+(\String_1,\String_2)\in\SemanticsOf{\ConjunctLens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\ConjunctLens_2}}$
+
+\item If there are two DNF lenses
+$\DNFLens_1 \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$ and
+$\DNFLens_2 \OfType \DNFRegex_2 \Leftrightarrow \DNFRegex_3$,
+then there exists a DNF lens
+$\DNFLens \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_3$, such that
+$\SemanticsOf{\DNFLens}=\SetOf{(\String_1,\String_3)\SuchThat
+\exists\String_2
+(\String_1,\String_2)\in\SemanticsOf{\DNFLens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\DNFLens_2}}$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+By mutual induction
+
+Let $\StarOf{\DNFRegex_1}$, $\StarOf{\DNFRegex_2}$, $\StarOf{\DNFRegex_3}$
+be three atoms, and $\IterateLens{\DNFLens_1} \OfType
+\StarOf{\DNFRegex_1} \Leftrightarrow \StarOf{\DNFRegex_2}$ with
+$\IterateLens{\DNFLens_2} \OfType
+\StarOf{\DNFRegex_2} \Leftrightarrow \StarOf{\DNFRegex_3}$
+lenses between them.
+By induction assumption, there a typing of a lens
+
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation{}
+}
+{
+\DNFLens \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_3
+}
+\end{mathpar}
+
+such that $\SemanticsOf{\DNFLens}=\SetOf{(\String_1,\String_3)\SuchThat
+\exists \String_2
+(\String_1,\String_2)\in\SemanticsOf{\DNFLens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\DNFLens_2}}$
+
+By inversion lemma (TODO), there exists a $\IterateLens{\DNFLens_1}$ and
+$\IterateLens{\DNFLens_2}$ came from $\IterateLensRule$, so I know
+$\UnambigItOf{\LanguageOf{\DNFRegex_1}}$,
+$\UnambigItOf{\LanguageOf{\DNFRegex_2}}$, and
+$\UnambigItOf{\LanguageOf{\DNFRegex_3}}$.
+
+Consider the lens
+
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\Derivation{}
+}
+{
+\DNFLens \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_3
+}\\
+\UnambigItOf{\LanguageOf{\DNFRegex_1}}\\
+\UnambigItOf{\LanguageOf{\DNFRegex_2}}
+}
+{
+\IterateLens{\DNFLens} \OfType
+\StarOf{\DNFRegex_1} \Leftrightarrow \StarOf{\DNFRegex_3}
+}
+\end{mathpar}
+
+This lens has the semantics
+
 \begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\ConcatConjunctOf{\Conjunct}{\ConjunctAlt}} & = 
-\LanguageOf{\ConjunctOf{\String_0\ConjunctSep\Atom_1\ConjunctSep\ldots
-\ConjunctSep\Atom_n\ConjunctSep\String_n\Concat\StringAlt_0\ConjunctSep{}
-\AtomAlt_1\ConjunctSep\ldots\ConjunctSep\AtomAlt_m\ConjunctSep\StringAlt_m}} \\
-& = 
-\{\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n
-\Concat\StringAlt_0\Concat\StringAlt_1'\Concat\ldots
-\Concat\StringAlt_m'\Concat\StringAlt_m \\
-& \hspace{5em} \SuchThat{} \String_i'\in\LanguageOf{\Atom_i} \BooleanAnd{}
-\StringAlt_i'\in\LanguageOf{\AtomAlt_i}\}\\
-& = 
-\{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Conjunct}
-\BooleanAnd{} \StringAlt\in\LanguageOf{\ConjunctAlt}\}\\
+\SemanticsOf{\IterateLens{\DNFLens}}
+& = \SetOf{(\String_{1,1}\Concat\ldots\Concat\String_{1,n},
+\String_{3,1}\Concat\ldots\Concat\String_{3,n})\\
+& \hspace{2em}
+\SuchThat(\String_{1,i},\String_{3,i})\in\SemanticsOf{\DNFLens}}\\
 & =
-\{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Regex}
-\BooleanAnd{} \StringAlt\in\LanguageOf{\RegexAlt}\}\\
+\SetOf{(\String_{1,1}\Concat\ldots\Concat\String_{1,n},
+\String_{3,1}\Concat\ldots\Concat\String_{3,n})\\
+& \hspace{2em}
+\SuchThat
+\exists\String_{2,i} (\String_{1,i},\String_{2,i})\in\SemanticsOf{\DNFLens_1}\\
+& \hspace{4em}
+\BooleanAnd
+(\String_{2,i},\String_{3,i})\in\SemanticsOf{\DNFLens_2}}\\
 & =
-\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}
+\SetOf{(\String_{1,1}\Concat\ldots\Concat\String_{1,n},
+\String_{3,1}\Concat\ldots\Concat\String_{3,n}) \\
+& \hspace{2em}
+\SuchThat
+\exists\String_{2,1}\Concat\ldots\Concat\String_{2,n}\\
+& \hspace{4em}
+(\String_{1,1}\Concat\ldots\Concat\String_{1,n},
+\String_{2,1}\Concat\ldots\Concat\String_{2,n})
+\in\SemanticsOf{\IterateLens{\DNFLens}}\\
+& \hspace{4em}
+\BooleanAnd
+(\String_{2,1}\Concat\ldots\Concat\String_{2,n},
+\String_{3,1}\Concat\ldots\Concat\String_{3,n})
+\in\SemanticsOf{\IterateLens{\DNFLens}}}\\
+& =
+\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2
+(\String_1,\String_2)\in\SemanticsOf{\IterateLens{\DNFLens_1}}\\
+& \hspace{4em}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\IterateLens{\DNFLens_2}}}
 \end{tabular}
+
+Let $\ConjunctOf{\String_{1,0}\ConjunctSep\Atom_{1,1}\ConjunctSep
+\ldots\ConjunctSep\Atom_{1,n}\ConjunctSep\String_{1,n}}$,
+$\ConjunctOf{\String_{2,0}\ConjunctSep\Atom_{2,\Permutation_1(1)}\ConjunctSep
+\ldots\ConjunctSep\Atom_{2,\Permutation_1(n)}\ConjunctSep\String_{2,n}}$,
+and $\ConjunctOf{\String_{3,0}\ConjunctSep
+\Atom_{3,\Permutation_2\Compose\Permutation_1(1)}\ConjunctSep
+\ldots\ConjunctSep\Atom_{3,\Permutation_2\Compose\Permutation_1(n)}
+\ConjunctSep\String_{3,n}}$ be conjuncts,
+with $(\ConjunctLensOf{(\String_{1,0},\String_{2,0})\ConjunctLensSep
+\AtomLens_{1,1}\ConjunctLensSep\ldots\ConjunctLensSep\AtomLens_{1,n}
+\ConjunctLensSep(\String_{1,n},\String_{2,n})},\Permutation_1)$ and
+$(\ConjunctLensOf{(\String_{2,0},\String_{3,0})\ConjunctLensSep
+\AtomLens_{2,1}\ConjunctLensSep\ldots\ConjunctLensSep\AtomLens_{2,n}
+\ConjunctLensSep(\String_{2,n},\String_{3,n})},\Permutation_2)$ be lenses between them.
+By induction assumption, there is a typing of lenses
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation_i
+}
+{
+\AtomLens_i \OfType \Atom_{1,i} \Leftrightarrow \Atom_{3,i}
+}
+\end{mathpar}
+such that \SemanticsOf{\AtomLens_i} = \SetOf{(\String_1,\String_3)\SuchThat
+\exists \String_2 (\String_1,\String_2)\in\SemanticsOf{\AtomLens_{1,i}}
+\BooleanAnd (\String_2,\String_3)\in\SemanticsOf{\Atom_{2,i}}}
+Define $\Permutation = \Permutation_2\Compose\Permutation_1$.
+
+By inversion, I know that
+$\ConjunctUnambigConcatOf{\ConjunctOf{\String_{1,0}\ConjunctSep\Atom_{1,1}
+\ConjunctSep\ldots\ConjunctSep\Atom_{1,n}\ConjunctSep\String_{1,n}}}$
+and
+$\ConjunctUnambigConcatOf{\ConjunctOf{\String_{3,0}\ConjunctSep
+\Atom_{\Permutation(3),1}\ConjunctSep\ldots
+\ConjunctSep\Atom_{\Permutation(3),n}\ConjunctSep\String_{3,n}}}$.
+
+Consider the typing of the lens
+\begin{mathpar}
+{
+\inferrule{
+\inferrule*
+{
+\Derivation_0
+}
+{
+\AtomLens_0 \OfType \Atom_{1,0} \Leftrightarrow \Atom_{3,0}
+}\\
+\ldots\\
+\inferrule*
+{
+\Derivation_n
+}
+{
+\AtomLens_n \OfType \Atom_{1,n} \Leftrightarrow \Atom_{3,n}
+}\\
+\sigma\in\PermutationSetOf{n}\\
+\ConjunctUnambigConcatOf{\ConjunctOf{\String_{1,0}\ConjunctSep\Atom_{1,1}
+\ConjunctSep\ldots\ConjunctSep\Atom_{1,n}\ConjunctSep\String_{1,n}}}\\
+\ConjunctUnambigConcatOf{\ConjunctOf{\String_{3,0}\ConjunctSep
+\Atom_{\Permutation(3),1}\ConjunctSep\ldots
+\ConjunctSep\Atom_{\Permutation(3),n}\ConjunctSep\String_{3,n}}}
+}
+{
+(\ConjunctLensOf{(\String_{1,0},\String_{3,0})\ConjunctLensSep\AtomLens_1
+\ConjunctLensSep\ldots\ConjunctLensSep\AtomLens_n
+\ConjunctLensSep(\String_{1,n},\String_{3,n})},\Permutation) \OfType\\
+\ConjunctOf{\String_{1,0}\ConjunctSep\Atom_{1,1}\ConjunctSep\ldots
+\ConjunctSep\Atom_{1,n}\ConjunctSep\String_{1,n}} \Leftrightarrow
+\ConjunctOf{\String_{3,0}\ConjunctSep\Atom_{3,\Permutation(1)}\ConjunctSep\ldots
+\ConjunctSep\Atom_{3,\Permutation(n)}\ConjunctSep\String_{3,n}}
+}
+}
+\end{mathpar}
+
+Furthermore, we can prove the desired property of the semantics.\\
+\SemanticsOf{(\ConjunctLensOf{(\String_{1,0},\String_{3,0})\ConjunctLensSep
+\AtomLens_1\ConjunctLensSep\ldots\ConjunctLensSep\AtomLens_n
+\ConjunctLensSep(\String_{1,n},\String_{3,n})},\Permutation)}=\\
+\SetOf{(\String_{1,0}\Concat\String_1\Concat\ldots
+\Concat\String_n\Concat\String_{1,n},
+\String_{3,0}\Concat\StringAlt_{\Permutation(1)}\Concat\ldots
+\Concat\StringAlt_{\Permutation(n)}\Concat\String_{1,n})\\
+\hspace*{1em}\SuchThat(\String_i,\StringAlt_i)\in\SemanticsOf{\AtomLens_i}}=\\
+\SetOf{(\String_{1,0}\Concat\String_1\Concat\ldots
+\Concat\String_n\Concat\String_{1,n},
+\String_{3,0}\Concat\StringAlt_{\Permutation(1)}\Concat\ldots
+\Concat\StringAlt_{\Permutation(n)}\Concat\String_{1,n})\\
+\hspace*{1em}\SuchThat\exists\String_i'\in\LanguageOf{\Atom_{2,i}}
+(\String_i,\String_i')\in\SemanticsOf{\AtomLens_i}\BooleanAnd
+(\String_i',\StringAlt_i)\in\SemanticsOf{\AtomLens_i}}\\
+\SetOf{(\String_{1,0}\Concat\String_1\Concat\ldots
+\Concat\String_n\Concat\String_{1,n},
+\String_{3,0}\Concat\StringAlt_{\Permutation(1)}\Concat\ldots
+\Concat\StringAlt_{\Permutation(n)}\Concat\String_{1,n})\\
+\hspace*{1em}\SuchThat\exists
+\String_{2,0}\Concat\String_{\Permutation_1(1)}'\Concat\ldots\Concat
+\String_{\Permutation_1(n)}'\Concat\String_{2,n}\in\LanguageOf{\Atom_{2,i}}\\
+\hspace*{2em}
+(\String_{1,0}\Concat\String_1\Concat\ldots
+\Concat\String_n\Concat\String_{1,n},\String_{2,0}\Concat
+\String_{\Permutation_1(1)}'\Concat\ldots\Concat
+\String_{\Permutation_1(n)}'\Concat\String_{2,n})\\
+\hspace*{3em}\in\SemanticsOf{(\ConjunctLensOf{(\String_{1,0},\String_{2,0})
+\ConjunctLensSep\AtomLens_{1,1}\ConjunctLensSep\ldots\ConjunctLensSep
+\AtomLens_{1,n}\ConjunctLensSep(\String_{1,n},\String_{2,n})},\Permutation_1)}
+\BooleanAnd\\
+\hspace*{2em}
+(\String_{2,0}\Concat\String_{\Permutation_1(1)}'\Concat\ldots\Concat
+\String_{\Permutation_1(n)}'\Concat\String_{2,n},\String_{3,0}\Concat\StringAlt_{\Permutation(1)}\Concat\ldots
+\Concat\StringAlt_{\Permutation(n)}\Concat\String_{1,n})\\
+\hspace*{3em}\in\SemanticsOf{(\ConjunctLensOf{(\String_{2,0},\String_{3,0})\ConjunctLensSep
+\AtomLens_{2,1}\ConjunctLensSep\ldots\ConjunctLensSep\AtomLens_{2,n}
+\ConjunctLensSep(\String_{2,n},\String_{3,n})},\Permutation_2)}}\\
+\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2\\
+\hspace*{2em}
+(\String_1,\String_2)\\
+\hspace*{3em}\in\SemanticsOf{(\ConjunctLensOf{(\String_{1,0},\String_{2,0})
+\ConjunctLensSep\AtomLens_{1,1}\ConjunctLensSep\ldots\ConjunctLensSep
+\AtomLens_{1,n}\ConjunctLensSep(\String_{1,n},\String_{2,n})},\Permutation_1)}\\
+\hspace*{2em}
+(\String_2,\String_3)\\
+\hspace*{3em}\in\SemanticsOf{(\ConjunctLensOf{(\String_{2,0},\String_{3,0})
+\ConjunctLensSep\AtomLens_{2,1}\ConjunctLensSep\ldots\ConjunctLensSep
+\AtomLens_{2,n}\ConjunctLensSep(\String_{2,n},\String_{3,n})},\Permutation_2)}}
+
+Let $\DNFRegex_1=\DNFOf{\Conjunct_{1,1}\DNFSep\ldots\DNFSep\Conjunct_{1,n}}$,
+$\DNFRegex_2=\DNFOf{\Conjunct_{2,\Permutation_1(1)}\DNFSep\ldots
+\DNFSep\Conjunct_{2,\Permutation_1(n)}}$,
+and $\DNFRegex_3=\DNFOf{\Conjunct_{3,\Permutation_2\Compose\Permutation_1(1)}
+\DNFSep\ldots\DNFSep\Conjunct_{3,\Permutation_2\Compose\Permutation_1(n)}}$
+be three DNF regular expressions.
+Let $\DNFLens_1=(\DNFLensOf{\ConjunctLens_{1,1}\DNFLensSep\ldots
+\DNFLensSep\ConjunctLens_{1,n}},\Permutation_1)\OfType
+\DNFRegex_1\Leftrightarrow\DNFRegex_2$ and
+$\DNFLens_2=(\DNFLensOf{\ConjunctLens_{2,1}\DNFLensSep\ldots
+\DNFLensSep\ConjunctLens_{2,n}},\Permutation_2)\OfType
+\DNFRegex_2\Leftrightarrow\DNFRegex_3$ be lenses between them.
+By induction assumption, there exists a typing of lenses
+\begin{mathpar}
+\inferrule*
+{
+\Derivation_i
+}
+{
+\Conjunct_i \OfType \Conjunct_{1,i} \Leftrightarrow \Conjunct_{3,i}
+}
+\end{mathpar}
+
+
 \end{proof}
 
-\begin{lemma}[Equivalence of \ConcatDNF{} and \Concat{}]
-\label{lem:cdnfeq}
-If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
-and $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$,
-then $\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}=\LanguageOf{\ConcatDNFOf{\DNFRegex}{\DNFRegexAlt}}$.
-\end{lemma}
-\begin{proof}
-Let $\DNFRegex=\DNFOf{\Conjunct_0\DNFSep\ldots\DNFSep\Conjunct_n}$, and
-let $\DNFRegexAlt=\DNFOf{\ConjunctAlt_0\DNFSep\ldots\DNFSep\ConjunctAlt_m}$
-\begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\ConcatDNFOf{\DNFRegex}{\DNFRegexAlt}} & = 
-\LanguageOf{\DNFOf{\ConcatConjunctOf{\Conjunct_i}{\ConjunctAlt_j}
-\text{ for $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}}} \\
-& = 
-\{\String\SuchThat \String\in\ConcatConjunctOf{\Conjunct_i}{\ConjunctAlt_j}\\
-& \hspace{5em}
-\text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
-& = 
-\{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Conjunct_i}
-\BooleanAnd{} \StringAlt\in\LanguageOf{\ConjunctAlt_j}\}\\
-& \hspace{5em}
-\text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
-& =
-\{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\DNFRegex}
-\BooleanAnd{} \StringAlt\in\LanguageOf{\DNFRegexAlt}\}\\
-& =
-\{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Regex}
-\BooleanAnd{} \StringAlt\in\LanguageOf{\RegexAlt}\}\\
-& =
-\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}
-\end{tabular}
-\end{proof}
+\begin{definition}
+Let $\DNFLens=\DNFLensOf{\ConjunctLens_1\ConjunctLensSep
+\ldots\ConjunctLensSep\ConjunctLens_n}$ and
+$\DNFLens'=\DNFLensOf{\ConjunctLens_1'\ConjunctLensSep
+\ldots\ConjunctLensSep\ConjunctLens_m'}$ be two DNF lenses.
+Define $\OrDNFLensOf{\DNFLens}{\DNFLens'}=
+\DNFLensOf{\ConjunctLens_1\ConjunctLensSep\ldots
+\ConjunctLensSep\ConjunctLens_n\ConjunctLensSep\ConjunctLens_1'\ConjunctLensSep
+\ldots\ConjunctLensSep\ConjunctLens_m'}$.
+\end{definition}
 
-\begin{lemma}[Equivalence of \OrDNF{} and \Or{}]
-\label{lem:odnfeq}
-If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
-and $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$,
-then $\LanguageOf{\RegexOr{\Regex}{\RegexAlt}}=
-\LanguageOf{\OrDNFOf{\DNFRegex}{\DNFRegexAlt}}$.
-\end{lemma}
-\begin{proof}
-Let $\DNFRegex=\DNFOf{\Conjunct_0\DNFSep\ldots\DNFSep\Conjunct_n}$, and
-let $\DNFRegexAlt=\DNFOf{\ConjunctAlt_0\DNFSep\ldots\DNFSep\ConjunctAlt_m}$
+We will do by structural induction on the typing derivation.
+
+Let the last rule be an application of \ConstantLensRule{}.
+\begin{mathpar}
+\inferrule[]
+{
+\String_1 \in \StarOf{\Sigma}\\
+\String_2 \in \StarOf{\Sigma}
+}
+{
+\ConstLens{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
+}
+\end{mathpar}
+Consider the derivation
+\begin{mathpar}
+\inferrule[]
+{
+\inferrule[]
+{
+\String_1 \in \StarOf{\Sigma}\\
+\String_2 \in \StarOf{\Sigma}
+}
+{
+\ConjunctLensOf{(\String_1,\String_2)} \OfType
+\ConjunctOf{\String_1} \Leftrightarrow \ConjunctOf{\String_2}
+}
+}
+{
+\DNFLensOf{\ConjunctLensOf{(\String_1,\String_2)}} \OfType
+\DNFOf{\ConjunctOf{\String_1}} \Leftrightarrow \DNFOf{\ConjunctOf{\String_2}}
+}
+\end{mathpar}
+
 \begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\OrDNFOf{\DNFRegex}{\DNFRegexAlt}} & = 
-\LanguageOf{\DNFOf{\Conjunct_0\DNFSep\ldots\DNFSep\Conjunct_n\DNFSep
-\ConjunctAlt_1\DNFSep\ldots\DNFSep\ConjunctAlt_m}}\\
-& = 
-\{\String\SuchThat{} \String\in\Conjunct_i\vee\String\in\ConjunctAlt_j\\
-& \hspace{5em}
-\text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
-& = 
-\{\String{} \SuchThat{} \String\in\LanguageOf{\DNFRegex}
-\BooleanOr{} \String\in\LanguageOf{\DNFRegexAlt}\}\\
+\SemanticsOf{\DNFLensOf{\ConjunctLensOf{(\String_1,\String_2)}}}
+& = \SetOf{(\StringAlt_1,\StringAlt_2)
+\SuchThat(\StringAlt_1,\StringAlt_2)\in\ConjunctLensOf{(\String_1,\String_2)}}\\
+& = \SetOf{(\StringAlt_1,\StringAlt_2)
+\SuchThat(\StringAlt_1,\StringAlt_2)\in\SetOf{(\String_1,\String_2)}}\\
+& = \SetOf{(\String_1,\String_2)}\\
+& = \SemanticsOf{\ConstLens{\String_1}{\String_2}}\\
+\end{tabular}
+
+Let the last rule be an application of \IdentityLensRule{}.
+
+Let the last rule be an application of \IterateLensRule{}.
+\begin{mathpar}
+\inferrule[]
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt \\
+\UnambigItOf{\LanguageOf{\Regex}}\\
+\UnambigItOf{\LanguageOf{\RegexAlt}}
+}
+{
+\IterateLens{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
+}
+\end{mathpar}
+By induction assumption, there exists a derivation
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation{}
+}
+{
+\DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt
+}
+\end{mathpar}
+such that \LanguageOf{\DNFRegex}=\LanguageOf{\Regex},
+\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}, and
+\SemanticsOf{\DNFLens}=\SemanticsOf{\Lens}.
+This means \UnambigItOf{\LanguageOf{\DNFRegex}}
+and \UnambigItOf{\LanguageOf{\DNFRegexAlt}}
+
+Consider the derivation
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation
+}
+{
+\inferrule[]
+{
+\DNFLens : \DNFRegex \Leftrightarrow \DNFRegexAlt
+\UnambigItOf{\LanguageOf{\DNFRegex}}\\
+\UnambigItOf{\LanguageOf{\DNFRegexAlt}}\\
+}
+{
+\inferrule[]
+{
+\IterateLens{\DNFLens} \OfType
+\StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+}
+{
+\inferrule
+{
+\ConjunctLensOf{\IterateLens{\DNFLens}} \OfType
+\ConjunctOf{\StarOf{\DNFRegex}}\Leftrightarrow \ConjunctOf{\StarOf{\DNFRegexAlt}}
+}
+{
+\DNFLensOf{\ConjunctLensOf{\IterateLens{\DNFLens}}} \OfType
+\DNFOf{\ConjunctOf{\StarOf{\DNFRegex}}} \Leftrightarrow
+\DNFOf{\ConjunctOf{\StarOf{\DNFRegexAlt}}}
+}
+}
+}
+}
+\end{mathpar}
+
+By Lemma~(TODOREF), I know that, as \LanguageOf{\Regex}=\LanguageOf{\DNFRegex},
+and as \LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}, then
+\LanguageOf{\DNFOf{\ConjunctOf{\StarOf{\DNFRegex}}}}=
+\LanguageOf{\StarOf{\Regex}}
+and \LanguageOf{\DNFOf{\ConjunctOf{\StarOf{\DNFRegexAlt}}}}=
+\LanguageOf{\StarOf{\RegexAlt}}.
+
+\begin{tabular}{@{}L@{}L@{}}
+\SemanticsOf{\DNFLensOf{\ConjunctLensOf{\IterateLens{\DNFLens}}}}
+& = \SetOf{(\String,\StringAlt)
+\SuchThat(\String,\StringAlt)\in\SemanticsOf{\ConjunctLensOf{\IterateLens{\DNFLens}}}}\\
+& = \SetOf{(\String,\StringAlt)
+\SuchThat(\String,\StringAlt)\in\SemanticsOf{\IterateLens{\DNFLens}}}\\
+& = \SetOf{(\String_1\Concat\ldots\Concat\String_n,
+\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+\SuchThat \String_i\in\SemanticsOf{\DNFLens}}\\
+& = \SetOf{(\String_1\Concat\ldots\Concat\String_n,
+\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+\SuchThat \String_i\in\SemanticsOf{\Lens}}\\
+& = \SemanticsOf{\IterateLens{\Lens}}
+\end{tabular}
+
+Let the last rule be an application of \ConcatLensRule{}.
+
+Let the last rule be an application of \SwapLensRule{}.
+
+Let the last rule be an application of \OrLensRule{}.
+\begin{mathpar}
+\inferrule[]
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\UnambigOrOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
+\UnambigOrOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
+}
+{
+\OrLens{\Lens_1}{\Lens_2} \OfType
+\RegexOr{\Regex_1}{\RegexAlt_1} \Leftrightarrow \RegexOr{\Regex_2'}{\RegexAlt_2'}
+}
+\end{mathpar}
+By induction assumption, there exists a derivation
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation
+}
+{
+(\DNFLensOf{\ConjunctLens_1,\ldots,\ConjunctLens_n},\Permutation_1) \OfType\\
+\DNFOf{\Conjunct_1\DNFSep\ldots\DNFSep\Conjunct_n} \Leftrightarrow
+\DNFOf{\ConjunctAlt_{\Permutation_1(1)}\DNFSep\ldots
+\DNFSep\ConjunctAlt_{\Permutation_1(n)}}
+}
+\end{mathpar}
+and a derivation
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation'
+}
+{
+(\DNFLensOf{\ConjunctLens_{n+1},\ldots,\ConjunctLens_{n+m}},\Permutation_2) \OfType\\
+\DNFOf{\Conjunct_{n+1}'\DNFSep\ldots\DNFSep\Conjunct_{n+m}} \Leftrightarrow
+\DNFOf{\ConjunctAlt_{n+\Permutation_2(1)'}\DNFSep\ldots
+\DNFSep\ConjunctAlt_{n+\Permutation_2(m)'}}
+}
+\end{mathpar}
+such that, if we define:\\
+\begin{tabular}{@{}L@{}L@{}}
+\DNFRegex_1= &
+\DNFOf{\Conjunct_1\DNFSep\ldots\DNFSep\Conjunct_n}\\
+\DNFRegexAlt_1= &
+\DNFOf{\ConjunctAlt_{\Permutation_1(1)}\DNFSep\ldots
+\DNFSep\ConjunctAlt_{\Permutation_1(n)}}\\
+\DNFRegex_2= &
+\DNFOf{\Conjunct_{n+1}\DNFSep\ldots\DNFSep\Conjunct_{n+m}}\\
+\DNFRegexAlt_2= &
+\DNFOf{\ConjunctAlt_{n+\Permutation_2(1)}\DNFSep\ldots
+\DNFSep\ConjunctAlt_{n+\Permutation_2(m)}}\\
+\end{tabular}
+then we have
+\LanguageOf{\DNFRegex}=\LanguageOf{\Regex},
+\LanguageOf{\DNFRegexAlt}=\LanguageOf{\RegexAlt},
+\LanguageOf{\DNFRegex'}=\LanguageOf{\Regex'},
+\LanguageOf{\DNFRegexAlt'}=\LanguageOf{\RegexAlt'}.
+
+By inversion (TODO: inversion lemma), we know that the last step of those derivations were applications
+of \DNFLensRule{}, so we know that, for all $i\in\RangeIncInc{1}{m}$,
+there exists derivations
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation_i
+}
+{
+(\ConjunctLens_i \OfType
+\Conjunct_i \Leftrightarrow \ConjunctAlt_i)
+}
+\end{mathpar}
+For all $i\neq j$, $i,j\in\RangeIncInc{1}{n}$,
+$\Conjunct_i \Intersect \Conjunct_j = \emptyset$, and
+$\ConjunctAlt_i \Intersect \ConjunctAlt_j = \emptyset$.
+For all $i\neq j$, $i,j\in\RangeIncInc{n+1}{n+m}$,
+$\Conjunct_i \Intersect \Conjunct_j = \emptyset$, and
+$\ConjunctAlt_i \Intersect \ConjunctAlt_j = \emptyset$.
+Because $\LanguageOf{\Regex}\Intersect\LanguageOf{\RegexAlt}=\emptyset$,
+and $\LanguageOf{\Regex'}\Intersect\LanguageOf{\RegexAlt'}=\emptyset$,
+and because of the previously stated equivalences between regular expressions,
+and DNF regular expressions, for each $i\in\RangeIncInc{1}{n}$,
+$j\in\RangeIncInc{n+1}{m}$, $\Conjunct_i\Intersect\Conjunct_j=\emptyset$
+and $\ConjunctAlt_i\Intersect\ConjunctAlt_j=\emptyset$.
+So, we have for all $i\neq j$, $i,j\in\RangeIncInc{1,n+m}$,
+$\Conjunct_i \Intersect \Conjunct_j = \emptyset$ and
+$\ConjunctAlt_i \Intersect \ConjunctAlt_j = \emptyset$.
+We can build a new permutation $\Permutation$ defined as
+\[
+\Permutation(x)=
+\begin{cases}
+\Permutation_1(x) & \text{ if $x\in\RangeIncInc{1}{n}$}\\
+\Permutation_2(x-n)+n & \text{ if $x\in\RangeIncInc{n+1}{n+m}$}
+\end{cases}
+\]
+Consider the derivation
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation_1\\
+\ldots\\
+\Derivation_{n+m}\\
+i\neq j\Rightarrow \Conjunct_i\Intersect\Conjunct_j=\emptyset\\
+i\neq j\Rightarrow \Conjunct_i\Intersect\ConjunctAlt_j=\emptyset\\
+}
+{
+(\DNFLensOf{\ConjunctLens_1\ConjunctLensSep\ldots
+\ConjunctLensSep\ConjunctLens_{n+m}},\Permutation) \OfType\\
+\DNFOf{\Conjunct_1\DNFSep\ldots\DNFSep\Conjunct_{n+m}} \Leftrightarrow
+\DNFOf{\ConjunctAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\ConjunctAlt_{\sigma(n+m)}}
+}
+\end{mathpar}
+
+We can prove the resulting DNF regular expressions are equivalent to
+the original regular expressions.
+
+\begin{tabular}{@{}L@{}L@{}}
+\DNFOf{\Conjunct_0\DNFSep\ldots\DNFSep\Conjunct_{n+m}} & =
+\DNFOf{\Conjunct_1\DNFSep\ldots\DNFSep\Conjunct_n}\OrDNF\\
+& \hspace{1em}
+\DNFOf{\Conjunct_{n+1}\DNFSep\ldots\DNFSep\Conjunct_{n+m}}\\
 & =
-\{\String \SuchThat{} \String\in\LanguageOf{\Regex}
-\BooleanOr{} \String\in\LanguageOf{\RegexAlt}\}\\
-& =
-\LanguageOf{\RegexOr{\Regex}{\RegexAlt}}
+\OrDNFOf{\DNFRegex_1}{\DNFRegex_2}
 \end{tabular}\\
-\end{proof}
+So by Lemma (TODO: find ref),
+$\LanguageOf{\DNFOf{\Conjunct_0\DNFSep\ldots\DNFSep\Conjunct_{n+m}}}=
+\LanguageOf{\RegexOr{\Regex_1}{\Regex_2}}$
 
-\begin{proof}
-By structural induction.
-
-Let $\Regex=\String$.  Consider $\DNFOf{\ConjunctOf{\String}}$.
-$\LanguageOf{\DNFOf{\ConjunctOf{\String}}}=\{\String\}=\LanguageOf{\String}$
-
-Let $\Regex=\emptyset$.  Consider $\DNFOf{}$.
-$\LanguageOf{\DNFOf{}} = \{\} = \LanguageOf{\emptyset}$.
-
-Let $\Regex=\StarOf{\Regex'}$.
-By induction assumption, there exists a \DNFRegex{}' such that
-\LanguageOf{\Regex'}=\LanguageOf{\DNFRegex'}.
-Consider \DNFOf{\ConjunctOf{\StarOf{\DNFRegex'}}}.\\
 \begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\DNFOf{\ConjunctOf{\StarOf{\DNFRegex'}}}} & = 
-\{\String\SuchThat\String\in\LanguageOf{\ConjunctOf{\StarOf{\DNFRegex'}}}\}\\
-& = 
-\{\String\SuchThat{} \String\in\LanguageOf{\StarOf{\DNFRegex'}}\}\\
+\DNFOf{\ConjunctAlt_{\Permutation(0)}\DNFSep\ldots\DNFSep
+\ConjunctAlt_{\Permutation(n+m)}} & =
+\DNFOf{\ConjunctAlt_{\Permutation(1)}\DNFSep\ldots\DNFSep
+\ConjunctAlt_{\Permutation(n)}}\OrDNF\\
+& \hspace{1em}
+\DNFOf{\Conjunct_{\Permutation(n+1)}\DNFSep\ldots\DNFSep
+\Conjunct_{\Permutation(n+m)}}\\
 & =
-\{\String_1\Concat\ldots\Concat\String_n\SuchThat{}
-n\in\Nats\BooleanAnd\String_i\in\LanguageOf{\DNFRegex'}\}\\
+\DNFOf{\ConjunctAlt_{\Permutation_1(1)}\DNFSep\ldots\DNFSep
+\ConjunctAlt_{\Permutation_1(n)}}\OrDNF\\
+& \hspace{1em}
+\DNFOf{\Conjunct_{n+\Permutation_2(1)}\DNFSep\ldots\DNFSep
+\Conjunct_{n+\Permutation_2(m)}}\\
 & =
-\{\String_1\Concat\ldots\Concat\String_n\SuchThat{}
-n\in\Nats\BooleanAnd\String_i\in\LanguageOf{\Regex'}\}\\
-& = \LanguageOf{\StarOf{\Regex'}}
+\OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
+\end{tabular}\\
+So by Lemma (TODO: find ref),
+$\LanguageOf{\DNFOf{\ConjunctAlt_{\Permutation(0)}\DNFSep\ldots\DNFSep
+\ConjunctAlt_{\Permutation(n+m)}}}=
+\LanguageOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}}$
+
+Furthermore, we can prove it has the same semantics.
+
+\begin{tabular}{@{}L@{}L@{}}
+\SemanticsOf{\DNFLensOf{\Conjunct_1\DNFLensSep\ldots\DNFLensSep\Conjunct_{n+m}},
+\Permutation} & =
+\SetOf{(\String,\StringAlt)\SuchThat
+(\String,\StringAlt)\in\SemanticsOf{\Conjunct_i}\\
+& \hspace{3em}
+\text{for some $i\in\RangeIncInc{1}{n+m}$}}\\
+& =
+\SetOf{(\String,\StringAlt)\SuchThat
+(\String,\StringAlt)\in\SemanticsOf{\Conjunct_i}\\
+& \hspace{3em}
+\text{for some $i\in\RangeIncInc{1}{n}$}\\
+& \hspace{2em}\BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Conjunct_i}\\
+& \hspace{3em}\text{for some $i\in\RangeIncInc{n+1}{n+m}$}}\\
+& =
+\SetOf{(\String,\StringAlt)\SuchThat
+(\String,\StringAlt)\in\SemanticsOf{\Lens_1}\\
+& \hspace{2em}\BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}\\
+& =
+\SemanticsOf{\OrLens{\Lens_1}{\Lens_2}}
 \end{tabular}
 
-Let $\Regex=\RegexConcat{\Regex_1}{\Regex_2}$.
-By induction assumption, there exists $\DNFRegex_1$ and $\DNFRegex_2$
-such that $\LanguageOf{\DNFRegex_1}=\LanguageOf{\Regex_1}$
-and $\LanguageOf{\DNFRegex_2}=\LanguageOf{\Regex_2}$.
-By Lemma~\ref{lem:cdnfeq},
-$\RegexConcat{\Regex_1}{\Regex_2}=\ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$.
+Let the last rule be an application of \ComposeLensRule{}.
 
-Let $\Regex=\RegexOr{\Regex_1}{\Regex_2}$.
-By induction assumption, there exists $\DNFRegex_1$ and $\DNFRegex_2$
-such that $\LanguageOf{\DNFRegex_1}=\LanguageOf{\Regex_1}$
-and $\LanguageOf{\DNFRegex_2}=\LanguageOf{\Regex_2}$.
-By Lemma~\ref{lem:odnfeq},
-$\RegexOr{\Regex_1}{\Regex_2}=\OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$.
+Let the last rule be an application of \RetypeLensRule{}.
+\begin{mathpar}
+\inferrule[]
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt \\
+\Regex \equiv \Regex'\\
+\RegexAlt \equiv \RegexAlt'
+}
+{
+\Lens \OfType \Regex' \Leftrightarrow \RegexAlt'
+}
+\end{mathpar}
+By induction assumption, there exists a derivation
+
+\begin{mathpar}
+\inferrule[]
+{
+\Derivation
+}
+{
+\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
+}
+\end{mathpar}
+
+where \LanguageOf{\DNFRegex}=\LanguageOf{\Regex}
+and \LanguageOf{\DNFRegexAlt}=\LanguageOf{\RegexAlt},
+and \SemanticsOf{\DNFLens}=\SemanticsOf{\Lens}.
+Because \LanguageOf{\Regex'}=\LanguageOf{\Regex}
+and \LanguageOf{\RegexAlt'}=\LanguageOf{\RegexAlt},
+we know \LanguageOf{\Regex'}=\LanguageOf{\DNFRegex}
+and \LanguageOf{\RegexAlt'}=\LanguageOf{\DNFRegexAlt'}.
 \end{proof}
