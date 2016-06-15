@@ -1,6 +1,7 @@
-\begin{proof}
+We first must prove some Lemmas.
 
 \begin{lemma}[Completeness of Composition]\leavevmode
+\label{lem:composition-completeness}
 \begin{enumerate}
 \item If there are two atom lenses
 $\AtomLens_1 \OfType \Atom_1 \Leftrightarrow \Atom_2$ and
@@ -278,17 +279,42 @@ By induction assumption, there exists a typing of lenses
 
 \end{proof}
 
-\begin{definition}
-Let $\DNFLens=\DNFLensOf{\ConjunctLens_1\ConjunctLensSep
-\ldots\ConjunctLensSep\ConjunctLens_n}$ and
-$\DNFLens'=\DNFLensOf{\ConjunctLens_1'\ConjunctLensSep
-\ldots\ConjunctLensSep\ConjunctLens_m'}$ be two DNF lenses.
-Define $\OrDNFLensOf{\DNFLens}{\DNFLens'}=
-\DNFLensOf{\ConjunctLens_1\ConjunctLensSep\ldots
-\ConjunctLensSep\ConjunctLens_n\ConjunctLensSep\ConjunctLens_1'\ConjunctLensSep
-\ldots\ConjunctLensSep\ConjunctLens_m'}$.
-\end{definition}
+\begin{lemma}[Completeness of Identity on Strongly Unambiguous DNF Regex,
+Clauses, and Atoms]
+\leavevmode
+\begin{enumerate}
+\item If $\DNFRegex$ is a strongly unambiguous DNF Regular expression, then
+there exists a DNF lens $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegex$,
+such that $\SemanticsOf{\DNFLens}=
+\SetOf{(\String,\String)\SuchThat\String\in\LanguageOf{\DNFRegex}}$, where
+\DNFLens{} typing includes no rewrite rules.
+\item If $\Conjunct$ is a strongly unambiguous conjunct, then
+there exists a conjunct lens $\ConjunctLens \OfType \Conjunct \Leftrightarrow \Conjunct$,
+such that $\SemanticsOf{\ConjunctLens}=
+\SetOf{(\String,\String)\SuchThat\String\in\LanguageOf{\DNFRegex}}$, where
+\ConjunctLens{} typing includes no rewrite rules.
+\item If $\Atom$ is a strongly unambiguous atom, then
+there exists an atom lens $\AtomLens \OfType \Atom \Leftrightarrow \Atom$,
+such that $\SemanticsOf{\AtomLens}=
+\SetOf{(\String,\String)\SuchThat\String\in\LanguageOf{\DNFRegex}}$, where
+\AtomLens{} typing includes no rewrite rules.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+By mutual induction on the structure of the DNF regular expression,
+atom, and clause.
 
+Let \DNFRegex{} be a DNF regular expression.
+
+Let \Conjunct{} be a conjunct.
+
+Let \Atom{} be an atom.
+\end{proof}
+
+Now we can do the proof of completeness.
+\dnflc*
+
+\begin{proof}
 We will do by structural induction on the typing derivation.
 
 Let the last rule be an application of \ConstantLensRule{}.
@@ -333,6 +359,16 @@ Consider the derivation
 \end{tabular}
 
 Let the last rule be an application of \IdentityLensRule{}.
+We know that for each regular expression there exists a strongly unambiguous
+regular expression~\cite{unambigregex}.
+Because of that, if we have
+$\IdentityLens \OfType \Regex \Leftrightarrow \Regex$,
+then we have a strongly unambiguous DNF regular expression,
+$\DNFRegex$, such that $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$.
+Then, by Lemma (TODO: ref), there exists a DNF lens
+$\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ such that
+$\SemanticsOf{\DNFLens}=
+\SetOf{(\String,\String)\SuchThat\String\in\LanguageOf{\DNFRegex}}$
 
 Let the last rule be an application of \IterateLensRule{}.
 \begin{mathpar}
@@ -597,7 +633,24 @@ Furthermore, we can prove it has the same semantics.
 \SemanticsOf{\OrLens{\Lens_1}{\Lens_2}}
 \end{tabular}
 
-Let the last rule be an application of \ComposeLensRule{}.
+Let the last rule be an application of \ComposeLensRule{}, so we have
+$\Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2$, and
+$\Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3$,
+and $\ComposeLens{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3$.
+By induction assumption, there is a typing of
+$\DNFLens_1 \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$,
+and $\DNFLens_2 \OfType \DNFRegex_2 \Leftrightarrow \DNFRegex_3$, where
+$\SemanticsOf{\DNFLens_1}=\SemanticsOf{\Lens_1}$,
+$\SemanticsOf{\DNFLens_2}=\SemanticsOf{\Lens_2}$,
+$\LanguageOf{\DNFRegex_1}=\LanguageOf{\Regex_1}$,
+$\LanguageOf{\DNFRegex_2}=\LanguageOf{\Regex_2}$, and
+$\LanguageOf{\DNFRegex_3}=\LanguageOf{\Regex_3}$.
+By Lemma~\ref{lem:composition-completeness},
+there is a lens $\DNFLens \OfType \DNFRegex_1 \Leftrightarrow \DNFRegex_3$,
+such that $\SemanticsOf{\DNFLens}=\SetOf{(\String_1,\String_3)\SuchThat
+\exists \String_2 (\String_1,\String_2)\in\SemanticsOf{\DNFLens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\DNFLens_2}}=
+\SemanticsOf{\ComposeLens{\Lens_1}{\Lens_2}}$.
 
 Let the last rule be an application of \RetypeLensRule{}.
 \begin{mathpar}
@@ -631,3 +684,88 @@ and \LanguageOf{\RegexAlt'}=\LanguageOf{\RegexAlt},
 we know \LanguageOf{\Regex'}=\LanguageOf{\DNFRegex}
 and \LanguageOf{\RegexAlt'}=\LanguageOf{\DNFRegexAlt'}.
 \end{proof}
+
+With some additional lemmas related to an equational theory of
+DNF Regular Expressions, we are able to prove an even stronger result.
+
+We can use the equational theory for unambiguous regular expressions, and the conversion
+from regular expressions into DNF regular expressions, to create an equational
+theory for DNF regular expressions.
+
+\begin{theorem}[Unambiguous Regex Equational Theory]
+The Equational Theory for Unambiguous Regular Expressions is the Equational
+Theory for Regular Expressions without \StarstarRule{}.
+\end{theorem}
+\begin{proof}
+TODO: Same approach of showing things commute.
+\end{proof}
+
+\begin{definition}[Equational Theory for Unambiguous DNF Regular Expressions]
+\leavevmode\\
+\begin{tabular}{lrcl}
+\EqualityRule{} & \Regex{} & $\equiv$ & \Regex{} \\
+\OrCommutativityRule{} & \OrDNFOf{\DNFRegex{}}{\DNFRegexAlt{}} & $\equiv$
+& \OrDNFOf{\DNFRegexAlt{}}{\DNFRegex{}}\\
+\SumstarRule{} & \DNFOf{\ConjunctOf{\StarOf{(\OrDNFOf{\DNFRegex{}}{\DNFRegexAlt{}})}}} & $\equiv$ & \DNFOf{\ConjunctOf{\StarOf{(\ConcatDNFOf{\DNFOf{\ConjunctOf{\StarOf{\DNFRegex{}}}}}{\DNFRegexAlt{}})}}}\\
+& & & \ConcatDNF\DNFOf{\ConjunctOf{\StarOf{\DNFRegex{}}}}\\
+\ProductstarRule{} & \StarOf{(\ConcatDNFOf{\DNFRegex{}}{\DNFRegexAlt{}})} & $\equiv$ & \DNFOf{\ConjunctOf{\EmptyString{}}}\OrDNF(\DNFRegex{}\\
+& & & \ConcatDNF\DNFOf{\ConjunctOf{\StarOf{(\DNFRegexAlt{}\ConcatDNF\DNFRegex{})}}}\ConcatDNF\DNFRegexAlt{})\\
+\DicyclicityRule{} & \DNFOf{\ConjunctOf{\StarOf{(\OrDNFOf{\DNFRegex}{\DNFRegexAlt})}}} & $\equiv$ & $\DNFLeft\ConjunctLeft((\OrDNFOf{\DNFRegex}{\DNFRegexAlt})\ConcatDNF\DNFRegexAlt\OrDNF$\\
+& & & ${(\DNFRegex\ConcatDNF\StarOf{\DNFRegexAlt})}\ConcatDNF\DNFRegex)\Star{}\ConjunctRight\DNFRight\ConcatDNF$\\
+& & & $(\EmptyString\OrDNF(\OrDNFOf{\DNFRegex}{\DNFRegexAlt})\ConcatDNF$\\
+& & & $({(\ConcatDNFOf{\DNFRegex}{\StarOf{\DNFRegexAlt}})}^0\OrDNF\ldots$\\
+& & & $\OrDNF{(\ConcatDNFOf{\DNFRegex}{\StarOf{\DNFRegexAlt}})}^n))$
+\end{tabular}
+\end{definition}
+
+\begin{theorem}[Soundness and Completeness of Equational Theory for Unambiguous DNF Regular
+Expressions]
+\end{theorem}
+\begin{proof}
+The Equational Theory of Unambiguous Regular Expressions stems merely an
+application of the mapping from regular expressions to DNF regular expressions
+to the equational theory of regular expressions.
+As this mapping is surjective, we know that for a sequence of rules which show
+that two regular expressions are equivalent, we can apply the DNF version
+of those rules to obtain a sequence of DNF regular expressions, which are
+the DNF versions of the regular expressions.  Furthermore, because
+we know that the mapping from regular expressions to DNF regular expressions
+is sound, we know that this equational theory is sound.
+\end{proof}
+
+\begin{lemma}[Equivalence of DNF permutations]
+\label{lem:dnfperm}
+For all permutations, \Permutation{},
+$\LanguageOf{\DNFOf{\Conjunct_1\DNFSep\ldots\DNFSep\Conjunct_n}}=
+\LanguageOf{\DNFOf{\Conjunct_{\Permutation(1)}\DNFSep\ldots\DNFSep
+\Conjunct_{\Permutation(n)}}}$
+\end{lemma}
+\begin{proof}
+Repeated application of \OrCommutativityRule{}.
+\end{proof}
+
+\begin{lemma}[Respectfulness of Languages in Rewrites]\leavevmode
+\label{lem:language-rewrite-safe}
+\begin{enumerate}
+\item If $\Atom\RewriteAtom\DNFRegex$, then
+$\LanguageOf{\Atom}=\LanguageOf{\DNFRegex}$.
+\item If $\DNFRegex\RewriteDNF\DNFRegex'$, then
+$\LanguageOf{\DNFRegex}=\LanguageOf{\DNFRegex'}$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+By mutual induction, use of \ref{lem:dnfperm}, and use of the equational
+theory of unambiguous regular expressions.
+\end{proof}
+
+
+Now we can prove the stronger result.
+\begin{theorem}[Strong Completeness of DNF Lenses]
+If there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt} \HasSemantics \PutRight,\PutLeft$,
+and $\DNFRegex$ and $\DNFRegexAlt$ be any DNF regular expressions
+such that 
+$\LanguageOf{\DNFRegex}=\LanguageOf{\Regex}$ and
+$\LanguageOf{\DNFRegexAlt}=\LanguageOf{\RegexAlt}$,
+then there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$ such that
+$\SemanticsOf{\DNFLens}=\SemanticsOf{\Lens}$.
+\end{theorem}
