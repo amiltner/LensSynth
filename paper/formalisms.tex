@@ -44,16 +44,77 @@ only if $\String_i=\StringAlt_i$ for all $i\in\RangeIncInc{1}{n}$.
 \end{definition}
 
 \subsubsection{Regular Expressions}
-\input{fig_regex-syntax}
-\input{fig_regex-semantics}
-\bcp{We are not teaching anybody the
-  concept here; we are just showing the concrete syntax that we use.  Ditto
-  the second sentence of the next paragraph.}
+
+% fig:regex-syntax
+\begin{figure}
+\centering
+\begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
+
+(Strings)& \String{},\StringAlt{} & \GEq{} & $\String\in\StarOf{\Sigma}$ \\
+(Regexs)& \Regex{},\RegexAlt{} & \GEq{} & s & Base \\
+& & & \GBar{} $\emptyset$ & Empty \\
+& & & \GBar{} \Regex{}* & Star \\
+& & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ & Concat \\
+& & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & Or \\
+\end{tabular}
+\caption{Regular Expression Syntax}
+\label{fig:regex-syntax}
+\end{figure}
+
+% fig:regex-semantics
+\begin{figure}
+\[
+\begin{array}{lcl}
+\LanguageOf{\String} &=& \{\String\}\\
+\LanguageOf{\emptyset} &=& \{\}\\
+\LanguageOf{\RegexConcat{\Regex_1}{\Regex_2}} &=&
+\{\StringConcat{\String_1}{\String_2} \SuchThat
+\String_1\in\LanguageOf{\Regex_1} \BooleanAnd \String_2\in\LanguageOf{\Regex_2}\}\\
+\LanguageOf{\RegexOr{\Regex_1}{\Regex_2}} &=&
+\{\String \SuchThat
+\String\in\LanguageOf{\Regex_1} \BooleanOr \String\in\LanguageOf{\Regex_2}\}\\
+\LanguageOf{\StarOf{\Regex}} &=&
+\{\String_1\Concat\ldots\Concat\String_n \SuchThat
+n\in\Nats \wedge \String_i\in\LanguageOf{\Regex}\}
+\end{array}
+\]
+\caption{Regex Semantics}
+\label{fig:regex-semantics}
+\end{figure}
+
+
 The syntax for regular expressions is given in Figure~\ref{fig:regex-syntax}.
 These regular expressions have an underlying semantics to express languages,
 formalized in Figure~\ref{fig:regex-semantics}.
 
-\input{fig_regex-equivalence-rules}
+% fig:regex-equivalence-rules
+\begin{figure}
+\newcounter{rowcount}
+\setcounter{rowcount}{0}
+\centering
+\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
+\Regex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
+\RegexOr{\Regex}{\emptyset} & $\equiv$ & \Regex{} & \OrIdentityRule{} \\
+$\RegexConcat{\Regex}{\emptyset}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleRightRule{} \\
+$\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{}\SubLeft{} \\
+\RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\equiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
+\RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\equiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
+\RegexOr{\Regex{}}{\RegexAlt{}} & $\equiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
+\RegexConcat{\Regex{}}{(\RegexOr{\Regex{}'}{\Regex{}''})} & $\equiv$ & \RegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})} & \DistributivityLeftRule{} \\
+\RegexConcat{(\RegexOr{\Regex{}'}{\Regex{}''})}{\Regex{}} & $\equiv$ & \RegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})} & \DistributivityRightRule{} \\
+\RegexConcat{\Regex{}}{\EmptyString{}} & $\equiv$ & \Regex{} & \ConcatIdentityRule{} \\
+\StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
+\StarOf{(\RegexConcat{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\RegexConcat{\Regex{}}{\StarOf{(\RegexConcat{\RegexAlt{}}{\Regex{}})}}}{\RegexAlt{}})} & \ProductstarRule{} \\
+${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
+\StarOf{(\RegexOr{\Regex}{\RegexAlt})} & $\equiv$ & $\StarOf{(\RegexConcat{(\RegexOr{\Regex}{\RegexAlt})}{\RegexOr{\RegexAlt}{\RegexConcat{{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n}{\Regex}}})}\Concat$ & \DicyclicityRule{}\\
+& & $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$\\
+& & $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$
+\end{tabular}
+\caption{Regular Expression Equivalences}
+\label{fig:regex-equivalence-rules}
+\end{figure}
+
+
 We call two regular expressions equivalent, denoted $\Regex_1\equiv\Regex_2$,
 if $\LanguageOf{\Regex_1}=\LanguageOf{\Regex_2}$.
 There exists an equational theory for determining if two regular expressions are equivalent,
@@ -63,15 +124,150 @@ and proven complete by Krob \cite{Krob}\bcp{The citation for Conway reads
 shown in Figure~\ref{fig:regex-equivalence-rules}.
 
 \subsubsection{Bijective Lenses}
-\input{fig_lens-syntax}
-\input{fig_lens-semantics}
-\input{fig_lens-typing}
-We focus on bijections between these languages.
-We can take a language based approach to developing these bijections,
-where we construct a programming language where the types are regular expressions,
-and the program is only well typed when it expresses a bijection between the languages
-of the regular expressions.
-This is the language of bijective lenses.
+
+% fig:lens-syntax
+\begin{figure}
+\centering
+\begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+% REGEX
+(Lenses)& \Lens{} & \GEq{} & $\ConstLens{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
+& & & \GBar{} $\IdentityLens$ & Identity\\
+& & & \GBar{} $\IterateLens{\Lens}$ & Iterate \\
+& & & \GBar{} $\ConcatLens{\Lens_1}{\Lens_2}$ & Concat \\
+& & & \GBar{} $\SwapLens{\Lens_1}{\Lens_2}$ & Swap\\
+& & & \GBar{} $\OrLens{\Lens_1}{\Lens_2}$ & Or\\
+& & & \GBar{} $\ComposeLens{\Lens_1}{\Lens_2}$ & Compose\\
+\end{tabular}
+\caption{Lens Syntax}
+\label{fig:lens-syntax}
+\end{figure}
+
+% fig:lens-semantics
+\begin{figure}
+\[
+\begin{array}{rcl}
+\SemanticsOf{const(\String_1,\String_2)} &=& \SetOf{(\String_1,\String_2)}\\
+
+\SemanticsOf{\IdentityLens} &=& \SetOf{(\String,\String)}\\
+
+\SemanticsOf{\IterateLens{\Lens}} &=& \SetOf{(\String_1\Concat\ldots\Concat\String_n,
+\StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+(\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}\\
+
+\SemanticsOf{\ConcatLens{\Lens_1}{\Lens_2}} &=&
+\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat\\
+& & \hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+(\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}\\
+
+\SemanticsOf{\SwapLens{\Lens_1}{\Lens_2}} &=&
+\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat\\
+& & \hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+(\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}\\
+
+\SemanticsOf{\OrLens{\Lens_1}{\Lens_2}} &=&
+\SetOf{(\String,\StringAlt)
+\SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
+\BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}\\
+
+\SemanticsOf{\ComposeLens{\Lens_1}{\Lens_2}} &=&
+\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2\\
+& & \hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
+(\String_2,\String_3)\in\SemanticsOf{\Lens_2}}
+\end{array}
+\]
+\caption{Lens Semantics}
+\label{fig:lens-semantics}
+\end{figure}
+
+% fig:lens-semantics
+\begin{figure}
+\centering
+\begin{mathpar}
+\inferrule[\ConstantLensRule{}]
+{
+\String_1 \in \StarOf{\Sigma}\\
+\String_2 \in \StarOf{\Sigma}
+}
+{
+\ConstLens{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
+}
+
+\inferrule[\IdentityLensRule{}]
+{
+}
+{
+\IdentityLens \OfType \Regex \Leftrightarrow \Regex
+}
+
+\inferrule[\IterateLensRule{}]
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
+\UnambigItOf{\LanguageOf{\Regex}}\\
+\UnambigItOf{\LanguageOf{\RegexAlt}}
+}
+{
+\IterateLens{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
+}
+
+\inferrule[\ConcatLensRule{}]
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
+\UnambigConcatOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
+}
+{
+\ConcatLens{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
+}
+
+\inferrule[\SwapLensRule{}]
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
+\UnambigConcatOf{\LanguageOf{\RegexAlt_2}}{\LanguageOf{\RegexAlt_1}}
+}
+{
+\SwapLens{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
+}
+
+\inferrule[\OrLensRule{}]
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\UnambigOrOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\ \UnambigOrOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
+}
+{
+\OrLens{\Lens_1}{\Lens_2} \OfType \Regex_1 | \RegexAlt_1 \Leftrightarrow \Regex_2 | \RegexAlt_2
+}
+
+\inferrule[\ComposeLensRule{}]
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+}
+{
+\ComposeLens{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
+}
+
+\inferrule[\RetypeLensRule{}]
+{
+\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+\Regex_1 \equiv \Regex_1'\\
+\Regex_2 \equiv \Regex_2'
+}
+{
+\Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
+}
+\end{mathpar}
+
+\caption{Lens Typing}
+\label{fig:lens-semantics}
+\end{figure}
+
+
+We focus on bijections between these languages through the language of
+bijective lenses.
 We define the syntax for these bijective lenses in Figure~\ref{fig:lens-syntax}.
 The semantics and typing for these lenses is defined in Figure~\ref{fig:lens-semantics}.
 The semantics is only defined alongside the typing, as the functions are only
@@ -90,8 +286,40 @@ which would create the subproblems of finding a lens of type $\Regex_1\Leftright
 and a lens of type $\Regex_2\Leftrightarrow\RegexAlt_2$.
 
 \section{DNF Regular Expressions}
-\input{fig_dnf-regex-syntax}
-\input{fig_dnf-regex-semantics}
+
+% fig:dnf-regex-syntax
+\begin{figure}
+\begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }r}
+
+% DNF_REGEX
+(Atoms)& \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & Iterate DNF\\
+(Sequence)& \Sequence{},\SequenceAlt{} & \GEq{} &
+$\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ & Sequence\\
+(DNF Regex)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & DNF Or\\
+\end{tabular}
+\caption{DNF Regex Syntax\bcp{Or how about ``hollow square
+  brackets'' for conjuncts (using some kind of square brackets seems good,
+  since they are ordered) and ``hollow set braces'' for disjuncts?  We
+  should try to get this right, since these widgets are our core technical
+  device.}} 
+\label{fig:dnf-regex-syntax}
+\end{figure}
+
+% fig:dnf-regex-semantics
+\begin{figure}
+\begin{itemize}
+\item $\LanguageOf{\StarOf{\DNFRegex}} =
+\{\String_1\Concat\ldots\Concat\String_n \SuchThat n\in\Nats \wedge \String_i\in\LanguageOf{\DNFRegex}\}$
+\item $\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}=
+\{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}$
+\item $\LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}=$\\
+\hspace*{.5em}$\{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{ for some $i\in\RangeIncInc{1}{n}$}\}$
+\end{itemize}
+\caption{DNF Regex Semantics}
+\label{fig:dnf-regex-semantics}
+\end{figure}
+
+
 A DNF regular esxpression is, intuitively
 a regular expression which is completely distributed
 applied, with no associativity information through a list representation,
@@ -116,7 +344,34 @@ as there is an arbitrarily large number of choices made in the stars.
 This intuition is formalized by the semantics, given in
 Figure~\ref{fig:dnf-regex-semantics}.
 
-\input{fig_dnf-regex-functions}
+% fig:dnf-regex-functions
+\begin{figure}
+\ConcatSequence{} \OfType{} \ArrowTypeOf{\SequenceType{}}{\ArrowTypeOf{\SequenceType{}}{\SequenceType{}}}\\
+$\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=$\\
+\hspace*{2ex}$[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
+\\
+\ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
+$\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
+\[
+\begin{array}{rcccl}
+\DNFLeft & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m}\DNFSep \\
+& & \cdots & \\
+& \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} & \DNFRight
+\end{array}
+\]
+\\
+\OrDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}\\
+$\OrDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}$=\\
+\hspace*{2ex}$\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$\\
+\\
+(-)\RepeatDNFOfTimes{n} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}\\
+$\RepeatDNFOf{0}{\DNFRegex}=\DNFOf{\SequenceOf{\EmptyString}}$\\
+$\RepeatDNFOf{n}{\DNFRegex}=\ConcatDNFOf{\DNFRegex}{\RepeatDNFOf{n-1}{\DNFRegex}}$\\
+\caption{DNF Regex Functions} 
+\label{fig:dnf-regex-functions}
+\end{figure}
+
+
 We can create a dnf regular expression from a regular expression through repeated
 application of the distributivity rule, and through removal of association information.  To do this, we require some functions defined on DNF regular expressions,
 which we define in Figure~\ref{fig:dnf-regex-functions}.
@@ -178,7 +433,103 @@ A regular expression merely of the form $\StarOf{a}$ only cares about how the it
 $\RegexOr{\EmptyString}{(\RegexConcat{a}{\StarOf{a}})}$ potentially acts differently on the empty
 string case than on the nonempty case.
 
-\input{fig_dnf-regex-rewrites}
+% fig:dnf-regex-rewrites
+\begin{figure}
+\begin{mathpar}
+\inferrule[\AtomSumstarRule{}]
+{
+S\subseteq\RangeIncInc{1}{n}\\
+\DNFRegex_{\Set} = [\Sequence_{\Set_1};\ldots;\Sequence_{\Set_{\SizeOf{\Set}}}]\\
+\DNFRegex_{\ComplementOf{\Set}} = [\Sequence_{\ComplementOf{\Set}_1};\ldots;\Sequence_{\ComplementOf{\Set}_{\SizeOf{\ComplementOf{\Set}}}}]
+}
+{
+\StarOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}\RewriteAtom\\\\
+\DNFOf{\SequenceOf{\StarOf{(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex_S}}}}{\DNFRegex_{\ComplementOf{\Set}}})}\SequenceSep
+\StarOf{\DNFRegex_{\Set}}}}\\
+}
+
+\inferrule[\AtomUnrollstarLeftRule{}]
+{
+}
+{
+\StarOf{\DNFRegex}\RewriteAtom
+\OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}
+}
+
+\inferrule[\AtomUnrollstarRightRule{}]
+{
+}
+{
+\StarOf{\DNFRegex}\RewriteAtom
+\OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}
+}
+
+\inferrule[\AtomPowerstarRule{}]
+{
+n\in\Nats_{\geq1}
+}
+{
+\StarOf{\DNFRegex}\RewriteAtom
+\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+{(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n}{\DNFRegex})}
+}
+
+\inferrule[\DicyclicRewriteStarRule{}]
+{
+S\subseteq\RangeIncInc{1}{n}\\
+\DNFRegex_{\Set} = [\Sequence_{\Set_1};\ldots;\Sequence_{\Set_{\SizeOf{\Set}}}]\\
+\DNFRegex_{\ComplementOf{\Set}} = [\Sequence_{\ComplementOf{\Set}_1};\ldots;\Sequence_{\ComplementOf{\Set}_{\SizeOf{\ComplementOf{\Set}}}}]
+}
+{
+\StarOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}\RewriteAtom\\\\
+\StarOf{(\ConcatDNFOf{(\OrDNFOf{\DNFRegex_{\Set}}{\DNFRegex_{\ComplementOf{\Set}}})}{\OrDNFOf{\DNFRegex_{\ComplementOf{\Set}}}{\ConcatDNFOf{{(\ConcatDNFOf{\DNFRegex_{\Set}}{\StarOf{\DNFRegex_{\ComplementOf{\Set}}}})}^n}{\DNFRegex_{\Set}}}})}\ConcatDNF\\
+(\EmptyString\OrDNF(\OrDNFOf{\DNFRegex_{\Set}}{\DNFRegex_{\ComplementOf{\Set}}})\ConcatDNF\\
+({(\ConcatDNFOf{\DNFRegex_{\Set}}{\StarOf{\DNFRegex_{\ComplementOf{\Set}}}})}^0\OrDNF\ldots\OrDNF{(\ConcatDNFOf{\DNFRegex_{\Set}}{\StarOf{\DNFRegex_{\ComplementOf{\Set}}}})}^n))
+}
+
+\inferrule[\DNFRewriteStarRule{}]
+{
+\DNFRegex \RewriteDNF \DNFRegex'
+}
+{
+\StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
+}
+
+\inferrule[\AtomDNFRewriteRule{}]
+{
+\Atom_j \RewriteAtom \DNFRegex
+}
+{
+\DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep\\\\
+\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep\\\\
+\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\RewriteDNF\\\\
+\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF\\
+\DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF\\
+\DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+}
+
+\inferrule[\DNFRewriteCompositionRule{}]
+{
+\DNFRegex \RewriteDNF \DNFRegex'\\
+\DNFRegex' \RewriteDNF \DNFRegex''
+}
+{
+\DNFRegex \RewriteDNF \DNFRegex''
+}
+
+\inferrule[\IdentityDNFRewriteRule{}]
+{
+}
+{
+\DNFRegex \RewriteDNF \DNFRegex
+}
+
+\end{mathpar}
+\caption{DNF Regex Rewrite Rules}
+\label{fig:dnf-regex-rewrites}
+\end{figure}
+
+
 Because of this, instead of writing equivalences for DNF regular expressions like
 exist for normal regular expressions,
 instead we write rewrite rules as shown in
@@ -203,9 +554,111 @@ An application of \DicyclicRewriteStarRule{} corresponds to TODO: understand thi
 horrible horrible rule.
 
 \section{DNF Lenses}
-\input{fig_dnf-lens-syntax}
-\input{fig_dnf-lens-semantics}
-\input{fig_dnf-lens-typing}
+
+% fig:dnf-lens-syntax
+\begin{figure}
+\centering
+\begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
+% REGEX
+(Atom Lenses) &\AtomLens{} & \GEq{} & $Iterate(\DNFLens)$ & Iterate\\
+& & & \GBar{} \IdentityLens{} & Identity\\
+(Sequence Lenses) &\SequenceLens{} & \GEq{} &
+$(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)}$, &\\
+& & & $\sigma \in S_n)$ & Clause\SubN{}\\
+(DNF Lenses)& \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ & DNF\SubN{}\\
+\end{tabular}
+\caption{DNF Lens Syntax}
+\label{fig:dnf-lens-syntax}
+\end{figure}
+
+% fig:dnf-lens-semantics
+\begin{figure}
+Semantics of Atom Lenses:\\
+$\SemanticsOf{\IterateLens{\DNFLens}}$=\\
+\hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
+\StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+n\in\NatsZero\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
+\\
+Semantics of Sequence Lenses:\\
+$\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
+\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n
+\SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}=$\\
+\hspace*{3em}$\SetOf{
+(\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n,
+\String_{\Permutation(0)}\Concat\String_{\Permutation(1)}'\Concat\ldots
+\Concat\String_{\Permutation(n)}'\Concat\String_{\Permutation(n)})\SuchThat$\\
+\hspace*{4em}$(\String_i',\StringAlt_i')\in\SemanticsOf{\Atom_i}}$\\
+\\
+Semantics of DNF Lenses:\\
+$\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
+\SequenceLens_n},\Permutation)}=$\\
+\hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
+(\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
+\caption{DNF Lens Semantics}
+\label{fig:dnf-lens-semantics}
+\end{figure}
+
+% fig:dnf-lens-semantics
+\begin{figure}
+\centering
+\begin{mathpar}
+\inferrule[\IterateAtomLensRule{}]
+{
+\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
+}
+{
+\IterateLens{\DNFLens} \OfType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}\\
+(\PutRight\Apply\String_1)\Concat\ldots\Concat(\PutRight\Apply\String_n),\\
+\lambda \String.\LetWhereIn{\String_1\Concat\ldots\Concat\String_n}{\String}{\String_i\in\LanguageOf{\DNFRegexAlt}}\\
+(\PutLeft\Apply\String_1)\Concat\ldots\Concat(\PutLeft\Apply\String_n)
+}
+
+\inferrule[\SequenceLensRule{}]
+{
+\AtomLens_1 \OfType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+\ldots\\
+\AtomLens_n \OfType \Atom_n \Leftrightarrow \AtomAlt_n\\
+\sigma \in \PermutationSetOf{n}\\
+\forall i \in \RangeIncInc{1}{n-1} \UnambigConcatOf{\LanguageOf{\String_{i-1}\Atom_i\epsilon}}{\LanguageOf{\String_i\Atom_{i+1}\epsilon}}\\
+\forall i \in \RangeIncInc{1}{n-1} \UnambigConcatOf{\LanguageOf{\StringAlt_{i-1}\AtomAlt_{\sigma(i)}\epsilon}}{\LanguageOf{\StringAlt_i\AtomAlt_{\sigma(i+1)}\epsilon}}\\
+}
+{
+(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfType\\
+\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
+\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
+}
+
+\inferrule[\DNFLensRule{}]
+{
+\SequenceLens_1 \OfType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+\ldots\\
+\SequenceLens_n \OfType \Sequence_n \Leftrightarrow \SequenceAlt_n\\
+\sigma \in \PermutationSetOf{n}\\
+i \neq j \Rightarrow \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
+i \neq j \Rightarrow \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
+}
+{
+(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfType\\
+\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+\Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+}
+
+\inferrule[\DNFRewriteLensRule{}]
+{
+\DNFRegex \RewriteDNF \DNFRegex'\\
+\DNFRegexAlt \RewriteDNF \DNFRegexAlt'\\
+\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
+}
+{
+\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
+}
+
+\end{mathpar}
+\caption{DNF Lens Typing}
+\label{fig:dnf-lens-semantics}
+\end{figure}
+
+
 Armed with these rewrites, we have the capabilities to define a sufficiently
 strong language for lenses on these regular expressions.
 The syntax is defined in Figure~\ref{fig:dnf-lens-syntax}.
