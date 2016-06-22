@@ -82,15 +82,73 @@ n\in\Nats \wedge \String_i\in\LanguageOf{\Regex}\}
 \label{fig:regex-semantics}
 \end{figure}
 
-
 The syntax for regular expressions is given in Figure~\ref{fig:regex-syntax}.
 These regular expressions have an underlying semantics to express languages,
 formalized in Figure~\ref{fig:regex-semantics}.
 
+
+% fig:bin-rel-regex
+\begin{figure}
+\centering{}
+\begin{mathpar}
+\inferrule[\Relation{} application]
+{
+\Relation(\Regex,\RegexAlt)
+}
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+
+\inferrule[Star Induction]
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+{
+\StarOf{\Regex} \Reduces_\Relation{} \StarOf{\RegexAlt}
+}
+
+\inferrule[Concat\SubLeft{} Induction]
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+{
+\RegexConcat{\Regex}{\Regex'} \Reduces_\Relation{} \RegexConcat{\RegexAlt}{\Regex'}
+}
+
+\inferrule[Concat\SubRight{} Induction]
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+{
+\RegexConcat{\Regex'}{\Regex} \Reduces_\Relation{} \RegexConcat{\Regex'}{\RegexAlt}
+}
+
+\inferrule[Or\SubLeft{} Induction]
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+{
+\RegexOr{\Regex}{\Regex'} \Reduces_\Relation{} \RegexOr{\RegexAlt}{\Regex'}
+}
+
+\inferrule[Or\SubRight{} Induction]
+{
+\Regex \Reduces_\Relation{} \RegexAlt
+}
+{
+\RegexOr{\Regex'}{\Regex} \Reduces_\Relation{} \RegexOr{\Regex'}{\RegexAlt}
+}
+\end{mathpar}
+\caption{Structural Regular Expression Relation Expansion}
+\label{fig:bin-rel-regex}
+\end{figure}
+
+Let \Relation{} be a binary relation on Regular Expressions.
+We can define a structural regular expression expansion to that relation set via
+$\Reduces_\Relation{}$, defined as in Figure~\ref{fig:bin-rel-regex}
+
 % fig:regex-equivalence-rules
 \begin{figure}
-\newcounter{rowcount}
-\setcounter{rowcount}{0}
 \centering
 \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
 \Regex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
@@ -114,9 +172,11 @@ ${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
 \label{fig:regex-equivalence-rules}
 \end{figure}
 
-
-We call two regular expressions equivalent, denoted $\Regex_1\equiv\Regex_2$,
+\afm{fix overloaded syntax here} We call two regular expressions equivalent, denoted $\Regex_1\equiv\Regex_2$,
 if $\LanguageOf{\Regex_1}=\LanguageOf{\Regex_2}$.
+We define a relation \Relation{} an equational theory for equivalent regular
+expressions if $\Regex \Reduces_\Relation{} \RegexAlt$ if, and only if,
+$\LanguageOf{\Regex} = \LanguageOf{\RegexAlt}$.
 There exists an equational theory for determining if two regular expressions are equivalent,
 presented by Conway \cite{conway}
 and proven complete by Krob \cite{Krob}\bcp{The citation for Conway reads
@@ -320,6 +380,84 @@ $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\S
 \end{figure}
 
 
+% fig:bin-rel-dnf-regex
+\begin{figure}
+\centering{}
+\begin{mathpar}
+\inferrule[$\Relation{}_{\Atom}$ application]
+{
+\Relation_\Atom(\Atom,\AtomAlt)
+}
+{
+\Atom
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\AtomAlt
+}
+
+\inferrule[$\Relation{}_{\Sequence}$ application]
+{
+\Relation_\Sequence(\Sequence,\SequenceAlt)
+}
+{
+\Sequence
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\SequenceAlt
+}
+
+\inferrule[$\Relation{}_{\DNFRegex}$ application]
+{
+\Relation_\DNFRegex(\DNFRegex,\DNFRegexAlt)
+}
+{
+\DNFRegex
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\DNFRegexAlt
+}
+
+\inferrule[Atom Induction]
+{
+\DNFRegex
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\DNFRegexAlt
+}
+{
+\StarOf{\DNFRegex}
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\StarOf{\DNFRegexAlt}
+}
+
+\inferrule[Sequence Induction]
+{
+\Atom_i
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\AtomAlt_i
+}
+{
+\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep
+\Atom_i\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}\\
+\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep
+\AtomAlt_i\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}
+}
+
+\inferrule[DNF Induction]
+{
+\Sequence_i
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}
+\SequenceAlt_i
+}
+{
+\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_i\SequenceSep
+\ldots\SequenceSep\Sequence_n}
+\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}\\
+\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\SequenceAlt_i\SequenceSep
+\ldots\SequenceSep\Sequence_n}
+}
+\end{mathpar}
+\caption{Structural DNF Regular Expression Relation Expansion}
+\label{fig:bin-rel-dnf-regex}
+\end{figure}
+
 A DNF regular esxpression is, intuitively
 a regular expression which is completely distributed
 applied, with no associativity information through a list representation,
@@ -327,6 +465,11 @@ and with base regular expressions only at fixed locations.
 We formalize the syntax of this language in Figure~\ref{fig:dnf-regex-syntax}.
 We will use the shorthand $\DNFOf{\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}}$
 for $\DNFOf{\SequenceOf{\EmptyString\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\EmptyString}}$.
+
+Let \Relation{} be a binary relation on DNF Regular Expressions.
+We can define a structural dnf regular expression expansion to that relation set via
+$\Reduces_{\Relation_\Atom,\Relation_\Sequence,\Relation_\DNFRegex}$,
+defined as in Figure~\ref{fig:bin-rel-dnf-regex}
 
 The outermost layer is a list of sequences.
 This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
@@ -371,39 +514,75 @@ $\RepeatDNFOf{n}{\DNFRegex}=\ConcatDNFOf{\DNFRegex}{\RepeatDNFOf{n-1}{\DNFRegex}
 \label{fig:dnf-regex-functions}
 \end{figure}
 
+% fig:dnf-regex-equivalence-rules
+\begin{figure}
+\centering
+\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
+\DNFRegex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
+\RegexOr{\Regex{}}{\RegexAlt{}} & $\equiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
+\StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
+\StarOf{(\RegexConcat{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\RegexConcat{\Regex{}}{\StarOf{(\RegexConcat{\RegexAlt{}}{\Regex{}})}}}{\RegexAlt{}})} & \ProductstarRule{} \\
+${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
+\StarOf{(\RegexOr{\Regex}{\RegexAlt})} & $\equiv$ & $\StarOf{(\RegexConcat{(\RegexOr{\Regex}{\RegexAlt})}{\RegexOr{\RegexAlt}{\RegexConcat{{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n}{\Regex}}})}\Concat$ & \DicyclicityRule{}\\
+& & $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$\\
+& & $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$
+\end{tabular}
+\caption{DNF Regular Expression Equivalences}
+\label{fig:dnf-regex-equivalence-rules}
+\end{figure}
 
 We can create a dnf regular expression from a regular expression through repeated
-application of the distributivity rule, and through removal of association information.  To do this, we require some functions defined on DNF regular expressions,
+application of the distributivity rule, and through removal of association information.
+To do this, we require some functions defined on DNF regular expressions,
 which we define in Figure~\ref{fig:dnf-regex-functions}.
-We can use these functions to obtain a completeness result.
+This allows us to define a proposed equational theory, presented in
+Figure~\ref{fig:dnf-regex-equivalence-rules}.
+We can also use these functions to obtain a completeness result.
 From this we can define a function which converts a regular expression into
-an equivalent DNF regular expression, \ToDNFRegex{}.  \bcp{No bullets.}
+an equivalent DNF regular expression, \ToDNFRegex{}.
+
 \begin{definition}
 \leavevmode
-\begin{itemize}
-\item $\ToDNFRegex(\String)=\DNFOf{\SequenceOf{\String}}$
-\item $\ToDNFRegex(\StarOf{(\Regex)}) = \DNFOf{\SequenceOf{(\StarOf{\ToDNFRegex(\Regex)})}}$
-\item $\ToDNFRegex(\RegexConcat{\Regex_1}{\Regex_2}) =$\\
-\hspace*{1em}$\ConcatDNFOf{\ToDNFRegex(\Regex_1)}{\ToDNFRegex(\Regex_2)}$
-\item $\ToDNFRegex(\RegexOr{\Regex_1}{\Regex_2}) =$\\
-\hspace*{1em}$\OrDNFOf{\ToDNFRegex(\Regex_1)}{\ToDNFRegex(\Regex_2)}$
-\end{itemize}
+\[
+\begin{array}{rcl}
+\ToDNFRegex(\String) & = & \DNFOf{\SequenceOf{\String}}\\
+\ToDNFRegex(\emptyset) & = & \DNFOf{}\\
+\ToDNFRegex(\StarOf{(\Regex)}) & = & \DNFOf{\SequenceOf{(\StarOf{\ToDNFRegex(\Regex)})}}\\
+\ToDNFRegex(\RegexConcat{\Regex_1}{\Regex_2}) & = & \ToDNFRegex(\Regex_1)\\
+& & \ConcatDNF \ToDNFRegex(\Regex_2)\\
+\ToDNFRegex(\RegexOr{\Regex_1}{\Regex_2}) & = & \ToDNFRegex(\Regex_1)\\
+& & \OrDNF \ToDNFRegex(\Regex_2)\\
+\end{array}
+\]
 \end{definition}
 We show that this transformation is a valid transformation.
 \begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
 \label{thm:completeness-dnf-lenses}
 For all regular expressions \Regex{},
-there exists a DNF regular expression \DNFRegex{},
-such that \LanguageOf{\DNFRegex{}}=\LanguageOf{\Regex{}}.
+\LanguageOf{\ToDNFRegex(\Regex)}=\LanguageOf{\Regex{}}.
 \end{restatable}
 \input{proof-dnfrc}
-Furthermore, we can use prove that language of DNF regular expressions is sound.
+
+Furthermore, we can use prove that language of DNF regular expressions is sound,
+and that \ToDNFRegex{} is surjective, by providing a right inverse.
+
+\begin{definition}\leavevmode\\
+$\ToRegex(\StarOf{\DNFRegex}) = \StarOf{\ToRegex(\DNFRegex})$\\
+$\ToRegex(\SequenceOf{\String_0}) = \String_0$\\
+$\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+\SequenceSep\Atom_n\SequenceSep\String_n}) =\\
+\hspace*{2em}\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}})
+\Concat \ToRegex(\Atom_n) \Concat \String_{n+1}$\\
+$\ToRegex(\DNFOf{})=\emptyset$\\
+$\ToRegex(\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n})=\\
+\hspace*{2em}\ToRegex(\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}})
+\Or \ToRegex(\Sequence_n)$
+\end{definition}
 
 \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
 \label{thm:soundness-dnf-lenses}
-For all dnf regular expressions \DNFRegex{},
-there exists a regular expression \Regex{},
-such that \LanguageOf{\Regex{}}=\LanguageOf{\DNFRegex{}}.
+$\ToDNFRegex(\ToRegex(\DNFRegex))=\DNFRegex$
 \end{restatable}
 \input{proof-dnfrs}
 

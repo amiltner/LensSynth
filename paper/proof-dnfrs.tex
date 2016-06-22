@@ -1,125 +1,104 @@
 First we will prove some lemmas.
-
-\begin{lemma}
-\label{lem:sequence-builder-rx}
-If $\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
-\SequenceSep\Atom_n}}=\LanguageOf{\Regex}$
-and $\LanguageOf{\AtomAlt}=\LanguageOf{\RegexAlt}$,
-then $\LanguageOf{\SequenceOf{\StringAlt\SequenceSep\AtomAlt\SequenceSep
-\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}}=
-\LanguageOf{\StringAlt\Concat\RegexAlt\Concat\Regex}$.
-\end{lemma}
-\begin{proof}\leavevmode\\
-\begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\SequenceOf{\StringAlt\SequenceSep\AtomAlt\SequenceSep{}
-\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}} & = 
-\{\StringAlt\Concat\StringAlt'\Concat\String_0\Concat\String_0'\Concat\ldots\Concat\String_n'\Concat\String_n\\
-& \hspace{1em} \SuchThat{} \StringAlt'\in\LanguageOf{\AtomAlt}\BooleanAnd{}
-\String_i'\in\LanguageOf{\Atom_i}\}\\
-& =
-\{\StringAlt\Concat\StringAlt'\Concat\String\\
-& \hspace{1em} \SuchThat{}
-\StringAlt'\in\LanguageOf{\AtomAlt}\BooleanAnd{}
-\String\in\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
-\SequenceSep\Atom_n}}\\
-& =
-\{\StringAlt\Concat\StringAlt'\Concat\String\\
-& \hspace{1em} \SuchThat{}
-\StringAlt\in\LanguageOf{\StringAlt}\BooleanAnd{}
-\StringAlt'\in\LanguageOf{\RegexAlt}\BooleanAnd{}
-\String\in\LanguageOf{\Regex}\}\\
-& =
-\LanguageOf{\StringAlt\Concat\RegexAlt\Concat\Regex}
-\end{tabular}
-\end{proof}
-
 \begin{lemma}
 \label{lem:sequence-rx}
 Let $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
 \ldots\Atom_n\SequenceSep\String_n}$ be a sequence,
-and for each $\Atom_i$, there exists a regular expression, $\Regex_i$, such that
-$\LanguageOf{\Atom_i}=\Regex_i$.
-Then, there exists a regular expression $\Regex$, such that
-$\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
-\ldots\Atom_n\SequenceSep\String_n}}=\LanguageOf{\Regex}$.
+and $\ToDNFRegex(\ToRegex(\Atom_i))=\DNFOf{\SequenceOf{\Atom_i}}$.
+Then, $\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_n\SequenceSep\String_n}))=
+\DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_n\SequenceSep\String_n}}$.
 \end{lemma}
 \begin{proof}
 By induction on $n$.
 
 Let $n=0$.
 $\Sequence=\SequenceOf{\String_0}$.
-Consider the regular expression, $\String_0$.
-$\LanguageOf{\String_0}=\{\String_0\}=\LanguageOf{\SequenceOf{\String_0}}$
+$\ToDNFRegex(\ToRegex(\SequenceOf{\String_0}))=
+\ToDNFRegex(\String_0)=\DNFOf{\SequenceOf{\String_0}}$
 
 Let $n>0$,
 $\Sequence=\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
-\ldots\Atom_n\SequenceSep\String_n}$.
-By induction assumption, there exists a regular expression $\Regex'$ such that
-$\LanguageOf{\Regex'}=\LanguageOf{\String_1\SequenceSep\Atom_2\ldots
-\SequenceSep\Atom_n\String_n}$.
-By problem assumption, there exists a regular expression $\Regex_1$ such that
-$\LanguageOf{\Atom_1}=\LanguageOf{\Regex_1}$.
-Consider $\String_0\Concat\Regex_1\Concat\Regex'$.
-By Lemma~\ref{lem:sequence-builder-rx},
-$\LanguageOf{\String_0\Concat\Regex_1\Concat\Regex'}=
-\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_n\SequenceSep\String_n}$.  $\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_n\SequenceSep\String_n}))$
+$\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_{n-1}\SequenceSep\String_{n-1}})\Concat\ToRegex(\Atom_n)
+\Concat\String_n)$=
+$\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_{n-1}\SequenceSep\String_{n-1}}))
+\ConcatDNF
+\ToDNFRegex(\ToRegex(\Atom_n))
+\ConcatDNF
+\ToDNFRegex(\String_{n-1})$=
+$\DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+\ldots\Atom_{n-1}\SequenceSep\String_{n-1}}}
+\ConcatDNF
+\DNFOf{\SequenceOf{\Atom_n}}
+\ConcatDNF
+\DNFOf{\SequenceOf{\String_n}}$=
+$\DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
 \ldots\Atom_n\SequenceSep\String_n}}$.
 \end{proof}
 
 
 
 \begin{lemma}
-\label{lem:dnf-builder-rx}
-If $\LanguageOf{\DNFOf{\Sequence_2\DNFSep\ldots\DNFSep\Sequence_n}}
-=\LanguageOf{\Regex}$
-and $\LanguageOf{\Sequence_1}=\LanguageOf{\RegexAlt}$,
-then $\LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}=
-\LanguageOf{\RegexOr{\RegexAlt}{\Regex}}$.
-\end{lemma}
-\begin{proof}\leavevmode\\
-\begin{tabular}{@{}L@{}L@{}}
-\LanguageOf{\DNFOf{\Sequence_1\ldots\Sequence_n}} & = 
-\{\String\SuchThat{} \String\in\LanguageOf{\Sequence_i}
-\text{ for some $i\in\RangeIncInc{1}{n}$}\}\\
-& =
-\{\String\SuchThat{}
-\String\in\LanguageOf{\Sequence_1}\BooleanOr{}
-\String\in\LanguageOf{\Sequence_i}\\
-& \hspace{5em} 
-\text{ for some $i\in\RangeIncInc{2}{n}$}\}\\
-& =
-\{\String\SuchThat{}
-\String\in\LanguageOf{\RegexAlt}\BooleanOr{}
-\String\in\LanguageOf{\Regex}\}\\
-& = \LanguageOf{\RegexOr{\RegexAlt}{\Regex}}\\
-\end{tabular}
-\end{proof}
-
-\begin{lemma}
 \label{lem:dnf-rx}
-Let $\DNFOf{\Sequence_1\DNFSep\ldots\SequenceSep\Sequence_n}$ be a dnf regex,
-and for each $\Sequence_i$, there exists a regular expression, $\Regex_i$,
-such that $\LanguageOf{\Sequence_i}=\Regex_i$.
-Then, there exists a regular expression $\Regex$, such that
-$\LanguageOf{\DNFOf{\Sequence_1\DNFSep
-\ldots\DNFSep\Sequence_n}}=\LanguageOf{\Regex}$.
+Let $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ be a sequence,
+and $\ToDNFRegex(\ToRegex(\Sequence_i))=\DNFOf{\Sequence_i}$.
+Then, $\ToDNFRegex(\ToRegex(\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}))=
+\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$.
 \end{lemma}
 \begin{proof}
+
 By induction on $n$.
 
-Let $n=0$.  Consider $\emptyset$
-$\LanguageOf{\DNFOf{}}=\{\}=\LanguageOf{\emptyset}$.
+Let $n=0$
+$\ToDNFRegex(\ToRegex(\DNFOf{}))=\ToDNFRegex(\emptyset)=\DNFOf{}$.
 
-Let $n>0$.
-$\DNFRegex=\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$.
-By induction assumption, there exists a regular expression $\Regex'$ such that
-$\LanguageOf{\Regex'}=
-\LanguageOf{\DNFOf{\Sequence_2\DNFSep\ldots\DNFSep\Sequence_n}}$.
-By problem assumption, there exists a regular expression $\Regex_1$ such that
-$\LanguageOf{\Sequence_1}=\LanguageOf{\Regex_1}$.
-Consider $\RegexOr{\Regex_1}{\Regex'}$.
-By Lemma~\ref{lem:dnf-builder-rx},
-$\LanguageOf{\RegexOr{\Regex_1}{\Regex'}}=
-\LanguageOf{\DNFOf{\Sequence_1\DNFSep
-\ldots\Sequence_n}}$.
+Let $n>0$
+$\ToDNFRegex(\ToRegex(\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_n}))=
+\ToDNFRegex(\ToRegex(\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_{n-1}})
+\Concat\ToRegex(\Sequence_n))$=
+$\ToDNFRegex(\ToRegex(\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_{n-1}}))
+\ConcatDNF\ToDNFRegex(\ToRegex(\Sequence_n))$=
+$\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_n}$
+\end{proof}
+
+\begin{lemma}[Elimination of $\ToDNFRegex\Compose\ToRegex$]\leavevmode
+\begin{enumerate}
+\item $\ToDNFRegex(\ToRegex(\Atom))=\DNFOf{\SequenceOf{\Atom}}$
+\item $\ToDNFRegex(\ToRegex(\Sequence))=\DNFOf{\Sequence}$
+\item $\ToDNFRegex(\ToRegex(\DNFRegex))=\DNFRegex$
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+By mutual induction
+
+Let $\StarOf{\DNFRegex}$ be an atom.
+$\ToDNFRegex(\ToRegex(\StarOf{\DNFRegex}))=
+\ToDNFRegex(\StarOf{\ToRegex(\DNFRegex)})=
+\DNFOf{\SequenceOf{\StarOf{\ToDNFRegex(\ToRegex(\DNFRegex))}}}=
+\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$
+
+Let $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+\SequenceSep\Atom_n\SequenceSep\String_n}$ be a sequence.
+$\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+\SequenceSep\Atom_n\SequenceSep\String_n}))$.
+By induction assumption, for each $\Atom_i$,
+$\ToDNFRegex(\ToRegex(\Atom_i))=\DNFOf{\SequenceOf{\Atom_i}}$.
+By Lemma~\ref{lem:sequence-rx},
+$\ToDNFRegex(\ToRegex(\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+\SequenceSep\Atom_n\SequenceSep\String_n}))=
+\DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+\SequenceSep\Atom_n\SequenceSep\String_n}}$.
+
+Let $\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_n}$ be a DNF
+regular expression.
+By induction assumption, for each $\Sequence_i$,
+$\ToDNFRegex(\ToRegex(\Sequence_i))=\DNFOf{\Sequence_i}$.
+By Lemma~\ref{lem:dnf-rx},
+$\ToDNFRegex(\ToRegex(\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_n}))=
+\DNFOf{\Sequence_1\SequenceSep\ldots\SequenceSep\Sequence_n}$.
+
 \end{proof}
