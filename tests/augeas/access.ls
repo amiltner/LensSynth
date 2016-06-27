@@ -1,13 +1,11 @@
 #use "base.decls"
+#use "util.decls"
 
-typedef DELIMITED_STRING = (UPPERCASE | LOWERCASE | DIGIT | "\\\"" | " ")*;;
-typedef COMMENT_KVP = "\"#comment\" = \"" DELIMITED_STRING "\"";;
 
 typedef ACCESSTYPE = "+" | "-";;
 
 
-typedef STRING = (UPPERCASE | LOWERCASE | DIGIT | "\"" | " ")*;;
-
+typedef COMMENT_KVP = "\"#comment\"=\"" DELIMITED_STRING "\"";;
 typedef ORIGIN = (UPPERCASE | LOWERCASE | DIGIT | ":")+;;
 typedef ORIGIN_KV = "{ \"origin\" = \"" ORIGIN "\" }";;
 typedef ORIGIN_DICT = ("\n" ORIGIN_KV)*;;
@@ -34,7 +32,7 @@ typedef FULL_ACCESS_DICT = ((CONFIGACCESSDICT | COMMENT_KVP) "\n")*;;
 typedef CONFIG_STRING = (CONFIG_COMMENT "\n")*;;
 
 extract_comment = [CONFIG_COMMENT <=> COMMENT_KVP
-{"# here is a comment with \"quotes\"" <-> "\"#comment\" = \"here is a comment with \\\"quotes\\\"\""}]
+{"# here is a comment with \"quotes\"" <-> "\"#comment\"=\"here is a comment with \\\"quotes\\\"\""}]
 
 extract_netgroup = [("@" IDENTIFIER) <=> NETGROUPINFO
 {
@@ -54,4 +52,4 @@ extract_access = [FULLCONFIGACCESS <=> CONFIGACCESSDICT
 {"+ : anders anders@princeton @princeton : cron crond :0" <-> "{ \"access\" = \"+\"\n{ \"user\" = \"anders\" }\n{ \"user\" = \"anders\"\n	{ \"host\" = \"princeton\" } }\n{ \"netgroup\" = \"princeton\" }\n{ \"origin\" = \"cron\" }\n{ \"origin\" = \"crond\" }\n{ \"origin\" = \":0\" } }"}]
 
 extract_config = [FULL_ACCESS_CONFIG <=> FULL_ACCESS_DICT
-{"+ : anders anders@princeton @princeton : cron crond :0\n# here is a comment with \"quotes\"\n" <-> "{ \"access\" = \"+\"\n{ \"user\" = \"anders\" }\n{ \"user\" = \"anders\"\n	{ \"host\" = \"princeton\" } }\n{ \"netgroup\" = \"princeton\" }\n{ \"origin\" = \"cron\" }\n{ \"origin\" = \"crond\" }\n{ \"origin\" = \":0\" } }\n\"#comment\" = \"here is a comment with \\\"quotes\\\"\"\n"}]
+{"+ : anders anders@princeton @princeton : cron crond :0\n# here is a comment with \"quotes\"\n" <-> "{ \"access\" = \"+\"\n{ \"user\" = \"anders\" }\n{ \"user\" = \"anders\"\n	{ \"host\" = \"princeton\" } }\n{ \"netgroup\" = \"princeton\" }\n{ \"origin\" = \"cron\" }\n{ \"origin\" = \"crond\" }\n{ \"origin\" = \":0\" } }\n\"#comment\"=\"here is a comment with \\\"quotes\\\"\"\n"}]

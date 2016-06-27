@@ -1,13 +1,5 @@
 #use "base.decls"
-
-typedef ENV_VAR = (UPPERCASE | "_")*;;
-typedef LOCALFOLDER = (LOWERCASE | UPPERCASE | "_")*;;
-test LOCALFOLDER matches "my_username";;
-
-typedef FOLDER = ( (LOCALFOLDER "/")* LOCALFOLDER (. | "/") )
-		| ("${" ENV_VAR "}");;
-test FOLDER matches "my_username";;
-test FOLDER matches "${MY_HOME}";;
+#use "util.decls"
 
 typedef ACTIVEMQ_DICT = "{ }\n{ \"ACTIVEMQ_HOME\" = \"" FOLDER
 			"\" }\n{ \"ACTIVEMQ_BASE\" = \"" FOLDER
