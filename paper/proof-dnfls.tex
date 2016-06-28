@@ -5,20 +5,21 @@ We will prove a couple of lemmas first.
 
 \begin{lemma}[Creation of Lens from Identity Perm Sequence Lens]
 \label{lem:id-clause}
-Let $\Sequence=\SequenceOf{\String_0 ; \Atom_1 ; \ldots ; \Atom_n; \String_n}$,
-and $\SequenceAlt=\SequenceOf{\StringAlt_0 ; \AtomAlt_1 ; \ldots ; \AtomAlt_n ; \StringAlt_n}$.
-If $(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ; \ldots ;
-\AtomLens_n;(\String_n,\StringAlt_n)},id) \OfType
-\Sequence \Leftrightarrow \SequenceAlt$,
-and for each $\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$,
+Suppose
+\begin{enumerate}
+\item $\Sequence=\SequenceOf{\String_0 ; \Atom_1 ; \ldots ; \Atom_n; \String_n}$
+\item $\SequenceAlt=\SequenceOf{\StringAlt_0 ; \AtomAlt_1 ; \ldots ; \AtomAlt_n ; \StringAlt_n}$
+\item $(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ; \ldots ;
+	\AtomLens_n;(\String_n,\StringAlt_n)},id) \OfType
+	\Sequence \Leftrightarrow \SequenceAlt$
+\item For each $\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$,
 there exists a $\Lens_i \OfType \ToRegex(\Atom_i) \Leftrightarrow
-\ToRegex(\AtomAlt_i)$ such that \bcp{can't parse this}
+\ToRegex(\AtomAlt_i)$ such that $\SemanticsOf{\AtomLens_i} = \SemanticsOf{\Lens_i}$
+\end{enumerate}
 then there exists a $\Lens \OfType \ToRegex(\Sequence) \Leftrightarrow \ToRegex(\DNFRegexAlt)$ such that
 $\SemanticsOf{\Lens} =
-\SemanticsOf{(\SequenceLensOf{\AtomLens_1 ; \ldots ; \AtomLens_n},id)}$.
-\bcp{What happened to $(s_0,t_0)$ and $(s_n,t_n)$?}
+\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ; \ldots ; \AtomLens_n;(\String_n,\StringAlt_n)},id)}$.
 \begin{proof}
-
 By induction on $n$.
 
 Let $n=0$, $(\SequenceLensOf{(\String_0,\StringAlt_0)},id) \OfType
@@ -61,7 +62,7 @@ By induction assumption, there exists a typing derivation
 \end{mathpar}
 Satisfying $\SemanticsOf{\Lens}=
 \SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ;
-\ldots ; \AtomLens_n;(\String_n,\StringAlt_{n-1})},id)}$
+\ldots ; \AtomLens_{n-1};(\String_{n-1},\StringAlt_{n-1})},id)}$
 
 By problem statement, there exists a typing derivation
 \begin{mathpar}
@@ -96,7 +97,7 @@ Consider the following lens typing
 }
 {
 \ConcatLens{\Lens_{\AtomLens_n}}{\ConstLens{\String_n}{\StringAlt_n}}
-\OfType\\
+\OfType
 \ToRegex(\Atom_n)\Concat\String_n \Leftrightarrow
 \ToRegex(\AtomAlt_n)\Concat\StringAlt_n
 }
@@ -120,76 +121,93 @@ Consider the following lens typing
 {\Lens}
 {\ConcatLens{\Lens_{\AtomLens_n}}{\ConstLens{\String_n}{\StringAlt_n}}}
 \OfType\\
-\ToRegex(\Sequence)\Concat\ToRegex(\Atom_n)\Concat\String_n \Leftrightarrow\\
+\ToRegex(\Sequence)\Concat\ToRegex(\Atom_n)\Concat\String_n \Leftrightarrow
 \ToRegex(\SequenceAlt)\Concat\ToRegex(\AtomAlt_n)\Concat\StringAlt_n
 }
 \end{mathpar}
 
 \SemanticsOf{\ConcatLens
 {\Lens}
-{\ConcatLens{\Lens_{\AtomLens_n}}{\ConstLens{\String_n}{\StringAlt_n}}}}=\\
-\SetOf{(\String'\Concat\String''\String_n,\StringAlt'\Concat\StringAlt''\StringAlt_n)
+{\ConcatLens{\Lens_{\AtomLens_n}}{\ConstLens{\String_n}{\StringAlt_n}}}}\\
+\hspace*{3em}=\SetOf{(\String,\StringAlt)
 \SuchThat
+\String = \String'\Concat\String''\Concat\String_n\BooleanAnd
+\StringAlt = \StringAlt'\Concat\StringAlt''\Concat\StringAlt_n\BooleanAnd\\
+\hspace*{7em}
 (\String',\StringAlt')\in\SemanticsOf{\Lens}\BooleanAnd
-(\String'',\StringAlt'')\in\SemanticsOf{\Lens_{\AtomLens_n}}}=\\
-\SetOf{
-(\String_0\Concat\String_0'\Concat\ldots
+(\String'',\StringAlt'')\in\SemanticsOf{\Lens_{\AtomLens_n}}}\\
+\hspace*{3em}=\SetOf{
+(\String,\StringAlt)\SuchThat
+\String=
+\String_0\Concat\String_0'\Concat\ldots
 \Concat\String_{n-1}'\Concat\String_{n-1}
-\Concat \String_n \Concat \String_n'
-,
-\StringAlt_0\Concat\StringAlt_0'\Concat\ldots
+\Concat \String_n \Concat \String_n'\BooleanAnd\\
+\hspace*{7em}\StringAlt=\StringAlt_0\Concat\StringAlt_0'\Concat\ldots
 \Concat\StringAlt_{n-1}'\Concat\StringAlt_{n-1}
-\Concat \String_n \Concat \String_n')\SuchThat\\
-\hspace*{1em}\String_i'\in\Atom_i\BooleanAnd\StringAlt_i'\in\AtomAlt_i}=\\
-\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ;
+\Concat \StringAlt_n \Concat \StringAlt_n'\BooleanAnd\\
+\hspace*{7em}\String_i'\in\Atom_i\BooleanAnd\StringAlt_i'\in\AtomAlt_i}\\
+\hspace*{3em}=\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ;
 \ldots ; \AtomLens_n;(\String_n,\StringAlt_{n-1})},id)}
 \end{proof}
 \end{lemma}
 
-\begin{definition}[Adjacent Swapping Permutation]
-Let $\sigma_{i} \in S_n$ be the permutation where
-$\sigma_{i}(i) = i+1$, $\sigma_{i}(i+1) = i$, $\sigma_{i,j}(k\neq i,i+1) = k$
-\end{definition}
-
-\begin{theorem}[Unambiguity of Sep]
+\begin{theorem}[Unambiguity of $\Sep$]
 Given an alphabet, \Alphabet{}, we can expand the alphabet by adding in a different
 element, denoted \Sep{}.
-For any sequence of languages $\Language_1\in\StarOf{\Alphabet}$, \ldots,
-$\Language_n\in\StarOf{\Alphabet}$,\bcp{Always separate adjacent math
-  expressions by more than just punctuation.  Also, why is the $\Sep$ needed
-at the beginning and end?  Also, the next expression is hard to understand:
-are there concatenations between each pair of elements, or just between $i$
-and $i+1$ with ordinary concatenation elsewhere?}  $\Sep\Language_1\Sep\ldots\Sep\Language_i
-\UnambigConcat
-\Sep\Language_{i+1}\ldots\Sep\Language_n\Sep$.
+If $\Language_1, \ldots,
+\Language_n$, are languages in $\StarOf{\Alphabet}$, then
+$\UnambigConcat\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$,
+where $\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$ is the previous
+sequence with $\Sep{}$ separating each of the provided languages.
 \end{theorem}
 \begin{proof}
-We know\bcp{why?} that all of the string before the $i+1$st instance of $\Sep$ is
-part of the first, and the rest is part of the second.
+Let $\String_i, \StringAlt_i\in\Language_i$ for all $i\in\RangeIncInc{1}{n}$,
+and let $\Sep\String_1\Sep\ldots\Sep\String_n\Sep=\Sep\StringAlt_1\Sep\ldots\Sep\StringAlt_n\Sep$.
+Suppose for contradiction that it is not the case that $\String_i\neq\StringAlt_i$
+for all $i$.
+Let $i$ be the least index such that $\String_i\neq\StringAlt_i$.
+The strings before it are equal, so either $\String_i\subsetneq\StringAlt_i$ or
+$\StringAlt_i\subsetneq\String_i$.
+Without loss of generality, assume
+$\String_i\subsetneq\StringAlt_i$.  Because of this,
+$\String_i\Sep\subseteq\StringAlt_i$.
+However, $\Sep$ cannot be a character in $\StringAlt_i$ as
+$\Language_i\in\StarOf{\Language}$, and $\Sep\notin\Language$.
+Thusly, we have a contradiction, and $\String_i=\StringAlt_i$ for all
+$i\in\RangeIncInc{1}{n}$, so
+$\UnambigConcat\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$
 \end{proof}
 
+\begin{definition}[Adjacent Swapping Permutation]
+Let $\sigma_{i} \in S_n$ be the permutation where
+$\sigma_{i}(i) = i+1$, $\sigma_{i}(i+1) = i$, $\sigma_{i}(k) = k$
+when $k\neq i$, and $k\neq i+1$.
+\end{definition}
+
 \begin{lemma}[Expressibility of Adjacent Swapping Permutation Lens]
+\label{lem:adj-perm-exp}
 Let $\sigma_i$ be an adjacent element swapping permutation and
-$\SequenceOf{\Sep;\Atom_1;\ldots;\Atom_n;\Sep}$ be a sequence with $\Sep$ as
-the strings between atoms.
-There exists regular expressions $\Regex$ and $\RegexAlt$, and a lens $\Lens$,
-such that $\LanguageOf{\Regex}=\LanguageOf{[\Sep;\Atom_1;\ldots;\Atom_n;\Sep]}$,
+$\SequenceOf{\Atom_1;\Sep;\ldots;\Sep;\Atom_n}$ be a sequence with $\Sep$
+between the atoms.
+Then there exists regular expressions $\Regex$ and $\RegexAlt$, and a lens $\Lens$,
+such that $\LanguageOf{\Regex}=\LanguageOf{[\Atom_1;\ldots;\Atom_n]}$,
 $\LanguageOf{\RegexAlt}=\LanguageOf{[\Sep;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\Sep]}$, and
 $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
 with semantics
 $\SemanticsOf{\Lens}=
-\SetOf{(\Sep\Concat\String_1\Concat\ldots\Concat\String_n\Concat\Sep,
-\Sep\Concat\String_{\sigma_i(1)}\Concat\ldots\Concat\String_{\sigma_i(n)}\Concat\Sep)
+\SetOf{(\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n,
+\String_{\sigma_i(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma_i(n)})
 \SuchThat\String_i\in\LanguageOf{\Atom_i}}$
 \begin{proof}
 By the soundness of regular expressions, define
 $\Regex_1, \Regex_2, \Regex_3, \Regex_4$ as
-$\Regex_1=\ToRegex([\Sep;\Atom_1;\ldots;\Atom_{i-1};\Sep])$,
+$\Regex_1=\ToRegex([\Atom_1;\ldots;\Atom_{i-1};\Sep])$,
 $\Regex_2=\ToRegex(\Atom_i)$,
 $\Regex_3=\ToRegex(\Atom_{i+1})$, and
-$\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n};\Sep])$.
+$\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n}])$.
 Consider the following deduction\bcp{I find these deductions a bit heavy and
   hard to read, but I guess I can get used to them.  }
+\afm{Anybody have suggestions for better deduction package?}
 \begin{mathpar}
 
 \inferrule*[left=\Derivation{}]
@@ -198,18 +216,18 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLensShort \OfType \Sep \Leftrightarrow \Sep
+\IdentityLens \OfType \Sep \Leftrightarrow \Sep
 }
 \inferrule*
 {
 }
 {
-\IdentityLensShort \OfType \Regex_3 \Leftrightarrow \Regex_3
+\IdentityLens \OfType \Regex_3 \Leftrightarrow \Regex_3
 }
 }
 {
 \SwapLensShort{\IdentityLensShort}{\IdentityLensShort} \OfType 
-\String_i\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\String_i
+\Sep\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\String_i
 }
 
 \inferrule*[left=\Derivation{}']
@@ -218,13 +236,13 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLensShort \OfType \Regex_2 \Leftrightarrow \Regex_2
+\IdentityLens \OfType \Regex_2 \Leftrightarrow \Regex_2
 }\\
 \Derivation
 }
 {
-\SwapLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\IdentityLensShort}} \OfType
-\Regex_2\Concat\String_i\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\String_i\Concat\Regex_2
+\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}} \OfType
+\Regex_2\Concat\Sep\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\Sep\Concat\Regex_2
 }
 
 \inferrule*[left=\Derivation{}'']
@@ -233,13 +251,13 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLensShort \OfType \Regex_1 \Leftrightarrow \Regex_1
+\IdentityLens \OfType \Regex_1 \Leftrightarrow \Regex_1
 }\\
 \Derivation{}'
 }
 {
-\ConcatLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\IdentityLensShort}}} \OfType
-\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\String_i\Concat\Regex_2
+\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}} \OfType\\
+\Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2
 }
 
 
@@ -254,17 +272,17 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 }
 }
 {
-\ConcatLensShort{\ConcatLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\IdentityLensShort}}}}{\IdentityLensShort} \OfType\\
-\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\String_i\Concat\Regex_2\Concat\Regex_4
+\ConcatLensShort{\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}}}{\IdentityLens} \OfType\\
+\Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2\Concat\Regex_4
 }
 \end{mathpar}
 
-By inspection, the lens $
-\ConcatLensShort{\ConcatLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\SwapLensShort{\IdentityLensShort}{\IdentityLensShort}}}}{\IdentityLensShort} \OfType
-\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\String_i\Concat\Regex_2\Concat\Regex_4$
-satisfies $\LanguageOf{\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Sep;\Atom_1;\ldots;\Atom_n;\Sep}}$ and
+By inspection, the final lens\\
+$\ConcatLensShort{\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}}}{\IdentityLens} \OfType
+\Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2\Concat\Regex_4$
+satisfies $\LanguageOf{\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Atom_1;\Sep;\ldots;\Sep;\Atom_n}}$ and
 $\LanguageOf{\Regex_1\Concat\Regex_3\Concat\String_i\Concat\Regex_2\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Sep;\Atom_{\sigma_i(1)};\ldots;\Atom_{\sigma_i(n)};\Sep}}$
-and has the desired semantics.
+and has the desired semantics of swapping the strings at spots $i$ and $i+1$.
 \end{proof}
 \end{lemma}
 
@@ -273,12 +291,18 @@ and has the desired semantics.
 The language of lenses can express $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma)$
 for any permutation $\sigma$.
 \begin{proof}
-Let $\sigma$ be a permutation.
-Consider the clause lens\\ $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i})$.
+Let $\sigma$ be a permutation,
+and\\ $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i})$ be a dnf lens.
 From algebra, we know that the group of permutations is generated by all
 adjacent swaps $\sigma_i = (i,i+1)$.
 So there exists an adjacency swap decomposition of $\sigma = \sigma_{i_1}\ldots\sigma_{i_m}$.
-Consider the dnf lens\\ $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i_j})$ for each $\sigma_{i_j}$.
+By Lemma~\ref{lem:adj-perm-exp}, there exists a lens $\Lens_j : \Regex_j \Leftrightarrow \RegexAlt_j$
+such that
+$\SemanticsOf{\Lens_j}=TODO
+\SetOf{(\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n,
+\String_{\sigma_i(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma_i(n)})
+\SuchThat\String_i\in\LanguageOf{\Atom_i}}$
+Define the dnf lens $\DNFLens_j$ as $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i_j})$ for each $\sigma_{i_j}$.
 By the above lemma, there exists a $\Lens_j$ for each of these adjacency swaps.
 Consider the lens $\Lens = \ComposeLens{\Lens_{1}}{\ComposeLens{\Lens_{2}}{\ldots \ComposeLens{}{\Lens_{m}}}}$,
 with retypes put in where necessary to handle different associations.
