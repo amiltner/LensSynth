@@ -14,7 +14,7 @@ Suppose
 	\Sequence \Leftrightarrow \SequenceAlt$
 \item For each $\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$,
 there exists a $\Lens_i \OfType \ToRegex(\Atom_i) \Leftrightarrow
-\ToRegex(\AtomAlt_i)$ such that $\SemanticsOf{\AtomLens_i} = \SemanticsOf{\Lens_i}$
+\ToRegex(\AtomAlt_i)$ such that $\SemanticsOf{\Lens_i}=\SemanticsOf{\AtomLens_i}$
 \end{enumerate}
 then there exists a $\Lens \OfType \ToRegex(\Sequence) \Leftrightarrow \ToRegex(\DNFRegexAlt)$ such that
 $\SemanticsOf{\Lens} =
@@ -60,7 +60,7 @@ By induction assumption, there exists a typing derivation
 \Lens\OfType\ToRegex(\Sequence')\Leftrightarrow\ToRegex(\SequenceAlt')
 }
 \end{mathpar}
-Satisfying $\SemanticsOf{\Lens}=
+satisfying $\SemanticsOf{\Lens}=\\
 \SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ;
 \ldots ; \AtomLens_{n-1};(\String_{n-1},\StringAlt_{n-1})},id)}$
 
@@ -79,7 +79,8 @@ By problem statement, there exists a typing derivation
 \ToRegex(\Atom_{n}) \Leftrightarrow \ToRegex(\AtomAlt_{n})
 }
 \end{mathpar}
-satisfying $\SemanticsOf{\Lens_{\Atom_n}}=\SemanticsOf{\Atom_n}$.
+satisfying $\SemanticsOf{\Lens_{\Atom_n}}
+=\SemanticsOf{\Atom_n}$.
 
 Consider the following lens typing
 \begin{mathpar}
@@ -152,30 +153,31 @@ Consider the following lens typing
 \end{lemma}
 
 \begin{theorem}[Unambiguity of $\Sep$]
-Given an alphabet, \Alphabet{}, we can expand the alphabet by adding in a different
-element, denoted \Sep{}.
+Let $\Alphabet$ be an alphabet.  Let $\Alphabet_{\Sep}=\Alphabet\Union\SetOf{\Sep}$,
+where \Sep{} is a character not in \Alphabet{}.
 If $\Language_1, \ldots,
 \Language_n$, are languages in $\StarOf{\Alphabet}$, then
-$\UnambigConcat\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$,
-where $\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$ is the previous
-sequence with $\Sep{}$ separating each of the provided languages.
+$\UnambigConcat\SequenceOf{\LanguageOf{\Sep};\Language_1;\LanguageOf{\Sep};
+\ldots;\LanguageOf{\Sep};\Language_n;\LanguageOf{\Sep}}$.
 \end{theorem}
 \begin{proof}
+We prove this by induction on $n$.
+
+Let $n=0$.  $\UnambigConcat\SequenceOf{\LanguageOf{\Sep}}$, as
+$\UnambigConcat\SequenceOf{\Language}$, for any language $\Language$.
+
+Let $n>0$.
 Let $\String_i, \StringAlt_i\in\Language_i$ for all $i\in\RangeIncInc{1}{n}$,
 and let $\Sep\String_1\Sep\ldots\Sep\String_n\Sep=\Sep\StringAlt_1\Sep\ldots\Sep\StringAlt_n\Sep$.
-Suppose for contradiction that it is not the case that $\String_i\neq\StringAlt_i$
-for all $i$.
-Let $i$ be the least index such that $\String_i\neq\StringAlt_i$.
-The strings before it are equal, so either $\String_i\subsetneq\StringAlt_i$ or
-$\StringAlt_i\subsetneq\String_i$.
-Without loss of generality, assume
-$\String_i\subsetneq\StringAlt_i$.  Because of this,
-$\String_i\Sep\subseteq\StringAlt_i$.
-However, $\Sep$ cannot be a character in $\StringAlt_i$ as
-$\Language_i\in\StarOf{\Language}$, and $\Sep\notin\Language$.
-Thusly, we have a contradiction, and $\String_i=\StringAlt_i$ for all
-$i\in\RangeIncInc{1}{n}$, so
-$\UnambigConcat\SequenceOf{\Sep\Language_1\Sep\ldots\Sep\Language_n\Sep}$
+We want to show that $\String_n\Sep=\StringAlt_n\Sep$.
+If they were not equal, then one string is strictly contained in the other, say without
+loss of generality $\String_n\Sep$ is strictly contained in $\StringAlt_n\Sep$.
+Because of that $\Sep\String_n\Sep$ is contained in $\StringAlt_n\Sep$, so $\Sep$
+is contained in $\StringAlt_n\in\StarOf{\Sigma}$.  This is a contradiction,
+as $\Sep\notin\Sigma$, so we know $\String_n\Sep=\StringAlt_n\Sep$, and so $\String_n=\StringAlt_n$.
+This means that
+$\Sep\String_0\Sep\ldots\Sep\String_{n-1}\Sep=\Sep\StringAlt_0\Sep\ldots\Sep\StringAlt_{n-1}$,
+so by induction, I know $\String_i=\StringAlt_i$ for all $i$.
 \end{proof}
 
 \begin{definition}[Adjacent Swapping Permutation]
@@ -186,25 +188,29 @@ when $k\neq i$, and $k\neq i+1$.
 
 \begin{lemma}[Expressibility of Adjacent Swapping Permutation Lens]
 \label{lem:adj-perm-exp}
-Let $\sigma_i$ be an adjacent element swapping permutation and
-$\SequenceOf{\Atom_1;\Sep;\ldots;\Sep;\Atom_n}$ be a sequence with $\Sep$
-between the atoms.
-Then there exists regular expressions $\Regex$ and $\RegexAlt$, and a lens $\Lens$,
-such that $\LanguageOf{\Regex}=\LanguageOf{[\Atom_1;\ldots;\Atom_n]}$,
-$\LanguageOf{\RegexAlt}=\LanguageOf{[\Sep;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\Sep]}$, and
-$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
-with semantics
-$\SemanticsOf{\Lens}=
-\SetOf{(\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n,
-\String_{\sigma_i(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma_i(n)})
-\SuchThat\String_i\in\LanguageOf{\Atom_i}}$
+Suppose
+\begin{enumerate}
+\item $\sigma_i$ is an adjacent element swapping permutation
+\item $\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep}$ is a sequence with
+all base strings equal to $\Sep$.
+\end{enumerate}
+Then there exists a typing of a lens $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that
+\begin{enumerate}
+\item $\LanguageOf{\Regex}=\LanguageOf{[\Sep;\Atom_1;\ldots;\Atom_n;\Sep]}$
+\item $\LanguageOf{\RegexAlt}=\LanguageOf{[\Sep;\Atom_{\sigma_i(1)};\ldots;\Atom_{\sigma_i(n)};\Sep]}$
+\item $\SemanticsOf{\Lens}=
+\SetOf{(\String,\StringAlt)\SuchThat\String=\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n\Concat\Sep
+\BooleanAnd\\
+\hspace*{6em}\StringAlt=\Sep\Concat\String_{\sigma_i(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma_i(n)}\Sep\BooleanAnd\\
+\hspace*{6em}\String_i\in\LanguageOf{\Atom_i}}$
+\end{enumerate}
 \begin{proof}
-By the soundness of regular expressions, define
+By the soundness of regular expressions, define regular expressions
 $\Regex_1, \Regex_2, \Regex_3, \Regex_4$ as
-$\Regex_1=\ToRegex([\Atom_1;\ldots;\Atom_{i-1};\Sep])$,
+$\Regex_1=\ToRegex([\Sep;\Atom_1;\ldots;\Atom_{i-1};\Sep])$,
 $\Regex_2=\ToRegex(\Atom_i)$,
 $\Regex_3=\ToRegex(\Atom_{i+1})$, and
-$\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n}])$.
+$\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n};\Sep])$.
 Consider the following deduction\bcp{I find these deductions a bit heavy and
   hard to read, but I guess I can get used to them.  }
 \afm{Anybody have suggestions for better deduction package?}
@@ -216,17 +222,17 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLens \OfType \Sep \Leftrightarrow \Sep
+\IdentityLensOf{\Sep} \OfType \Sep \Leftrightarrow \Sep
 }
 \inferrule*
 {
 }
 {
-\IdentityLens \OfType \Regex_3 \Leftrightarrow \Regex_3
+\IdentityLensOf{\Regex_3} \OfType \Regex_3 \Leftrightarrow \Regex_3
 }
 }
 {
-\SwapLensShort{\IdentityLensShort}{\IdentityLensShort} \OfType 
+\SwapLens{\IdentityLensOf{\Sep}}{\IdentityLensOf{\Regex_3}} \OfType 
 \Sep\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\String_i
 }
 
@@ -236,12 +242,12 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLens \OfType \Regex_2 \Leftrightarrow \Regex_2
+\IdentityLensOf{\Regex_2} \OfType \Regex_2 \Leftrightarrow \Regex_2
 }\\
 \Derivation
 }
 {
-\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}} \OfType
+\SwapLens{\IdentityLensOf{\Regex_2}}{\SwapLensShort{\IdentityLensShortOf{\Sep}}{\IdentityLensShortOf{\Regex_3}}} \OfType
 \Regex_2\Concat\Sep\Concat\Regex_3 \Leftrightarrow \Regex_3\Concat\Sep\Concat\Regex_2
 }
 
@@ -251,12 +257,12 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLens \OfType \Regex_1 \Leftrightarrow \Regex_1
+\IdentityLensOf{\Regex_1} \OfType \Regex_1 \Leftrightarrow \Regex_1
 }\\
 \Derivation{}'
 }
 {
-\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}} \OfType\\
+\ConcatLens{\IdentityLensOf{\Regex_1}}{\SwapLensShort{\IdentityLensShortOf{\Regex_2}}{\SwapLensShort{\IdentityLensShortOf{\Sep}}{\IdentityLensShortOf{\Regex_3}}}} \OfType\\
 \Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2
 }
 
@@ -268,80 +274,238 @@ Consider the following deduction\bcp{I find these deductions a bit heavy and
 {
 }
 {
-\IdentityLens \OfType \Regex_4 \Leftrightarrow \Regex_4
+\IdentityLensOf{\Regex_4} \OfType \Regex_4 \Leftrightarrow \Regex_4
 }
 }
 {
-\ConcatLensShort{\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}}}{\IdentityLens} \OfType\\
+\ConcatLens{\ConcatLensShort{\IdentityLensShortOf{\Regex_1}}{\SwapLensShort{\IdentityLensShortOf{\Regex_2}}{\SwapLensShort{\IdentityLensShortOf{\Sep}}{\IdentityLensShortOf{\Regex_3}}}}}{\IdentityLensOf{\Regex_4}} \OfType\\
 \Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2\Concat\Regex_4
 }
 \end{mathpar}
 
-By inspection, the final lens\\
-$\ConcatLensShort{\ConcatLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\SwapLensShort{\IdentityLens}{\IdentityLens}}}}{\IdentityLens} \OfType
+By inspection, the final lens
+$\ConcatLensShort{\ConcatLensShort{\IdentityLensShortOf{\Regex_1}}{\SwapLensShort{\IdentityLensShortOf{\Regex_2}}{\SwapLensShort{\IdentityLensShortOf{\Sep}}{\IdentityLensShortOf{\Regex_3}}}}}{\IdentityLensShortOf{\Regex_4}} \OfType
 \Regex_1\Concat\Regex_2\Concat\Sep\Concat\Regex_3\Concat\Regex_4 \Leftrightarrow \Regex_1\Concat\Regex_3\Concat\Sep\Concat\Regex_2\Concat\Regex_4$
-satisfies $\LanguageOf{\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Atom_1;\Sep;\ldots;\Sep;\Atom_n}}$ and
+satisfies $\LanguageOf{\Regex_1\Concat\Regex_2\Concat\String_i\Concat\Regex_3\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Sep;\Atom_1;\Sep;\ldots;\Sep;\Atom_n;\Sep}}$ and
 $\LanguageOf{\Regex_1\Concat\Regex_3\Concat\String_i\Concat\Regex_2\Concat\Regex_4}=\LanguageOf{\SequenceOf{\Sep;\Atom_{\sigma_i(1)};\ldots;\Atom_{\sigma_i(n)};\Sep}}$
 and has the desired semantics of swapping the strings at spots $i$ and $i+1$.
 \end{proof}
 \end{lemma}
 
-\begin{lemma}[Expressibility of Permutation]
-\label{lem:perm-exp}
-The language of lenses can express $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma)$
-for any permutation $\sigma$.
+\begin{lemma}[Expressibility of Adjacent Swapping Permutation Composition]
+\label{lem:adj-comp-perm-exp}
+Suppose
+\begin{enumerate}
+\item $\sigma=\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m}$ 
+\item $\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep}$ is a sequence with
+all base strings equal to $\Sep$.
+\end{enumerate}
+Then there exists a typing of a lens $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that
+\begin{enumerate}
+\item $\LanguageOf{\Regex}=\LanguageOf{[\Sep;\Atom_1;\ldots;\Atom_n;\Sep]}$
+\item $\LanguageOf{\RegexAlt}=\LanguageOf{[\Sep;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\Sep]}$
+\item $\SemanticsOf{\Lens}=
+\SetOf{(\String,\StringAlt)\SuchThat\String=\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n\Concat\Sep
+\BooleanAnd\\
+\hspace*{6em}\StringAlt=\Sep\Concat\String_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma(n)}\Sep\BooleanAnd\\
+\hspace*{6em}\String_i\in\LanguageOf{\Atom_i}}$
+\end{enumerate}
 \begin{proof}
-Let $\sigma$ be a permutation,
-and\\ $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i})$ be a dnf lens.
-From algebra, we know that the group of permutations is generated by all
-adjacent swaps $\sigma_i = (i,i+1)$.
-So there exists an adjacency swap decomposition of $\sigma = \sigma_{i_1}\ldots\sigma_{i_m}$.
-By Lemma~\ref{lem:adj-perm-exp}, there exists a lens $\Lens_j : \Regex_j \Leftrightarrow \RegexAlt_j$
-such that
-$\SemanticsOf{\Lens_j}=TODO
-\SetOf{(\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n,
-\String_{\sigma_i(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma_i(n)})
-\SuchThat\String_i\in\LanguageOf{\Atom_i}}$
-Define the dnf lens $\DNFLens_j$ as $([(\Sep,\Sep) ; \IdentityLens ; \ldots ; \IdentityLens ; (\Sep,\Sep)], \sigma_{i_j})$ for each $\sigma_{i_j}$.
-By the above lemma, there exists a $\Lens_j$ for each of these adjacency swaps.
-Consider the lens $\Lens = \ComposeLens{\Lens_{1}}{\ComposeLens{\Lens_{2}}{\ldots \ComposeLens{}{\Lens_{m}}}}$,
-with retypes put in where necessary to handle different associations.
+By induction on $m$.
+
+Let $m=0$.  Then $\sigma=\Identity$.  Consider the lens
+$\IdentityLensOf{\ToRegex(\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep})} \OfType
+\ToRegex(\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep}) \Leftrightarrow
+\ToRegex(\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep})$.
+By inspection, this lens satisfies the requirements.
+
+Let $m>0$.  Let $\sigma'=\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_{m-1}}$.
+Let $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ be the lens obtained by an
+application of the induction assumption on $\sigma'$.
+Let $\Lens_m \OfType \RegexAlt' \Leftrightarrow \RegexAlt''$ be the lens obtained by
+an application of Lemma~\ref{lem:adj-perm-exp} to the permutation $\sigma_m$ and
+the sequence $\SequenceOf{\Sep;\Atom_{\sigma'(1)};\ldots;\Atom_{\sigma'(n)};\Sep}$.
+From the induction assumption and the previous lemmas,
+we know $\LanguageOf{\RegexAlt}=
+\LanguageOf{\SequenceOf{\Sep;\Atom_{\sigma'(1)};\ldots;\Atom_{\sigma'(n)};\Sep}}=
+\LanguageOf{\RegexAlt'}$.
+Consider the following Lens typing
+
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt
+}\\
+\LanguageOf{\RegexAlt}=\LanguageOf{\RegexAlt'}
+}
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt'
+}\\
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens_m \OfType \RegexAlt' \Leftrightarrow \RegexAlt''
+}
+}
+{
+\ComposeLens{\Lens_m}{\Lens} \OfType \Regex \Leftrightarrow \RegexAlt''
+}
+\end{mathpar}
+
+The language of \Regex{} is already as desired, and
+$\LanguageOf{\RegexAlt''}=
+\LanguageOf{\SequenceOf{\Sep;\Atom_{\sigma_m\Compose\sigma'(1)};\ldots;\Atom_{\sigma_m\Compose\sigma'(n)}}}=
+\LanguageOf{\SequenceOf{\Sep;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)}}}$, as desired.
+Furthermore, the composition of the lenses composes the permutations of strings,
+giving the semantics as desired.
 \end{proof}
 \end{lemma}
 
+\begin{lemma}[Expressibility of Adjacent Swapping Permutation Composition]
+\label{lem:perm-exp}
+Suppose
+\begin{enumerate}
+\item $\sigma$ is a permutation in $S_n$
+\item $\SequenceOf{\Sep;\Atom_1;\Sep\ldots\Sep;\Atom_n;\Sep}$ is a sequence with
+all base strings equal to $\Sep$.
+\end{enumerate}
+Then there exists a typing of a lens $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that
+\begin{enumerate}
+\item $\LanguageOf{\Regex}=\LanguageOf{[\Sep;\Atom_1;\ldots;\Atom_n;\Sep]}$
+\item $\LanguageOf{\RegexAlt}=\LanguageOf{[\Sep;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\Sep]}$
+\item $\SemanticsOf{\Lens}=
+\SetOf{(\String,\StringAlt)\SuchThat\String=\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_n\Concat\Sep
+\BooleanAnd\\
+\hspace*{6em}\StringAlt=\Sep\Concat\String_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\String_{\sigma(n)}\Sep\BooleanAnd\\
+\hspace*{6em}\String_i\in\LanguageOf{\Atom_i}}$
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+By algebra, any permutation can be expressed as the composition of adjacent swapping permutations.
+As such, $\sigma=\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m}$ for some adjacency swapping
+permutations $\sigma_{i_j}$.
+By Lemma~\ref{lem:adj-comp-perm-exp}, we obtain a lens with the properties desired.
+\end{proof}
+
 \begin{lemma}[Creation of Lens from Identity Perm DNF Lens]
 \label{lem:id-dnf}
-If $(\DNFLensOf{\SequenceLens_1 ; \ldots ; \SequenceLens_n},id) \OfType
-\DNFOf{\Sequence_1 ; \ldots ; \Sequence_n} \Leftrightarrow \DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_n}$,
-and for each $\SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i$,
-there exists a $\Lens_i \OfType \ToRegex(\Sequence_i) \Leftrightarrow \ToRegex(\SequenceAlt_i)$ such that
-$\SemanticsOf{\Lens_i} = \SemanticsOf{\SequenceLens_i}$,
-then there exists a $\Lens \OfType \ToRegex(\DNFOf{\Sequence_1 ; \ldots ; \Sequence_n}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_n})$ such that $\SemanticsOf{\Lens} = \SemanticsOf{([\SequenceLens_1 ; \ldots ; \SequenceLens_n],id)}$.
+Suppose
+\begin{enumerate}
+\item $\DNFRegex = \DNFOf{\Sequence_1 ; \ldots ; \Sequence_n}$
+\item $\DNFRegexAlt = \DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_n}$
+\item $(\DNFLensOf{\SequenceLens_1 ; \ldots ; \SequenceLens_n},id) \OfType
+\DNFRegex \Leftrightarrow \DNFRegexAlt$
+\item For each $\SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i$,
+there exists a $\Lens_i$ such that $\SemanticsOf{\Lens_i}=\SemanticsOf{\SequenceLens_i}$.
+\end{enumerate}
+then there exists a $\Lens \OfType \ToRegex(\DNFRegex) \Leftrightarrow \ToRegex(\DNFRegexAlt)$ such that $\SemanticsOf{\Lens} = \SemanticsOf{([\SequenceLens_1 ; \ldots ; \SequenceLens_n],id)}$.
 \begin{proof}
 By induction on n
 
 Let $n=0$.
-$\DNFLensOf{} \OfType \DNFOf{} \Leftrightarrow \DNFOf{}$.  Then consider $\Lens$ = $\IdentityLens$.
-\\
+$\DNFLensOf{} \OfType \DNFOf{} \Leftrightarrow \DNFOf{}$.  Then consider
+\begin{mathpar}
+\inferrule*
+{
+}
+{
+\IdentityLensOf{\ToRegex(\DNFOf{})} \OfType
+\ToRegex(\DNFOf{}) \Leftrightarrow \ToRegex(\DNFOf{})
+}
+\end{mathpar}
+This has the desired typing, and
+$\SemanticsOf{\IdentityLensOf{\ToRegex(\DNFOf{})}}
+=\SemanticsOf{\IdentityLensOf{\emptyset}}
+=\SetOf{}=\SemanticsOf{\DNFLensOf{}}$.
 
 Let $n>0$.
-By induction assumption, I know
-there exists a $\Lens \OfType \ToRegex(\DNFOf{\Sequence_1 ; \ldots ; \Sequence_n}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_n})$ such that
-$\SemanticsOf{\Lens} = \SemanticsOf{(\DNFLensOf{\SequenceLens_1 ; \ldots ; \SequenceLens_{n-1}},id)}$.
-By assumption, I know that there exists a $\Lens_{n} \OfType \ToRegex(\Sequence_{n}) \Leftrightarrow \ToRegex(\SequenceAlt_{n})$
-where $\SemanticsOf{\Lens_{n}}=\SemanticsOf{\SequenceLens_{n}}$.\\
-Consider the lens $\OrLens{\Lens}{\Lens_{n}} \OfType \RegexOr{\ToRegex(\DNFOf{\Sequence_1 ; \ldots ; \Sequence_{n-1}})}{\ToRegex(\Sequence_{n})} \Leftrightarrow \RegexOr{\ToRegex(\DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_{n-1}})}{\ToRegex(\SequenceAlt_{n})}$.\\
-by definition of $\ToRegex$, we know $\RegexOr{\ToRegex(\DNFOf{\Sequence_1 ; \ldots ; \Sequence_{n-1}})}{\ToRegex(\Sequence_{n})}=\ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_n})$, and $\RegexOr{\ToRegex(\DNFOf{\SequenceAlt_1 ; \ldots ; \SequenceAlt_{n-1}})}{\ToRegex(\SequenceAlt_{n})}=\ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n})$
-
-$\PutRightOf{\OrLens{\Lens}{\Lens_n}}=\SetOf{(\String,\StringAlt)\SuchThat
+Let $\DNFRegex' = \DNFOf{\Sequence_1;\ldots;\Sequence_{n-1}}$, and
+$\DNFRegexAlt' = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n-1}}$.
+By induction assumption, there exists a derivation of 
+$\Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')$.
+By problem statement, there exists a typing derivation
+$\Lens_n \OfType \ToRegex(\Sequence_n) \Leftrightarrow \ToRegex(\SequenceAlt_n)$
+Consider the following derivation
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')
+}\\
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens_n \OfType \ToRegex(\Sequence_n) \Leftrightarrow \ToRegex(\SequenceAlt_n)
+}
+}
+{
+\OrLens{\Lens_n}{\Lens} \OfType \RegexOr{\ToRegex(\DNFRegex')}{\ToRegex(\Sequence_n)} \Leftrightarrow \RegexOr{\ToRegex(\DNFRegexAlt')}{\ToRegex(\Sequence_n)}
+}
+\end{mathpar}
+$\SemanticsOf{\OrLens{\Lens}{\Lens_n}}=\SetOf{(\String,\StringAlt)\SuchThat
 (\String,\StringAlt)\in\Lens\BooleanOr(\String,\StringAlt)\in\Lens_n}$\\
-$=\SetOf{(\String,\StringAlt)\SuchThat
-(\String,\StringAlt)\in\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n-1}}
-\BooleanOr(\String,\StringAlt)\in\DNFLensOf{\SequenceLens_n}}$\\
-$=\SetOf{(\String,\StringAlt)\SuchThat
+\hspace*{4.6em}$=\SetOf{(\String,\StringAlt)\SuchThat
+(\String,\StringAlt)\in\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n-1}}\\
+\hspace*{8em}\BooleanOr(\String,\StringAlt)\in\DNFLensOf{\SequenceLens_n}}$\\
+\hspace*{4.6em}$=\SetOf{(\String,\StringAlt)\SuchThat
 (\String,\StringAlt)\in\SequenceLens_i}$.
 \end{proof}
 \end{lemma}
+
+\begin{lemma}[Ineffectiveness of Permutation on DNF Regex Semantics]
+\label{lem:dnfr-perm-sem-ineffective}
+Let $\sigma\in S_n$, and $\DNFOf{\Sequence_1\ldots\Sequence_n}$ be a DNF regex.
+$\LanguageOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}}=
+\LanguageOf{\DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}}$.
+\end{lemma}
+\begin{proof}
+By inspection.
+\end{proof}
+
+\begin{lemma}[Ineffectiveness of Permutation on DNF Lens Semantics]
+\label{lem:dnfl-perm-sem-ineffective}
+Let $\sigma\in S_n$, and
+$(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\Identity) \OfType
+\DNFOf{\Sequence_1;\ldots;\Sequence_n} \Leftrightarrow
+\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ be a typing of a DNF lens with
+an identity permutation.
+$\SemanticsOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\Identity)}
+=\SemanticsOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}$
+\end{lemma}
+\begin{proof}
+By inspection
+\end{proof}
 
 \begin{lemma}[Rewrites Respecting Language]
 \label{lem:rrl}
@@ -363,26 +527,93 @@ the regular expression star equivalences.
 \end{enumerate}
 \begin{proof}
 By mutual induction on the structure of the DNF Regex, Sequence, and
-Atom.\bcp{Huh?  Should be by (mutual) induction on DNF lens typing
-  derivations, no?  Also, the explanation (here, and everywhere) needs a lot
-  of polishing.}\\ 
+Atom lenses typing.\\ 
+\\
+Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ be formed from an
+application of\\$\DNFRewriteLensRule{}$.
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\DNFLens \OfType \DNFRegex' \Leftrightarrow \DNFRegexAlt'
+}\\
+\DNFRegex' \RewriteDNF \DNFRegex\\
+\DNFRegexAlt' \RewriteDNF \DNFRegexAlt
+}
+{
+\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
+}
+\end{mathpar}
+By induction assumption, there exists a
+$\Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')$,
+and from Lemma~\ref{lem:rrl}, we know
+$\LanguageOf{\DNFRegex}=\LanguageOf{\DNFRegex'}$, and
+$\LanguageOf{\DNFRegexAlt}=\LanguageOf{\DNFRegexAlt'}$.
+Consider the derivation
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')
+}\\
+\LanguageOf{\ToRegex(\DNFRegex')} = \LanguageOf{\ToRegex(\DNFRegex)}\\
+\LanguageOf{\ToRegex(\DNFRegexAlt')} = \LanguageOf{\ToRegex(\DNFRegexAlt)}
+}
+{
+\Lens \OfType \ToRegex(\DNFRegex) \Leftrightarrow \ToRegex(\DNFRegexAlt)
+}
+\end{mathpar}
+This has the desired typing, and by induction assumption, has the desired semantics.\\
 \\
 Let $(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma) \OfType \DNFOf{\Sequence_1;\ldots;\Sequence_n} \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$ be formed from an application of $\DNFLensRule$.
 By Induction assumption, for each $\SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i$ there exists a $\Lens_i \OfType \ToRegex(\Sequence_i) \Leftrightarrow \ToRegex(\SequenceAlt_i)$.\\
 By Lemma~\ref{lem:id-dnf} there exists a $\Lens \OfType \ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_{n}}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})$ such that $\SemanticsOf{\Lens}=\SemanticsOf{([\SequenceLens_1;\ldots\SequenceLens_n],id)}$,
-$\PutRightOf{([\SequenceLens_1;\ldots\SequenceLens_n],id)}=\PutRightOf{([\SequenceLens_1;\ldots\SequenceLens_n],\sigma)}$, as the order has no impact on the semantics of the lens.
-$\LanguageOf{[\SequenceAlt_1;\ldots;\SequenceAlt_n]}=\LanguageOf{[\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}]}$, as the order has no impact on the semantics of the DNF regular expression.
-As such, using retyping, there exists a lens
-$\Lens\OfType\ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) \Leftrightarrow \ToRegex(\DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}})$
-with
-$\SemanticsOf{\Lens}=\SemanticsOf{([\SequenceLens_1;\ldots\SequenceLens_n],\sigma)}$.\\
-\\
-Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ be formed from
-an application of DNF rewrite rules.  By Lemma~\ref{lem:rrl},
-we know that if $\DNFRegex\RewriteDNF\DNFRegex'$, then
-$\LanguageOf{\DNFRegex}=\LanguageOf{\DNFRegex'}$,
-so we can merely use the typing before the rewrite, and do a retype lens to
-$\ToRegex(\DNFRegex) \Leftrightarrow \ToRegex(\DNFRegexAlt)$.\\
+By Lemma~\ref{lem:dnfl-perm-sem-ineffective},
+$\SemanticsOf{(DNFOf{\SequenceLens_1;\ldots;\SequenceLens_n},id)}=
+\SemanticsOf{(\DNFOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}$.
+By Lemma~\ref{lem:dnfr-perm-sem-ineffective},
+$\LanguageOf{\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}=
+\LanguageOf{\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}}$.
+Consider the following typing
+
+\begin{mathpar}
+\inferrule*
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens \OfType \ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_{n}}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})
+}\\
+\LanguageOf{\ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})} =
+\LanguageOf{\ToRegex(\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}})}
+}
+{
+\Lens \OfType \ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_{n}}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}})
+}
+\end{mathpar}
+This has the typing and semantics as desired.\\
 \\
 Let there be a sequence, $(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma \in S_n) \OfType \SequenceOf{\String_0 ; \Atom_1 ; \ldots ; \Atom_n ; \String_n} \Leftrightarrow \SequenceOf{\StringAlt_0; \AtomAlt_{\sigma(1)} ; \ldots ; \AtomAlt_{\sigma(n)} ; \StringAlt_n}$
 From induction assumption, I know for each $\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$, there exists a $\Lens_i \OfType \Regex_i \Leftrightarrow \RegexAlt_i$ such that $\SemanticsOf{\AtomLens_i}=\SemanticsOf{\Lens_i}$, where $\Regex_i=\ToRegex(\Atom_i)$, and $\RegexAlt_i=\ToRegex(\AtomAlt_i)$,
@@ -437,10 +668,8 @@ There exists a lens $\Lens : \Regex \Leftrightarrow \RegexAlt$, such that
 $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{theorem}
 
-\begin{proof}\bcp{Same rules of grammar apply
-  to mathematical writing as ordinary english: subject/verb agreement (there
-exist X and Y vs. there exists X...), capitalization, punctuation, etc.}
-By Theorem~\ref{thm:dnfls}, there exists regular expressions $\Regex'$,
+\begin{proof}
+By Theorem~\ref{thm:dnfls}, there exist regular expressions $\Regex'$,
 $\RegexAlt'$, such that there exists a lens $\DNFLens$ such there is the
 derivation for a typing.
 \begin{mathpar}
