@@ -3,6 +3,88 @@
 
 We will prove a couple of lemmas first.
 
+\begin{lemma}[Expressibility of Safe Boilerplate Alterations]
+\label{lem:boilerplate-alterations}
+Suppose
+\begin{enumerate}
+\item $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$
+\item $\UnambigConcat\SequenceOf{\StringAlt_0;\Atom_1;\ldots;\Atom_n;\StringAlt_n}$
+\end{enumerate}
+Then there exists a lens
+$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that
+\begin{enumerate}
+\item $\Regex = \ToRegex(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n})$
+\item $\RegexAlt = \ToRegex(\SequenceOf{\StringAlt_0;\Atom_1;\ldots;\Atom_n;\StringAlt_n})$
+\item $\SemanticsOf{\Lens}=\SetOf{(\String,\StringAlt)\SuchThat
+\String=\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n
+\BooleanAnd\\
+\hspace*{6.1em}\StringAlt=\StringAlt_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\StringAlt_n
+\BooleanAnd\\
+\hspace*{6.1em}\String_i\in\LanguageOf{\Atom_i}}$
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+By induction on $n$.
+
+Let $n=0$.
+Consider the Lens
+\begin{mathpar}
+\inferrule*
+{
+}
+{
+\ConstLens{\String_0}{\StringAlt_0} \OfType \String_0 \Leftrightarrow \StringAlt_0
+}
+\end{mathpar}
+By inspection, this satisfies the desired properties.
+
+Let $n>0$.
+By induction, there exists a lens $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$
+satisfying the desired properties.
+Consider the lens
+\begin{mathpar}
+\inferrule*[left=\Derivation]
+{
+\inferrule*
+{
+\inferrule*[vdots=1.5em]
+{
+}
+{
+}
+}
+{
+\Lens \OfType \Regex \Leftrightarrow \RegexAlt
+}\\
+\inferrule*
+{
+}
+{
+\ConstLens{\String_n}{\StringAlt_n} \OfType \String_n \Leftrightarrow \StringAlt_n
+}
+}
+{
+\ConcatLens{\Lens}{\ConstLens{\String_n}{\StringAlt_n}}
+\OfType
+\Regex \Concat \String_n \Leftrightarrow
+\RegexAlt \Concat \StringAlt_n
+}
+
+\inferrule*
+{
+\Derivation\\
+\IdentityLensOf{\ToRegex(\Atom_n)} \OfType \ToRegex(\Atom_n) \Leftrightarrow \ToRegex(\Atom_n)
+}
+{
+\ConcatLens{\ConcatLens{\Lens}{\ConstLens{\String_n}{\StringAlt_n}}}{\IdentityLensOf{\ToRegex(\Atom_n)}}
+\OfType\\
+\Regex \Concat \String_n \Concat \ToRegex(\Atom_n) \Leftrightarrow
+\Regex \Concat \StringAlt_n \Concat \ToRegex(\Atom_n)
+}
+\end{mathpar}
+By inspection, this satisfies the desired properties.
+\end{proof}
+
 \begin{lemma}[Creation of Lens from Identity Perm Sequence Lens]
 \label{lem:id-clause}
 Suppose
@@ -615,6 +697,15 @@ Consider the following typing
 \end{mathpar}
 This has the typing and semantics as desired.\\
 \\
+Let $(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma \in S_n) \OfType \SequenceOf{\String_0 ; \Atom_1 ; \ldots ; \Atom_n ; \String_n} \Leftrightarrow \SequenceOf{\StringAlt_0; \AtomAlt_{\sigma(1)} ; \ldots ; \AtomAlt_{\sigma(n)} ; \StringAlt_n}$ be formed from an
+application of\\$\SequenceLensRule{}$.
+By induction assumption, for each
+$\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$ there exists a
+$\Lens_i \OfType \ToRegex(\Regex_i) \Leftrightarrow \ToRegex(\RegexAlt_i)$.
+By Lemma~\ref{lem:id-clause}, there exists a $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that $\SemanticsOf{\Lens}=\SemanticsOf{([(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)],id)}$,
+$\Regex=\ToRegex(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n})$, and
+$\RegexAlt=\ToRegex(\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n})$.
+
 Let there be a sequence, $(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma \in S_n) \OfType \SequenceOf{\String_0 ; \Atom_1 ; \ldots ; \Atom_n ; \String_n} \Leftrightarrow \SequenceOf{\StringAlt_0; \AtomAlt_{\sigma(1)} ; \ldots ; \AtomAlt_{\sigma(n)} ; \StringAlt_n}$
 From induction assumption, I know for each $\AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i$, there exists a $\Lens_i \OfType \Regex_i \Leftrightarrow \RegexAlt_i$ such that $\SemanticsOf{\AtomLens_i}=\SemanticsOf{\Lens_i}$, where $\Regex_i=\ToRegex(\Atom_i)$, and $\RegexAlt_i=\ToRegex(\AtomAlt_i)$,
 By Lemma~\ref{lem:id-clause}, there exists a $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ such that $\SemanticsOf{\Lens}=\SemanticsOf{([(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)],id)}$,
