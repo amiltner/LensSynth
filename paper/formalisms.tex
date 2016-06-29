@@ -202,7 +202,7 @@ shown in Figure~\ref{fig:regex-equivalence-rules}.
 \inferrule[\ConcatLensRule{}]
 {
 \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
 \UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
 \UnambigConcatOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
 }
@@ -213,7 +213,7 @@ shown in Figure~\ref{fig:regex-equivalence-rules}.
 \inferrule[\SwapLensRule{}]
 {
 \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
 \UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
 \UnambigConcatOf{\LanguageOf{\RegexAlt_2}}{\LanguageOf{\RegexAlt_1}}
 }
@@ -224,7 +224,7 @@ shown in Figure~\ref{fig:regex-equivalence-rules}.
 \inferrule[\OrLensRule{}]
 {
 \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
 \UnambigOrOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\ \UnambigOrOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
 }
 {
@@ -240,7 +240,7 @@ shown in Figure~\ref{fig:regex-equivalence-rules}.
 \ComposeLens{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
 }
 
-\inferrule[\RetypeLensRule{}]
+\inferrule[\RewriteRegexLensRule{}]
 {
 \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
 \Regex_1 \equiv \Regex_1'\\
@@ -275,6 +275,8 @@ well defined when the term is well typed.
 
 These lenses can be synthesized from types and examples through an enumeration
 of programs of the desired typing.
+We would like to enumerate all of the lenses that satisfy the desired typing
+until we find one that satisfies the examples.
 Through enumeration of the programs that satisfy the desired typing, eventually
 one that satisfies the examples will be found.
 The strict typing of these programs allows for enumeration by creating
@@ -315,8 +317,14 @@ $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\S
 \label{fig:dnf-regex-semantics}
 \end{figure}
 
-
-A DNF regular esxpression is, intuitively, a regular expression with
+When attempting to synthesize a lens, one would be able to synthesize the lens
+in a type directed fashion, were it not for \RewriteRegexLensRule{}.
+Because of that, the job of synthesis is made easier if there is less of a use
+for \RewriteRegexLensRule{}.
+A good way to minimize the impact of this rule is to make more
+regular expressions equivalent.  This is done by putting the regular expressions
+into a normal form called DNF regular expressions.
+A DNF regular expression is, intuitively, a regular expression with
 distributivity applied wherever possible, causing outer layer of \Or{} operations,
 with a sequences of \Concat{} operations being operated on by the \Or{} operations.
 Furthermore, because of the associativity of \Or{} and \Concat{}, we
@@ -325,7 +333,7 @@ Furthermore, we can further simplify by requiring the
 and with base string regular expressions to always appear at fixed locations,
 utilizing the fact that $\EmptyString{}$ is the $\Concat$ identity, and
 the ability to combine strings.
-The syntax of this language is formalized in Figure~\ref{fig:dnf-regex-syntax}.
+The syntax of the language of DNF regular expressions is formalized in Figure~\ref{fig:dnf-regex-syntax}.
 The shorthand $\DNFOf{\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}}$
 stands for
 $\DNFOf{\SequenceOf{\EmptyString\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\EmptyString}}$.
@@ -341,8 +349,9 @@ The clause corresponds to the concatenated data, and is a concatenation of the
 fixed data of base strings, and the iterated data of stars.
 Finally is the atom, which is a star.
 The iteration in atoms correspond to the iteration that takes place in normal stars.
-There is no fixed way to break the choices of this into the clause,
-as there is an arbitrarily large number of choices made in the stars.
+There is no fixed way to break the choices of the iteration into the clause,
+as there is an arbitrarily large number of choices made in the stars, proceed
+in the iteration to stop iteration.
 This intuition is formalized by the semantics, given in
 Figure~\ref{fig:dnf-regex-semantics}.
 
@@ -373,11 +382,12 @@ $\RepeatDNFOf{n}{\DNFRegex}=\ConcatDNFOf{\DNFRegex}{\RepeatDNFOf{n-1}{\DNFRegex}
 \label{fig:dnf-regex-functions}
 \end{figure}
 
-A dnf regular expression can be created from a regular expression through repeated
+A DNF regular expression can be created from a regular expression through repeated
 application of the distributivity rule, and through removal of association information.
-To do this, Some functions need to be defined on DNF regular expressions,
-which we define in Figure~\ref{fig:dnf-regex-functions}.
-From this, \ToDNFRegex{}, a function which converts a regular expression into
+To create a DNF regular expresion from a regular expression,
+some functions need to be defined on DNF regular expressions,
+which are defined in Figure~\ref{fig:dnf-regex-functions}.
+From these functions, \ToDNFRegex{}, a function which converts a regular expression into
 an equivalent DNF regular expression, can be defined.
 
 \begin{definition}
@@ -423,9 +433,9 @@ $\ToDNFRegex(\ToRegex(\DNFRegex)) = \DNFRegex$
 \end{restatable}
 \input{proof-dnfrs}
 
-A reasonable approach to further normalizing this is to attempt to minimize the
+A reasonable approach to further normalizing a DNF regular expression is to attempt to minimize the
 regular expression as much as possible, using the star laws.
-Unfortunately, this doesn't work
+Unfortunately, this strategy doesn't work
 well for finding lenses.  For example, there is clearly a lens of type
 $\MapsBetweenTypeOf{\RegexOr{\EmptyString}{(\RegexConcat{a}{\StarOf{a}})}}{\RegexOr{b}{(\RegexConcat{c}{\StarOf{d}})}}$,
 namely $\OrLens{\ConstLens{\EmptyString}{a}}{\ConcatLens{\ConstLens{a}{b}}{\IterateLens{\ConstLens{a}{d}}}}$.
@@ -675,7 +685,7 @@ expressions can be defined.
 The syntax is defined in Figure~\ref{fig:dnf-lens-syntax}.
 Similarly to the language of lenses, the typing of the lenses
 correspond closely to the syntax for the lenses themselves.
-The typing and semantics of these dnf lenses are defined in Figure~\ref{fig:dnf-lens-semantics}.
+The typing and semantics of these DNF lenses are defined in Figure~\ref{fig:dnf-lens-semantics}.
 Intuitively, a DNF Regex Lens corresponds roughly to an n-ary version of an or lens,
 a Sequence Lens corresponds to const lenses for the strings, and a combination of
 Concat and Swap lenses for the Atoms.
