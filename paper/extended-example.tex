@@ -1,0 +1,34 @@
+\section{Extended Example}
+
+Consider building a lens which converts between between citations given
+in EndNote format, and in BibTex format.  For simplicity, we are only
+considering the author and title fields.  The synthesis problem for these
+two regular expressions is provided below.
+
+\begin{lstlisting}
+Name = [A-Z][a-z]*
+Initial = [A-Z] "."
+Word = ([A-Z] | [a-z] | "-" | "," | ":")+
+Title = Word (" " Word)*
+
+LastCommaFirstName = Name", " Name
+		(" " (NAME | Initial))*
+Type = "@inproceedings" | "@article" | "@book"
+BibTex = Type "{" Word ","
+	("" | ("title={" Title "},"))
+	("" | ("author={" LastCommaFirstName
+		(" and " LastCommaFirstName)* "},"))
+
+FullName = Name (" " (Name | Initial))*
+	(" " Name)
+Class = "Conference Paper" | "Journal Article"
+	| "Book"
+EndNote = "%0 " Class "\n"
+	("%A " FullName "\n")*
+	("" | "%T TITLE")
+	"%1 " Word "\n"
+
+BibEndConv : BibTex <=> EndNote = ?
+\end{lstlisting}
+
+We are trying to synthesize \BibEndConv{}.
