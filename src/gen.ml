@@ -593,7 +593,7 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' re
                         e_o_r2 in
 
                       let (r1',r2') = if got_something then
-                          (dnf_regex_to_regex dr1',dnf_regex_to_regex dr2')
+                          (smart_dnf_regex_to_regex dr1',smart_dnf_regex_to_regex dr2')
                       else
                         (r1',r2')
                       in

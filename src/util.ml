@@ -436,8 +436,53 @@ let rec insert_into_correct_list ((k,v):'a * 'b) (l:('a * 'b list) list)
   | [] -> failwith "bad list"
   end
 
-let rec tagged_list_tree_factored (tltl:('a,'b) tagged_list_tree) list
-    : ('a list,'b) tagged_list_tree list =
-      []
+let rec append_into_correct_list ((k,v):'a * 'b list) (l:('a * 'b list) list)
+    : ('a * 'b list) list =
+  begin match l with
+  | ((k',vlist)::kvplist) ->(append_into_correct_list (k,v) kvplist)
+  | [] -> failwith "bad list"
+  end
+
+let rec group_by_values (l:('a list * 'b) list) : ('a list * 'b) list =
+  let empty_value_list = List.dedup (List.map ~f:(fun v -> (snd v,[])) l) in
+  let l' = List.fold_left
+  ~f:(fun acc (k,v) ->
+    append_into_correct_list (v,k) empty_value_list)
+  ~init:empty_value_list
+  l
+  in
+  List.map ~f:(fun (x,y) -> (y,x)) l'
 
 
+
+
+let rec tagged_list_tree_keygrouped (tlt:('a,'b) tagged_list_tree) : ('a
+list,'b) tagged_list_tree =
+  begin match tlt with
+  | Leaf v -> Leaf v
+  | Node (k,tltl) ->
+      let is_noded = (begin match List.hd_exn tltl with
+          | Leaf _ -> false
+          | Node _ -> true
+      end) in
+      let tltl' = List.map ~f:tagged_list_tree_keygrouped tltl in
+      if is_noded then
+        let kvps = List.map ~f:(fun tlt -> begin match tlt with
+                    | Leaf _ -> failwith "bad"
+                    | Node (k,tltl) -> (k,tltl)
+                    end) tltl' in
+        let kvpg = group_by_values kvps in
+        let as_nodes = List.map ~f:(fun (k,tltl) -> Node (k,tltl)) kvpg in
+        Node ([k],as_nodes)
+      else
+        Node ([k],tltl')
+  end
+
+and handle_noded_tltl (tltl:('a list,'b) tagged_list_tree list) : ('a list,'b)
+tagged_list_tree list =
+  let kvps = List.map ~f:(fun tlt -> begin match tlt with
+              | Leaf _ -> failwith "bad"
+              | Node (k,tltl) -> (k,tltl)
+              end) tltl in
+  let kvpg = group_by_values kvps in
+  List.map ~f:(fun (k,tltl) -> Node (k,tltl)) kvpg
