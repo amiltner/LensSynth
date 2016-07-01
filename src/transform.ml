@@ -26,6 +26,8 @@ float =
   let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
     : ((string * int) Counters.t) * float =
       begin match r with
+      | RegExMappedUserDefined _ -> Counters.create comparison_compare,1.0
+      | RegExEmpty -> (Counters.create comparison_compare,0.0)
       | RegExBase _ -> (Counters.create comparison_compare,1.0)
       | RegExUserDefined s ->
             (Counters.add
@@ -124,9 +126,9 @@ let retrieve_priority (r1:regex) (r2:regex) (expansions_preformed:int): float =
     (calculate_userdef_distribution r1)) )in
   let userdef_dist_r2 = Counters.as_ordered_assoc_list (fst (
     (calculate_userdef_distribution r2)) )in
-  let ans = (retrieve_priority_internal
+  let ans = ((retrieve_priority_internal
     userdef_dist_r1
-    userdef_dist_r2)
+    userdef_dist_r2) *. 2.0)
     +. ((Float.of_int (abs ((or_size r1) - (or_size r2))))) in
   (*print_endline (Float.to_string ans);
   print_endline (Float.to_string ((retrieve_priority_internal
@@ -149,7 +151,7 @@ let retrieve_priority (r1:regex) (r2:regex) (expansions_preformed:int): float =
     userdef_dist_r1
     userdef_dist_r2)));*)
         (*print_endline ("total:" ^ (Float.to_string ans));*)
-  ans +. (Float.of_int expansions_preformed)
+  ans +. (Float.of_int (expansions_preformed*8))
 
 let rec quotiented_star (r:regex) (n:int) : regex =
   if n < 1 then
@@ -198,6 +200,8 @@ let rec expand_stars (transformation:regex -> regex) (r:regex) : regex list =
       relevant_primes in*)
   let rec expand_stars_internal (r:regex) : regex list =
     begin match r with
+    | RegExMappedUserDefined _ -> []
+    | RegExEmpty -> []
     | RegExBase _ -> []
     | RegExConcat (r1,r2) ->
         let r1_expansions = expand_stars_internal r1 in
@@ -230,6 +234,8 @@ let rec expand_stars (transformation:regex -> regex) (r:regex) : regex list =
 let rec expand_userdefs (c:context) (r:regex)
                             : regex list =
   begin match r with
+  | RegExMappedUserDefined _ -> []
+  | RegExEmpty -> []
   | RegExBase _ -> []
   | RegExConcat (r1,r2) ->
       let r1_expansions = expand_userdefs c r1 in
@@ -266,6 +272,8 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
                             : (regex * regex) option =
   let rec retrieve_transitive_userdefs (r:regex) : string list =
     begin match r with
+    | RegExMappedUserDefined _ -> []
+    | RegExEmpty -> []
     | RegExBase _ -> []
     | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
         (retrieve_transitive_userdefs r2)
@@ -283,6 +291,8 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
                                  (r:regex)
                                  : regex option =
     begin match r with
+    | RegExMappedUserDefined _ -> Some r
+    | RegExEmpty -> Some r
     | RegExBase _ -> Some r
     | RegExConcat (r1,r2) -> 
         begin match (expand_required_expansions bad_userdefs r1,
@@ -333,7 +343,7 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
   | _ -> None
   end
 
-let rec expand_once (max_size:int) (c:context) (r1:regex) (r2:regex)
+let rec expand_once (max_size:int) (c:context) (mc:mapsbetweencontext) (r1:regex) (r2:regex)
 (expansions_preformed:int)
                             : (queue_element * float) list =
   let retrieve_expansions_from_transform (transform:regex -> regex list):
@@ -360,7 +370,7 @@ let rec expand_once (max_size:int) (c:context) (r1:regex) (r2:regex)
     ((r1,r2):regex*regex)
     : queue_element * float =
       (QERegexCombo
-        (r1,r2,expansions_preformed+1),
+        (r1,r2,expansions_preformed+1,mc),
         (retrieve_priority r1 r2 expansions_preformed))
   in
 
@@ -394,11 +404,12 @@ let rec expand_once (max_size:int) (c:context) (r1:regex) (r2:regex)
 let rec retrieve_transformation_queue_elements
         (max_size:int)
         (c:context)
+        (mc:mapsbetweencontext)
         (r1:regex)
         (r2:regex)
         (expansions_preformed:int)
         : (queue_element * float) list =
-    (expand_once max_size c r1 r2 expansions_preformed)
+    (expand_once max_size c mc r1 r2 expansions_preformed)
   (*let max_size = max (size r1) (size r2) in
   let splits = List.map ~f:(fun m -> (m,n-m)) (range 0 n) in
   List.concat_map
@@ -689,6 +700,41 @@ let rec simplify_lens (l:lens) : lens =
   if ans = l then
     ans else 
   simplify_lens ans
+
+let rec iteratively_deepen (r:regex) : regex * context =
+  begin match r with
+  | RegExMappedUserDefined _ -> (r,[])
+  | RegExEmpty -> (r,[])
+  | RegExBase _ -> (r,[])
+  | RegExConcat (r1,r2) ->
+      let (r1',c1) = iteratively_deepen r1 in
+      let (r2',c2) = iteratively_deepen r2 in
+      let regex_definition = RegExConcat(r1',r2') in
+      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
+      let context = merge_contexts c1 c2 in
+      let context = (regex_variable,regex_definition)::context in
+      (RegExUserDefined regex_variable,context)
+  | RegExOr (r1,r2) ->
+      let (r1',c1) = iteratively_deepen r1 in
+      let (r2',c2) = iteratively_deepen r2 in
+      let regex_definition = RegExOr(r1',r2') in
+      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
+      let context = merge_contexts c1 c2 in
+      let context = (regex_variable,regex_definition)::context in
+      (RegExUserDefined regex_variable,context)
+  | RegExStar r' ->
+      let (r'',c) = iteratively_deepen r' in
+      let regex_definition = RegExStar r'' in
+      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
+      let context = (regex_variable,regex_definition)::c in
+      (RegExUserDefined regex_variable,context)
+  | RegExUserDefined t ->
+      (r,[])
+  end
+
+let rec ordered_exampled_dnf_regex_to_regex
+    (r:ordered_exampled_dnf_regex) : regex =
+  dnf_regex_to_regex (ordered_exampled_dnf_regex_to_dnf_regex r)
 
 
 

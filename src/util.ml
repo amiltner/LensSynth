@@ -33,6 +33,13 @@ let comparison_compare = fun x y -> int_to_comparison (compare x y)
 let compare_ints (n1:int) (n2:int) : comparison =
   int_to_comparison (compare n1 n2)
 
+let pp_comparison (c:comparison) : string =
+  begin match c with
+  | EQ -> "EQ"
+  | LT -> "LT"
+  | GT -> "GT"
+  end
+
 type ('a, 'b) either =
     Left of 'a
   | Right of 'b
@@ -386,5 +393,51 @@ let pairwise_maintain_invariant
         l2)
     l1
 
+let rec zip_nondist (xs:'a list) (ys:'b list) : (('a option * 'b option) list) =
+  begin match (xs,ys) with
+  | (x::xs,y::ys) -> (Some x, Some y)::(zip_nondist xs ys)
+  | ([],_) -> List.map ~f:(fun y -> (None, Some y)) ys
+  | (_,[]) -> List.map ~f:(fun x -> (Some x, None)) xs
+  end
+
+let rec zip_with  (xs:'a list)
+                  (ys:'b list)
+                  (f_match:'a -> 'b -> 'c)
+                  (unmatch_left:'a -> 'c)
+                  (unmatch_right:'b -> 'c)
+                  : 'c list =
+  begin match (xs,ys) with
+  | (h1::t1,h2::t2) ->
+      (f_match h1 h2)::(zip_with t1 t2 f_match unmatch_left unmatch_right)
+  | (_,[]) -> List.map ~f:unmatch_left xs
+  | ([],_) -> List.map ~f:unmatch_right ys
+  end
+
+
+let rec assoc_value_mem (value:'b) (l:('a * 'b) list) : 'a option =
+  begin match l with
+  | (k,v)::t -> if value = v then Some k else assoc_value_mem value t
+  | [] -> None
+  end
+
+
+type ('a,'b) tagged_list_tree =
+  | Leaf of 'b
+  | Node of 'a * ((('a,'b) tagged_list_tree) list)
+
+let rec insert_into_correct_list ((k,v):'a * 'b) (l:('a * 'b list) list)
+    : ('a * 'b list) list =
+  begin match l with
+  | ((k',vlist)::kvplist) ->
+      if k = k' then
+        (k',v::vlist)::kvplist
+      else
+        (k',vlist)::(insert_into_correct_list (k,v) kvplist)
+  | [] -> failwith "bad list"
+  end
+
+let rec tagged_list_tree_factored (tltl:('a,'b) tagged_list_tree) list
+    : ('a list,'b) tagged_list_tree list =
+      []
 
 

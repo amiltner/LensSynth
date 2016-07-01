@@ -9,11 +9,13 @@ exception Internal_error of string
 let internal_error f s = raise @@ Internal_error (sprintf "(%s) %s" f s)
 
 type regex =
+  | RegExEmpty
   | RegExBase of string
   | RegExConcat of regex * regex
   | RegExOr of regex * regex
   | RegExStar of regex
   | RegExUserDefined of string
+  | RegExMappedUserDefined of int
 
 type examples = (string * string) list
 
@@ -34,21 +36,6 @@ type synth_problems = (string * regex * bool) list * (specification list)
 
 type synth_problem = (context * evaluation_context * string * regex * regex * (string * string) list)
 
-type unioned_subex = concated_subex list
-
-and concated_subex = basis_subex list
-
-and basis_subex =
-  | NRXBase of string
-  | NRXStar of unioned_subex
-  | NRXUserDefined of string
-
-type normalized_regex = unioned_subex
-
-type normalized_synth_problem = ((string * normalized_regex) list)
-                                * normalized_regex * normalized_regex
-                                * (string * string) list
-
 let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
   let e_c = List.map ~f:(fun (t,d,_) -> (t,d)) ds in
   let c = List.filter_map
@@ -60,23 +47,10 @@ let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
     ds in
   List.map ~f:(fun (n,r1,r2,exl) -> (c,e_c,n,r1,r2,exl)) ss
 
-let rec to_normalized_exp (r:regex) : normalized_regex =
-  begin match r with
-  | RegExBase c -> [[NRXBase c]]
-  | RegExConcat (r1,r2) ->
-      cartesian_map (@) (to_normalized_exp r1) (to_normalized_exp r2)
-  | RegExOr (r1,r2) -> (to_normalized_exp r1) @ (to_normalized_exp r2)
-  | RegExStar (r') -> [[NRXStar (to_normalized_exp r')]]
-  | RegExUserDefined s -> [[NRXUserDefined s]]
-  end
-
-let rec to_normalized_synth_problem ((c,e_c,n,r1,r2,es):synth_problem)
-: normalized_synth_problem =
-  (List.map ~f:(fun (s,r) -> (s, to_normalized_exp r)) c, to_normalized_exp r1, to_normalized_exp r2, es)
-
 
 
 type atom =
+  | AMappedUserDefined of int
   | AUserDefined of string
   | AStar of dnf_regex
 
@@ -125,6 +99,8 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
     [([a],["";""])]
   in
   begin match r with
+  | RegExMappedUserDefined t -> atom_to_dnf_regex (AMappedUserDefined t)
+  | RegExEmpty -> []
   | RegExBase c -> [([],[c])]
   | RegExConcat (r1,r2) ->
       cartesian_map
@@ -139,6 +115,10 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
 
 let rec compare_atoms (a1:atom) (a2:atom) : comparison =
   begin match (a1,a2) with
+  | (AMappedUserDefined s1, AMappedUserDefined s2) ->
+      int_to_comparison (compare s1 s2)
+  | (AMappedUserDefined _, _) -> LT
+  | (_, AMappedUserDefined _) -> GT
   | (AUserDefined s1, AUserDefined s2) -> int_to_comparison (compare s1 s2)
   | (AUserDefined  _, AStar         _) -> LT
   | (AStar         _, AUserDefined  _) -> GT
@@ -152,6 +132,7 @@ and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
   ordered_partition_order compare_clauses r1 r2
 
 type exampled_atom =
+  | EAMappedUserDefined of int * string list * int list list
   | EAUserDefined of string * string list * int list list
   | EAStar of exampled_dnf_regex * int list list
 
@@ -160,22 +141,27 @@ and exampled_clause = (exampled_atom) list * string list * (int list list)
 and exampled_dnf_regex = exampled_clause list * int list list
 
 type exampled_regex =
+  | ERegExEmpty
   | ERegExBase of string * (int list list)
   | ERegExConcat of exampled_regex * exampled_regex * (int list list)
   | ERegExOr of exampled_regex  * exampled_regex * (int list list)
   | ERegExStar of exampled_regex * (int list list)
   | ERegExUserDefined of string * string list * (int list list)
+  | ERegExMappedUserDefined of int * string list * (int list list)
 
 let rec extract_example_list (er:exampled_regex) : int list list =
   begin match er with
+  | ERegExEmpty -> []
   | ERegExBase (_,il) -> il
   | ERegExConcat (_,_,il) -> il
   | ERegExOr (_,_,il) -> il
   | ERegExStar (_,il) -> il
   | ERegExUserDefined (_,_,il) -> il
+  | ERegExMappedUserDefined (_,_,il) -> il
   end
 
 type ordered_exampled_atom =
+  | OEAMappedUserDefined of int
   | OEAUserDefined of string * string list
   | OEAStar of ordered_exampled_dnf_regex
 
@@ -220,6 +206,10 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
                                        (a2:ordered_exampled_atom)
                                      : comparison =
     begin match (a1,a2) with
+    | (OEAMappedUserDefined s, OEAMappedUserDefined t) ->
+        comparison_compare s t
+    | (OEAMappedUserDefined _, _) -> LT
+    | (_, OEAMappedUserDefined _) -> GT
     | (OEAUserDefined (s1,el1), OEAUserDefined (s2,el2)) ->
         begin match (int_to_comparison (compare s1 s2)) with
         | EQ -> dictionary_order
@@ -257,6 +247,7 @@ and compare_ordered_exampled_dnf_regexs (r1:ordered_exampled_dnf_regex)
 
 let rec to_ordered_exampled_atom (a:exampled_atom) : ordered_exampled_atom =
   begin match a with
+  | EAMappedUserDefined (s,_,_) -> OEAMappedUserDefined s
   | EAUserDefined (s,el,_) -> OEAUserDefined (s,el)
   | EAStar (r,_) -> OEAStar (to_ordered_exampled_dnf_regex r)
   end
@@ -278,6 +269,8 @@ and to_ordered_exampled_dnf_regex ((r,_):exampled_dnf_regex)
 
 let rec or_size (r:regex) : int =
   begin match r with
+  | RegExMappedUserDefined _ -> 1
+  | RegExEmpty -> 0
   | RegExBase _ -> 1
   | RegExConcat (r1,r2) -> (or_size r1) * (or_size r2)
   | RegExOr (r1,r2) -> (or_size r1) + (or_size r2)
@@ -287,6 +280,8 @@ let rec or_size (r:regex) : int =
 
 let rec true_max_size (c:context) (r:regex) : int =
   begin match r with
+  | RegExMappedUserDefined _ -> 1
+  | RegExEmpty -> 0
   | RegExBase _ -> 1
   | RegExConcat (r1,r2) -> (true_max_size c r1) * (true_max_size c r2)
   | RegExOr (r1,r2) -> (true_max_size c r1) + (true_max_size c r2)
@@ -298,9 +293,167 @@ let rec true_max_size (c:context) (r:regex) : int =
       end
   end
 
+let rec merge_contexts (c1:context) (c2:context) : context =
+  c1@c2
+
+let rec ordered_exampled_atom_to_atom
+  (a:ordered_exampled_atom)
+  : atom =
+    begin match a with
+    | OEAMappedUserDefined t -> AMappedUserDefined t
+    | OEAStar r -> AStar (ordered_exampled_dnf_regex_to_dnf_regex r)
+    | OEAUserDefined (t,_) -> AUserDefined t
+    end
+
+and ordered_exampled_clause_to_clause
+  ((c,ss,_):ordered_exampled_clause)
+  : clause =
+    let flattened_data = List.concat c in
+    let unordered_atoms =
+      List.sort ~cmp:(fun (_,i) (_,j) -> compare i j)
+      flattened_data
+    in
+    (List.map
+      ~f:(fun (a,_) -> ordered_exampled_atom_to_atom a)
+      unordered_atoms
+    ,ss)
+
+and ordered_exampled_dnf_regex_to_dnf_regex
+  (r:ordered_exampled_dnf_regex)
+  : dnf_regex =
+    let flattened_data = List.concat r in
+    let unordered_clauses =
+      List.sort ~cmp:(fun (_,i) (_,j) -> compare i j)
+      flattened_data
+    in
+    List.map
+      ~f:(fun (c,_) -> ordered_exampled_clause_to_clause c)
+      unordered_clauses
+
+
+
+
+(* mbc *)
+type mapsbetweencontext = ((int * (dnf_regex * dnf_regex)) list * int)
+
+let emptymapsbetweencontext = ([],0)
+
+let add_to_context  ((cl,n):mapsbetweencontext)
+                    (r1:dnf_regex)
+                    (r2:dnf_regex)
+                    : mapsbetweencontext * int =
+  begin match assoc_value_mem (r1,r2) cl with
+  | Some k -> ((cl,n),k)
+  | None -> (((n,(r1,r2))::cl,n+1),n)
+  end
+
+type mapsbetweencontextside = (int * dnf_regex) list
+
+let get_left_side ((c,_):mapsbetweencontext) =
+  List.map ~f:(fun (i,(l,_)) -> (i,l)) c
+
+let get_right_side ((c,_):mapsbetweencontext) =
+  List.map ~f:(fun (i,(l,_)) -> (i,l)) c
+
+let rec atom_to_regex (a:atom) : regex =
+  begin match a with
+  | AMappedUserDefined t -> RegExMappedUserDefined t
+  | AUserDefined t -> RegExUserDefined t
+  | AStar dr -> RegExStar (dnf_regex_to_regex dr)
+  end
+
+and clause_to_regex ((atoms,strings):clause) : regex =
+  let atoms_regex_list = List.map
+    ~f:(fun a -> atom_to_regex a)
+    atoms
+  in
+  let (hstr,tstr) = split_by_first_exn strings in
+  let aslist = List.zip_exn atoms_regex_list tstr in
+  List.fold_left
+    ~f:(fun acc (a,s) ->
+      RegExConcat(acc,RegExConcat(a,RegExBase s)))
+    ~init:(RegExBase hstr)
+    aslist
+
+and dnf_regex_to_regex (r:dnf_regex) : regex =
+  let sequence_regex_list = List.map
+    ~f:(fun c -> clause_to_regex c)
+    r
+  in
+  List.fold_left
+  ~f:(fun acc sqr ->
+    RegExOr (acc,sqr))
+  ~init:RegExEmpty
+  sequence_regex_list
+
+
+      
+
 type queue_element =
-  | QERegexCombo of regex * regex * int
+  | QERegexCombo of regex * regex * int * mapsbetweencontext
   | QEGenerator of (unit -> ((queue_element * float) list))
+
+
+let rec clause_to_kvp ((atoms,strings):clause)
+      : ((atom * string) option * clause) =
+  begin match (atoms,strings) with
+  | (ah::at,sh::st) -> (Some (ah,sh), (at,st))
+  | ([],[s]) -> (None,([],[s]))
+  | _ -> failwith "malformed clause"
+  end
+
+let rec tltl_regex_to_regex (tltl:((atom * string) option ,
+string) tagged_list_tree list) : regex =
+  print_endline "{";
+  print_endline (string_of_int (List.length tltl));
+  let t = List.map
+  ~f:(fun tl ->
+    begin match tl with
+    | Leaf s -> RegExBase s
+    | Node (k,v) ->
+        begin match k with
+        | None -> tltl_regex_to_regex v
+        | Some (a,s) -> RegExConcat(RegExConcat(RegExBase s,atom_to_regex a),
+        tltl_regex_to_regex v)
+        end
+    end
+    )
+  tltl in
+  print_endline "}";
+  List.fold_left
+  ~f:(fun acc r -> RegExOr(acc,r))
+  ~init:RegExEmpty
+  t
+
+let rec smart_dnf_regex_to_regex (r:dnf_regex) : regex =
+  let tltl = dnf_regex_to_tagged_list_tree_list r in
+  tltl_regex_to_regex tltl
+
+and dnf_regex_to_tagged_list_tree_list (r:dnf_regex) : ((atom * string) option ,
+string) tagged_list_tree list =
+  let kvp_list = List.map ~f:clause_to_kvp r in
+  let keys = List.dedup (List.map ~f:fst kvp_list) in
+  let test = List.fold_left
+    ~f:(fun acc (k,v) ->
+        insert_into_correct_list (k,v) acc)
+    ~init:(List.map ~f:(fun key -> (key,[])) keys)
+    kvp_list
+  in
+  List.map
+    ~f:(fun (k,vl) ->
+      begin match k with
+      | None -> Node (k,
+          List.map
+            ~f:(fun x ->
+              begin match x with
+              | ([],[s]) -> Leaf s
+              | _ -> failwith "bad"
+              end)
+            vl)
+      | Some _ -> Node (k, dnf_regex_to_tagged_list_tree_list vl)
+      end)
+    test
+
 
 
 (***** }}} *****)

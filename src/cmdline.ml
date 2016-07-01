@@ -17,13 +17,17 @@ exception Arg_exception
 type driver_mode =
   | Default
   | Parse
-  | Data
   | Synth
+  | Time
+  | GeneratedExamples
   | ForceExpand
+  | ForceExpandTime
+  | ForceExpandGeneratedExamples
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
 let mode : driver_mode ref = ref Default
+let use_iteratively_deepen_strategy : bool ref = ref false
 
 let parse_file (f:string) : program =
   Preproc.preprocess_file f
@@ -44,13 +48,29 @@ let args =
     , Arg.Unit (fun _ -> set_opt Synth)
     , " Synthesize"
     )
-  ; ( "-data"
-    , Arg.Unit (fun _ -> set_opt Data)
-    , " Synthesize and collect statistics (name, #/exs, size, time)"
+  ; ( "-time"
+    , Arg.Unit (fun _ -> set_opt Time)
+    , " Synthesize and collect statistics (time)"
+    )
+  ; ( "-generatedexamples"
+    , Arg.Unit (fun _ -> set_opt GeneratedExamples)
+    , " Synthesize with randomly generated examples"
     )
   ; ( "-forceexpand"
     , Arg.Unit (fun _ -> set_opt ForceExpand)
     , " Synthesize with definitions forced to be expanded"
+    )
+  ; ( "-forceexpandtime"
+    , Arg.Unit (fun _ -> set_opt ForceExpandTime)
+    , " Synthesize with definitions forced to be expanded and collect time"
+    )
+  ; ( "-forceexpandgeneratedexamples"
+    , Arg.Unit (fun _ -> set_opt ForceExpandGeneratedExamples)
+    , " Synthesize with definitions forced to be expanded and randomly generated examples"
+    )
+  ; ( "-iterativedeepenstrategy"
+    , Arg.Unit (fun _ -> use_iteratively_deepen_strategy := true)
+    , " Set use of iterative deepen strategy"
     )
   ]
   |> Arg.align
@@ -58,6 +78,8 @@ let args =
 let expand_regexps (p:program) : program =
   let rec expand_regexp (r:regex) (e_c:evaluation_context) : regex =
     begin match r with
+    | RegExMappedUserDefined _ -> failwith "AHHH"
+    | RegExEmpty -> r
     | RegExBase _ -> r
     | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 e_c,expand_regexp r2 e_c)
     | RegExOr (r1,r2) -> RegExOr (expand_regexp r1 e_c,expand_regexp r2 e_c)
@@ -79,6 +101,7 @@ let expand_regexps (p:program) : program =
         (e_c,DeclSynthesizeProgram (n,expand_regexp r1 e_c,expand_regexp r2 e_c,exs))
     end
   in
+  List.rev
   (snd
     (List.fold_left
       ~f:(fun (e_c,ds) d ->
@@ -101,60 +124,59 @@ let print_lenses (lss:(string * lens option) list) : unit =
 let ignore (x:'a) : unit =
   ()
 
-let synthesize_prog (ps:synth_problems) : (string * lens option) list =
-  let problem_list = problems_to_problem_list ps in
-  List.map
-    ~f:(fun (c,e_c,n,r1,r2,exs) -> (n,(gen_lens c e_c r1 
-    r2 exs)))
-    problem_list
-  
-  (*let (s, g, env, x, t, es, vs, tree) = process_preamble p in
-  begin match Synth.synthesize s env tree with
-  | Some e ->
-      Printf.printf "%s\n" (Translate.to_top_level x t e |> Pp.pp_decl)
-  | None -> begin
-      Printf.printf "No expression found!\n";
-      Printf.printf "final rtree size = %d\n" (Rtree.rtree_size tree)
-    end
-  end;
-  pTODO*)
 
-let collect_data (include_counts:bool) (p:program) : unit =
+let collect_time (p:program) : unit =
   let (time, _) = Util.time_action (fun _ ->
-    run_declarations (fun _ _ _ _ _ -> ()) (fun _ -> ()) p)
+    run_declarations (fun _ _ _ _ _ -> ()) (fun _ -> ()) p !use_iteratively_deepen_strategy)
   in
 
-  if include_counts then
-    (let num_examples = ref 0 in
-    run_declarations (fun drro r1 r2 c e_c ->
-      let (l,r1',r2') = Option.value_exn drro in
-      let exs_reqd = fold_until_completion
-          (fun acc ->
-            let (l',_,_) = Option.value_exn
-              (gen_dnf_lens_zipper c e_c r1 r2 acc) in
-            if l' = l then
-              Right acc
-            else
-              let leftex = gen_element_of_regex_language e_c r1 in
-              let rightex = dnf_lens_putr e_c r1' l leftex in
-              let acc = (leftex,rightex)::acc in
-              Left acc
-          ) [] in
-      num_examples := List.length exs_reqd
-      ) (fun _ -> ()) p;
-    print_endline (Float.to_string time ^ "," ^ (string_of_int !num_examples))
-    )
-  else
-    print_endline (Float.to_string time)
+  print_endline (Float.to_string time)
+
+let collect_example_number (p:program) : unit =
+  let num_examples = ref 0 in
+  run_declarations (fun drro r1 r2 c e_c ->
+    let (l,r1',r2',e_c') = Option.value_exn drro in
+    let exs_reqd = fold_until_completion
+        (fun acc ->
+          let (l',_,_,_) = Option.value_exn
+            (gen_dnf_lens c e_c r1 r2 acc !use_iteratively_deepen_strategy) in
+          if l' = l then
+            Right acc
+          else
+            let leftex = gen_element_of_regex_language e_c r1 in
+            let rightex = dnf_lens_putr e_c' ([],0)(*TODO*) r1' l leftex in
+            let acc = (leftex,rightex)::acc in
+            Left acc
+        ) [] in
+    num_examples := List.length exs_reqd
+    ) (fun _ -> ()) p !use_iteratively_deepen_strategy;
+  print_endline ((string_of_int !num_examples))
 
 let print_outputs (p:program) : unit =
+  let inner_a = RegExStar (RegExBase "a'") in
+  let inner_b = RegExStar (RegExBase "b'") in
+  let inner_c = RegExStar (RegExBase "c'") in
+  let inner_d = RegExStar (RegExBase "d'") in
+
+
+  let a = RegExConcat (RegExOr (inner_a,inner_b),RegExOr(inner_c,inner_d)) in
+  let b = RegExStar (RegExBase "b") in
+  let c = RegExStar (RegExBase "c") in
+  let d = RegExStar (RegExBase "d") in
+  let r = RegExConcat (RegExOr (a,b),RegExOr(c,d)) in
+  print_endline (Pp.pp_regexp r);
+  print_endline "\n";
+  print_endline (Pp.pp_regexp (smart_dnf_regex_to_regex (to_dnf_regex r)));
+  print_endline "\n";
+  print_endline (Pp.pp_regexp (dnf_regex_to_regex (to_dnf_regex r)));
   run_declarations
-    (fun (drro:(dnf_lens*regex*regex) option) _ _ _ _ ->
+    (fun (drro:(dnf_lens*regex*regex*context) option) _ _ _ _ ->
       begin match drro with
-      | Some (d,_,_) -> print_endline (Pp.pp_lens (dnf_lens_to_lens d))
+      | Some (d,_,_,_) -> print_endline (Pp.pp_lens (dnf_lens_to_lens d))
       | None -> print_endline "no lens found"
       end)
     print_endline p
+    !use_iteratively_deepen_strategy
 
 let main () =
   begin try
@@ -175,11 +197,17 @@ let main () =
         | Parse ->
             let _ = parse_file f in (*TODO: pp*) ()(*Printf.printf "%s\n"
             (Pp.pp_prog prog)*)
-        | Data -> parse_file f |> (collect_data true)
         | Default | Synth ->
             parse_file f |> print_outputs
+        | Time -> parse_file f |> collect_time
+        | GeneratedExamples ->
+            parse_file f |> collect_example_number
         | ForceExpand ->
-            parse_file f |> expand_regexps |> (collect_data true)
+            parse_file f |> expand_regexps |> print_outputs
+        | ForceExpandTime ->
+            parse_file f |> expand_regexps |> collect_time
+        | ForceExpandGeneratedExamples ->
+            parse_file f |> expand_regexps |> collect_example_number
         end
       end
     end

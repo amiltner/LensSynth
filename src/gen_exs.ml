@@ -2,7 +2,7 @@ open Core.Std
 open Lang
 open Random
 
-let likelihood_of_continuing_star = 0.8
+let likelihood_of_continuing_star = 0.9
 
 let rec gen_element_of_regex_language (c:context) (r:regex) : string =
   begin match r with

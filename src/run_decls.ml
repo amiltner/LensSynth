@@ -13,6 +13,8 @@ let create_userdef (c:context)
                    : (context * evaluation_context) =
   let rec check_welldefined_regex (r:regex) : unit =
     begin match r with
+    | RegExEmpty -> ()
+    | RegExMappedUserDefined _ -> failwith "THIS HSOULDNT HAPPEN AH"
     | RegExBase _ -> ()
     | RegExConcat (r1,r2) -> 
         check_welldefined_regex r1;
@@ -46,20 +48,21 @@ let test_string (showing_strategy:string -> unit)
                 (s:string)
                 : unit =
   let evaluation_result_string =
-    (if fast_eval e_c r s then
+    (if fast_eval e_c [] r s then
       (s ^ " matches regular expression " ^ (Pp.pp_regexp r))
     else
       (s ^ " does not match regular expression " ^ (Pp.pp_regexp r)))
   in
   showing_strategy evaluation_result_string
 
-let synthesize_lens (lens_handler:(dnf_lens*regex*regex) option -> regex ->
+let synthesize_lens (lens_handler:(dnf_lens*regex*regex*context) option -> regex ->
   regex -> context -> evaluation_context -> unit)
                     (c:context)
                     (e_c:evaluation_context)
                     ((name,r1,r2,exs):specification)
+                    (iteratively_deepen_strategy:bool)
                     : unit =
-  let dro = gen_dnf_lens c e_c r1 r2 exs in
+  let dro = gen_dnf_lens c e_c r1 r2 exs iteratively_deepen_strategy in
   (*let lens_string =
     "\n\n" ^ name ^ ": " ^
       (begin match lens_option with
@@ -69,25 +72,26 @@ let synthesize_lens (lens_handler:(dnf_lens*regex*regex) option -> regex ->
   showing_strategy lens_string*)
   lens_handler dro r1 r2 c e_c
 
-let run_declaration (lens_handler:(dnf_lens*regex*regex) option -> regex ->
+let run_declaration (lens_handler:(dnf_lens*regex*regex*context) option -> regex ->
   regex -> context -> evaluation_context -> unit)
                     (test_handler:string -> unit)
                     ((c,e_c):context * evaluation_context)
                     (d:declaration)
+                    (iteratively_deepen_strategy:bool)
                     : (context * evaluation_context) =
   begin match d with
   | DeclUserdefCreation (s,r,b) -> create_userdef c e_c s r b
   | DeclTestString (r,s) -> (test_string test_handler e_c r s); (c,e_c)
   | DeclSynthesizeProgram spec ->
-      synthesize_lens lens_handler c e_c spec;
+      synthesize_lens lens_handler c e_c spec iteratively_deepen_strategy;
       (c,e_c)
   end
 
-let run_declarations (lens_handler:(dnf_lens*regex*regex) option -> regex ->
+let run_declarations (lens_handler:(dnf_lens*regex*regex*context) option -> regex ->
   regex -> context ->
-  evaluation_context -> unit) (test_handler:string -> unit)(ds:declaration list) : unit =
+  evaluation_context -> unit) (test_handler:string -> unit)(ds:declaration list) (iteratively_deepen_strategy:bool) : unit =
   let _ = (List.fold_left
-    ~f:(fun acc d -> run_declaration lens_handler test_handler acc d)
+    ~f:(fun acc d -> run_declaration lens_handler test_handler acc d iteratively_deepen_strategy)
     ~init:([],[])
     ds) in
   ()

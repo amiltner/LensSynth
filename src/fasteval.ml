@@ -5,6 +5,7 @@ open Core.Std
 
 let rec to_empty_exampled_regex (r:regex) : exampled_regex =
   begin match r with
+  | RegExEmpty -> ERegExEmpty
   | RegExBase s -> ERegExBase (s,[])
   | RegExConcat (r1,r2) ->
       ERegExConcat (to_empty_exampled_regex r1,to_empty_exampled_regex r2,[])
@@ -15,6 +16,7 @@ let rec to_empty_exampled_regex (r:regex) : exampled_regex =
          [])
   | RegExStar r' -> ERegExStar (to_empty_exampled_regex r',[])
   | RegExUserDefined t -> ERegExUserDefined (t,[],[])
+  | RegExMappedUserDefined t -> ERegExMappedUserDefined (t,[],[])
   end
 
 type data = string * exampled_regex *
@@ -27,8 +29,11 @@ type state =
 
 type dfa = (state ref) * (state ref)
 
-let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
+let rec regex_to_dfa (c:context) (mcs:mapsbetweencontextside) (r:regex) (inside_userdef:bool) : dfa =
   begin match r with
+  | RegExEmpty ->
+      let final = ref QAccept in
+      (ref (State (fun _ -> [])), final)
   | RegExBase s ->
       let final = ref QAccept in
       (ref (State (fun (str,er,recombiners,is,so) ->
@@ -44,8 +49,8 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
               [(final,(str',er,recombiners,is,so))]
         end)), final)
   | RegExConcat (r1,r2) ->
-      let (r1_start_ref,r1_end_ref) = regex_to_dfa c r1 inside_userdef in
-      let (r2_start_ref,r2_end_ref) = regex_to_dfa c r2 inside_userdef in
+      let (r1_start_ref,r1_end_ref) = regex_to_dfa c mcs r1 inside_userdef in
+      let (r2_start_ref,r2_end_ref) = regex_to_dfa c mcs r2 inside_userdef in
       let new_start_fun = (fun (s,er,rc,is,so) ->
         if not inside_userdef then
           begin match er with
@@ -85,8 +90,8 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
       r2_end_ref := new_r2_end;
       (ref new_start,new_end_ref)
   | RegExOr (r1,r2) ->
-      let (r1_start_ref,r1_end_ref) = regex_to_dfa c r1 inside_userdef in
-      let (r2_start_ref,r2_end_ref) = regex_to_dfa c r2 inside_userdef in
+      let (r1_start_ref,r1_end_ref) = regex_to_dfa c mcs r1 inside_userdef in
+      let (r2_start_ref,r2_end_ref) = regex_to_dfa c mcs r2 inside_userdef in
       let new_start_fun = (fun (s,er,rc,is,so) ->
         if not inside_userdef then
           begin match er with
@@ -122,7 +127,7 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
       r2_end_ref := new_inner_end;
       (ref new_start,new_end_ref)
   | RegExStar (inner_r) ->
-      let (inner_start_ref,inner_end_ref) = regex_to_dfa c inner_r inside_userdef in
+      let (inner_start_ref,inner_end_ref) = regex_to_dfa c mcs inner_r inside_userdef in
       let new_end_ref = ref QAccept in
       let new_inner_end_fun =
         if not inside_userdef then
@@ -155,7 +160,7 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
   | RegExUserDefined t ->
       begin match List.Assoc.find c t with
       | Some rex ->
-          let (inner_start_ref,inner_end_ref) = regex_to_dfa c rex true in
+          let (inner_start_ref,inner_end_ref) = regex_to_dfa c mcs rex true in
           let new_end_ref = ref QAccept in
           let new_start_fun =
             if not inside_userdef then
@@ -185,6 +190,40 @@ let rec regex_to_dfa (c:context) (r:regex) (inside_userdef:bool) : dfa =
           (ref new_start_state,new_end_ref)
       | None -> failwith ("not in context: " ^ t)
       end
+  | RegExMappedUserDefined t ->
+      begin match List.Assoc.find mcs t with
+      | Some rextemp ->
+          let rex = dnf_regex_to_regex rextemp in
+          let (inner_start_ref,inner_end_ref) = regex_to_dfa c mcs rex true in
+          let new_end_ref = ref QAccept in
+          let new_start_fun =
+            if not inside_userdef then
+              (fun ((s,er,rc,is,so):data) ->
+                [(inner_start_ref,(s,er,
+                  (fun s' er' ->
+                    begin match er' with
+                    | ERegExMappedUserDefined (t,l,il) -> ERegExMappedUserDefined
+                        (t,(String.chop_suffix_exn ~suffix:s' s)::l,is::il)
+                    | _ -> failwith (Pp.pp_exampled_regex er')
+                    end)::rc,is,Some s))]
+              )
+            else
+              (fun x -> [(inner_start_ref,x)])
+          in
+          let new_start_state = State new_start_fun in
+          let new_inner_end_fun =
+            (fun (s,er,rc,is,so) ->
+              if not inside_userdef then
+                begin match rc with
+                | [] -> failwith "bad coding2"
+                | h::t -> [(new_end_ref,(s,h s er,t,is,so))]
+                end
+              else
+                [(new_end_ref,(s,er,rc,is,so))]) in
+          inner_end_ref := (State new_inner_end_fun);
+          (ref new_start_state,new_end_ref)
+      | None -> failwith ("not in contextz: " ^ (string_of_int (List.length mcs)))
+      end
   end
 
 let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :
@@ -207,16 +246,16 @@ let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :
         None
   end
 
-let rec fast_eval (c:context) (r:regex) (s:string) : bool =
-  let (dfa_start,_) = regex_to_dfa c r false in
+let rec fast_eval (c:context) (mcs:mapsbetweencontextside) (r:regex) (s:string) : bool =
+  let (dfa_start,_) = regex_to_dfa c mcs r false in
   begin match eval_dfa !dfa_start (s,(to_empty_exampled_regex r),[],[0],None) with
   | None -> false
   | Some er -> true
   end
 
-let rec regex_to_exampled_regex (c:context) (r:regex) (es:string list)
+let rec regex_to_exampled_regex (c:context) (mcs:mapsbetweencontextside) (r:regex) (es:string list)
                                  : exampled_regex option =
-  let (dfa_start,_) = regex_to_dfa c r false in
+  let (dfa_start,_) = regex_to_dfa c mcs r false in
   let start_state = !dfa_start in
   List.foldi
   ~f:(fun i er e ->
@@ -238,6 +277,15 @@ let rec clean_exampledness_atom (choices:int list list) (a:exampled_atom)  : exa
         in
         let (strs,cs) = List.unzip actual_choices in
       EAUserDefined (s,strs,cs)
+  | EAMappedUserDefined (s,el,cs) ->
+      let udef_choice_zip = List.zip_exn el cs in
+      let actual_choices =
+        List.filter
+          ~f:(fun (el,c) -> List.mem choices c )
+          udef_choice_zip
+        in
+        let (strs,cs) = List.unzip actual_choices in
+      EAMappedUserDefined (s,strs,cs)
   | EAStar (r,cs) ->
       
   let actual_choices =
@@ -322,6 +370,7 @@ let rec exampled_atom_to_exampled_dnf_regex
 let rec exampled_regex_to_exampled_dnf_regex (r:exampled_regex) :
   exampled_dnf_regex =
   begin match r with
+  | ERegExEmpty -> ([],[])
   | ERegExBase (c, ill) -> ([([],[c],ill)],ill)
   | ERegExConcat (r1,r2,ill) ->
       (concat_exampled_dnf_regexs
@@ -339,11 +388,16 @@ let rec exampled_regex_to_exampled_dnf_regex (r:exampled_regex) :
       exampled_atom_to_exampled_dnf_regex
         (EAUserDefined (s,ss,ill))
         ill
+  | ERegExMappedUserDefined (s,ss,ill) ->
+      exampled_atom_to_exampled_dnf_regex
+        (EAMappedUserDefined (s,ss,ill))
+        ill
   end
 
 let regex_to_exampled_dnf_regex (c:context)
+                                (mcs:mapsbetweencontextside)
                                 (r:regex)
                                 (es:string list)
                                 : exampled_dnf_regex option =
-  let er_option = regex_to_exampled_regex c r es in
+  let er_option = regex_to_exampled_regex c mcs r es in
   Option.map ~f:exampled_regex_to_exampled_dnf_regex er_option

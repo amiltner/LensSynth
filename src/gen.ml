@@ -12,6 +12,73 @@ open Transform
 open Priority_queue
 open Gen_exs
 
+let rec is_immutable_clause ((al,_,_):ordered_exampled_clause) : bool =
+  begin match al with
+  | [[(OEAMappedUserDefined _,_)]] -> true
+  | _ -> false
+  end
+
+let rec map_and_abstract (mc:mapsbetweencontext)
+                         (r:ordered_exampled_dnf_regex)
+                         (s:ordered_exampled_dnf_regex)
+                         : dnf_regex * dnf_regex * mapsbetweencontext * bool=
+  let rec map_and_abstract_internal (mc:mapsbetweencontext)
+                                    (r:ordered_exampled_dnf_regex)
+                                    (s:ordered_exampled_dnf_regex)
+                                    (altered:bool)
+                                    : ordered_exampled_dnf_regex
+                                      * ordered_exampled_dnf_regex
+                                      * mapsbetweencontext
+                                      * bool =
+    begin match (r,s) with
+    | (csh1::cst1,csh2::cst2) ->
+        let (head_element_l,_) = List.hd_exn csh1 in
+        let (head_element_r,_) = List.hd_exn csh2 in
+        begin match compare_ordered_exampled_clauses
+                    head_element_l
+                    head_element_r with
+        | GT -> let (first,second,mc,altered) =
+                  map_and_abstract_internal mc cst1 s altered in
+                (csh1::first,second,mc,altered)
+        | LT -> let (first,second,mc,altered) =
+                  map_and_abstract_internal mc r cst2 altered in
+                (first,csh2::second,mc,altered)
+        | EQ ->
+            let (first,second,mc,altered) =
+              map_and_abstract_internal mc cst1 cst2 altered in
+            if (is_immutable_clause head_element_l) then
+              (csh1::first,csh2::second,mc,altered)
+            else
+              let zipped_data = zip_nondist csh1 csh2 in
+              let (xrev,yrev, mc) = List.fold_left
+              ~f:(fun (xs,ys,mc) (xo,yo) ->
+                begin match (xo,yo) with
+                | (None, Some y) -> (xs,y::ys,mc)
+                | (Some x, None) -> (x::xs,ys,mc)
+                | (None, None) -> failwith "NEVER SHOULD GET HERE"
+                | (Some (x,xi), Some (y,yi)) ->
+                    let rx_x = ordered_exampled_clause_to_clause x in
+                    let rx_y = ordered_exampled_clause_to_clause y in
+                    let (mc,n) = add_to_context mc [rx_x] [rx_y] in
+                    let added_clause = ([[(OEAMappedUserDefined n,0)]],["";""],[]) in
+                    ((added_clause,xi)::xs,(added_clause,yi)::ys,mc)
+                end
+              )
+              ~init:([],[],mc)
+              zipped_data
+              in
+              ((List.rev xrev)::first,(List.rev yrev)::second,mc,true)
+        end
+    | _ -> (r,s,mc,altered)
+    end
+  in
+  (* TODO: remove clauses when there's only one unset *)
+  let (r',s',mc,got_something) = map_and_abstract_internal mc r s false in
+  (ordered_exampled_dnf_regex_to_dnf_regex r'
+  ,ordered_exampled_dnf_regex_to_dnf_regex s'
+  ,mc
+  ,got_something)
+
 let rec all_match (c:context) (r:regex) (ss:string list) : bool =
   List.fold_left
   ~f:(fun acc s -> acc && eval_regex c r s)
@@ -140,6 +207,7 @@ let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
 let num_stars_current_level_clause ((atoms,_):clause) : int =
   let num_stars_current_level_atom (a:atom) : int =
     begin match a with
+    | AMappedUserDefined _ -> 0
     | AUserDefined _ -> 0
     | AStar _ -> 1
     end in
@@ -175,6 +243,7 @@ let expand_atom_rewrite (expansion_function:dnf_regex -> dnf_regex)
         begin match acc with
         | None -> let atom = List.nth_exn atoms i in
           begin match atom with
+          | AMappedUserDefined _ -> (None,atoms_passed)
           | AUserDefined _ -> (None,atoms_passed)
           | AStar r' ->
               if atoms_passed = num_atom then
@@ -420,6 +489,7 @@ and gen_atom_zipper (atom1:ordered_exampled_atom)
   | (OEAUserDefined _,OEAUserDefined _) -> AIdentity
   | (OEAStar r1, OEAStar r2) ->
       AIterate (gen_dnf_lens_zipper_internal r1 r2)
+  | (OEAMappedUserDefined _,OEAMappedUserDefined _) -> AIdentity
   | _ -> failwith "invalid"
   end
 
@@ -493,32 +563,46 @@ let gen_dnf_lens_zipper (c:context)
     | None -> None
     | Some (queue_element,p,q) ->
         begin match queue_element with
-        | QERegexCombo (r1,r2,star_expansions) ->
+        | QERegexCombo (r1,r2,star_expansions,mc) ->
           begin match expand_required_expansions c r1 r2 with
           | Some (r1',r2') ->
+(*let (r1',r2') = (r1,r2) in*)
               (*print_endline ("\n\n\npopped " ^ (Float.to_string p));
               print_endline (Pp.pp_regexp r1');
-              print_endline (Pp.pp_regexp r2');*)
-              let exampled_r1_opt = regex_to_exampled_dnf_regex e_c r1' lexs in
-              let exampled_r2_opt = regex_to_exampled_dnf_regex e_c r2' rexs in
+              print_endline (Pp.pp_regexp r2');
+              print_endline (string_of_int (List.length (fst mc)));*)
+let exampled_r1_opt = regex_to_exampled_dnf_regex e_c (get_left_side mc) r1' lexs in
+let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' rexs in
               begin match (exampled_r1_opt,exampled_r2_opt) with
               | (Some exampled_r1,Some exampled_r2) ->
+                  let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
+                  let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
                   (*print_endline "\n\n\n";
                   print_endline (Pp.pp_exampled_dnf_regex exampled_r1);
                   print_endline "\n";
                   print_endline (Pp.pp_exampled_dnf_regex exampled_r2);*)
-                  let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
-                  let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
                   begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
                   | EQ -> 
                       Some ((gen_dnf_lens_zipper_internal e_o_r1 e_o_r2),
                            r1',
                            r2' )
                   | _ ->
+                      let (dr1',dr2',mc',got_something) = map_and_abstract
+                        mc
+                        e_o_r1
+                        e_o_r2 in
+
+                      let (r1',r2') = if got_something then
+                          (dnf_regex_to_regex dr1',dnf_regex_to_regex dr2')
+                      else
+                        (r1',r2')
+                      in
+
                       let rx_list =
                         retrieve_transformation_queue_elements
                           max_size
                           c
+                          mc'
                           r1'
                           r2'
                           star_expansions
@@ -538,7 +622,7 @@ let gen_dnf_lens_zipper (c:context)
     end
   in
   gen_dnf_lens_zipper_queueing (Priority_Queue.create_from_list
-  [(QERegexCombo(r1,r2,0),1.0)])
+  [(QERegexCombo(r1,r2,0,emptymapsbetweencontext),1.0)])
 
   (*List.fold_left
   ~f:(fun acc n ->
@@ -573,22 +657,30 @@ let gen_dnf_lens_zipper (c:context)
 
 
 let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
-                 (exs:examples) : (dnf_lens * regex * regex) option =
-  gen_dnf_lens_zipper c e_c r1 r2 exs
-
-let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
-(exs:examples) : (dnf_lens*regex*regex) option =
-  gen_dnf_lens_zipper c e_c r1 r2 exs
+(exs:examples) (iteratively_deepen_strategy:bool)
+: (dnf_lens*regex*regex*context) option =
+  if iteratively_deepen_strategy then
+    let (r1,c1) = iteratively_deepen r1 in
+    let (r2,c2) = iteratively_deepen r2 in
+    let c = merge_contexts c (merge_contexts c1 c2) in
+    let e_c = c in
+    Option.map
+      ~f:(fun (d,r1,r2) -> (d,r1,r2,e_c))
+      (gen_dnf_lens_zipper c e_c r1 r2 exs)
+  else
+    Option.map
+      ~f:(fun (d,r1,r2) -> (d,r1,r2,e_c))
+      (gen_dnf_lens_zipper c e_c r1 r2 exs)
 
 let gen_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
-             (exs:examples) : lens option =
+             (exs:examples) (iterative_deepen_strategy:bool) : lens option =
   (*print_endline (Pp.pp_regexp r1);
   print_endline (Pp.pp_regexp r2);
   print_endline (String.concat ~sep:";" (List.map ~f:(fun (s1,s2) ->
     "("^s1^","^s2^")") exs));*)
-  let dnf_lens_option = gen_dnf_lens_zipper c e_c r1 r2 exs in
+  let dnf_lens_option = gen_dnf_lens c e_c r1 r2 exs iterative_deepen_strategy in
   Option.map
-    ~f:(fun (l,r1',r2') ->(*Fn.compose simplify_lens*)
+    ~f:(fun (l,r1',r2',_) ->(*Fn.compose simplify_lens*)
       (*let exs_reqd = fold_until_completion
         (fun acc ->
           let (l',_,_) = Option.value_exn

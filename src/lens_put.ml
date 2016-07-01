@@ -7,6 +7,7 @@ open Lens
 
 
 let rec dnf_lens_putr (c:context)
+                      (mcs:mapsbetweencontext)
                       (r:regex)
                       (l:dnf_lens)
                       (s:string)
@@ -22,10 +23,11 @@ let rec dnf_lens_putr (c:context)
     | None -> failwith "bad doesnt exist bad bad"
     | Some (i,(atoms,strings,_)) ->
         let clause_lens = List.nth_exn clause_lenses i in
-        clause_lens_putr_internal atoms strings clause_lens iteration
+        clause_lens_putr_internal mcs atoms strings clause_lens iteration
     end
 
   and clause_lens_putr_internal
+    (mcs:mapsbetweencontext)
     (atoms:exampled_atom list)
     (strings:string list)
     ((all,p,sl1,sl2):clause_lens)
@@ -37,7 +39,7 @@ let rec dnf_lens_putr (c:context)
           all
       in
       let rstrs = List.map
-        ~f:(fun (exat,al) -> atom_lens_putr_internal exat al iteration)
+        ~f:(fun (exat,al) -> atom_lens_putr_internal mcs exat al iteration)
         exat_al_zips
       in
       let rstrs_permuted = Permutation.apply_to_list_exn p rstrs in
@@ -50,6 +52,7 @@ let rec dnf_lens_putr (c:context)
       String.concat (List.map ~f:(fun (s1,s2) -> s1 ^ s2) rsp_sl2t_zipped)
 
   and atom_lens_putr_internal
+    (mcs:mapsbetweencontext)
     (a:exampled_atom)
     (al:atom_lens)
     (iteration:int list)
@@ -78,7 +81,9 @@ let rec dnf_lens_putr (c:context)
       end
   in
 
-  let e_d_r_o = regex_to_exampled_dnf_regex c r [s] in
+  let mcsleftside = get_left_side mcs in
+
+  let e_d_r_o = regex_to_exampled_dnf_regex c mcsleftside r [s] in
   begin match e_d_r_o with
   | Some e_d_r ->
       let (e_cl_l,ill) = e_d_r in
