@@ -21,9 +21,9 @@ to merely ordering the components.
 \end{enumerate}
 
 
-In the era of data, big and small, tools for reliably parsing,
-printing, cleaning, and transforming data are increasing important.
-One class of such tools are \emph{lenses}~\cite{?}, bi-directional
+The growing dependence on big data makes tools for reliably parsing
+printing, cleaning, and transforming data increasing important.
+One such class of tools are \emph{lenses}~\cite{?}, bi-directional
 programs that help users solve the classic ``view update problem.''
 More specifically, a lens provides a user with two functions, a
 \emph{get} function and a \emph{put} function.  The \emph{get}
@@ -32,6 +32,9 @@ the user.  If the user updates the new view, the corresponding
 \emph{put} function can translate the edited data back into
 the native format.
 
+\dpw{The following paragraph isn't so great. It might be helpful if
+we cited more places lenses had been used in practice and then
+augeas was just one of many examples.}
 One concrete example of where lenses provide value is in managing
 linux configuration files.  Such files come in a wide variety of
 different ``ad hoc'' data formats, and even experienced system
@@ -46,7 +49,237 @@ than 200 stock lenses to provide views of common configuration files.
 Lenses are popular because they typically come with strong guarantees
 about the get-put (or put-get) round-trip behavior.  Such guarantees
 help users guard against data corruption while reading and editing
-high-value data sources.
+high-value data sources.  These guarantees are often achieved through
+the use of domain-specific languages with strong type systems that
+guarantee invertability of lens programs~\cite{?,?,?}.  Unfortunately, such
+lens languages are naturally quite non-standard, and, moreover, the
+process of writing a lens is challenging as a user must think
+about data conversion in two directions at once --- an
+unusual task for the everyday programmer.  As a consequence, 
+for the casual user of lenses, learning the language, its type system and its
+unorthodox programming style is time-consuming and, in the end,
+a disincentive to adopting the technology, despite its advantages.
 
+In order to overcome the steep learning curve involved in programming
+with lenses, we have developed a new system for synthesis of lenses
+from their types and a collection of representative examples.  More
+specifically, we focus on algorithms for the synthesis of bijective
+string lenses.  The types for such lenses are regular expressions,
+which describe the format of the source and target strings.  Given
+such types, and a very small number of representative examples (sometimes
+no examples at all), we synthesize a well-typed lens that implements
+a bijection between data formats.
+
+Recently, researchers have developed a number of new algorithms for
+type-directed synthesis~\cite{?,?,?}.  Many of those
+algorithms~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16} are
+directed in part by the syntax of types.  For instance, to find an
+expression with type $A \rightarrow B$, such algorithms will assume
+that the expression in question is a function with the form $\lambda
+x{:}A. e$, and they will continue the search for an expression $e$
+with type $B$ under the hypothesis that the parameter $x$ has type
+$A$.  In the case of the simply-typed lambda calculus, such an
+approach reduces the complexity of the search for terms inhabiting the
+type without losing completeness.  Unfortunately, such simple
+syntax-directed algorithms are not directly applicable when searching
+the space of terms defined by richer type systems, in which the types
+exhibit complex isomorphisms, as is the case for string lenses and
+their regular expression types. \dpw{I was trying to generalize a little
+in that last sentence, but it may be awkward.}
+
+\paragraph*{The Central Challenge.}
+To illustrate the central challenge facing the design of our synthesis system
+in greater detail,
+consider the concatenation lens, $\Lens_1 \Concat \Lens_2$,
+one of the simplest string lens combinators.  
+When viewed from left to right, this lens defines a function \emph{get}, which,
+given a string 
+$\String$, this lens divides $\String$ into two substrings $\String_1$ 
+and $\String_2$, applies $\Lens_1$ to the first, yielding $t_1$,
+and $\Lens_2$ to the second, yielding $t_2$.  When viewed from
+right to left, it defines a second function \emph{put}, which, maps
+data back from strings $t$ to strings $s$ in an analogous way.
+
+The type system for lenses ensures such \emph{get} and \emph{put} functions
+satisfy strong invertibility properties.  In our case, the two functions
+form a bijection.  In general, to 
+describe the type of a lens, we write $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read ``lens $\Lens$ converts back and forth between
+data in the language of regular expression $\Regex$ and data in the language
+of regular expression $\RegexAlt$.  More specifically, to give a type
+to the concatenation lens, we use the following typing rule.
+\dpw{I think we should delete $\LanguageOf{}$ from all the unambiguity
+constraints in the typing rules, but I didn't do that.  We should be
+careful with consistency, and I didn't know how that would mess with 
+all the proofs and other definitions.}
+%To understand how
+%this lens makes the choice about how to divide up the input string $\String$,
+%it is easiest to look at the typing rule for the lens, which follows.
+\[
+\inferrule
+{
+\Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+\UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\
+\UnambigConcatOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
+}
+{
+\ConcatLens{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
+}
+\]
+Above, the notation \UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}} asserts that $\Regex_1$ and $\Regex_2$ are
+unambiguously concatenable, meaning there is
+exactly one way to divide up any
+string $\String$ in the language of $\Regex_1\Regex_2$ into $\String_1$
+and $\String_2$ such that $\String_1$ is in the language of $\Regex_1$
+and $\String_2$ is in the language of $\Regex_2$.  These unambiguous
+concatenation constraints guarantee the \emph{get} and \emph{put}
+functions are indeed functions and that they form a bijection if
+the underlying lenses are bijective.
+
+One other useful lens to know at this point is the identity lens for a 
+type $\Regex$, written $\IdentityLensOf{\Regex}$.  This lens
+has the type $\Regex \Leftrightarrow \Regex$ and it simply copies
+its input to its output (in either direction).
+
+Now, with these typing rules in hand, consider trying to search for
+a lens with the type $(A B) C \Leftrightarrow A' (B' C)$ where
+we know of lenses with types 
+$A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
+$C \Leftrightarrow C'$.  A straightforward,
+syntax-directed search suggests applying the rule for concatenation,
+and looking for two simpler lenses with the types $A B \Leftrightarrow A'$
+and $C \Leftrightarrow B' C'$ respectively.  Unfortunately, at this point,
+we are simply stuck---we have no lenses with those types.  Of course,
+the natural
+solution to this problem
+is to introduce a type conversion rule to the system:
+\[
+\inferrule
+{
+\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+\Regex_1 \equiv \Regex_1'\\
+\Regex_2 \equiv \Regex_2'
+}
+{
+\Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
+}
+\]
+With such a type conversion rule, we could first 
+convert the type $(A B) C \Leftrightarrow A' (B' C)$
+to the better aligned $(A B) C \Leftrightarrow (A' B') C$.
+When we then proceed with structure decomposition using the
+concatenation rule, we generate sub-problems involving
+finding lenses for types
+$A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
+$C \Leftrightarrow C'$, which is just what we had in hand.
+
+Because equivalence of regular expressions is decideable, when
+given a lens $\Lens$ with type $\Regex_1 \Leftrightarrow \Regex_2$,
+it is easy to \emph{check} whether that lens also has type 
+$\Regex_1' \Leftrightarrow \Regex_2'$, and lens programming languages
+such as Boomerang \cite{foster:thesis} do so.  However, 
+when we turn to synthesis and are given the lens type 
+$\Regex_1' \Leftrightarrow \Regex_2'$ and the option to apply this
+rule, the search space becomes unmanageably large.  In essence,
+we must solve the problem of search \emph{in two dimensions}:  In one
+dimension, we must search for a regular expression \emph{type}
+with an appropriate ``syntactic shape'' and in a second dimension,
+we must search for a lens expression that has the given type and
+is consistent with the user's examples.
+
+\dpw{Note:  I recall there is another aspect to the difficulty of
+doing the search that I'm not mentioning here.  It has to do with
+``horizontal'' composition -- I think we came up with an example of
+lens that you could not write without horizontal composition, which
+also makes the search space bigger.  Ideally, we should expand the
+introduction to illustrate that additional problem.  The fact that you
+need horizontal composition was surprising.  Extending the intro 
+with that material will
+further peak the reader's interest and show them we are doing something
+still harder.}
+
+\paragraph*{Our Solution.}  Our solution to this problem is to define
+a new language of lenses that
+cuts down the synthesis search space \emph{in both dimensions}.  \dpw{Is that
+true?  In \emph{both} dimensions?  Because we eliminate the need to search
+for compositions? But we haven't said that yet.}
+This language is designed so that its regular expression types are limited 
+to those in a pseudo-canonical form.  This pseudo-canonical form
+demands that regular expressions be defined as a flattened 
+union of concatenated atoms, where each atom is a simple string or
+the Kleene star of an expression that is recursively in normal form.
+When converted into this pseudo-canonical form, two regular expressions that 
+differed only by associativity of concatenation will be syntactically equal.
+For example, rather than searching for a lens with type 
+ $(A B) C \Leftrightarrow A' (B' C)$, our algorithm will always search
+for one with type  $(A B) C \Leftrightarrow (A' B') C$
+  
+More generally, many, but not all, structural incongruities that
+prevent the existence of lenses disappear.
+Not all structural incogruities disappear because our regular expressions
+are only \emph{pseudo-canonical} (no true canonical form for regular
+expressions exists~\cite{?}).  For instance, our pseudo-normal form
+does not automatically unify lenses such as
+$A B* \Leftrightarrow A (\epsilon + BB*)$ that result from an
+unrolling of Kleene Star, for instance.
+Consequently, we structure our synthesis algorithm in two parts:  The
+first is a syntax-directed search for a lens based on the structure of the given
+regular expression types and, if that fails, the second is a search,
+using Conway's axioms~\cite{conway} for 
+equivalent regular expression types that might allow a new search
+in the first phase of the search to succeed.  
+
+One other complication that appears in our setting but not elsewhere in
+the literature on type-directed synthesis, is that the types 
+describing data formats may be very large --- they are regular
+grammars describing complex data formats.  On the one hand, this is
+very useful as such types provide a wealth of information that constrains
+the search process effectively.  On the other hand, there is a lot of
+data here that must be managed carefully by the synthesis system.
+One important observation is that users naturally construct
+such types compositionally, using named abbreviations for subcomponents,
+and the structure inherent in these named abbreviations can be 
+exploited by the synthesis algorithm to speed up the search dramatically.
+
+For example, if the name $A$ appears once on both the left and the right,
+the system will hypothesize that the identity lens can be used to convert
+between occurrences of $A$.  On the other hand, if the name $A$ appears
+on the left, but not on the right, the system will hypothesize that the
+name $A$ should be replaced by its definition.  Likewise, differing
+numbers of occurrences of names can serve as a guide for unrolling
+Kleene star or applying other regular expression equivalence axioms.
+Hence, in general, to guide the transformation of regular expression
+types, we define a metric based on the occurrence of names.
+
+\paragraph*{Contributions.}  Overall, we have designed and implemented
+a new system for the synthesis of bijective string lenses.
+In addition, this paper makes the following contributions:
+
+\begin{itemize}
+\item It defines a new language of lenses designed specifically for synthesis
+with types based on pseudo-canonical regular expressions, with a term 
+language to match.
+\item We formalize the semantics of the language and prove it sound with
+respect to an existing, standard language for bijective string lenses.
+\item We designed a basic, new, type-directed, and two-dimensional 
+algorithm for synthesizing lenses in our new domain-specific language.
+\item We developed a collection of optimizations that speed up the basic
+synthesis algorithm.
+\item We have implemented the language and evaluated it on a range of
+over 40 benchmarks including micro-benchmarks, a few examples from FlashFill,
+and a number of examples from the Augeas system for transforming linux
+file formats.  Our synthesis algorithm succeeds on 36 out of 42 of our
+benchmarks.  When it succeeds, synthesis time is typically less than 1 second.
+\end{itemize}
+
+
+%% This rule gives the lens $\ConcatLens{\Lens_1}{\Lens_2}$ the type
+%% $\Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2$, meaning it
+%% converts between strings in the language of $\Regex_1\Regex_2$ and
+%% strings in the language of $\RegexAlt_1\RegexAlt_2$.  In order for the
+%% lens to be well-typed,  $\Regex_1$ and $\Regex_2$ must be
+%% unambiguously concatenable (written \UnambigConcatOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}), meaning there must be exactly 1 way to divide up any
+%% string $\String$ in the language of $\Regex_1\Regex_2$ into $\String_1$
+%% and $\String_2$ such that
 
 
