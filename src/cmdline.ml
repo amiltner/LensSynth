@@ -153,7 +153,7 @@ let collect_example_number (p:program) : unit =
   print_endline ((string_of_int !num_examples))
 
 let print_outputs (p:program) : unit =
-  let inner_a = RegExStar (RegExBase "a'") in
+  (*let inner_a = RegExStar (RegExBase "a'") in
   let inner_b = RegExStar (RegExBase "b'") in
   let inner_c = RegExStar (RegExBase "c'") in
   let inner_d = RegExStar (RegExBase "d'") in
@@ -166,9 +166,11 @@ let print_outputs (p:program) : unit =
   let r = RegExConcat (RegExOr (a,b),RegExOr(c,d)) in
   print_endline (Pp.pp_regexp r);
   print_endline "\n";
-  print_endline (Pp.pp_regexp (smart_dnf_regex_to_regex (to_dnf_regex r)));
+  print_endline (Pp.pp_regexp (clean_regex (smart_dnf_regex_to_regex
+  (to_dnf_regex r))));
   print_endline "\n";
-  print_endline (Pp.pp_regexp (dnf_regex_to_regex (to_dnf_regex r)));
+  print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
+  r))));*)
   run_declarations
     (fun (drro:(dnf_lens*regex*regex*context) option) _ _ _ _ ->
       begin match drro with

@@ -439,21 +439,23 @@ let rec insert_into_correct_list ((k,v):'a * 'b) (l:('a * 'b list) list)
 let rec append_into_correct_list ((k,v):'a * 'b list) (l:('a * 'b list) list)
     : ('a * 'b list) list =
   begin match l with
-  | ((k',vlist)::kvplist) ->(append_into_correct_list (k,v) kvplist)
-  | [] -> failwith "bad list"
+  | ((k',vlist)::kvplist) ->
+      if k = k' then
+        (k',v@vlist)::kvplist
+      else
+        (k',vlist)::(append_into_correct_list (k,v) kvplist)
+  | [] -> failwith "bad lisat"
   end
 
 let rec group_by_values (l:('a list * 'b) list) : ('a list * 'b) list =
   let empty_value_list = List.dedup (List.map ~f:(fun v -> (snd v,[])) l) in
   let l' = List.fold_left
   ~f:(fun acc (k,v) ->
-    append_into_correct_list (v,k) empty_value_list)
+    append_into_correct_list (v,k) acc)
   ~init:empty_value_list
   l
   in
   List.map ~f:(fun (x,y) -> (y,x)) l'
-
-
 
 
 let rec tagged_list_tree_keygrouped (tlt:('a,'b) tagged_list_tree) : ('a
@@ -467,13 +469,7 @@ list,'b) tagged_list_tree =
       end) in
       let tltl' = List.map ~f:tagged_list_tree_keygrouped tltl in
       if is_noded then
-        let kvps = List.map ~f:(fun tlt -> begin match tlt with
-                    | Leaf _ -> failwith "bad"
-                    | Node (k,tltl) -> (k,tltl)
-                    end) tltl' in
-        let kvpg = group_by_values kvps in
-        let as_nodes = List.map ~f:(fun (k,tltl) -> Node (k,tltl)) kvpg in
-        Node ([k],as_nodes)
+        Node ([k],handle_noded_tltl tltl')
       else
         Node ([k],tltl')
   end

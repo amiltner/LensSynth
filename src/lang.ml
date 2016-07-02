@@ -402,20 +402,26 @@ let rec clause_to_kvp ((atoms,strings):clause)
   | _ -> failwith "malformed clause"
   end
 
-let rec tl_regex_to_regex (tl:((atom * string) option,
+let rec tl_regex_to_regex (tl:(((atom * string) option) list,
 string) tagged_list_tree) : regex =
   begin match tl with
   | Leaf s -> RegExBase s
-  | Node (aso,tll) ->
-      begin match aso with
-      | None -> tll_regex_to_regex tll
-      | Some(a,s) ->
-          let left_side = RegExConcat (RegExBase s,smart_atom_to_regex a) in
-          let right_side = tll_regex_to_regex tll in
-          RegExConcat(left_side,right_side)
-      end
+  | Node (asl,tll) ->
+      let left_side = List.fold_left
+        ~f:(fun acc aso ->
+          begin match aso with
+          | None -> RegExBase ""
+          | Some (a,s) ->
+              RegExOr(acc,RegExConcat (RegExBase s,smart_atom_to_regex a))
+          end)
+        ~init:RegExEmpty
+        asl
+      in
+      let right_side = tll_regex_to_regex tll in
+      RegExConcat(left_side,right_side)
   end
-and tll_regex_to_regex (tll:((atom * string) option,
+
+and tll_regex_to_regex (tll:(((atom * string) option) list,
 string) tagged_list_tree list) : regex =
         List.fold_left
           ~f:(fun acc l -> RegExOr(acc, tl_regex_to_regex l))
@@ -426,7 +432,7 @@ and smart_dnf_regex_to_regex (r:dnf_regex) : regex =
   let tltl = dnf_regex_to_tagged_list_tree_list r in
   let tltl_grouped = List.map ~f:tagged_list_tree_keygrouped tltl in
   let real_grouped_tltl = handle_noded_tltl tltl_grouped in
-  tll_regex_to_regex tltl
+  tll_regex_to_regex real_grouped_tltl
 
 and dnf_regex_to_tagged_list_tree_list (r:dnf_regex) : ((atom * string) option,
 string) tagged_list_tree list =
@@ -458,6 +464,35 @@ and smart_atom_to_regex (a:atom) : regex =
   | AMappedUserDefined t -> RegExMappedUserDefined t
   | AUserDefined t -> RegExUserDefined t
   | AStar dr -> RegExStar (smart_dnf_regex_to_regex dr)
+  end
+
+let rec clean_regex (r:regex) : regex =
+  begin match r with
+  | RegExConcat(x,y) ->
+    let x = clean_regex x in
+    let y = clean_regex y in
+    begin match (x,y) with
+    | (RegExBase "",_) -> y
+    | (_,RegExBase "") -> x
+    | (RegExEmpty,_) -> RegExEmpty
+    | (_,RegExEmpty) -> RegExEmpty
+    | _ -> RegExConcat(x,y)
+    end
+  | RegExOr(x,y) ->
+    let x = clean_regex x in
+    let y = clean_regex y in
+    begin match (x,y) with
+    | (RegExEmpty,_) -> y
+    | (_,RegExEmpty) -> x
+    | _ -> RegExOr(x,y)
+    end
+  | RegExStar(x) ->
+    let x = clean_regex x in
+    begin match x with
+    | RegExEmpty -> RegExBase ""
+    | _ -> x
+    end
+  | _ -> r
   end
 
 

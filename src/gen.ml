@@ -568,8 +568,8 @@ let gen_dnf_lens_zipper (c:context)
           | Some (r1',r2') ->
 (*let (r1',r2') = (r1,r2) in*)
               (*print_endline ("\n\n\npopped " ^ (Float.to_string p));
-              print_endline (Pp.pp_regexp r1');
-              print_endline (Pp.pp_regexp r2');
+              print_endline (Pp.pp_regexp (clean_regex r1'));
+              print_endline (Pp.pp_regexp (clean_regex r2'));
               print_endline (string_of_int (List.length (fst mc)));*)
 let exampled_r1_opt = regex_to_exampled_dnf_regex e_c (get_left_side mc) r1' lexs in
 let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' rexs in
