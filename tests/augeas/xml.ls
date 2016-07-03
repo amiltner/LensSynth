@@ -1,5 +1,4 @@
 #use "base.decls" 
-#use #util.decls"
 
 typedef X = UPPERCASE;;
 
@@ -65,5 +64,3 @@ typedef THIRDLEVEL_XML_DICT = "{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) ((((NONEM
 map_inner = [XML_INNER_ELEMENT <=> INNER_XML_DICT {}]
 
 map_secondlevel = [XML_SECONDLEVEL_ELEMENT <=> SECONDLEVEL_XML_DICT {}]
-
-map_thirdlevel = [XML_THIRDLEVEL_ELEMENT <=> THIRDLEVEL_XML_DICT {}]

@@ -12,8 +12,9 @@ import time
 
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
-BASE_FLAGS = []
+BASE_FLAGS = ["-iterativedeepenstrategy"]
 TIMEOUT_TIME = 8
+GENERATE_EXAMPLES_TIMEOUT_TIME = 8
 
 REPETITION_COUNT = 10
 
@@ -27,15 +28,16 @@ def find_tests(root):
         tests.extend([(path, f[0]) for f in files if f[1] == TEST_EXT])
     return tests
 
-def gather_datum(prog, path, base, additional_flags):
-    return EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=TIMEOUT_TIME).stdout
+def gather_datum(prog, path, base, additional_flags, timeout):
+    #print([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)])
+    return EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout).stdout
 
 def gather_data(prog, path, base):
     current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[6:]}
     run_data = []
     timeout = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-data'])
+    	datum = gather_datum(prog, path, base,['-time'],TIMEOUT_TIME)
 	if datum == "":
 		timeout = True
 		break
@@ -43,16 +45,29 @@ def gather_data(prog, path, base):
 		run_data.append(datum.split(","))
     if timeout:
 	current_data["ComputationTime"]="Timeout"
-	current_data["ExamplesRequired"]="Timeout"
     else:
         run_data_transpose = transpose(run_data)
 	computation_time_col = [float(x) for x in run_data_transpose[0]]
-	examples_required_col = [float(x) for x in run_data_transpose[1]]
 	current_data["ComputationTime"]="{:.5f}".format(sum(computation_time_col)/len(computation_time_col))
-	current_data["ExamplesRequired"]="{:.1f}".format(sum(examples_required_col)/len(examples_required_col))
-    expanded_run_data = []
+    generate_exs_run_data = []
+    timeout = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-forceexpand'])
+    	datum = gather_datum(prog, path, base,['-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
+	if datum == "":
+		timeout = True
+		break
+	else:
+		generate_exs_run_data.append(datum.split(","))
+    if timeout:
+	current_data["ExamplesRequired"]="Timeout"
+    else:
+        generate_exs_run_data_transpose = transpose(generate_exs_run_data)
+	example_number_col = [float(x) for x in generate_exs_run_data_transpose[0]]
+	current_data["ExamplesRequired"]="{:.1f}".format(sum(example_number_col)/len(example_number_col))
+    expanded_run_data = []
+    timeout = False
+    for iteration in range(REPETITION_COUNT):
+    	datum = gather_datum(prog, path, base,['-forceexpandtime'],TIMEOUT_TIME)
 	if datum == "":
 		timeout = True
 		break
@@ -64,6 +79,21 @@ def gather_data(prog, path, base):
         expanded_run_data_transpose = transpose(expanded_run_data)
 	expanded_computation_time_col = [float(x) for x in expanded_run_data_transpose[0]]
 	current_data["ForceExpandTime"]="{:.5f}".format(sum(expanded_computation_time_col)/len(expanded_computation_time_col))
+    gen_exs_expanded_run_data = []
+    timeout = False
+    for iteration in range(REPETITION_COUNT):
+    	datum = gather_datum(prog, path, base,['-forceexpandgeneratedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
+	if datum == "":
+		timeout = True
+		break
+	else:
+		gen_exs_expanded_run_data.append(datum.split(","))
+    if timeout:
+	current_data["ForceExpandExamplesRequired"]="Timeout"
+    else:
+        gen_exs_expanded_run_data_transpose = transpose(gen_exs_expanded_run_data)
+	gen_exs_expanded_col = [float(x) for x in gen_exs_expanded_run_data_transpose[0]]
+	current_data["ForceExpandExamplesRequired"]="{:.1f}".format(sum(gen_exs_expanded_col)/len(gen_exs_expanded_col))
     return current_data
 
 def print_data(data):

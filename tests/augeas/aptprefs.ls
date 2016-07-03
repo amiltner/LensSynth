@@ -27,10 +27,10 @@ typedef PIN_PRIORITY_DICT = "{\"Pin-Priority\"=\"" NUMBER "\"}";;
 test PIN_PRIORITY_DICT matches "{\"Pin-Priority\"=\"700\"}";;
 
 
-typedef OPTION_CONF = ((EXPLANATION_CONF | PACKAGE_CONF | PIN_CONF | PIN_PRIORITY_CONF | COMMENT) "\n")+;;
+typedef OPTION_CONF = ((EXPLANATION_CONF | PACKAGE_CONF | PIN_CONF | PIN_PRIORITY_CONF | COMMENT) "\n");;
 
 typedef APTPREFS_CONF = (OPTION_CONF (("\n" OPTION_CONF)*));;
-typedef APTPREFS_DICT = ("{\"Pref\"=" (EXPLANATION_DICT | PACKAGE_DICT | PIN_DICT | PIN_PRIORITY_DICT | COMMENT_DICT)+"}")+;;
+typedef APTPREFS_DICT = ("{\"Pref\"=" (EXPLANATION_DICT | PACKAGE_DICT | PIN_DICT | PIN_PRIORITY_DICT | COMMENT_DICT)"}")+;;
 
-x = [APTPREFS_CONF <=> APTPREFS_DICT {"Explanation: Backport packages are never prioritary\nPackage: *\nPin: release a=backports\nPin-Priority: 700\n" <-> "{\"Pref\"={\"Explanation\"=\"Backport packages are never prioritary\"}{\"Package\"=\"*\"}{\"Pin\"=\"release a=backports\"}{\"Pin-Priority\"=\"700\"}}"}]
+x = [APTPREFS_CONF <=> APTPREFS_DICT {(*"Explanation: Backport packages are never prioritary\nPackage: *\nPin: release a=backports\nPin-Priority: 700\n" <-> "{\"Pref\"={\"Explanation\"=\"Backport packages are never prioritary\"}{\"Package\"=\"*\"}{\"Pin\"=\"release a=backports\"}{\"Pin-Priority\"=\"700\"}}"*)}]
 

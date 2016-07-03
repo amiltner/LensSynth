@@ -39,10 +39,10 @@ journal_to_readable_journal = [BIBTEXJOURNAL <=> TAGGEDJOURNAL
 {"journal={Principals Of Programming Languages}" <->
  "jo - Principals Of Programming Languages"}]
 
-bibtext_to_tagged_tester = [FULLBIBTEX <=> FULLTAGS {
-"{author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron},title={Boomerang Resourceful Lenses For String Data},journal={Principals Of Programming Languages},}" <->
+bibtext_to_tagged_tester= [FULLBIBTEX <=> FULLTAGS {}]
+(*"{author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron},title={Boomerang Resourceful Lenses For String Data},journal={Principals Of Programming Languages},}" <->
 "au - Nathan Foster 
  au - Benjamin Pierce 
  au - Aaron Bohannon
 ti - Boomerang Resourceful Lenses For String Data
-jo - Principals Of Programming Languages"}]
+jo - Principals Of Programming Languages"}]*)
