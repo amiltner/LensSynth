@@ -1,6 +1,7 @@
 open Core.Std
 open Lens_put
 open Fasteval
+open Regexcontext
 open Util
 open Lang
 open Lens
@@ -79,130 +80,11 @@ let rec map_and_abstract (mc:mapsbetweencontext)
   ,mc
   ,got_something)
 
-let rec all_match (c:context) (r:regex) (ss:string list) : bool =
+let rec all_match (c:RegexContext.t) (r:regex) (ss:string list) : bool =
   List.fold_left
   ~f:(fun acc s -> acc && eval_regex c r s)
   ~init:true
   ss
-
-let rec gen_lenses (c:context) (s:regex) (t:regex) (exs:examples) : lens list =
-  let structural_lenses = (begin match (s,t) with
-  | (RegExBase s1, RegExBase s2) ->
-      let (exss,exst) = List.unzip exs in
-      if ((all_match c s exss) && (all_match c t exst)) then
-        [ConstLens (s1, s2)]
-      else
-        []
-  | (RegExConcat (s1,s2), RegExConcat (t1,t2)) ->
-      let gen_concat permutation1 permutation2 generator = (
-        let (sexs,texs) = List.unzip exs in
-        let sexs_splits = List.map
-          ~f:(retrieve_regex_concat_split c s1 s2)
-          sexs in
-        let texs_splits = List.map
-          ~f:(retrieve_regex_concat_split c t1 t2)
-          texs in
-        begin match (distribute_option sexs_splits, distribute_option texs_splits) with
-        | (Some sexsplits, Some texsplits) ->
-          let (t1,t2) = permutation1 (t1,t2) in
-          let (sexs1,sexs2) = List.unzip sexsplits in
-          let (texs1,texs2) = permutation2 (List.unzip texsplits) in
-          let lenses1 = gen_lenses c s1 t1 (List.zip_exn sexs1 texs1) in
-          let lenses2 = gen_lenses c s2 t2 (List.zip_exn sexs2 texs2) in
-          cartesian_map
-            generator
-            lenses1
-            lenses2
-        | _ -> []
-        end
-      ) in
-      gen_concat
-        (fun (x,y) -> (x,y))
-        (fun (x,y) -> (x,y))
-        (fun l1 l2 -> ConcatLens (l1,l2)) @
-      gen_concat
-        (fun (x,y) -> (y,x))
-        (fun (x,y) -> (y,x))
-        (fun l1 l2 -> SwapLens (l1,l2))
-  | (RegExOr (s1,s2), RegExOr (t1,t2)) ->
-      let (sexs,texs) = List.unzip exs in
-      let sexs_choices = List.map
-        ~f:(retrieve_regex_or_choice c s1 s2)
-        sexs in
-      let texs_choices = List.map
-        ~f:(retrieve_regex_or_choice c t1 t2)
-        texs in
-      begin match (distribute_option sexs_choices, distribute_option texs_choices) with
-      | (Some sexchoices, Some texchoices) ->
-          let split_examples = List.fold_left
-          ~f:(fun (accs) ((sexchoice,texchoice),ex) ->
-            begin match accs with
-            | None -> None
-            | Some (leftacc,rightacc) ->
-                begin match (sexchoice,texchoice) with
-                | (false,false) -> Some (ex::leftacc,rightacc)
-                | (true,true) -> Some (leftacc,ex::rightacc)
-                | _ -> None
-                end
-            end)
-          ~init:(Some ([],[]))
-          (List.zip_exn (List.zip_exn sexchoices texchoices) exs) in
-          begin match split_examples with
-          | None -> []
-          | Some (exs1,exs2) ->
-              let ls1 = gen_lenses c s1 t1 exs1 in
-              let ls2 = gen_lenses c s2 t2 exs2 in
-              cartesian_map
-                (fun x y -> UnionLens (x,y))
-                ls1
-                ls2
-          end
-      | _ -> []
-      end
-    
-  | (RegExStar s', RegExStar t') ->
-      let (sexs,texs) = List.unzip exs in
-      let sexs_splits = List.map
-        ~f:(retrieve_regex_star_splits c s')
-        sexs in
-      let texs_splits = List.map
-        ~f:(retrieve_regex_star_splits c t')
-        texs in
-      begin match (distribute_option sexs_splits, distribute_option texs_splits) with
-      | (Some sexs_splits,Some texs_splits) ->
-          let split_examples = List.fold_left
-          ~f:(fun (accs) ((sexsplit,texsplit)) ->
-            begin match accs with
-            | None -> None
-            | Some (acc) ->
-                (begin match (List.zip sexsplit texsplit) with
-                | None -> None
-                | Some zip -> Some (zip @ acc)
-                end)
-            end)
-          ~init:(Some [])
-          (List.zip_exn sexs_splits texs_splits) in
-
-          begin match split_examples with
-          | None -> []
-          | Some l ->
-              let ls' = gen_lenses c s' t' l in
-              List.map
-              ~f:(fun x -> IterateLens x)
-              ls'
-          end
-      | _ -> []
-      end
-  | (RegExUserDefined typ1, RegExUserDefined typ2) -> []
-  | _ -> []
-  end) in
-  let (sexs,texs) = List.unzip exs in
-  if (s = t
-      && sexs = texs
-      && all_match c s sexs) then
-        IdentityLens :: structural_lenses
-      else
-        structural_lenses
 
 let num_stars_current_level_clause ((atoms,_):clause) : int =
   let num_stars_current_level_atom (a:atom) : int =
@@ -284,7 +166,7 @@ let expand_atom_rewrite (expansion_function:dnf_regex -> dnf_regex)
 let modular_n_expand_atom (r:dnf_regex) (expanded_atom:int) : dnf_regex =
   []
 
-let rec gen_atom_lens (c:context) (a1:atom) (a2:atom)
+let rec gen_atom_lens (c:RegexContext.t) (a1:atom) (a2:atom)
                       (exs:examples) (expand_count:int) : atom_lens option =
   begin match (a1,a2) with
   | (AStar r1, AStar r2) ->
@@ -330,13 +212,13 @@ let rec gen_atom_lens (c:context) (a1:atom) (a2:atom)
 
   | (AUserDefined r1, AUserDefined r2) ->
       if r1 = r2 && (List.for_all ~f:(fun (le,re) -> le = re) exs) then
-        Some AIdentity
+        Some (AIdentity r1)
       else
         None
   | _ -> None
   end
 
-and gen_clause_lens (c:context) ((atoms1,strings1):clause)
+and gen_clause_lens (c:RegexContext.t) ((atoms1,strings1):clause)
                     ((atoms2,strings2):clause)
                     (exs:examples) (expand_count:int) : clause_lens option =
   let len = List.length atoms1 in
@@ -385,7 +267,7 @@ and gen_clause_lens (c:context) ((atoms1,strings1):clause)
     | (_,_) -> None
     end
 
-and gen_dnf_lens_expand_beneath (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+and gen_dnf_lens_expand_beneath (c:RegexContext.t) (clauses1:dnf_regex) (clauses2:dnf_regex)
                  (exs:examples) (expand_count:int) : dnf_lens option =
   let len = List.length clauses1 in
   if len <> List.length clauses2 then
@@ -445,7 +327,7 @@ and gen_dnf_lens_expand_beneath (c:context) (clauses1:dnf_regex) (clauses2:dnf_r
     | (_,_) -> None
     end
 
-and gen_dnf_lens_expand_here (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+and gen_dnf_lens_expand_here (c:RegexContext.t) (clauses1:dnf_regex) (clauses2:dnf_regex)
                         (exs:examples) (expand_count:int) : dnf_lens option =
   if expand_count = 0 then
     None
@@ -486,10 +368,10 @@ and gen_atom_zipper (atom1:ordered_exampled_atom)
                     (atom2:ordered_exampled_atom)
                     : atom_lens =
   begin match (atom1,atom2) with
-  | (OEAUserDefined _,OEAUserDefined _) -> AIdentity
+  | (OEAUserDefined (s1,_),OEAUserDefined (s2,_)) -> AIdentity s1
   | (OEAStar r1, OEAStar r2) ->
       AIterate (gen_dnf_lens_zipper_internal r1 r2)
-  | (OEAMappedUserDefined _,OEAMappedUserDefined _) -> AIdentity
+  | (OEAMappedUserDefined _,OEAMappedUserDefined _) -> AIdentity ("todo")
   | _ -> failwith "invalid"
   end
 
@@ -540,7 +422,7 @@ and gen_dnf_lens_zipper_internal (r1:ordered_exampled_dnf_regex)
    clause_lens_perm_part_list_by_left_clause in
    (clause_lenses,Permutation.create_from_doubles_unsafe perm_parts)
 
-and gen_dnf_lens_internal (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
+and gen_dnf_lens_internal (c:RegexContext.t) (clauses1:dnf_regex) (clauses2:dnf_regex)
                  (exs:examples) (expand_count:int) : dnf_lens option =
   let expanded_here = gen_dnf_lens_expand_here c clauses1 clauses2 exs expand_count in
   if expanded_here <> None then
@@ -548,8 +430,7 @@ and gen_dnf_lens_internal (c:context) (clauses1:dnf_regex) (clauses2:dnf_regex)
   else
     gen_dnf_lens_expand_beneath c clauses1 clauses2 exs expand_count
 
-let gen_dnf_lens_zipper (c:context)
-                        (e_c:evaluation_context)
+let gen_dnf_lens_zipper (c:RegexContext.t)
                         (r1:regex)
                         (r2:regex)
                         (exs:examples)
@@ -568,11 +449,11 @@ let gen_dnf_lens_zipper (c:context)
           | Some (r1',r2') ->
 (*let (r1',r2') = (r1,r2) in*)
               (*print_endline ("\n\n\npopped " ^ (Float.to_string p));
-              print_endline (Pp.pp_regexp (clean_regex r1'));
-              print_endline (Pp.pp_regexp (clean_regex r2'));
-              print_endline (string_of_int (List.length (fst mc)));*)
-let exampled_r1_opt = regex_to_exampled_dnf_regex e_c (get_left_side mc) r1' lexs in
-let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' rexs in
+              print_endline (Pp.pp_regexp (r1'));
+              print_endline (Pp.pp_regexp (r2'));
+                print_endline (string_of_int (List.length (fst mc)));*)
+let exampled_r1_opt = regex_to_exampled_dnf_regex c (get_left_side mc) r1' lexs in
+let exampled_r2_opt = regex_to_exampled_dnf_regex c (get_right_side mc) r2' rexs in
               begin match (exampled_r1_opt,exampled_r2_opt) with
               | (Some exampled_r1,Some exampled_r2) ->
                   let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
@@ -587,7 +468,7 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' re
                            r1',
                            r2' )
                   | _ ->
-                      let (dr1',dr2',mc',got_something) = map_and_abstract
+                      (*let (dr1',dr2',mc',got_something) = map_and_abstract
                         mc
                         e_o_r1
                         e_o_r2 in
@@ -596,13 +477,13 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' re
                           (smart_dnf_regex_to_regex dr1',smart_dnf_regex_to_regex dr2')
                       else
                         (r1',r2')
-                      in
+                        in*)
 
                       let rx_list =
                         retrieve_transformation_queue_elements
                           max_size
                           c
-                          mc'
+                          mc
                           r1'
                           r2'
                           star_expansions
@@ -656,29 +537,29 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex e_c (get_right_side mc) r2' re
   (range 0 7)*)
 
 
-let gen_dnf_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
+let gen_dnf_lens (c:RegexContext.t) (r1:regex) (r2:regex)
 (exs:examples) (iteratively_deepen_strategy:bool)
-: (dnf_lens*regex*regex*context) option =
+: (dnf_lens*regex*regex*RegexContext.t) option =
   if iteratively_deepen_strategy then
     let (r1,c1) = iteratively_deepen r1 in
     let (r2,c2) = iteratively_deepen r2 in
-    let c = merge_contexts c (merge_contexts c1 c2) in
-    let e_c = c in
+    let c = RegexContext.merge_contexts_exn c
+        (RegexContext.merge_contexts_exn c1 c2) in
     Option.map
-      ~f:(fun (d,r1,r2) -> (d,r1,r2,e_c))
-      (gen_dnf_lens_zipper c e_c r1 r2 exs)
+      ~f:(fun (d,r1,r2) -> (d,r1,r2,c))
+      (gen_dnf_lens_zipper c r1 r2 exs)
   else
     Option.map
-      ~f:(fun (d,r1,r2) -> (d,r1,r2,e_c))
-      (gen_dnf_lens_zipper c e_c r1 r2 exs)
+      ~f:(fun (d,r1,r2) -> (d,r1,r2,c))
+      (gen_dnf_lens_zipper c r1 r2 exs)
 
-let gen_lens (c:context) (e_c:evaluation_context) (r1:regex) (r2:regex)
+let gen_lens (c:RegexContext.t) (r1:regex) (r2:regex)
              (exs:examples) (iterative_deepen_strategy:bool) : lens option =
   (*print_endline (Pp.pp_regexp r1);
   print_endline (Pp.pp_regexp r2);
   print_endline (String.concat ~sep:";" (List.map ~f:(fun (s1,s2) ->
     "("^s1^","^s2^")") exs));*)
-  let dnf_lens_option = gen_dnf_lens c e_c r1 r2 exs iterative_deepen_strategy in
+  let dnf_lens_option = gen_dnf_lens c r1 r2 exs iterative_deepen_strategy in
   Option.map
     ~f:(fun (l,r1',r2',_) ->(*Fn.compose simplify_lens*)
       (*let exs_reqd = fold_until_completion

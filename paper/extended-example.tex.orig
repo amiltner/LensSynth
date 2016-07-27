@@ -1,0 +1,213 @@
+\section{Extended Example}
+
+Consider building a lens which converts between between citations given
+in EndNote format, and in BibTex format.  For simplicity, we are only
+considering the author and title fields.  The synthesis problem for these
+two regular expressions is provided below.
+
+\begin{figure}
+\begin{lstlisting}
+Name    = [A-Z][a-z]*
+Initial = [A-Z] "."
+Word    = ([A-Z] | [a-z] | "-" | "," | ":")+
+Title   = Word (" " Word)*
+
+<<<<<<< HEAD
+LastCommaFirstName = Name", " Name
+		(" " (Name | Initial))*
+Type = "@inproceedings" | "@article" | "@book"
+BibTex = Type "{" Word ","
+	("" | ("title={" Title "},"))
+	("" | ("author={" LastCommaFirstName
+		(" and " LastCommaFirstName)* "},"))
+=======
+FN      = Name", " Name (" " (Name | Initial))*
+Type    = "@inproceedings" | "@article" 
+BibTex  = 
+  Type "{" 
+    Word ","
+    ("" | ("title={" Title "},"))
+    ("" | ("author={" FN (" and " FN)* "},")) 
+  "}"
+>>>>>>> 804a5bb48a564d51d5f4cde29101e30e21afb0b9
+
+EName   = Name (" " (Name | Initial))* (" " Name)
+Class   = "Conference Paper" | "Journal Article"
+EndNote = "%0 " Class "\n"
+<<<<<<< HEAD
+	("%A " FullName "\n")*
+	("" | ("%T " Title "\n"))
+	"%1 " Word "\n"
+=======
+	 ("%A " EName "\n")*
+	 ("" | "%T TITLE")
+	  "%1 " Word "\n"
+>>>>>>> 804a5bb48a564d51d5f4cde29101e30e21afb0b9
+
+BibEndConv : BibTex <=> EndNote = ?
+\end{lstlisting}
+\caption{Synthesis Problem: Simplified Bibtex to EndNote}
+\end{figure}
+
+\begin{lstlisting}
+Name = [A-Z][a-z]*
+
+LastCommaFirstName = Name", " Name
+		(" " (Name | Initial))*
+BibTexAuthor = ("" | ("author={" LastCommaFirstName
+		(" and " LastCommaFirstName)* "},"))
+
+FullName = Name (" " (Name | Initial))*
+	(" " Name)
+EndNoteAuthor = ("%A " FullName "\n")*
+
+BibEndAuthorConv : BibTexAuthor <=> EndNoteAuthor = ?
+\end{lstlisting}
+
+
+We are trying to synthesize \BibEndConv{}.
+
+There is no lens that goes between \BibTex{} and \EndNote{}, so one of them must
+be expanded.
+Indeed, both of them must be expanded, as \BibTex{} will never be able to be
+the source of any lens in this problem, nor will \EndNote{} be able to be the
+target.
+This can be generalized for the sub-expressions of \BibTex{} and \EndNote{},  
+If, any user defined data type does not exist in the possible types of the
+other side, it must be expanded.
+
+FIGURE:
+Trees of user defined regular expressions, with red x's over those that must be
+removed.
+
+After completing these necessary expansions, the problem becomes synthesizing a
+lens between the regular expression
+\begin{lstlisting}
+BibTex'=("@inproceedings" | "@article" | "@book") "{" Word "," ("" | ("title={" Title "},")) ("" | ("author={" (Name", " Name (" " (Name | Initial))*) (" and " (Name", " Name (" " (Name | Initial))*))* "},"))
+\end{lstlisting}
+and
+\begin{lstlisting}
+EndNote'="%0 " ("Conference Paper" | "Journal Article" | "Book") "\n" ("%A " (Name (" " (Name | Initial))* (" " Name)) "\n")* ("" | ("%T " Title "\n")) "%1 " Word "\n"
+\end{lstlisting}
+
+A basic synthesis approach from here will quickly fail.  Both \texttt{BibTex'}
+and \texttt{EndNote'} are of the form $\Regex_1\Concat\Regex_2$, but there is
+not a lens between \texttt{"\%0"} and
+\texttt{("@inproceedings" | "@article" | "@book")}.
+
+These issues can be handled by normalizing the regular expressions slightly.
+By putting them in a form that normalizes away the equivalences of
+associativity, distributivity, and \EmptyString{} identity.
+
+The normalized form of these equivalences is too long to be contained in this
+paper.  Instead, we will work through \afm{or should we just do the easier
+example shown above}.
+
+With those equivalences are handled, perhaps the lens can be synthesized.
+A lens can be synthesized, if there is some pairing of sequences such that
+there are sequence lenses between the two elements of the pair for all pairings.
+A sequence lens can be synthesized if there is some pairing of atoms, such that
+there is an atom lens between the two atoms.  An atom lens can be synthesized
+if the regular expressions the same user defined data type, or if there is a dnf
+lens between the two dnfs under the stars.
+
+FIGURE:
+
+"" | Author Author*
+
+AuthorEndNote*
+
+Looking at the number of sequences, we can easily see that these dnf regular
+expressions do not have a lens between them, without some rewrite rules applied.
+However, there are a large number of possible rewrite rules that can be applied.
+Instead of taking and testing all of them, each rewrite rule is applied, and
+then placed in a priority queue.
+The priority for each problem is a linear combination of the number of rewrites
+applied, and the distance between the two dnf regular expressions by a
+pseudometric.
+
+This pseudometric is defined as the sum of two metrics.
+The first metric is a standard distance metric over the size of the two dnf
+regular expressions.
+The second metric is defined based on the distribution of user defined regular
+expressions.
+We can create an infinite dimensional free module over the integers from the
+regular expressions, generated by the set $\SetOf{(U,i)\SuchThat U\text{is a
+user defined data type}\BooleanAnd i\in\Nats}$.
+We can provide a function $f$ that maps all regular expressions into the element
+which counts how many user defined data types there are at a given depth.
+\afm{i should probably write down this function with a mapsto style, instead of
+just through text}
+The second metric is the taxicab metric on the elements of the vector space
+mapped to by the regular expressions.
+
+FIGURE:
+
+\begin{lstlisting}
+"" | (name,name) (name,name)* -> \{ ((Author,0),2) , ((Author,1),4) \}
+(name,name)* -> \{ ((name,1),2) \}
+
+d("" | (name,name) (name,name)*,(name,name)*) =
+taxicab(\{ ((Author,0),2) , ((Author,1),4) \},other)+(8-2)
+\end{lstlisting}
+
+Empirically, good transformations, like (name,name)* -> (name,name)+
+do very well, giving a distance of zero, where bad transformations, like
+name -> [A-Z][a-z]* do not do as well.
+
+Using the priority queue, the problem that gets popped would be
+"" | (name,name) (name,name)* <=> "" | (name,name) (name,name)*.
+Unlike the previous example, this cannot be so easily determined to not be
+equivalent.
+
+A naive approach to this would be to attempt all possible pairings of sequences,
+and all pairings of atoms within those sequences.  However, the complexity of
+trying all permutations is (\# permutations)!.
+
+Instead, an ordering can be provided to atoms, clauses, and dnf regular
+expressions, where two elements are equal in the ordering if there exists a lens
+between them.  Upon applying that ordering to the elements of the dnf regular
+expression, determining whether there is a lens between two dnf regular
+expressions amounts to merely seeing if each element of the ordering is
+equal with respect to the ordering, as the one on the other side.
+
+FIGURE
+\begin{lstlisting}
+e | (n,n)(n,n)* <=> e | (n,n)(n,n)*
+reorder
+e | (n,n)(n,n)* <=> e | (n,n)(n,n)*
+matched together
+e <=> e , (n,n) <=> (n,n) , etc.
+\end{lstlisting}
+
+This still isn't complete yet, for we don't know if the generated lens will
+satisfy the examples.  The same problem arises with multiple permutations
+being possible.  If all the sequences can be mapped to each other, then there is
+a valid lens for each matching of the sequences!  And not all of these
+valid lenses satisfy the examples.
+To resolve this issue, we embed the parse trees of the examples into the
+regular expressions, and treat regular expressions with different aspects of the
+parse trees embedded as differently in the ordering.
+
+FIGURE
+e | name name(name, name)* , lalalaexample
+
+\begin{lstlisting}
+ /\
+e  |
+   /\
+ name *
+      .
+     /\
+   name name
+
+lalaexample -> or2 (lala . Iterated(ex.am,p.le)
+
+combine to
+
+(the top thing but with the parse tree embedded alongside the expressions)
+\end{lstlisting}
+
+
+
+

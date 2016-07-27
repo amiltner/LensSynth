@@ -1,33 +1,16 @@
+open Pp_general
 open Lang
 open Lens
 open Core.Std
 open Permutation
 open Util
 
-let paren (s:string) : string = "(" ^ s ^ ")"
-
-let bracket (s:string) : string = "[" ^ s ^ "]"
-
-let pp_int_list (il:int list) : string =
-  bracket (
-    String.concat
-      ~sep:";"
-      (List.map ~f:string_of_int il)
-  )
-
-let pp_int_list_list (ill:int list list) : string =
-  bracket (
-    String.concat
-      ~sep:";"
-      (List.map ~f:pp_int_list ill)
-  )
-
 let rec pp_regexp (r:regex) : string =
   begin match r with
   | RegExEmpty -> "{}"
-  | RegExMappedUserDefined s -> "\"AH LORD OH JESUS OH BIG STRING JESUS CHRIST" ^ (string_of_int s) ^ "\"M"
+  | RegExMappedUserDefined s -> "\"" ^ (string_of_int s) ^ "\"M"
   | RegExBase s -> "\"" ^ s ^ "\""
-  | RegExConcat (r1,r2) -> paren ((pp_regexp r1) ^ "CONCAT" ^ (pp_regexp r2))
+  | RegExConcat (r1,r2) -> paren ((pp_regexp r1) ^ "" ^ (pp_regexp r2))
   | RegExOr (r1,r2) -> paren ((pp_regexp r1) ^ "|" ^ (pp_regexp r2))
   | RegExStar (r') -> paren (pp_regexp r') ^ "*"
   | RegExUserDefined s -> s
@@ -41,9 +24,7 @@ let rec pp_lens (l:lens) : string =
   | SwapLens (l1,l2) -> "swap(" ^ (pp_lens l1) ^ "," ^ (pp_lens l2) ^ ")"
   | UnionLens (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
   | IterateLens (l') -> paren (pp_lens l') ^ "*"
-  | IdentityLens -> "id"
-  | RetypeLens (l,r1,r2) -> "retype(" ^ pp_lens l ^ "," ^ pp_regexp r1 ^ "," ^
-  pp_regexp r2 ^ ")"
+  | IdentityLens r -> "id(" ^ (pp_regexp r) ^")"
   end
 
 let rec pp_exampled_dnf_regex ((r,ill):exampled_dnf_regex) : string =
@@ -176,7 +157,7 @@ let rec pp_dnf_lens ((clause_lenses, permutation):dnf_lens) : string =
   let pp_atom_lens (a:atom_lens) : string =
     begin match a with
     | AIterate l -> "iterate" ^ (paren (pp_dnf_lens l))
-    | AIdentity -> "identity"
+    | AIdentity s -> "identity(" ^ s ^ ")"
     end in
   let pp_clause_lens ((atomls,permutation,strings1,strings2):clause_lens) : string =
     paren (
@@ -204,10 +185,3 @@ let rec pp_dnf_lens ((clause_lenses, permutation):dnf_lens) : string =
   paren (
     Permutation.pp permutation
   )
-
-let pp_comparison (c:comparison) : string =
-  begin match c with
-  | EQ -> "EQ"
-  | LT -> "LT"
-  | GT -> "GT"
-  end

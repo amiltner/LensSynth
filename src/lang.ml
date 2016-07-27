@@ -8,6 +8,8 @@ open Fn
 exception Internal_error of string
 let internal_error f s = raise @@ Internal_error (sprintf "(%s) %s" f s)
 
+type id = string
+
 type regex =
   | RegExEmpty
   | RegExBase of string
@@ -21,10 +23,6 @@ type examples = (string * string) list
 
 type specification = (string * regex * regex * (string * string) list)
 
-type context = (string * regex) list
-
-type evaluation_context = context
-
 type declaration =
   | DeclUserdefCreation of (string * regex * bool)
   | DeclTestString of (regex * string)
@@ -33,19 +31,6 @@ type declaration =
 type program = declaration list
 
 type synth_problems = (string * regex * bool) list * (specification list) 
-
-type synth_problem = (context * evaluation_context * string * regex * regex * (string * string) list)
-
-let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
-  let e_c = List.map ~f:(fun (t,d,_) -> (t,d)) ds in
-  let c = List.filter_map
-    ~f:(fun (t,d,s) ->
-      if s then
-        Some (t,d)
-      else
-        None)
-    ds in
-  List.map ~f:(fun (n,r1,r2,exl) -> (c,e_c,n,r1,r2,exl)) ss
 
 
 
@@ -149,15 +134,75 @@ type exampled_regex =
   | ERegExUserDefined of string * string list * (int list list)
   | ERegExMappedUserDefined of int * string list * (int list list)
 
+let extract_iterations_consumed (er:exampled_regex) : int list list =
+  begin match er with
+    | ERegExEmpty -> []
+    | ERegExBase (_,ill) -> ill
+    | ERegExConcat (_,_,ill) -> ill
+    | ERegExOr (_,_,ill) -> ill
+    | ERegExStar (_,ill) -> ill
+    | ERegExUserDefined (_,_,ill) -> ill
+    | ERegExMappedUserDefined (_,_,ill) -> ill
+  end
+
+let rec took_regex (er:exampled_regex)
+    (iteration:int list) : bool =
+  let ill = extract_iterations_consumed er in
+  List.mem ill iteration
+
+let rec extract_string (er:exampled_regex) (iteration:int list)
+  : string =
+  begin match er with
+    | ERegExEmpty -> failwith "no string"
+    | ERegExBase (s,_) -> s
+    | ERegExConcat (er1,er2,_) ->
+      (extract_string er1 iteration) ^
+      (extract_string er2 iteration)
+    | ERegExOr (er1,er2,_) ->
+      if took_regex er1 iteration then
+        extract_string er1 iteration
+      else
+        extract_string er2 iteration
+    | ERegExStar (er',ill) ->
+        let valid_iterations =
+          List.rev
+            (List.filter
+              ~f:(fun it -> List.tl_exn it = iteration)
+              (extract_iterations_consumed er')) in
+        String.concat
+          (List.map
+            ~f:(extract_string er')
+            valid_iterations)
+    | ERegExUserDefined (_,sl,ill) ->
+        let dat_opt = List.findi
+          ~f:(fun i il -> il = iteration)
+          ill in
+        begin match dat_opt with
+        | None -> failwith "im horrible"
+        | Some (i,_) ->
+            List.nth_exn sl i
+        end
+    | ERegExMappedUserDefined (_,sl,ill) ->
+        let dat_opt = List.findi
+          ~f:(fun i il -> il = iteration)
+          ill in
+        begin match dat_opt with
+        | None -> failwith "im horrible"
+        | Some (i,_) ->
+            List.nth_exn sl i
+        end
+  end
+
+
 let rec extract_example_list (er:exampled_regex) : int list list =
   begin match er with
   | ERegExEmpty -> []
-  | ERegExBase (_,il) -> il
-  | ERegExConcat (_,_,il) -> il
-  | ERegExOr (_,_,il) -> il
-  | ERegExStar (_,il) -> il
-  | ERegExUserDefined (_,_,il) -> il
-  | ERegExMappedUserDefined (_,_,il) -> il
+  | ERegExBase (_,ill) -> ill
+  | ERegExConcat (_,_,ill) -> ill
+  | ERegExOr (_,_,ill) -> ill
+  | ERegExStar (_,ill) -> ill
+  | ERegExUserDefined (_,_,ill) -> ill
+  | ERegExMappedUserDefined (_,_,ill) -> ill
   end
 
 type ordered_exampled_atom =
@@ -266,35 +311,6 @@ and to_ordered_exampled_dnf_regex ((r,_):exampled_dnf_regex)
   sort_and_partition_with_indices
     compare_ordered_exampled_clauses
     ordered_clauses
-
-let rec or_size (r:regex) : int =
-  begin match r with
-  | RegExMappedUserDefined _ -> 1
-  | RegExEmpty -> 0
-  | RegExBase _ -> 1
-  | RegExConcat (r1,r2) -> (or_size r1) * (or_size r2)
-  | RegExOr (r1,r2) -> (or_size r1) + (or_size r2)
-  | RegExStar r' -> or_size r'
-  | RegExUserDefined _ -> 1
-  end
-
-let rec true_max_size (c:context) (r:regex) : int =
-  begin match r with
-  | RegExMappedUserDefined _ -> 1
-  | RegExEmpty -> 0
-  | RegExBase _ -> 1
-  | RegExConcat (r1,r2) -> (true_max_size c r1) * (true_max_size c r2)
-  | RegExOr (r1,r2) -> (true_max_size c r1) + (true_max_size c r2)
-  | RegExStar r' -> true_max_size c r'
-  | RegExUserDefined t ->
-      begin match List.Assoc.find c t with
-      | None -> 1
-      | Some r' -> true_max_size c r'
-      end
-  end
-
-let rec merge_contexts (c1:context) (c2:context) : context =
-  c1@c2
 
 let rec ordered_exampled_atom_to_atom
   (a:ordered_exampled_atom)

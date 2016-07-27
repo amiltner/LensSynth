@@ -42,5 +42,6 @@ generate-data: synml.native
 profile: synml_profile.p.native
 	instruments -t "/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/Resources/templates/Time Profiler.tracetemplate" cmdline_profile.p.native
 
-test: unittests.native
+test:
+	$(OCB) unittests.native
 	./unittests.native

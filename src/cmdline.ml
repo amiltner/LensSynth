@@ -1,6 +1,7 @@
 open Lang
 open Util
 open Lens_put
+open Regexcontext
 open Gen_exs
 open Transform
 open Run_decls
@@ -76,39 +77,49 @@ let args =
   |> Arg.align
 
 let expand_regexps (p:program) : program =
-  let rec expand_regexp (r:regex) (e_c:evaluation_context) : regex =
+  let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
     begin match r with
     | RegExMappedUserDefined _ -> failwith "AHHH"
     | RegExEmpty -> r
     | RegExBase _ -> r
-    | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 e_c,expand_regexp r2 e_c)
-    | RegExOr (r1,r2) -> RegExOr (expand_regexp r1 e_c,expand_regexp r2 e_c)
-    | RegExStar r' -> RegExStar (expand_regexp r' e_c)
+    | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 c,expand_regexp r2 c)
+    | RegExOr (r1,r2) -> RegExOr (expand_regexp r1 c,expand_regexp r2 c)
+    | RegExStar r' -> RegExStar (expand_regexp r' c)
     | RegExUserDefined t ->
-      begin match List.Assoc.find e_c t with
-      | Some r' -> expand_regexp r' e_c
-      | None -> failwith (string_of_int (List.length e_c))
-      end
+      let r' = RegexContext.lookup_exn c t in
+      expand_regexp r' c
     end
   in
-  let expand_regexps_decl (e_c:evaluation_context)
+  let expand_regexps_decl (c:RegexContext.t)
                           (d:declaration)
-                          : (evaluation_context * declaration) =
+                          : (RegexContext.t * declaration) =
     begin match d with
-    | DeclUserdefCreation (s,r,b) -> ((s,r)::e_c,d)
-    | DeclTestString _ -> (e_c,d)
+    | DeclUserdefCreation (s,r,b) -> (RegexContext.insert_exn c s r b,d)
+    | DeclTestString _ -> (c,d)
     | DeclSynthesizeProgram (n,r1,r2,exs) ->
-        (e_c,DeclSynthesizeProgram (n,expand_regexp r1 e_c,expand_regexp r2 e_c,exs))
+        (c,DeclSynthesizeProgram (n,expand_regexp r1 c,expand_regexp r2 c,exs))
     end
   in
   List.rev
   (snd
     (List.fold_left
-      ~f:(fun (e_c,ds) d ->
-        let (e_c',d') = expand_regexps_decl e_c d in
-        (e_c',d'::ds))
-      ~init:([],[])
+      ~f:(fun (c,ds) d ->
+        let (c,d') = expand_regexps_decl c d in
+        (c,d'::ds))
+      ~init:(RegexContext.empty,[])
       p))
+
+let rec check_examples (rc:RegexContext.t) (l:lens) (exs:examples) : unit =
+  begin match exs with
+    | [] -> ()
+    | (lex,rex)::exst ->
+      if lens_putr rc l lex <> rex then
+        failwith "put right didnt work"
+      else if lens_putl rc l rex <> lex then
+        failwith "put left didnt work"
+      else
+        ()
+  end
 
 let print_lenses (lss:(string * lens option) list) : unit =
   List.iter
@@ -117,7 +128,10 @@ let print_lenses (lss:(string * lens option) list) : unit =
       print_endline (s ^ ":");
       begin match lo with
       | None -> print_endline "no lens found"
-      | Some ls -> print_endline (Pp.pp_lens ls)
+      | Some ls -> print_endline (Pp.pp_lens ls);
+        let (t1,t2) = type_lens ls in
+        print_endline (Pp.pp_regexp t1);
+        print_endline (Pp.pp_regexp t2)
       end)
     lss
 
@@ -134,16 +148,16 @@ let collect_time (p:program) : unit =
 
 let collect_example_number (p:program) : unit =
   let num_examples = ref 0 in
-  run_declarations (fun drro r1 r2 c e_c ->
+  run_declarations (fun drro r1 r2 exs c ->
     let (l,r1',r2',e_c') = Option.value_exn drro in
     let exs_reqd = fold_until_completion
         (fun acc ->
           let (l',_,_,_) = Option.value_exn
-            (gen_dnf_lens c e_c r1 r2 acc !use_iteratively_deepen_strategy) in
+            (gen_dnf_lens c r1 r2 acc !use_iteratively_deepen_strategy) in
           if l' = l then
             Right acc
           else
-            let leftex = gen_element_of_regex_language e_c r1 in
+            let leftex = gen_element_of_regex_language c r1 in
             let rightex = dnf_lens_putr e_c' ([],0)(*TODO*) r1' l leftex in
             let acc = (leftex,rightex)::acc in
             Left acc
@@ -172,10 +186,16 @@ let print_outputs (p:program) : unit =
   print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
   r))));*)
   run_declarations
-    (fun (drro:(dnf_lens*regex*regex*context) option) _ _ _ _ ->
+    (fun (drro:(dnf_lens*regex*regex*RegexContext.t) option) _ _ (exs:examples) _ ->
       begin match drro with
-      | Some (d,_,_,_) -> print_endline (Pp.pp_lens (dnf_lens_to_lens d))
-      | None -> print_endline "no lens found"
+        | Some (d,_,_,rc) ->
+          let ls = dnf_lens_to_lens d in
+          print_endline (Pp.pp_lens ls);
+          let (t1,t2) = type_lens ls in
+          print_endline (Pp.pp_regexp t1);
+          print_endline (Pp.pp_regexp t2);
+          check_examples rc ls exs
+        | None -> print_endline "no lens found"
       end)
     print_endline p
     !use_iteratively_deepen_strategy

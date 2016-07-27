@@ -1,10 +1,11 @@
 open Lang
+open Regexcontext
 open Core.Std
 open Util
 open Lens
 
 (* we assume the regex satisfies constraints of unique parsing *)
-let rec eval_regex (c:context) (r:regex) (s:string) : bool =
+let rec eval_regex (c:RegexContext.t) (r:regex) (s:string) : bool =
   begin match r with
   | RegExBase s' -> s' = s
   | RegExConcat (r1,r2) ->
@@ -29,14 +30,12 @@ let rec eval_regex (c:context) (r:regex) (s:string) : bool =
           ~init:false
           (range 1 strlen)
         )
-  | RegExUserDefined t -> 
-      begin match List.Assoc.find c t with
-      | Some rex -> eval_regex c rex s
-      | None -> failwith "not in the context"
-      end
+  | RegExUserDefined t ->
+      let rex = RegexContext.lookup_exn c t in
+      eval_regex c rex s
   end
 
-let rec retrieve_regex_or_choice (c:context)
+let rec retrieve_regex_or_choice (c:RegexContext.t)
   (r1:regex) (r2:regex) (s:string) : bool option =
     begin match (eval_regex c r1 s, eval_regex c r2 s) with
     | (true,false) -> Some false
@@ -45,7 +44,7 @@ let rec retrieve_regex_or_choice (c:context)
     | (true,true) -> failwith "not disjoint union"
     end
 
-let rec retrieve_regex_concat_split (c:context)
+let rec retrieve_regex_concat_split (c:RegexContext.t)
   (r1:regex) (r2:regex) (s:string) : (string * string) option =
     let strlen = String.length s in
     let splits = List.filter_map
@@ -65,7 +64,7 @@ let rec retrieve_regex_concat_split (c:context)
     | _ -> failwith "unambiguous concat"
     end
 
-let retrieve_regex_star_splits (c:context)
+let retrieve_regex_star_splits (c:RegexContext.t)
   (r:regex) (s:string) : (string list) option =
     let rec retrieve_regex_star_splits_internal (s:string)
       : (string list) option =
@@ -97,13 +96,11 @@ let retrieve_regex_star_splits (c:context)
     else
       retrieve_regex_star_splits_internal s
 
-let rec eval_atom (c:context) (a:atom) (s:string) : bool =
+let rec eval_atom (c:RegexContext.t) (a:atom) (s:string) : bool =
   begin match a with
-  | AUserDefined v ->
-      begin match List.Assoc.find c v with
-      | Some rex -> eval_regex c rex s
-      | None -> failwith "not in the context"
-      end
+    | AUserDefined v ->
+      let rex = RegexContext.lookup_exn c v in
+      eval_regex c rex s
   | AStar dnf_regex ->
       if (s = "") then true
       else
@@ -117,7 +114,7 @@ let rec eval_atom (c:context) (a:atom) (s:string) : bool =
         )
   end
 
-and eval_clause (c:context) (cl:clause) (s:string) : bool =
+and eval_clause (c:RegexContext.t) (cl:clause) (s:string) : bool =
   let rec eval_clause_string ((atoms,strings):clause) (s:string) : bool =
     begin match strings with
     | [] -> failwith "invalid clause"
@@ -138,13 +135,13 @@ and eval_clause (c:context) (cl:clause) (s:string) : bool =
   in
   eval_clause_string cl s
 
-and eval_dnf_regex (c:context) (clauses:dnf_regex) (s:string) : bool =
+and eval_dnf_regex (c:RegexContext.t) (clauses:dnf_regex) (s:string) : bool =
   List.exists
     ~f:(fun clause -> eval_clause c clause s)
     clauses
 
 
-let retrieve_atom_splits (c:context) (cl:clause)
+let retrieve_atom_splits (c:RegexContext.t) (cl:clause)
                                 (s:string) : (string list) option =
   let rec retrieve_splits_string ((atoms,strings):clause)
                                 (s:string) : (string list) option =
@@ -179,7 +176,7 @@ let retrieve_atom_splits (c:context) (cl:clause)
   in
   retrieve_splits_string cl s
 
-let retrieve_dnf_clause_choices (c:context) (clauses:clause list)
+let retrieve_dnf_clause_choices (c:RegexContext.t) (clauses:clause list)
                                 (s:string) : int option =
   List.foldi
   ~f:(fun i acc x ->
@@ -193,7 +190,7 @@ let retrieve_dnf_clause_choices (c:context) (clauses:clause list)
   ~init:None
   clauses
 
-let retrieve_dnf_star_splits (c:context)
+let retrieve_dnf_star_splits (c:RegexContext.t)
   (r:dnf_regex) (s:string) : (string list) option =
     let rec retrieve_regex_star_splits_internal (s:string)
       : (string list) option =
@@ -261,7 +258,7 @@ let rec eval_lens (l:lens) (s:string) : string option =
   end*)
 
 (* ASSUMES EXAMPLES MATCH REGEXS *)
-let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
+let to_exampled_dnf_regex (c:RegexContext.t) (r:dnf_regex) (exs_side:string list)
                         : exampled_dnf_regex option =
   let rec to_exampled_atom_bare (a:atom) : exampled_atom =
     begin match a with
@@ -279,15 +276,12 @@ let to_exampled_dnf_regex (c:context) (r:dnf_regex) (exs_side:string list)
     let rec add_atom_example_internal (a:exampled_atom) (s:string) (i:int)
                           : exampled_atom option =
       begin match a with
-      | EAUserDefined (v,exs,ill) ->
-          begin match List.Assoc.find c v with
-          | Some rex ->
+        | EAUserDefined (v,exs,ill) ->
+          let rex = RegexContext.lookup_exn c v in
               if (eval_regex c rex s) then
                 Some (EAUserDefined (v,s::exs,ill))
               else
                 None
-          | None -> failwith "not in the context"
-          end
       | EAStar (dnf,ill) ->
           if (s = "") then Some a
           else

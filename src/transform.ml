@@ -2,12 +2,51 @@ open Core.Std
 open Counters
 open Fasteval
 open Util
+open Regexcontext
 open Lang
 open Lens
 open Eval
 open Util
 open Pp
 open Permutation
+
+
+
+
+let rec or_size (r:regex) : int =
+  begin match r with
+  | RegExMappedUserDefined _ -> 1
+  | RegExEmpty -> 0
+  | RegExBase _ -> 1
+  | RegExConcat (r1,r2) -> (or_size r1) * (or_size r2)
+  | RegExOr (r1,r2) -> (or_size r1) + (or_size r2)
+  | RegExStar r' -> or_size r'
+  | RegExUserDefined _ -> 1
+  end
+
+let rec true_max_size (c:RegexContext.t) (r:regex) : int =
+  begin match r with
+  | RegExMappedUserDefined _ -> 1
+  | RegExEmpty -> 0
+  | RegExBase _ -> 1
+  | RegExConcat (r1,r2) -> (true_max_size c r1) * (true_max_size c r2)
+  | RegExOr (r1,r2) -> (true_max_size c r1) + (true_max_size c r2)
+  | RegExStar r' -> true_max_size c r'
+  | RegExUserDefined t ->
+      begin match RegexContext.lookup_for_expansion_exn c t with
+      | None -> 1
+      | Some r' -> true_max_size c r'
+      end
+  end
+
+
+type synth_problem = (RegexContext.t * string * regex * regex * (string * string) list)
+
+let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
+  let rc = RegexContext.create_from_list_exn ds in
+  List.map ~f:(fun (n,r1,r2,exl) -> (rc,n,r1,r2,exl)) ss
+
+
 
 let empty_string = RegExBase ""
 
@@ -225,13 +264,13 @@ let rec expand_stars (transformation:regex -> regex) (r:regex) : regex list =
           r2_expansions)
     | RegExStar (r') ->
         (transformation r')::
-        (expand_stars_internal r')
+        (List.map ~f:(fun r'' -> RegExStar r'') (expand_stars_internal r'))
     | RegExUserDefined _ -> []
     end
   in
   expand_stars_internal r
 
-let rec expand_userdefs (c:context) (r:regex)
+let rec expand_userdefs (c:RegexContext.t) (r:regex)
                             : regex list =
   begin match r with
   | RegExMappedUserDefined _ -> []
@@ -262,13 +301,13 @@ let rec expand_userdefs (c:context) (r:regex)
         ~f:(fun expansion -> RegExStar expansion)
         (expand_userdefs c r')
   | RegExUserDefined t ->
-      begin match List.Assoc.find c t with
+      begin match RegexContext.lookup_for_expansion_exn c t with
       | Some rex -> [rex]
       | None -> []
       end
   end
 
-let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
+let rec expand_required_expansions (c:RegexContext.t) (r1:regex) (r2:regex)
                             : (regex * regex) option =
   let rec retrieve_transitive_userdefs (r:regex) : string list =
     begin match r with
@@ -281,7 +320,7 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
         (retrieve_transitive_userdefs r2)
     | RegExStar r' -> retrieve_transitive_userdefs r'
     | RegExUserDefined t -> t::
-      (begin match List.Assoc.find c t with
+      (begin match RegexContext.lookup_for_expansion_exn c t with
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
       end)
@@ -313,7 +352,7 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
         end
     | RegExUserDefined t ->
         if List.mem bad_userdefs t then
-          begin match List.Assoc.find c t with
+          begin match RegexContext.lookup_for_expansion_exn c t with
           | None -> None
           | Some r' -> expand_required_expansions bad_userdefs r'
           end
@@ -343,7 +382,7 @@ let rec expand_required_expansions (c:context) (r1:regex) (r2:regex)
   | _ -> None
   end
 
-let rec expand_once (max_size:int) (c:context) (mc:mapsbetweencontext) (r1:regex) (r2:regex)
+let rec expand_once (max_size:int) (c:RegexContext.t) (mc:mapsbetweencontext) (r1:regex) (r2:regex)
 (expansions_preformed:int)
                             : (queue_element * float) list =
   let retrieve_expansions_from_transform (transform:regex -> regex list):
@@ -361,9 +400,9 @@ let rec expand_once (max_size:int) (c:context) (mc:mapsbetweencontext) (r1:regex
     (retrieve_expansions_from_transform (expand_userdefs c))
     @ (retrieve_expansions_from_transform (expand_userdefs c))
     @ (retrieve_expansions_from_transform
-      (expand_stars empty_or_not_star_expansion_left))
-    @ (retrieve_expansions_from_transform
       (expand_stars empty_or_not_star_expansion_right))
+    @ (retrieve_expansions_from_transform
+      (expand_stars empty_or_not_star_expansion_left))
   in
 
   let turn_regex_double_into_queue_element_priority
@@ -403,7 +442,7 @@ let rec expand_once (max_size:int) (c:context) (mc:mapsbetweencontext) (r1:regex
 
 let rec retrieve_transformation_queue_elements
         (max_size:int)
-        (c:context)
+        (c:RegexContext.t)
         (mc:mapsbetweencontext)
         (r1:regex)
         (r2:regex)
@@ -423,7 +462,7 @@ let rec retrieve_transformation_queue_elements
 let rec atom_lens_to_lens (a:atom_lens) : lens =
   begin match a with
   | AIterate d -> IterateLens (dnf_lens_to_lens d)
-  | AIdentity -> IdentityLens
+  | AIdentity s -> IdentityLens (RegExUserDefined s)
   end
 
 and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
@@ -455,7 +494,7 @@ and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
           (ConcatLens(l1,l2),remaining_total)
       | SCCTCompose (s1,s2) ->
           let s2size = size_scct s2 in
-          let identity_copies = duplicate IdentityLens s2size in
+          let identity_copies = duplicate (IdentityLens (RegExBase "TODO")) s2size in
           let (l1,_) =
             combine_scct_and_atom_lenses
               identity_copies
@@ -468,21 +507,31 @@ and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
       | SCCTLeaf -> split_by_first_exn atom_lenses
       end
     in
-    let string_combos = List.zip_exn strings1 strings2 in
-    let string_combo_lss = List.map ~f:(fun (x,y) -> ConstLens (x,y)) string_combos in
-    let (string_combos_lss_hd,string_combos_lss_tl) =
-      split_by_first_exn string_combo_lss in
+    let (string1h,string1t) = split_by_first_exn strings1 in
+    let (string2h,string2t) = split_by_first_exn strings2 in
+    let (string2t_invperm) =
+      Permutation.apply_inverse_to_list_exn
+        permutation
+        string2t
+    in
+    let string_lss_hd = ConstLens (string1h, string2h) in
+    let string_tl_combos = List.zip_exn string1t string2t_invperm in
+    let string_lss_tl =
+      List.map
+        ~f:(fun (x,y) -> ConstLens (x,y))
+        string_tl_combos
+    in
     let atom_lenses =
       List.map ~f:atom_lens_to_lens atoms in
-    let atom_string_zips = List.zip_exn atom_lenses string_combos_lss_tl in
+    let atom_string_zips = List.zip_exn atom_lenses string_lss_tl in
     let atom_string_concats =
       List.map ~f:(fun (x,y) -> ConcatLens (x,y)) atom_string_zips in
     begin match atom_string_concats with
-    | [] -> string_combos_lss_hd
+    | [] -> string_lss_hd
     | _ ->
       let permutation_scct =
         Permutation.to_swap_concat_compose_tree permutation in
-      ConcatLens(string_combos_lss_hd,
+      ConcatLens(string_lss_hd,
         (fst (combine_scct_and_atom_lenses
           atom_string_concats
           permutation_scct)))
@@ -538,7 +587,7 @@ and dnf_lens_to_lens ((clauses,permutation):dnf_lens) : lens =
   let clause_lenses =
     List.map ~f:clause_lens_to_lens clauses in
   begin match clause_lenses with
-  | [] -> IdentityLens
+  | [] -> IdentityLens (RegExEmpty)
   | _ ->
     let permutation_scct =
       Permutation.to_swap_concat_compose_tree permutation in
@@ -551,14 +600,14 @@ let rec simplify_lens (l:lens) : lens =
   let rec is_leftmost_all_concats_identity (l:lens) : bool =
     begin match l with
     | ConcatLens (l1,l2) -> is_leftmost_all_concats_identity l1
-    | IdentityLens -> true
+    | IdentityLens todo -> true
     | _ -> false
     end
   in
   let rec is_rightmost_all_concats_identity (l:lens) : bool =
     begin match l with
     | ConcatLens (l1,l2) -> is_leftmost_all_concats_identity l2
-    | IdentityLens -> true
+    | IdentityLens todo -> true
     | _ -> false
     end
   in
@@ -567,13 +616,13 @@ let rec simplify_lens (l:lens) : lens =
     | UnionLens (l1,l2) ->
         (contains_ored_identity l1) ||
           (contains_ored_identity l2)
-    | IdentityLens -> true
+    | IdentityLens todo -> true
     | _ -> false
     end
   in
   let rec remove_rightmost_all_concats_identity (l:lens) : lens =
     begin match l with
-    | ConcatLens (l1,IdentityLens) -> l1
+    | ConcatLens (l1,IdentityLens todo) -> l1
     | ConcatLens (l1,l2) ->
         ConcatLens (l1,remove_rightmost_all_concats_identity l2)
     | _ -> failwith "bad input"
@@ -624,19 +673,19 @@ let rec simplify_lens (l:lens) : lens =
   let ans = begin match l with
     | ConstLens (s1,s2) ->
         if s1 = s2 then
-          IdentityLens
+          IdentityLens (RegExBase "TODO")
         else
           l
     | ConcatLens (l1,l2) ->
         let l1 = simplify_lens l1 in
         let l2 = simplify_lens l2 in
         begin match (l1,l2) with
-        | (IdentityLens,l2) ->
+        | (IdentityLens todo,l2) ->
             if is_leftmost_all_concats_identity l2 then
               l2
             else
               ConcatLens (l1,l2)
-        | (l1,IdentityLens) ->
+        | (l1,IdentityLens todo) ->
             if is_rightmost_all_concats_identity l1 then
               l1
             else
@@ -668,9 +717,9 @@ let rec simplify_lens (l:lens) : lens =
     | UnionLens (l1,l2) ->
         let l1 = simplify_lens l1 in
         let l2 = simplify_lens l2 in
-        if l1 = IdentityLens && contains_ored_identity l2 then
+        if l1 = IdentityLens (RegExBase "TODO") && contains_ored_identity l2 then
           l2
-        else if l2 = IdentityLens && contains_ored_identity l1 then
+        else if l2 = IdentityLens (RegExBase "TODO") && contains_ored_identity l1 then
           l1
         else
           UnionLens (l1,l2)
@@ -679,57 +728,72 @@ let rec simplify_lens (l:lens) : lens =
     | ComposeLens (l1,l2) ->
         let l1 = simplify_lens l1 in
         let l2 = simplify_lens l2 in
-        if l1 = IdentityLens then
+        if l1 = IdentityLens (RegExBase "TODO") then
           l2
-        else if l2 = IdentityLens then
+        else if l2 = IdentityLens (RegExBase "TODO") then
           l1
         else
           ComposeLens (l1,l2)
     | IterateLens l' ->
         let l' = simplify_lens l' in
-        if l' = IdentityLens then
-          IdentityLens
+        if l' = IdentityLens (RegExBase "TODO") then
+          IdentityLens (RegExBase "TODO")
         else
           IterateLens l'
-    | IdentityLens -> IdentityLens
-    | RetypeLens (l',r1,r2) ->
-        let l' = simplify_lens l' in
-        RetypeLens (l',r1,r2)
+    | IdentityLens todo -> IdentityLens todo
     end
   in
   if ans = l then
     ans else 
   simplify_lens ans
 
-let rec iteratively_deepen (r:regex) : regex * context =
+let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
   begin match r with
-  | RegExMappedUserDefined _ -> (r,[])
-  | RegExEmpty -> (r,[])
-  | RegExBase _ -> (r,[])
+  | RegExMappedUserDefined _ -> (r,RegexContext.empty)
+  | RegExEmpty -> (r,RegexContext.empty)
+  | RegExBase _ -> (r,RegexContext.empty)
   | RegExConcat (r1,r2) ->
       let (r1',c1) = iteratively_deepen r1 in
       let (r2',c2) = iteratively_deepen r2 in
+      let context = RegexContext.merge_contexts_exn c1 c2 in
       let regex_definition = RegExConcat(r1',r2') in
-      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
-      let context = merge_contexts c1 c2 in
-      let context = (regex_variable,regex_definition)::context in
+      let regex_variable = RegexContext.autogen_id context regex_definition in
+      let context =
+        RegexContext.insert_exn
+          context
+          regex_variable
+          regex_definition
+          false
+        in
       (RegExUserDefined regex_variable,context)
   | RegExOr (r1,r2) ->
       let (r1',c1) = iteratively_deepen r1 in
       let (r2',c2) = iteratively_deepen r2 in
+      let context = RegexContext.merge_contexts_exn c1 c2 in
       let regex_definition = RegExOr(r1',r2') in
-      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
-      let context = merge_contexts c1 c2 in
-      let context = (regex_variable,regex_definition)::context in
+      let regex_variable = RegexContext.autogen_id context regex_definition in
+      let context =
+        RegexContext.insert_exn
+          context
+          regex_variable
+          regex_definition
+          false
+        in
       (RegExUserDefined regex_variable,context)
   | RegExStar r' ->
       let (r'',c) = iteratively_deepen r' in
       let regex_definition = RegExStar r'' in
-      let regex_variable = "U" ^ Pp.pp_regexp regex_definition in
-      let context = (regex_variable,regex_definition)::c in
+      let regex_variable = RegexContext.autogen_id c regex_definition in
+      let context =
+        RegexContext.insert_exn
+          c
+          regex_variable
+          regex_definition
+          false
+        in
       (RegExUserDefined regex_variable,context)
   | RegExUserDefined t ->
-      (r,[])
+      (r,RegexContext.empty)
   end
 
 let rec ordered_exampled_dnf_regex_to_regex

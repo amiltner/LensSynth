@@ -482,3 +482,9 @@ tagged_list_tree list =
               end) tltl in
   let kvpg = group_by_values kvps in
   List.map ~f:(fun (k,tltl) -> Node (k,tltl)) kvpg
+
+module Operators = struct 
+    let (>?>) (x : 'a option) (f : 'a -> 'b option) : 'b option = match x with
+      | None -> None
+      | Some v -> f v
+end

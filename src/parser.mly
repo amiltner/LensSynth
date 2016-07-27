@@ -66,42 +66,15 @@ decl:
   | TEST r=regex MATCHES s=str SEMI SEMI
     { DeclTestString (r,s) }
 
-
-synth_problems:
-  | c=context ss=specifications EOF
-        { (c, ss) }
-
-(***** Context {{{ *****)
-
-context:
-  | (* empty *)
-    { [] }
-  | d=defn c=context
-    { d::c }
-
 defn:
   | TYPEDEF u=UID EQ r=regex SEMI SEMI
     { (u,r,true) }
   | ABSTRACT u=UID EQ r=regex SEMI SEMI
     { (u,r,false) }
 
-(***** }}} *****)
-
-
-(***** Specifications {{{ *****)
-
-specifications:
-  | (* empty *)
-    { [] }
-  | s=specification ss=specifications
-    { s::ss }
-
 specification:
   |  n=LID EQ LBRACKET r1=regex LEFTRIGHTFATARR r2=regex es=examples RBRACKET
     { (n,r1,r2,es) }
-
-
-(***** }}} *****)
 
 (***** Regexes {{{ *****)
 

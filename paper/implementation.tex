@@ -77,5 +77,78 @@ count should get in the priority.  It allows for not getting stuck in a local
 minima in the search space, while still allowing for the distance to choose the
 correct expansion the majority of the time.
 
-\subsection{SynthRWLessDNF}
-We find an efficient way to synthesize DNF lenses which do not use rewrites.
+\subsection{SynthRewritelessDNF}
+We find an efficient way to synthesize DNF lenses which do not use rewrites
+through a clever encoding of the DNF regular expressions and examples.
+A key insight into efficiently finding DNF lenses between two DNF regular
+expressions is finding an ordering of DNF regular expressions which satisfy the
+property such that, for two regular expressions $\DNFRegex$ and $\DNFRegexAlt$,
+$\DNFRegex \leq \DNFRegexAlt$ and $\DNFRegexAlt \leq \DNFRegex$ if, and only if,
+for some dnf lens $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+with no use of \DNFRewriteLensRule{}.
+
+\begin{definition}
+$\DNFOf{\Sequence_1;\ldots\Sequence_n} \leq
+\DNFOf{\SequenceAlt_1;\ldots\SequenceAlt_m}$
+if $n<m$ or $n=m$ and
+$sort([\Sequence_1;\ldots;\Sequence_n])\leq
+sort([\SequenceAlt_1;\ldots;\SequenceAlt_n])$ by the dictionary ordering
+on the sequence ordering.
+
+$\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \leq
+\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\String_n}$
+if $n<m$ or $n=m$ and
+$sort([\Atom_1\ldots\Atom_n])\leq
+sort([\AtomAlt_1\ldots\AtomAlt_n])$ by the dictionary ordering on the
+atom ordering.
+
+$\RegexVariable < \IterateLens{\DNFLens}$
+
+$\RegexVariable \leq \RegexVariableAlt$ if
+$\RegexVariable \leq \RegexVariableAlt$ as strings.
+
+$\StarOf{\DNFRegex} \leq \StarOf{\DNFRegexAlt}$ if $\DNFRegex \leq \DNFRegexAlt$.
+\end{definition}
+
+\begin{theorem}
+$\DNFRegex\leq\DNFRegexAlt$ and $\DNFRegexAlt\leq\DNFRegex$ if, and only
+if there exists a $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
+\end{theorem}
+
+Beyond that, we can use these orderings to find the lenses.
+If $\DNFOf{\Sequence_1;\ldots;\Sequence_n}\leq\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$,
+and $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}\leq\DNFOf{\Sequence_1;\ldots;\Sequence_n}$,
+then $\Sort([\Sequence_1;\ldots;\Sequence_n])\leq\Sort([\Sequence_1;\ldots;\Sequence_n])$
+using the dictionary ordering, which means that
+$\Sort([\Sequence_1;\ldots;\Sequence_n])[i]\leq
+\Sort([\SequenceAlt_1;\ldots;\SequenceAlt_n])[i]$ and
+$\Sort([\SequenceAlt_1;\ldots;\SequenceAlt_n])[i]\leq
+\Sort([\Sequence_1;\ldots;\Sequence_n])[i]$, which means that there is a
+sequence lens between them.
+\afm{I can keep going on about this stuff, should it go here?  Should I just make a brief claim
+about it and move on}
+
+Unfortunately, while this can find a well typed DNF regular expression, it doesn't
+necessarily find the one that matches the examples.  In the situation where
+there are multiple valid sorted orderings, there are multiple different lenses
+with potentially different semantics.  Instead of iterating through all the
+possible sortings, and finding one that matches the examples, we would like to
+be able to immediately find only a sorting which satisfies the examples.
+
+The key insight here is that certain invariants must hold for a DNF lens to have
+semantics which match the examples.
+
+\begin{enumerate}
+\item If a source example string matches one of the clauses during parsing,
+it must be sent to the clause the target example string matches during parsing.
+\item If a source example string matches a user defined regular expression during
+parsing, the target must match the exact same string during parsing.
+\item If a source example string matches an iteration, then the target must iterate
+the same number of times, and all the invariants must hold for each iterated part.
+\end{enumerate}
+
+This is done by joining additional parsing information alongside the regular
+expression components.
+
+
+

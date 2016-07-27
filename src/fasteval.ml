@@ -2,6 +2,7 @@ open Lang
 open Util
 open Pp
 open Core.Std
+open Regexcontext
 
 let rec to_empty_exampled_regex (r:regex) : exampled_regex =
   begin match r with
@@ -29,7 +30,7 @@ type state =
 
 type dfa = (state ref) * (state ref)
 
-let rec regex_to_dfa (c:context) (mcs:mapsbetweencontextside) (r:regex) (inside_userdef:bool) : dfa =
+let rec regex_to_dfa (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (inside_userdef:bool) : dfa =
   begin match r with
   | RegExEmpty ->
       let final = ref QAccept in
@@ -158,38 +159,35 @@ let rec regex_to_dfa (c:context) (mcs:mapsbetweencontextside) (r:regex) (inside_
       let new_start = State new_start_fun in
       (ref new_start, new_end_ref)
   | RegExUserDefined t ->
-      begin match List.Assoc.find c t with
-      | Some rex ->
-          let (inner_start_ref,inner_end_ref) = regex_to_dfa c mcs rex true in
-          let new_end_ref = ref QAccept in
-          let new_start_fun =
-            if not inside_userdef then
-              (fun ((s,er,rc,is,so):data) ->
-                [(inner_start_ref,(s,er,
-                  (fun s' er' ->
-                    begin match er' with
-                    | ERegExUserDefined (t,l,il) -> ERegExUserDefined
-                        (t,(String.chop_suffix_exn ~suffix:s' s)::l,is::il)
-                    | _ -> failwith (Pp.pp_exampled_regex er')
-                    end)::rc,is,Some s))]
-              )
-            else
-              (fun x -> [(inner_start_ref,x)])
-          in
-          let new_start_state = State new_start_fun in
-          let new_inner_end_fun =
-            (fun (s,er,rc,is,so) ->
-              if not inside_userdef then
-                begin match rc with
-                | [] -> failwith "bad coding2"
-                | h::t -> [(new_end_ref,(s,h s er,t,is,so))]
-                end
-              else
-                [(new_end_ref,(s,er,rc,is,so))]) in
-          inner_end_ref := (State new_inner_end_fun);
-          (ref new_start_state,new_end_ref)
-      | None -> failwith ("not in context: " ^ t)
-      end
+      let rex = RegexContext.lookup_exn c t in
+      let (inner_start_ref,inner_end_ref) = regex_to_dfa c mcs rex true in
+      let new_end_ref = ref QAccept in
+      let new_start_fun =
+        if not inside_userdef then
+          (fun ((s,er,rc,is,so):data) ->
+            [(inner_start_ref,(s,er,
+              (fun s' er' ->
+                begin match er' with
+                | ERegExUserDefined (t,l,il) -> ERegExUserDefined
+                    (t,(String.chop_suffix_exn ~suffix:s' s)::l,is::il)
+                | _ -> failwith (Pp.pp_exampled_regex er')
+                end)::rc,is,Some s))]
+          )
+        else
+          (fun x -> [(inner_start_ref,x)])
+      in
+      let new_start_state = State new_start_fun in
+      let new_inner_end_fun =
+        (fun (s,er,rc,is,so) ->
+          if not inside_userdef then
+            begin match rc with
+            | [] -> failwith "bad coding2"
+            | h::t -> [(new_end_ref,(s,h s er,t,is,so))]
+            end
+          else
+            [(new_end_ref,(s,er,rc,is,so))]) in
+      inner_end_ref := (State new_inner_end_fun);
+      (ref new_start_state,new_end_ref)
   | RegExMappedUserDefined t ->
       begin match List.Assoc.find mcs t with
       | Some rextemp ->
@@ -246,16 +244,16 @@ let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :
         None
   end
 
-let rec fast_eval (c:context) (mcs:mapsbetweencontextside) (r:regex) (s:string) : bool =
+let rec fast_eval (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (s:string) : bool =
   let (dfa_start,_) = regex_to_dfa c mcs r false in
   begin match eval_dfa !dfa_start (s,(to_empty_exampled_regex r),[],[0],None) with
   | None -> false
   | Some er -> true
   end
 
-let rec regex_to_exampled_regex (c:context) (mcs:mapsbetweencontextside) (r:regex) (es:string list)
+let rec regex_to_exampled_regex (rc:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (es:string list)
                                  : exampled_regex option =
-  let (dfa_start,_) = regex_to_dfa c mcs r false in
+  let (dfa_start,_) = regex_to_dfa rc mcs r false in
   let start_state = !dfa_start in
   List.foldi
   ~f:(fun i er e ->
@@ -394,7 +392,7 @@ let rec exampled_regex_to_exampled_dnf_regex (r:exampled_regex) :
         ill
   end
 
-let regex_to_exampled_dnf_regex (c:context)
+let regex_to_exampled_dnf_regex (c:RegexContext.t)
                                 (mcs:mapsbetweencontextside)
                                 (r:regex)
                                 (es:string list)
