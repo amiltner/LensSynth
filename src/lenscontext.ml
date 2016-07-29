@@ -1,5 +1,6 @@
 open Core.Std
 open Lang
+open Regex
 open Util
 open Lens
 open Datastructures
@@ -17,8 +18,8 @@ module type LensContext_Sig = sig
     val insert_exn               : t -> id -> lens -> regex -> regex -> t
     val insert_list_exn          : t -> (id * lens * regex * regex) list -> t
     val create_from_list_exn     : (id * lens * regex * regex) list -> t
-    val shortest_path_lens_exn   : t -> id -> id -> lens
-    val paths_to_rep_elt         : t -> id -> (id * (lens list))
+    val shortest_path_exn        : t -> id -> id -> lens
+    val shortest_path_to_rep_elt : t -> id -> (id * lens)
 end
 
 (* add comments *)
@@ -66,8 +67,8 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
       | Some ol -> Dict.set id1 ((l,id2)::ol) outgoing
     end in
     let outgoing = begin match Dict.find id2 outgoing with
-      | None -> Dict.set id2 [(InverseLens l,id1)] outgoing
-      | Some ol -> Dict.set id2 ((InverseLens l,id1)::ol) outgoing
+      | None -> Dict.set id2 [(LensInverse l,id1)] outgoing
+      | Some ol -> Dict.set id2 ((LensInverse l,id1)::ol) outgoing
     end in
     outgoing
 
@@ -81,9 +82,9 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
   (* TODO: is this the right thing, simpler if just between userdefs ? *)
   let insert_exn (lc:t) (name:id) (l:lens) (r1:regex) (r2:regex) : t =
     begin match (r1,r2) with
-      | (RegExUserDefined id1, RegExUserDefined id2) ->
+      | (RegExVariable id1, RegExVariable id2) ->
         { defs     = update_defs lc.defs name l r1 r2      ;
-          outgoing = update_outgoing lc.outgoing id1 id2 l ;
+          outgoing = update_outgoing lc.outgoing id1 id2 (LensVariable name);
           equivs   = update_equivs lc.equivs id1 id2       ; }
       | _ -> 
         { defs     = update_defs lc.defs name l r1 r2 ;
@@ -121,7 +122,7 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
           in
           List.fold_left
             ~f:(fun acc (l,id) ->
-                let new_lacc = ComposeLens(l,lacc) in
+                let new_lacc = LensCompose(l,lacc) in
                 let new_paths = paths_between_elts
                     outgoing
                     id
@@ -143,20 +144,10 @@ AB o BC
 
 *)
 
-  let paths_to_rep_elt (lc:t) (regex_name:id) : (id * (lens list)) =
-    let rep_element = DisjointSet.find_representative lc.equivs regex_name in
-    let paths = paths_between_elts
-        lc.outgoing
-        regex_name
-        rep_element
-        (IdentityLens (RegExUserDefined regex_name))
-    in
-    (rep_element,paths)
-
-  let rec shortest_path_lens_exn (lc:t) (regex1_name:id) (regex2_name:id)
+  let rec shortest_path_exn (lc:t) (regex1_name:id) (regex2_name:id)
     : lens =
     let outgoing = lc.outgoing in
-    let rec shortest_path_lens_internal (accums:(lens * id) list) : lens =
+    let rec shortest_path_internal (accums:(lens * id) list) : lens =
       let satisfying_path_option =
         List.find
           ~f:(fun (_,n) -> n = regex2_name)
@@ -167,24 +158,33 @@ AB o BC
           let accums =
             List.concat_map
               ~f:(fun (l,n) ->
+                  let valid_outgoing_edges =
+                    List.filter
+                      ~f:(fun (l',n') -> not (has_common_sublens l' l))
+                      (get_outgoing_edges outgoing n)
+                  in
                   List.map
-                    ~f:(fun (l',n') -> (ComposeLens (l',l),n'))
-                    (get_outgoing_edges outgoing n))
+                    ~f:(fun (l',n') -> (LensCompose (l',l),n'))
+                    valid_outgoing_edges)
               accums
           in
-          shortest_path_lens_internal accums
+          shortest_path_internal accums
         | Some (l,_) -> l
       end
     in
     let regex1_rep = DisjointSet.find_representative lc.equivs regex1_name in
-    let regex2_rep = DisjointSet.find_representative lc.equivs regex1_name in
+    let regex2_rep = DisjointSet.find_representative lc.equivs regex2_name in
     if regex1_rep <> regex2_rep then
       failwith "regexes not in same equivalence class"
+    else if regex1_name = regex2_name then
+      LensIdentity (RegExVariable regex1_name)
     else
-    if regex1_name = regex2_name then
-      IdentityLens (RegExUserDefined regex1_name)
-    else
-      shortest_path_lens_internal (get_outgoing_edges outgoing regex1_name)
+      shortest_path_internal (get_outgoing_edges outgoing regex1_name)
+
+  let shortest_path_to_rep_elt (lc:t) (regex_name:id) : id * lens =
+    let rep_element = DisjointSet.find_representative lc.equivs regex_name in
+    let shortest_path = shortest_path_exn lc regex_name rep_element in
+    (rep_element,shortest_path)
 end
 
 module LensContext = LensContext_Struct(ListDictionary)

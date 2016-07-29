@@ -2,6 +2,7 @@ open Core.Std
 open Lang
 open Random
 open Regexcontext
+open Regex
 
 let likelihood_of_continuing_star = 0.9
 
@@ -20,7 +21,7 @@ let rec gen_element_of_regex_language (c:RegexContext.t) (r:regex) : string =
         gen_element_of_regex_language c r' ^ gen_element_of_regex_language c r
       else
         ""
-  | RegExUserDefined t ->
+  | RegExVariable t ->
     let rex = RegexContext.lookup_exn c t in
     gen_element_of_regex_language c rex
   end

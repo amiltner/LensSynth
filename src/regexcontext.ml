@@ -1,5 +1,6 @@
 open Core.Std
 open Lang
+open Regex
 open Datastructures
 
 (***** The main RegexContext module {{{ *****)

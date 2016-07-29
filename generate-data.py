@@ -30,20 +30,27 @@ def find_tests(root):
 
 def gather_datum(prog, path, base, additional_flags, timeout):
     #print([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)])
-    return EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout).stdout
+    process_output = EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout)
+    return (process_output.stdout,process_output.stderr)
 
 def gather_data(prog, path, base):
     current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[6:]}
     run_data = []
     timeout = False
+    error = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-time'],TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-time'],TIMEOUT_TIME)
 	if datum == "":
+            if err == "":
 		timeout = True
-		break
+            else:
+                error = True
+	    break
 	else:
-		run_data.append(datum.split(","))
-    if timeout:
+	    run_data.append(datum.split(","))
+    if error:
+        current_data["ComputationTime"]="Error"
+    elif timeout:
 	current_data["ComputationTime"]="Timeout"
     else:
         run_data_transpose = transpose(run_data)
@@ -52,13 +59,18 @@ def gather_data(prog, path, base):
     generate_exs_run_data = []
     timeout = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
 	if datum == "":
+            if err == "":
 		timeout = True
-		break
+            else:
+                error = True
+	    break
 	else:
-		generate_exs_run_data.append(datum.split(","))
-    if timeout:
+	    generate_exs_run_data.append(datum.split(","))
+    if error:
+        current_data["ExamplesRequired"]="Error"
+    elif timeout:
 	current_data["ExamplesRequired"]="Timeout"
     else:
         generate_exs_run_data_transpose = transpose(generate_exs_run_data)
@@ -67,13 +79,18 @@ def gather_data(prog, path, base):
     expanded_run_data = []
     timeout = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-forceexpandtime'],TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-forceexpandtime'],TIMEOUT_TIME)
 	if datum == "":
+            if err == "":
 		timeout = True
-		break
+            else:
+                error = True
+	    break
 	else:
-		expanded_run_data.append(datum.split(","))
-    if timeout:
+	    expanded_run_data.append(datum.split(","))
+    if error:
+        current_data["ForceExpandTime"]="Error"
+    elif timeout:
 	current_data["ForceExpandTime"]="Timeout"
     else:
         expanded_run_data_transpose = transpose(expanded_run_data)
@@ -82,13 +99,18 @@ def gather_data(prog, path, base):
     gen_exs_expanded_run_data = []
     timeout = False
     for iteration in range(REPETITION_COUNT):
-    	datum = gather_datum(prog, path, base,['-forceexpandgeneratedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-forceexpandgeneratedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
 	if datum == "":
+            if err == "":
 		timeout = True
-		break
+            else:
+                error = True
+	    break
 	else:
 		gen_exs_expanded_run_data.append(datum.split(","))
-    if timeout:
+    if error:
+        current_data["ForceExpandExamplesRequired"]="Error"
+    elif timeout:
 	current_data["ForceExpandExamplesRequired"]="Timeout"
     else:
         gen_exs_expanded_run_data_transpose = transpose(gen_exs_expanded_run_data)

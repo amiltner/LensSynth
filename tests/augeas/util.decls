@@ -10,6 +10,8 @@ typedef COMMENT = "# " STRING;;
 typedef COMMENT_DICT = "{\"#comment\"=\"" DELIMITED_STRING "\"}";;
 (*test COMMENT_DICT matches "{\"#comment\"=\"comment\"}";;*)
 
+comment_map = [COMMENT <=> COMMENT_DICT {}]
+
 typedef EMPTYDICT = "{}";;
 
 typedef ENV_VAR = (UPPERCASE | "_")+;;
@@ -30,3 +32,5 @@ typedef MULTILINE_COMMENT = "/*" STRING ("\n" STRING)* "*/";;
 typedef MULTILINE_COMMENT_DICT = "{\"#mcomment\"" (("{\"string\"=\""STRING"\"}")+) "}";;
 (*test MULTILINE_COMMENT_DICT matches "{\"#mcomment\"{\"string\"=\"test\"}{\"string\"=\"multiline\"}}";;*)
 (*test MULTILINE_COMMENT_DICT matches "{\"#mcomment\"{\"string\"=\"testmultiline\"}}";;*)
+
+multiline_comment_map = [MULTILINE_COMMENT <=> MULTILINE_COMMENT_DICT {}]

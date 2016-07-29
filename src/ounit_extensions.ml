@@ -4,7 +4,6 @@ open Counters
 open Priority_queue
 open Disjointset
 open Regexcontext
-open Fasteval
 open Permutation
 open Util
 open Eval
@@ -111,5 +110,8 @@ let assert_lens_list_equal =
 
 let assert_id_lens_list_equal =
   assert_equal
-    ~printer:
-(Pp_general.pp_double ident (Pp_general.pp_list Pp.pp_lens))
+    ~printer:(Pp_general.pp_double ident (Pp_general.pp_list Pp.pp_lens))
+
+let assert_id_lens_equal =
+  assert_equal
+    ~printer:(Pp_general.pp_double ident Pp.pp_lens)

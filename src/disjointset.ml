@@ -32,7 +32,10 @@ module DisjointSet_Struct (Dict : Dictionary) : DisjointSet_Sig = struct
   let union_elements (ds:'a t) (e1:'a) (e2:'a) : 'a t =
     let e1rep = find_representative ds e1 in
     let e2rep = find_representative ds e2 in
-    Dict.set e1rep (ref e2rep) ds
+    if (e1rep = e2rep) then
+      ds
+    else
+      Dict.set e1rep (ref e2rep) ds
 
   let create_from_equivalences (comparer:'a -> 'a -> bool)
       (equivs:('a * 'a) list) : 'a t =

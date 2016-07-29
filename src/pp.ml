@@ -1,30 +1,34 @@
 open Pp_general
+open Regex
 open Lang
 open Lens
 open Core.Std
 open Permutation
 open Util
+open Normalized_lang
 
 let rec pp_regexp (r:regex) : string =
   begin match r with
   | RegExEmpty -> "{}"
-  | RegExMappedUserDefined s -> "\"" ^ (string_of_int s) ^ "\"M"
+  | RegExMapped s -> "\"" ^ (string_of_int s) ^ "\"M"
   | RegExBase s -> "\"" ^ s ^ "\""
   | RegExConcat (r1,r2) -> paren ((pp_regexp r1) ^ "" ^ (pp_regexp r2))
   | RegExOr (r1,r2) -> paren ((pp_regexp r1) ^ "|" ^ (pp_regexp r2))
   | RegExStar (r') -> paren (pp_regexp r') ^ "*"
-  | RegExUserDefined s -> s
+  | RegExVariable s -> s
   end
 
 let rec pp_lens (l:lens) : string =
   begin match l with
-  | ConstLens (s1,s2) -> "const('" ^ s1 ^ "','" ^ s2 ^ "')"
-  | ConcatLens (l1,l2) -> paren (pp_lens l1) ^ "." ^ (paren (pp_lens l2))
-  | ComposeLens (l1,l2) -> paren (pp_lens l1) ^ ";" ^ (paren (pp_lens l2))
-  | SwapLens (l1,l2) -> "swap(" ^ (pp_lens l1) ^ "," ^ (pp_lens l2) ^ ")"
-  | UnionLens (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
-  | IterateLens (l') -> paren (pp_lens l') ^ "*"
-  | IdentityLens r -> "id(" ^ (pp_regexp r) ^")"
+  | LensConst (s1,s2) -> "const('" ^ s1 ^ "','" ^ s2 ^ "')"
+  | LensConcat (l1,l2) -> paren (pp_lens l1) ^ "." ^ (paren (pp_lens l2))
+  | LensCompose (l1,l2) -> paren (pp_lens l1) ^ ";" ^ (paren (pp_lens l2))
+  | LensSwap (l1,l2) -> "swap(" ^ (pp_lens l1) ^ "," ^ (pp_lens l2) ^ ")"
+  | LensUnion (l1,l2) -> paren (pp_lens l1) ^ "|" ^ (paren (pp_lens l2))
+  | LensIterate (l') -> paren (pp_lens l') ^ "*"
+  | LensIdentity r -> "id(" ^ (pp_regexp r) ^")"
+  | LensInverse l' -> "inverse(" ^ (pp_lens l') ^ ")"
+  | LensVariable n -> n
   end
 
 let rec pp_exampled_dnf_regex ((r,ill):exampled_dnf_regex) : string =
@@ -46,14 +50,15 @@ and pp_exampled_clause ((atoms,strings,examples):exampled_clause) : string =
   (bracket (
     String.concat
     ~sep:";"
-        (List.map ~f:
+
+    (List.map ~f:
           (fun il -> bracket (String.concat ~sep:";"
           (List.map ~f:string_of_int il)))
           examples)))
 
 and pp_exampled_atom (a:exampled_atom) : string =
   begin match a with
-  | EAUserDefined (s,sl,ill) -> paren (
+  | EAVariable (s,_,_,sl,ill) -> paren (
       s ^ "," ^
       bracket (
         String.concat
@@ -61,6 +66,7 @@ and pp_exampled_atom (a:exampled_atom) : string =
         sl) ^ "," ^ pp_int_list_list ill
       )
   | EAStar (r,ill) -> (paren ((pp_exampled_dnf_regex r) ^ (pp_int_list_list ill))) ^ "*"
+  | EAMappedPart _ -> failwith "not implemented"
   end
 
   (*
@@ -116,10 +122,12 @@ let rec pp_exampled_regex (r:exampled_regex) : string =
       ^ pp_int_list_list ill)
   | ERegExStar (r',ill) ->
       paren (paren (pp_exampled_regex r') ^ "*" ^ pp_int_list_list ill)
-  | ERegExUserDefined (s,ss,ill) -> paren (s ^ (bracket (
+  | ERegExVariable (s,ss,ill) -> paren (s ^ (bracket (
       String.concat
       ~sep:";"
       ss) ^ pp_int_list_list ill))
+  | ERegExEmpty -> "{}"
+  | ERegExMapped _ -> "not implemented"
   end
 
 let rec pp_dnf_regex_as_dnf_regex (clauses:dnf_regex) : string =
@@ -156,8 +164,8 @@ let rec pp_dnf_regex_as_regex (clauses:dnf_regex) : string =
 let rec pp_dnf_lens ((clause_lenses, permutation):dnf_lens) : string =
   let pp_atom_lens (a:atom_lens) : string =
     begin match a with
-    | AIterate l -> "iterate" ^ (paren (pp_dnf_lens l))
-    | AIdentity s -> "identity(" ^ s ^ ")"
+    | AtomLensIterate l -> "iterate" ^ (paren (pp_dnf_lens l))
+    | AtomLensVariable lc -> "librarycall(" ^ (pp_lens lc) ^ ")"
     end in
   let pp_clause_lens ((atomls,permutation,strings1,strings2):clause_lens) : string =
     paren (

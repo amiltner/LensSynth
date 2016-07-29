@@ -1,7 +1,10 @@
 open Lang
 open Util
 open Lens_put
+open Dnf_lens_put
+open Regex
 open Regexcontext
+open Lenscontext
 open Gen_exs
 open Transform
 open Run_decls
@@ -12,6 +15,7 @@ open Core.Std
 open Consts
 open Lang
 open Consts
+open Typing
 
 exception Arg_exception
 
@@ -79,13 +83,13 @@ let args =
 let expand_regexps (p:program) : program =
   let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
     begin match r with
-    | RegExMappedUserDefined _ -> failwith "AHHH"
+    | RegExMapped _ -> failwith "AHHH"
     | RegExEmpty -> r
     | RegExBase _ -> r
     | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 c,expand_regexp r2 c)
     | RegExOr (r1,r2) -> RegExOr (expand_regexp r1 c,expand_regexp r2 c)
     | RegExStar r' -> RegExStar (expand_regexp r' c)
-    | RegExUserDefined t ->
+    | RegExVariable t ->
       let r' = RegexContext.lookup_exn c t in
       expand_regexp r' c
     end
@@ -109,19 +113,19 @@ let expand_regexps (p:program) : program =
       ~init:(RegexContext.empty,[])
       p))
 
-let rec check_examples (rc:RegexContext.t) (l:lens) (exs:examples) : unit =
+let rec check_examples (rc:RegexContext.t) (lc:LensContext.t) (l:lens) (exs:examples) : unit =
   begin match exs with
     | [] -> ()
     | (lex,rex)::exst ->
-      if lens_putr rc l lex <> rex then
+      if lens_putr rc lc l lex <> rex then
         failwith "put right didnt work"
-      else if lens_putl rc l rex <> lex then
+      else if lens_putl rc lc l rex <> lex then
         failwith "put left didnt work"
       else
         ()
   end
 
-let print_lenses (lss:(string * lens option) list) : unit =
+let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
   List.iter
     ~f:(fun (s,lo) ->
       print_endline "\n\n";
@@ -129,7 +133,7 @@ let print_lenses (lss:(string * lens option) list) : unit =
       begin match lo with
       | None -> print_endline "no lens found"
       | Some ls -> print_endline (Pp.pp_lens ls);
-        let (t1,t2) = type_lens ls in
+        let (t1,t2) = type_lens lc ls in
         print_endline (Pp.pp_regexp t1);
         print_endline (Pp.pp_regexp t2)
       end)
@@ -141,24 +145,24 @@ let ignore (x:'a) : unit =
 
 let collect_time (p:program) : unit =
   let (time, _) = Util.time_action (fun _ ->
-    run_declarations (fun _ _ _ _ _ -> ()) (fun _ -> ()) p !use_iteratively_deepen_strategy)
+    run_declarations (fun _ _ _ _ _ _ -> ()) (fun _ -> ()) p !use_iteratively_deepen_strategy)
   in
 
   print_endline (Float.to_string time)
 
 let collect_example_number (p:program) : unit =
   let num_examples = ref 0 in
-  run_declarations (fun drro r1 r2 exs c ->
+  run_declarations (fun drro r1 r2 exs rc lc ->
     let (l,r1',r2',e_c') = Option.value_exn drro in
     let exs_reqd = fold_until_completion
         (fun acc ->
           let (l',_,_,_) = Option.value_exn
-            (gen_dnf_lens c r1 r2 acc !use_iteratively_deepen_strategy) in
+            (gen_dnf_lens rc lc r1 r2 acc !use_iteratively_deepen_strategy) in
           if l' = l then
             Right acc
           else
-            let leftex = gen_element_of_regex_language c r1 in
-            let rightex = dnf_lens_putr e_c' ([],0)(*TODO*) r1' l leftex in
+            let leftex = gen_element_of_regex_language rc r1 in
+            let rightex = dnf_lens_putr e_c' lc ([],0)(*TODO*) r1' l leftex in
             let acc = (leftex,rightex)::acc in
             Left acc
         ) [] in
@@ -186,15 +190,15 @@ let print_outputs (p:program) : unit =
   print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
   r))));*)
   run_declarations
-    (fun (drro:(dnf_lens*regex*regex*RegexContext.t) option) _ _ (exs:examples) _ ->
+    (fun (drro:(dnf_lens*regex*regex*RegexContext.t) option) _ _ (exs:examples) _ lc ->
       begin match drro with
         | Some (d,_,_,rc) ->
           let ls = dnf_lens_to_lens d in
           print_endline (Pp.pp_lens ls);
-          let (t1,t2) = type_lens ls in
+          let (t1,t2) = type_lens lc ls in
           print_endline (Pp.pp_regexp t1);
           print_endline (Pp.pp_regexp t2);
-          check_examples rc ls exs
+          check_examples rc lc ls exs
         | None -> print_endline "no lens found"
       end)
     print_endline p

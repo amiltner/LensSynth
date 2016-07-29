@@ -1,6 +1,7 @@
 %{
 open Lang
 open Str
+open Regex
 
 exception Internal_error of string
 
@@ -85,7 +86,7 @@ regex:
   | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
   | r=regex PLUS { RegExConcat (r,RegExStar(r)) }
   | LPAREN r=regex RPAREN { r }
-  | u=UID { RegExUserDefined u }
+  | u=UID { RegExVariable u }
 
 base:
   | s=str { s }
