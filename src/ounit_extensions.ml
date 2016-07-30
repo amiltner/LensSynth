@@ -49,7 +49,11 @@ let assert_permutation_guesses_option_equal =
 
 let assert_lens_equal =
   assert_equal
-  ~printer:pp_lens
+    ~printer:pp_lens
+
+let assert_dnf_lens_option_equal =
+  assert_equal
+    ~printer:(Pp_general.pp_option pp_dnf_lens)
 
 let assert_int_float_int_priority_queue_option_equal =
   assert_equal

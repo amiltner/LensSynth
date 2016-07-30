@@ -227,7 +227,7 @@ let gen_dnf_lens_zipper (rc:RegexContext.t)
                         (r1:regex)
                         (r2:regex)
                         (exs:examples)
-                      : (dnf_lens * regex * regex) option =
+                      : dnf_lens option =
   let (lexs,rexs) = List.unzip exs in
   let max_size = max (true_max_size rc r1) (true_max_size rc r2) in
   let rec gen_dnf_lens_zipper_queueing
@@ -296,8 +296,13 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*)
         end
     end
   in
-  gen_dnf_lens_zipper_queueing (Priority_Queue.create_from_list
-  [(QERegexCombo(r1,r2,0,emptymapsbetweencontext),1.0)])
+  let dlrro =
+    gen_dnf_lens_zipper_queueing
+      (Priority_Queue.create_from_list
+         [(QERegexCombo(r1,r2,0,emptymapsbetweencontext),1.0)])
+  in
+  let dlo = Option.map ~f:(fun (dl,_,_) -> dl) dlrro in
+  dlo
 
   (*List.fold_left
   ~f:(fun acc n ->
@@ -333,63 +338,22 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*)
 
 let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
 (exs:examples) (iteratively_deepen_strategy:bool)
-: (dnf_lens*regex*regex*RegexContext.t) option =
+: dnf_lens option =
   if iteratively_deepen_strategy then
     let (r1,c1) = iteratively_deepen r1 in
     let (r2,c2) = iteratively_deepen r2 in
     let rc = RegexContext.merge_contexts_exn rc
         (RegexContext.merge_contexts_exn c1 c2) in
-    Option.map
-      ~f:(fun (d,r1,r2) -> (d,r1,r2,rc))
-      (gen_dnf_lens_zipper rc lc r1 r2 exs)
+    gen_dnf_lens_zipper rc lc r1 r2 exs
   else
-    Option.map
-      ~f:(fun (d,r1,r2) -> (d,r1,r2,rc))
-      (gen_dnf_lens_zipper rc lc r1 r2 exs)
+    gen_dnf_lens_zipper rc lc r1 r2 exs
 
 let gen_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
              (exs:examples) (iterative_deepen_strategy:bool) : lens option =
-  (*print_endline (Pp.pp_regexp r1);
-  print_endline (Pp.pp_regexp r2);
-  print_endline (String.concat ~sep:";" (List.map ~f:(fun (s1,s2) ->
-    "("^s1^","^s2^")") exs));*)
   let dnf_lens_option = gen_dnf_lens rc lc r1 r2 exs iterative_deepen_strategy in
   Option.map
-    ~f:(fun (l,r1',r2',_) ->(*Fn.compose simplify_lens*)
-      (*let exs_reqd = fold_until_completion
-        (fun acc ->
-          let (l',_,_) = Option.value_exn
-            (gen_dnf_lens_zipper c e_c r1 r2 acc) in
-          if l' = l then
-            Right acc
-          else
-            let leftex = gen_element_of_regex_language e_c r1 in
-            let rightex = dnf_lens_putr e_c r1' l leftex in
-            let acc = (leftex,rightex)::acc in
-            Left acc
-        )
-        [] in*)
-
-      (*print_endline (string_of_int (List.length exs_reqd));*)
-      
-      dnf_lens_to_lens l)
+    ~f:(fun l ->
+        (*Fn.compose simplify_lens*)
+        dnf_lens_to_lens l)
     dnf_lens_option
-  (*let (lexs,rexs) = List.unzip exs in
-  let exampled_r1_opt = regex_to_exampled_dnf_regex c r1 lexs in
-  let exampled_r2_opt = regex_to_exampled_dnf_regex c r2 rexs in
-  begin match (exampled_r1_opt,exampled_r2_opt) with
-  | (Some exampled_r1,Some exampled_r2) ->
-      let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
-      let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
-      Some (gen_dnf_lens_zipper_internal e_o_r1 e_o_r2)
-  | _ -> None
-  end
-      *)
-  (*List.fold_left
-    ~f:(fun acc i -> begin match acc with
-          | Some _ -> acc
-          | None -> gen_dnf_lens_internal c r1 r2 exs i
-          end)
-    ~init:None
-    (range 0 2)*)
 

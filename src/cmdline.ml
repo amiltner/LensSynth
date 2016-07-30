@@ -1,7 +1,6 @@
 open Lang
 open Util
 open Lens_put
-open Dnf_lens_put
 open Regex
 open Regexcontext
 open Lenscontext
@@ -25,14 +24,12 @@ type driver_mode =
   | Synth
   | Time
   | GeneratedExamples
-  | ForceExpand
-  | ForceExpandTime
-  | ForceExpandGeneratedExamples
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
 let mode : driver_mode ref = ref Default
 let use_iteratively_deepen_strategy : bool ref = ref false
+let force_expand_regexps : bool ref = ref false
 
 let parse_file (f:string) : program =
   Preproc.preprocess_file f
@@ -62,16 +59,8 @@ let args =
     , " Synthesize with randomly generated examples"
     )
   ; ( "-forceexpand"
-    , Arg.Unit (fun _ -> set_opt ForceExpand)
+    , Arg.Unit (fun _ -> force_expand_regexps := false)
     , " Synthesize with definitions forced to be expanded"
-    )
-  ; ( "-forceexpandtime"
-    , Arg.Unit (fun _ -> set_opt ForceExpandTime)
-    , " Synthesize with definitions forced to be expanded and collect time"
-    )
-  ; ( "-forceexpandgeneratedexamples"
-    , Arg.Unit (fun _ -> set_opt ForceExpandGeneratedExamples)
-    , " Synthesize with definitions forced to be expanded and randomly generated examples"
     )
   ; ( "-iterativedeepenstrategy"
     , Arg.Unit (fun _ -> use_iteratively_deepen_strategy := true)
@@ -113,6 +102,12 @@ let expand_regexps (p:program) : program =
       ~init:(RegexContext.empty,[])
       p))
 
+let rec expand_regexps_if_necessary (p:program) : program =
+  if !force_expand_regexps then
+    expand_regexps p
+  else
+    p
+
 let rec check_examples (rc:RegexContext.t) (lc:LensContext.t) (l:lens) (exs:examples) : unit =
   begin match exs with
     | [] -> ()
@@ -152,17 +147,17 @@ let collect_time (p:program) : unit =
 
 let collect_example_number (p:program) : unit =
   let num_examples = ref 0 in
-  run_declarations (fun drro r1 r2 exs rc lc ->
-    let (l,r1',r2',e_c') = Option.value_exn drro in
+  run_declarations (fun lo r1 r2 exs rc lc ->
+    let l = Option.value_exn lo in
     let exs_reqd = fold_until_completion
         (fun acc ->
-          let (l',_,_,_) = Option.value_exn
-            (gen_dnf_lens rc lc r1 r2 acc !use_iteratively_deepen_strategy) in
+          let l' = Option.value_exn
+            (gen_lens rc lc r1 r2 acc !use_iteratively_deepen_strategy) in
           if l' = l then
             Right acc
           else
             let leftex = gen_element_of_regex_language rc r1 in
-            let rightex = dnf_lens_putr e_c' lc ([],0)(*TODO*) r1' l leftex in
+            let rightex = lens_putr rc lc l leftex in
             let acc = (leftex,rightex)::acc in
             Left acc
         ) [] in
@@ -190,15 +185,14 @@ let print_outputs (p:program) : unit =
   print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
   r))));*)
   run_declarations
-    (fun (drro:(dnf_lens*regex*regex*RegexContext.t) option) _ _ (exs:examples) _ lc ->
-      begin match drro with
-        | Some (d,_,_,rc) ->
-          let ls = dnf_lens_to_lens d in
-          print_endline (Pp.pp_lens ls);
-          let (t1,t2) = type_lens lc ls in
+    (fun (lo:lens option) _ _ (exs:examples) rc lc ->
+      begin match lo with
+        | Some l ->
+          print_endline (Pp.pp_lens l);
+          let (t1,t2) = type_lens lc l in
           print_endline (Pp.pp_regexp t1);
           print_endline (Pp.pp_regexp t2);
-          check_examples rc lc ls exs
+          check_examples rc lc l exs
         | None -> print_endline "no lens found"
       end)
     print_endline p
@@ -224,16 +218,10 @@ let main () =
             let _ = parse_file f in (*TODO: pp*) ()(*Printf.printf "%s\n"
             (Pp.pp_prog prog)*)
         | Default | Synth ->
-            parse_file f |> print_outputs
-        | Time -> parse_file f |> collect_time
+            parse_file f |> expand_regexps_if_necessary |> print_outputs
+        | Time -> parse_file f |> expand_regexps_if_necessary |> collect_time
         | GeneratedExamples ->
-            parse_file f |> collect_example_number
-        | ForceExpand ->
-            parse_file f |> expand_regexps |> print_outputs
-        | ForceExpandTime ->
-            parse_file f |> expand_regexps |> collect_time
-        | ForceExpandGeneratedExamples ->
-            parse_file f |> expand_regexps |> collect_example_number
+            parse_file f |> expand_regexps_if_necessary |> collect_example_number
         end
       end
     end

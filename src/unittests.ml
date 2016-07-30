@@ -1245,16 +1245,10 @@ let test_dnf_lens_option (expected:dnf_lens option) (actual:dnf_lens option) =
     expected
     actual
 
-let test_generated_output_option
-    (expected:(dnf_lens) option)
-    (actual:(dnf_lens*regex*regex*RegexContext.t) option) =
-  let actual = Option.map ~f:(fun (l,_,_,_) -> l) actual in
-  test_dnf_lens_option expected actual
-
 (* TODO: add in test for lens context nonempty *)
 
 let test_gen_dnf_lens_const_nosoln _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     None
     (gen_dnf_lens RegexContext.empty
        LensContext.empty
@@ -1264,7 +1258,7 @@ let test_gen_dnf_lens_const_nosoln _ =
       false)
 
 let test_gen_dnf_lens_const_soln _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some ([[],Permutation.create [], ["x"], ["y"]],Permutation.create [0]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
       (RegExBase "x")
@@ -1273,7 +1267,7 @@ let test_gen_dnf_lens_const_soln _ =
       false)
 
 let test_gen_lenses_union _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[],Permutation.create [], ["a"], ["y"];
         [],Permutation.create [], ["b"], ["x"]],
@@ -1285,7 +1279,7 @@ let test_gen_lenses_union _ =
       false)
 
 let test_gen_lenses_three_union _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[],Permutation.create [], ["a"], ["y"];
         [],Permutation.create [], ["b"], ["z"];
@@ -1298,7 +1292,7 @@ let test_gen_lenses_three_union _ =
       false)
 
 let test_gen_lenses_userdef_ident _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[AtomLensVariable (LensIdentity (RegExVariable "A"))], Permutation.create [0], ["";""], ["";""]],
       Permutation.create [0]))
@@ -1309,7 +1303,7 @@ let test_gen_lenses_userdef_ident _ =
       false)
 
 let test_gen_lenses_concat_userdef _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[AtomLensVariable (LensIdentity (RegExVariable "A")); AtomLensVariable (LensIdentity (RegExVariable "B"))], Permutation.create [1;0],
         ["";"";""], ["";"";""]],
@@ -1321,7 +1315,7 @@ let test_gen_lenses_concat_userdef _ =
       false)
 
 let test_gen_lenses_concat_userdef_hard _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[AtomLensVariable(LensIdentity(RegExVariable "A")); AtomLensVariable(LensIdentity(RegExVariable "A"))], Permutation.create [1;0],
         ["";"";""], ["";"";""]],
@@ -1333,7 +1327,7 @@ let test_gen_lenses_concat_userdef_hard _ =
       false)
 
 let test_gen_lenses_userdef_expand _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some
       ([[], Permutation.create[], ["a"], ["a"]],
         Permutation.create [0]))
@@ -1343,7 +1337,7 @@ let test_gen_lenses_userdef_expand _ =
       false)
 
 let test_gen_lenses_star _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
   (Some ([[(AtomLensIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
   [0]))], Permutation.create [0], ["";""], ["";""]], Permutation.create [0]))
   (gen_dnf_lens RegexContext.empty LensContext.empty
@@ -1353,7 +1347,7 @@ let test_gen_lenses_star _ =
       false)
 
 let test_gen_dnf_lens_star_difficult _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
   (Some ([
     [(AtomLensIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
     [0]));
@@ -1373,7 +1367,7 @@ let test_gen_dnf_lens_star_difficult _ =
     false)
 
 let test_dnf_lens_star_expansion _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
   (Some ([
     [],Permutation.create [], [""], [""];
     [(AtomLensIterate ([[], Permutation.create [], ["a"], ["a"]], Permutation.create
@@ -1390,7 +1384,7 @@ let test_dnf_lens_star_expansion _ =
 
 
 let test_dnf_lens_star_inner_expansion _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     ( Some ([
       [AtomLensIterate ([
         ([],Permutation.create [], ["a"], ["a"]);
@@ -1409,7 +1403,7 @@ let test_dnf_lens_star_inner_expansion _ =
       false)
 
 let test_dnf_lens_quotient_expansion _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
     (Some (
       [
         ([
@@ -1434,7 +1428,7 @@ let test_dnf_lens_quotient_expansion _ =
       false)
 
 let test_dnf_lens_inner_quotient_expansion _ =
-  test_generated_output_option
+  assert_dnf_lens_option_equal
   (Some (
     [
       ([
