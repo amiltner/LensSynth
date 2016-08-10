@@ -1,8 +1,8 @@
 open Core.Std
 open Lang
 open Regex
-open Util
 open Lens
+open Lens_utilities
 open Datastructures
 open Disjointset
 
@@ -36,9 +36,6 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
   let empty = { defs     = Dict.empty        (=) ;
                 outgoing = Dict.empty        (=) ;
                 equivs   = DisjointSet.empty (=) ; }
-
-  let lookup (lc:t) (name:id) : (lens*regex*regex) option =
-    Dict.find name lc.defs
 
   let lookup_exn (lc:t) (name:id) : lens*regex*regex =
     Dict.find_exn name lc.defs
@@ -108,43 +105,7 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
   let create_from_list_exn (nirsl:(string * lens * regex * regex) list) : t =
     insert_list_exn empty nirsl
 
-  let rec paths_between_elts (outgoing:(id, (lens*id) list) Dict.t)
-      (source:id) (target:id) (lacc:lens) : lens list =
-    if source = target then
-      [lacc]
-    else
-      begin match Dict.find source outgoing with
-        | None -> []
-        | Some connections ->
-          let valid_connections = List.filter
-              ~f:(fun (l,_) -> not (has_common_sublens l lacc))
-              connections
-          in
-          List.fold_left
-            ~f:(fun acc (l,id) ->
-                let new_lacc = LensCompose(l,lacc) in
-                let new_paths = paths_between_elts
-                    outgoing
-                    id
-                    target
-                    new_lacc
-                in
-                new_paths@acc)
-            ~init:[]
-            valid_connections
-      end
-
-  (*
-
-A   <-AB-->    B   <--BC--> _C_
-    <-AD'->    D   <--DC--> _C_
-
-
-AB o BC
-
-*)
-
-  let rec shortest_path_exn (lc:t) (regex1_name:id) (regex2_name:id)
+  let shortest_path_exn (lc:t) (regex1_name:id) (regex2_name:id)
     : lens =
     let outgoing = lc.outgoing in
     let rec shortest_path_internal (accums:(lens * id) list) : lens =
@@ -160,7 +121,7 @@ AB o BC
               ~f:(fun (l,n) ->
                   let valid_outgoing_edges =
                     List.filter
-                      ~f:(fun (l',n') -> not (has_common_sublens l' l))
+                      ~f:(fun (l',_) -> not (has_common_sublens l' l))
                       (get_outgoing_edges outgoing n)
                   in
                   List.map

@@ -50,6 +50,15 @@ let rec fold_until_completion (f: 'a -> ('a,'b) either) (acc:'a) : 'b =
   | Right answer -> answer
   end
 
+let fold_until_fixpoint (f:'a -> 'a) : 'a -> 'a =
+  fold_until_completion
+    (fun x ->
+       let x' = f x in
+       if x = x' then
+         Right x
+       else
+         Left x')
+
 let cartesian_map (f:'a -> 'b -> 'c) (l1:'a list) (l2:'b list) : 'c list =
   (List.fold_right
     ~f:(fun x acc ->
@@ -78,7 +87,10 @@ let distribute_option (l:('a option) list) : 'a list option =
   ~init:(Some [])
   (List.rev l))
 
-let rec time_action ~f:(f: unit -> 'a) : float * 'a =
+let swap_double ((x,y):'a * 'b) : 'b * 'a =
+  (y,x)
+
+let time_action ~f:(f: unit -> 'a) : float * 'a =
   let t1  = Unix.gettimeofday () in
   let res = f () in
   let t2  = Unix.gettimeofday () in
@@ -102,7 +114,13 @@ let rec split_by_first_satisfying (f:'a -> bool) (l:'a list)
               end
   end
 
-let rec split_by_first_exn (l:'a list) : ('a * 'a list) =
+let split_by_first (l:'a list) : ('a * 'a list) option =
+  begin match l with
+    | h::t -> Some (h,t)
+    | [] -> None
+  end
+
+let split_by_first_exn (l:'a list) : ('a * 'a list) =
   begin match l with
   | h::t -> (h,t)
   | [] -> failwith "need len at least 1"
@@ -133,7 +151,7 @@ let split_at_index_exn (l:'a list) (i:int) : 'a list * 'a list =
   else
     split_at_index_exn_internal l i (fun x -> x)
 
-let rec weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
+let weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
   let (head,torso1) = split_by_last_exn l1 in
   let (torso2,tail) = split_by_first_exn l2 in
   head @ ((f torso1 torso2)::tail)
@@ -425,14 +443,14 @@ type ('a,'b) tagged_list_tree =
   | Leaf of 'b
   | Node of 'a * ((('a,'b) tagged_list_tree) list)
 
-let rec insert_into_correct_list ((k,v):'a * 'b) (l:('a * 'b list) list)
+let rec insert_into_correct_list (l:('a * 'b list) list) (k:'a) (v:'b)
     : ('a * 'b list) list =
   begin match l with
   | ((k',vlist)::kvplist) ->
       if k = k' then
         (k',v::vlist)::kvplist
       else
-        (k',vlist)::(insert_into_correct_list (k,v) kvplist)
+        (k',vlist)::(insert_into_correct_list kvplist k v)
   | [] -> failwith "bad list"
   end
 
@@ -447,7 +465,7 @@ let rec append_into_correct_list ((k,v):'a * 'b list) (l:('a * 'b list) list)
   | [] -> failwith "bad lisat"
   end
 
-let rec group_by_values (l:('a list * 'b) list) : ('a list * 'b) list =
+let group_by_values (l:('a list * 'b) list) : ('a list * 'b) list =
   let empty_value_list = List.dedup (List.map ~f:(fun v -> (snd v,[])) l) in
   let l' = List.fold_left
   ~f:(fun acc (k,v) ->
@@ -456,6 +474,14 @@ let rec group_by_values (l:('a list * 'b) list) : ('a list * 'b) list =
   l
   in
   List.map ~f:(fun (x,y) -> (y,x)) l'
+
+let group_by_keys (kvl:('a * 'b) list) : ('a * 'b list) list =
+  let empty_key_list = List.dedup (List.map ~f:(fun v -> (fst v,[])) kvl) in
+  List.fold_left
+    ~f:(fun acc (k,v) ->
+        insert_into_correct_list acc k v)
+    ~init:empty_key_list
+    kvl
 
 
 let rec tagged_list_tree_keygrouped (tlt:('a,'b) tagged_list_tree) : ('a
@@ -488,3 +514,110 @@ module Operators = struct
       | None -> None
       | Some v -> f v
 end
+
+let maximally_factor_hemiring_element
+    (apply_to_every_level:('a -> 'a) -> ('a -> 'a))
+    (multiplicative_identity:'a)
+    (separate_plus:'a -> ('a * 'a) option)
+    (separate_times:'a -> ('a * 'a) option)
+    (create_plus:'a -> 'a -> 'a)
+    (create_times:'a -> 'a -> 'a)
+  : 'a -> 'a =
+  let rec separate_into_sum
+      (r:'a)
+    : 'a list =
+    begin match separate_plus r with
+      | None -> [r]
+      | Some (r1,r2) -> (separate_into_sum r1) @ (separate_into_sum r2)
+    end
+  in
+  let rec separate_into_product
+      (r:'a)
+    : 'a list =
+    begin match separate_times r with
+      | None -> [r]
+      | Some (r1,r2) -> (separate_into_product r1) @ (separate_into_product r2)
+    end
+  in
+  let combine_nonempty_list_exn
+      (combiner:'a -> 'a -> 'a)
+      (rl:'a list)
+    : 'a =
+    let (rlh,rlt) = split_by_first_exn rl in
+    List.fold_left
+      ~f:(fun acc r ->
+          combiner acc r)
+      ~init:rlh
+      rlt
+  in
+  let combine_list
+      (combiner:'a -> 'a -> 'a)
+      (rl:'a list)
+    : 'a option =
+    begin match rl with
+      | [] -> None
+      | _ -> Some (combine_nonempty_list_exn combiner rl)
+    end
+  in
+  let maximally_factor_current_level
+      (product_splitter:'a list -> ('a * 'a list))
+      (product_combiner:'a -> 'a -> 'a)
+      (he:'a)
+    : 'a =
+    let sum_list = separate_into_sum he in
+    let sum_product_list_list =
+      List.map
+        ~f:separate_into_product
+        sum_list
+    in
+    let product_keyed_sum_list =
+      List.map
+        ~f:product_splitter
+        sum_product_list_list
+    in
+    let grouped_assoc_list = group_by_keys product_keyed_sum_list in
+    let keyed_sum_list =
+      List.map
+        ~f:(fun (k,all) ->
+            let producted_elements =
+              List.map
+                ~f:(fun pl ->
+                    begin match combine_list create_times pl with
+                      | None -> multiplicative_identity
+                      | Some he -> he
+                    end)
+                all
+            in
+            (k,producted_elements))
+        grouped_assoc_list
+    in
+    let ringed_list =
+      List.map
+        ~f:(fun (k,al) ->
+            let factored_side = combine_nonempty_list_exn create_plus al in
+            if factored_side = multiplicative_identity then
+              k
+            else
+              product_combiner
+                k
+                factored_side)
+        keyed_sum_list
+    in
+    combine_nonempty_list_exn create_plus ringed_list
+  in
+  Fn.compose
+    (fold_until_fixpoint
+       (apply_to_every_level
+          (maximally_factor_current_level
+             (Fn.compose swap_double split_by_last_exn)
+             (Fn.flip create_times))))
+    (fold_until_fixpoint
+       (apply_to_every_level
+          (maximally_factor_current_level
+             split_by_first_exn
+             create_times)))
+
+let string_to_char_list (s:string) : char list =
+  let rec exp i l =
+    if i < 0 then l else exp (i - 1) (s.[i] :: l) in
+  exp (String.length s - 1) [];;

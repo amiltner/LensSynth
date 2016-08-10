@@ -16,7 +16,7 @@ BASE_FLAGS = ["-iterativedeepenstrategy"]
 TIMEOUT_TIME = 8
 GENERATE_EXAMPLES_TIMEOUT_TIME = 8
 
-REPETITION_COUNT = 10
+REPETITION_COUNT = 2
 
 def transpose(matrix):
     return zip(*matrix)
@@ -58,6 +58,7 @@ def gather_data(prog, path, base):
 	current_data["ComputationTime"]="{:.5f}".format(sum(computation_time_col)/len(computation_time_col))
     generate_exs_run_data = []
     timeout = False
+    error = False
     for iteration in range(REPETITION_COUNT):
     	(datum,err) = gather_datum(prog, path, base,['-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
 	if datum == "":
@@ -78,12 +79,14 @@ def gather_data(prog, path, base):
 	current_data["ExamplesRequired"]="{:.1f}".format(sum(example_number_col)/len(example_number_col))
     expanded_run_data = []
     timeout = False
+    error = False
     for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-forceexpandtime'],TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-forceexpand','-time'],TIMEOUT_TIME)
 	if datum == "":
             if err == "":
 		timeout = True
             else:
+                print("there was an error")
                 error = True
 	    break
 	else:
@@ -98,12 +101,14 @@ def gather_data(prog, path, base):
 	current_data["ForceExpandTime"]="{:.5f}".format(sum(expanded_computation_time_col)/len(expanded_computation_time_col))
     gen_exs_expanded_run_data = []
     timeout = False
+    error = False
     for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-forceexpandgeneratedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
+    	(datum,err) = gather_datum(prog, path, base,['-forceexpand','-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
 	if datum == "":
             if err == "":
 		timeout = True
             else:
+                print("error:"+err+"end")
                 error = True
 	    break
 	else:

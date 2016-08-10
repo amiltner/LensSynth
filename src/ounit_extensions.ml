@@ -1,17 +1,9 @@
 open OUnit2
 open Core.Std
-open Counters
 open Priority_queue
-open Disjointset
-open Regexcontext
+open Dnf_regex
 open Permutation
-open Util
-open Eval
-open Lens
-open Lang
 open Pp
-open Gen
-open Transform
 
 
 let assert_dnf_equal (expected:dnf_regex) (actual:dnf_regex) =

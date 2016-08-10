@@ -28,16 +28,6 @@ typedef XML_INNER_ELEMENT = (XML_ELEMENT TEXT XML_END_ELEMENT) | XML_CONTENTLESS
 test XML_INNER_ELEMENT matches "<hello></hello>";;
 test XML_INNER_ELEMENT matches "<hello/>";;
 
-typedef XML_SECONDLEVEL_ELEMENT = (XML_ELEMENT
-				  (TEXT XML_INNER_ELEMENT)*TEXT (*TODO*)
-			          XML_END_ELEMENT) | XML_CONTENTLESS_ELEMENT;;
-test XML_SECONDLEVEL_ELEMENT matches "<hello attribute=\"myattr\">text<goodbye a=\"b\"/><adios language=\"spanish\">tt123</adios>test</hello>";;
-
-typedef XML_THIRDLEVEL_ELEMENT = XML_ELEMENT
-				 (TEXTCHAR | XML_SECONDLEVEL_ELEMENT)*
-				 XML_END_ELEMENT;;
-test XML_THIRDLEVEL_ELEMENT matches "<hithere><hello attribute=\"myattr\">text<goodbye a=\"b\"/><adios language=\"spanish\">tt123</adios>test</hello><test/><testing at2t=\"wer2\"/></hithere>";;
-
 typedef SINGLE_ATTRIBUTE_DICT = "{\""NAME"\"=\"" TEXT "\"}";;
 test SINGLE_ATTRIBUTE_DICT matches "{\"attribute\"=\"value\"}";;
 
@@ -53,14 +43,17 @@ test NONEMPTY_TEXT_DICT matches "{\"#text\"=\"text\"}";;
 typedef INNER_XML_DICT = "{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TEXT_DICT|.)ENDBRACE_DICT)|.) "}";;
 test INNER_XML_DICT matches "{\"element\"}";;
 
-typedef SECONDLEVEL_XML_DICT = "{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) ((((NONEMPTY_TEXT_DICT|.)INNER_XML_DICT)*(NONEMPTY_TEXT_DICT|.)ENDBRACE_DICT)|.) "}";;
+typedef SECONDLEVEL_XML_DICT =
+"{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TEXT_DICT|.|(INNER_XML_DICT*))ENDBRACE_DICT)|.) "}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"endbrace\"=\"test\"}}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"element\"}{\"endbrace\"=\"test\"}}";;
 
-typedef THIRDLEVEL_XML_DICT = "{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) ((((NONEMPTY_TEXT_DICT|.)SECONDLEVEL_XML_DICT)*(NONEMPTY_TEXT_DICT|.)ENDBRACE_DICT)|.) "}";;
+typedef XML_SECONDLEVEL_ELEMENT = (XML_ELEMENT
+				  (TEXT | (XML_INNER_ELEMENT*))
+			          XML_END_ELEMENT) | XML_CONTENTLESS_ELEMENT;;
+
 
 map_inner = [XML_INNER_ELEMENT <=> INNER_XML_DICT {}]
-
-map_secondlevel = [XML_SECONDLEVEL_ELEMENT <=> SECONDLEVEL_XML_DICT {}]
+map_outer = [XML_SECONDLEVEL_ELEMENT <=> SECONDLEVEL_XML_DICT {}]

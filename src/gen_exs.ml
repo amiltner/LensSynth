@@ -1,12 +1,13 @@
 open Core.Std
-open Lang
-open Random
-open Regexcontext
 open Regex
+open Regexcontext
 
 let likelihood_of_continuing_star = 0.9
 
-let rec gen_element_of_regex_language (c:RegexContext.t) (r:regex) : string =
+let rec gen_element_of_regex_language
+    (c:RegexContext.t)
+    (r:regex)
+  : string =
   begin match r with
   | RegExBase s -> s
   | RegExConcat (r1,r2) -> (gen_element_of_regex_language c r1) ^
@@ -24,6 +25,10 @@ let rec gen_element_of_regex_language (c:RegexContext.t) (r:regex) : string =
   | RegExVariable t ->
     let rex = RegexContext.lookup_exn c t in
     gen_element_of_regex_language c rex
+  | RegExEmpty ->
+    failwith "no elements of this language"
+  | RegExMapped _ ->
+    failwith "should not be generated"
   end
 
 let _ = Random.self_init()

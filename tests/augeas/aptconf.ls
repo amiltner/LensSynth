@@ -2,6 +2,7 @@
 #use "util.decls"
 
 typedef SLASH_COMMENT = "//" STRING;;
+scomment_comment_map = [SLASH_COMMENT <=> COMMENT_DICT {}]
 
 typedef INCLUDE_CONF = "#include " FOLDER;;
 test INCLUDE_CONF matches "#include myfolder/my_filE.txt";;

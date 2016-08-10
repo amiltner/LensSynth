@@ -1,11 +1,9 @@
 open Lang
 open Regex
-open Util
-open Pp
 open Core.Std
 open Regexcontext
-open Normalized_lang
-open Lenscontext
+open Language_equivalences
+open Dnf_regex
 
 let rec to_empty_exampled_regex (r:regex) : exampled_regex =
   begin match r with
@@ -167,7 +165,7 @@ let rec regex_to_dfa (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (
       let new_end_ref = ref QAccept in
       let new_start_fun =
         if not inside_userdef then
-          (fun ((s,er,rc,is,so):data) ->
+          (fun ((s,er,rc,is,_):data) ->
             [(inner_start_ref,(s,er,
               (fun s' er' ->
                 begin match er' with
@@ -199,7 +197,7 @@ let rec regex_to_dfa (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (
           let new_end_ref = ref QAccept in
           let new_start_fun =
             if not inside_userdef then
-              (fun ((s,er,rc,is,so):data) ->
+              (fun ((s,er,rc,is,_):data) ->
                 [(inner_start_ref,(s,er,
                   (fun s' er' ->
                     begin match er' with
@@ -247,14 +245,15 @@ let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :
         None
   end
 
-let rec fast_eval (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (s:string) : bool =
+let fast_eval (c:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (s:string) : bool =
   let (dfa_start,_) = regex_to_dfa c mcs r false in
-  begin match eval_dfa !dfa_start (s,(to_empty_exampled_regex r),[],[0],None) with
-  | None -> false
-  | Some er -> true
-  end
+  not
+    (Option.is_empty
+       (eval_dfa
+          !dfa_start
+          (s,(to_empty_exampled_regex r),[],[0],None)))
 
-let rec regex_to_exampled_regex (rc:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (es:string list)
+let regex_to_exampled_regex (rc:RegexContext.t) (mcs:mapsbetweencontextside) (r:regex) (es:string list)
                                  : exampled_regex option =
   let (dfa_start,_) = regex_to_dfa rc mcs r false in
   let start_state = !dfa_start in

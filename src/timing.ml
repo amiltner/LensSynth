@@ -10,7 +10,7 @@ let record ~label ~action : 'a =
   let entry = match Hashtbl.find data label with
   | None   ->
       let entry = { laps = [] } in
-      Hashtbl.set data label entry; entry
+      Hashtbl.set data ~key:label ~data:entry; entry
   | Some v -> v
   in
   let base = Unix.gettimeofday () in

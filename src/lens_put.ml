@@ -1,11 +1,8 @@
 open Core.Std
-open Permutation
-open Normalized_lang
 open Regexcontext
 open Lenscontext
 open Lang
 open Eval
-open Util
 open Lens
 open Typing
 
@@ -23,7 +20,6 @@ let rec lens_putl_internal
         else
           failwith "bad typecheck"
     | (LensVariable n, _) ->
-      print_endline (Pp_general.pp_double Pp.pp_lens Pp.pp_exampled_regex (l,er));
       let relevant_string = extract_string er iteration in
       let limpl = LensContext.lookup_impl_exn lc n in
       let (_,limpl_rregex) = type_lens lc limpl in

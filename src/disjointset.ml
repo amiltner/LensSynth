@@ -1,7 +1,4 @@
 open Core.Std
-open Lang
-open Util
-open Lens
 open Datastructures
 
 (***** The main RegexContext module {{{ *****)
@@ -42,7 +39,7 @@ module DisjointSet_Struct (Dict : Dictionary) : DisjointSet_Sig = struct
     List.fold_left
       ~f:(fun acc (e1,e2) ->
           union_elements acc e1 e2)
-      ~init:(empty (=))
+      ~init:(empty (comparer))
       equivs
 end
 

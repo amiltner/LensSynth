@@ -5,12 +5,10 @@ open Parser
 exception Lexer_error of string
 
 let reserved_words : (string * Parser.token) list =
-  [ ("let", LET)
-  ; ("typedef", TYPEDEF)
+  [ ("typedef", TYPEDEF)
   ; ("abstract", ABSTRACT)
   ; ("test", TEST)
-  ; ("matches", MATCHES)
-  ; ("in", IN)  ]
+  ; ("matches", MATCHES) ]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)
@@ -26,17 +24,11 @@ let symbols : (string * Parser.token) list =
   ; ("=", EQ)
   ; (".", DOT)
   ; ("/", SLASH)
-  ; ("' '", SPACE)
   ; ("\\", BACKSLASH)
-  ; (":", COLON)
-  ; ("<", LT)
-  ; (">", GT)
   ; ("-", HYPHEN)
-  ; ("\\n", NEWLINE)
   ; ("[", LBRACKET)
   ; ("]", RBRACKET)
   ; (";", SEMI)
-  ; ("#", HASH)
   ]
 
 let create_token lexbuf =
@@ -50,11 +42,6 @@ let create_symbol lexbuf =
   match Util.lookup str symbols with
   | None   -> raise @@ Lexer_error ("Unexpected token: " ^ str)
   | Some t -> t
-
-let create_proj lexbuf =
-  let str = lexeme lexbuf in
-  let len = String.length str in
-  PROJ (int_of_string (String.sub str 1 (len - 1)))
 
 let remove_quotes lexbuf =
   let str = lexeme lexbuf in
@@ -73,8 +60,6 @@ let digit      = ['0'-'9']
 
 rule token = parse
   | eof   { EOF }
-  | digit { INT (lexeme lexbuf) }
-  | "#" digit+ { create_proj lexbuf } 
   | "(*" {comments 0 lexbuf}
   | whitespace+ | newline+    { token lexbuf }
   | lowercase (digit | character | '_')* { create_token lexbuf }

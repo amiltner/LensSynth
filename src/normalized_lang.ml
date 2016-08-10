@@ -1,6 +1,4 @@
 open Lens
-open Lang
-open Lenscontext
 open Core.Std
 open Util
 
@@ -40,8 +38,8 @@ let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
     | _ -> EQ
     end 
 
-and compare_exampled_clauses ((atoms1,strings1,ints1):exampled_clause)
-                             ((atoms2,strings2,ints2):exampled_clause)
+and compare_exampled_clauses ((atoms1,_,ints1):exampled_clause)
+                             ((atoms2,_,ints2):exampled_clause)
                         : comparison =
   begin match ordered_partition_order compare_exampled_atoms atoms1 atoms2 with
   | EQ -> ordered_partition_order
@@ -65,7 +63,7 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
         comparison_compare s t
     | (OEAMappedUserDefined _, _) -> LT
     | (_, OEAMappedUserDefined _) -> GT
-    | (OEAUserDefined (s1,s1',_,el1), OEAUserDefined (s2,s2',_,el2)) ->
+    | (OEAUserDefined (s1,_,_,el1), OEAUserDefined (s2,_,_,el2)) ->
         begin match (int_to_comparison (compare s1 s2)) with
         | EQ -> dictionary_order
                   (int_comparer_to_comparer compare)
@@ -79,8 +77,8 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
     end 
 
 and compare_ordered_exampled_clauses
-        ((atoms_partitions1,strings1,ints1):ordered_exampled_clause)
-        ((atoms_partitions2,strings2,ints2):ordered_exampled_clause)
+        ((atoms_partitions1,_,ints1):ordered_exampled_clause)
+        ((atoms_partitions2,_,ints2):ordered_exampled_clause)
       : comparison =
   begin match ordered_partition_dictionary_order
                 compare_ordered_exampled_atoms

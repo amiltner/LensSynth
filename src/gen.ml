@@ -1,22 +1,20 @@
 open Core.Std
-open Lens_put
 open Lenscontext
 open Converter
 open Regex
 open Regexcontext
-open Util
+open Dnf_regex
 open Lang
 open Lens
-open Eval
+open Lens_utilities
 open Util
-open Pp
 open Permutation
 open Transform
 open Priority_queue
-open Gen_exs
 open Normalized_lang
+open Language_equivalences
 
-let rec is_immutable_clause ((al,_,_):ordered_exampled_clause) : bool =
+let is_immutable_clause ((al,_,_):ordered_exampled_clause) : bool =
   begin match al with
   | [[(OEAMappedUserDefined _,_)]] -> true
   | _ -> false
@@ -164,7 +162,7 @@ let rec gen_atom_zipper (lc:LensContext.t)
                     (atom2:ordered_exampled_atom)
                     : atom_lens =
   begin match (atom1,atom2) with
-    | (OEAUserDefined (_,sorig1,l1,_),OEAUserDefined (_,sorig2,l2,_)) ->
+    | (OEAUserDefined (_,sorig1,_,_),OEAUserDefined (_,sorig2,_,_)) ->
       AtomLensVariable (LensContext.shortest_path_exn lc sorig1 sorig2)
   | (OEAStar r1, OEAStar r2) ->
       AtomLensIterate (gen_dnf_lens_zipper_internal lc r1 r2)
@@ -235,7 +233,7 @@ let gen_dnf_lens_zipper (rc:RegexContext.t)
         : (dnf_lens * regex * regex) option =
     begin match Priority_Queue.pop queue with
     | None -> None
-    | Some (queue_element,p,q) ->
+    | Some (queue_element,_,q) ->
         begin match queue_element with
         | QERegexCombo (r1,r2,star_expansions,mc) ->
           begin match expand_required_expansions rc lc r1 r2 with
@@ -337,23 +335,32 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*)
 
 
 let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
-(exs:examples) (iteratively_deepen_strategy:bool)
-: dnf_lens option =
-  if iteratively_deepen_strategy then
-    let (r1,c1) = iteratively_deepen r1 in
-    let (r2,c2) = iteratively_deepen r2 in
-    let rc = RegexContext.merge_contexts_exn rc
-        (RegexContext.merge_contexts_exn c1 c2) in
-    gen_dnf_lens_zipper rc lc r1 r2 exs
-  else
+(exs:examples)
+  : dnf_lens option =
     gen_dnf_lens_zipper rc lc r1 r2 exs
 
 let gen_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
              (exs:examples) (iterative_deepen_strategy:bool) : lens option =
-  let dnf_lens_option = gen_dnf_lens rc lc r1 r2 exs iterative_deepen_strategy in
+  let rc_orig = rc in
+  let (r1,r2,rc) =
+    if iterative_deepen_strategy then
+      let (r1,c1) = iteratively_deepen r1 in
+      let (r2,c2) = iteratively_deepen r2 in
+      let rc = 
+        RegexContext.merge_contexts_exn
+          rc
+          (RegexContext.merge_contexts_exn c1 c2)
+      in
+      (r1,r2,rc)
+    else
+      (r1,r2,rc)
+  in
+  let dnf_lens_option = gen_dnf_lens rc lc r1 r2 exs in
   Option.map
-    ~f:(fun l ->
-        (*Fn.compose simplify_lens*)
-        dnf_lens_to_lens l)
+    ~f:(Fn.compose
+          simplify_lens
+          (Fn.compose
+             (make_lens_safe_in_smaller_context rc_orig rc)
+             dnf_lens_to_lens))
     dnf_lens_option
 

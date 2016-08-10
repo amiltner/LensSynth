@@ -29,7 +29,7 @@ let pretty_ctors : bool ref = ref true
 let timing_mode : bool ref = ref false
 let print_time_if_timing (f:unit -> 'a) : 'a =
   if !timing_mode then
-    let (time, res) = Util.time_action f in
+    let (time, res) = Util.time_action ~f:f in
     Printf.printf "time (s) = %.3f\n%!\n" time;
     List.iter
       ~f:(fun (l, (count, t)) -> Printf.printf "%s\t%f (%d)%!\n" l t count)

@@ -6,8 +6,11 @@ open Regex
 open Eval
 open Gen
 open Lang
-open Util
-open Transform
+
+type regex_handler =
+  string ->
+  regex ->
+  unit
 
 type test_handler =
   string ->
@@ -15,6 +18,7 @@ type test_handler =
 
 type lens_handler =
   lens option ->
+  string ->
   regex ->
   regex ->
   examples ->
@@ -22,11 +26,13 @@ type lens_handler =
   LensContext.t ->
   unit
 
-let create_userdef (c:RegexContext.t)
-                   (userdef_name:string)
-                   (userdef_meaning:regex)
-                   (concrete:bool)
-                   : (RegexContext.t) =
+let create_userdef
+    (rh:regex_handler)
+    (c:RegexContext.t)
+    (userdef_name:string)
+    (userdef_meaning:regex)
+    (concrete:bool)
+  : (RegexContext.t) =
   let rec check_welldefined_regex (r:regex) : unit =
     begin match r with
     | RegExEmpty -> ()
@@ -45,6 +51,7 @@ let create_userdef (c:RegexContext.t)
     end
   in
   check_welldefined_regex userdef_meaning;
+  rh userdef_name userdef_meaning;
   (RegexContext.insert_exn c userdef_name userdef_meaning (not concrete))
 
 let test_string (showing_strategy:string -> unit)
@@ -64,42 +71,49 @@ let synthesize_lens
     (lh:lens_handler)
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    ((name,r1,r2,exs):specification)
+    ((n,r1,r2,exs):specification)
     (iteratively_deepen_strategy:bool)
   : lens option =
   let lo = gen_lens rc lc r1 r2 exs iteratively_deepen_strategy in
-  lh lo r1 r2 exs rc lc;
+  lh lo n r1 r2 exs rc lc;
   lo
 
-let run_declaration (lh:lens_handler)
-                    (th:test_handler)
-                    (rc:RegexContext.t)
-                    (lc:LensContext.t)
-                    (d:declaration)
-                    (iteratively_deepen_strategy:bool)
-                    : (RegexContext.t * LensContext.t) =
+let run_declaration
+    (lh:lens_handler)
+    (rh:regex_handler)
+    (th:test_handler)
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (d:declaration)
+    (iteratively_deepen_strategy:bool)
+  : (RegexContext.t * LensContext.t) =
   begin match d with
-  | DeclUserdefCreation (s,r,b) -> (create_userdef rc s r b, lc)
-  | DeclTestString (r,s) -> (test_string th rc r s); (rc,lc)
-  | DeclSynthesizeProgram (name,r1,r2,exs) ->
-    let lo = synthesize_lens
-        lh
-        rc
-        lc
-        (name,r1,r2,exs)
-        iteratively_deepen_strategy
-    in
-    let lc = begin match lo with
-      | None -> lc
-      | Some l -> LensContext.insert_exn lc name l r1 r2
-    end in
-    (rc,lc)
+    | DeclUserdefCreation (s,r,b) -> (create_userdef rh rc s r b, lc)
+    | DeclTestString (r,s) -> (test_string th rc r s); (rc,lc)
+    | DeclSynthesizeProgram (name,r1,r2,exs) ->
+      let lo = synthesize_lens
+          lh
+          rc
+          lc
+          (name,r1,r2,exs)
+          iteratively_deepen_strategy
+      in
+      let lc = begin match lo with
+        | None -> lc
+        | Some l -> LensContext.insert_exn lc name l r1 r2
+      end in
+      (rc,lc)
   end
-
-let run_declarations (lens_handler:lens option -> regex ->
-  regex -> examples -> RegexContext.t -> LensContext.t -> unit) (test_handler:string -> unit)(ds:declaration list) (iteratively_deepen_strategy:bool) : unit =
+  
+let run_declarations
+    (lh:lens_handler)
+    (th:test_handler)
+    (rh:regex_handler)
+    (ds:declaration list)
+    (iteratively_deepen_strategy:bool)
+  : unit =
   let _ = (List.fold_left
-    ~f:(fun (rc,lc) d -> run_declaration lens_handler test_handler rc lc d iteratively_deepen_strategy)
+    ~f:(fun (rc,lc) d -> run_declaration lh rh th rc lc d iteratively_deepen_strategy)
     ~init:(RegexContext.empty,LensContext.empty)
     ds) in
   ()

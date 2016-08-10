@@ -1,17 +1,14 @@
-open Lang
 open Util
+open Pp_as_boom
 open Lens_put
 open Regex
 open Regexcontext
 open Lenscontext
 open Gen_exs
-open Transform
 open Run_decls
-open Pp
 open Gen
 open Lens
 open Core.Std
-open Consts
 open Lang
 open Consts
 open Typing
@@ -24,6 +21,7 @@ type driver_mode =
   | Synth
   | Time
   | GeneratedExamples
+  | SynthBoom
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -66,11 +64,16 @@ let args =
     , Arg.Unit (fun _ -> use_iteratively_deepen_strategy := true)
     , " Set use of iterative deepen strategy"
     )
+  ; ( "-synthboom"
+    , Arg.Unit (fun _ -> set_opt SynthBoom)
+    , " print as boomerang prog"
+    )
   ]
   |> Arg.align
 
 let expand_regexps (p:program) : program =
   let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
+    print_endline (boom_pp_regex (RegExBase "T"));
     begin match r with
     | RegExMapped _ -> failwith "AHHH"
     | RegExEmpty -> r
@@ -102,13 +105,18 @@ let expand_regexps (p:program) : program =
       ~init:(RegexContext.empty,[])
       p))
 
-let rec expand_regexps_if_necessary (p:program) : program =
+let expand_regexps_if_necessary (p:program) : program =
   if !force_expand_regexps then
     expand_regexps p
   else
     p
 
-let rec check_examples (rc:RegexContext.t) (lc:LensContext.t) (l:lens) (exs:examples) : unit =
+let rec check_examples
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (l:lens)
+    (exs:examples)
+  : unit =
   begin match exs with
     | [] -> ()
     | (lex,rex)::exst ->
@@ -117,7 +125,7 @@ let rec check_examples (rc:RegexContext.t) (lc:LensContext.t) (l:lens) (exs:exam
       else if lens_putl rc lc l rex <> lex then
         failwith "put left didnt work"
       else
-        ()
+        check_examples rc lc l exst
   end
 
 let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
@@ -134,20 +142,20 @@ let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
       end)
     lss
 
-let ignore (x:'a) : unit =
+let ignore (_:'a) : unit =
   ()
 
 
 let collect_time (p:program) : unit =
-  let (time, _) = Util.time_action (fun _ ->
-    run_declarations (fun _ _ _ _ _ _ -> ()) (fun _ -> ()) p !use_iteratively_deepen_strategy)
+  let (time, _) = Util.time_action ~f:(fun _ ->
+    run_declarations (fun _ _ _ _ _ _ _ -> ()) (fun _ -> ()) (fun _ _ -> ()) p !use_iteratively_deepen_strategy)
   in
 
   print_endline (Float.to_string time)
 
 let collect_example_number (p:program) : unit =
   let num_examples = ref 0 in
-  run_declarations (fun lo r1 r2 exs rc lc ->
+  run_declarations (fun lo _ r1 r2 _ rc lc ->
     let l = Option.value_exn lo in
     let exs_reqd = fold_until_completion
         (fun acc ->
@@ -162,8 +170,26 @@ let collect_example_number (p:program) : unit =
             Left acc
         ) [] in
     num_examples := List.length exs_reqd
-    ) (fun _ -> ()) p !use_iteratively_deepen_strategy;
+    ) (fun _ -> ()) (fun _ _  -> ()) p !use_iteratively_deepen_strategy;
   print_endline ((string_of_int !num_examples))
+
+let print_outputs_as_boom (p:program) : unit =
+  print_endline "module Generated =";
+  run_declarations
+    (fun (lo:lens option) n _ _ (exs:examples) rc lc ->
+      begin match lo with
+        | Some l ->
+          print_endline
+            ("\n\nlet " ^ n ^ " =\n" ^ (boom_pp_lens l));
+          check_examples rc lc l exs
+        | None -> print_endline "no lens found"
+      end)
+    print_endline
+    (fun n r ->
+       print_endline
+         ("\n\nlet " ^ n ^ " : regexp =\n" ^ (boom_pp_regex r)))
+    p
+    !use_iteratively_deepen_strategy
 
 let print_outputs (p:program) : unit =
   (*let inner_a = RegExStar (RegExBase "a'") in
@@ -185,7 +211,7 @@ let print_outputs (p:program) : unit =
   print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
   r))));*)
   run_declarations
-    (fun (lo:lens option) _ _ (exs:examples) rc lc ->
+    (fun (lo:lens option) _ _ _ (exs:examples) rc lc ->
       begin match lo with
         | Some l ->
           print_endline (Pp.pp_lens l);
@@ -195,14 +221,14 @@ let print_outputs (p:program) : unit =
           check_examples rc lc l exs
         | None -> print_endline "no lens found"
       end)
-    print_endline p
+    print_endline (fun _ _ -> ()) p
     !use_iteratively_deepen_strategy
 
 let main () =
   begin try
     Arg.parse args (fun s ->
       match !filename with
-      | Some f -> raise Arg_exception
+      | Some _ -> raise Arg_exception
       | None -> filename := Some s) usage_msg
   with
     Arg_exception -> Arg.usage args usage_msg
@@ -221,7 +247,9 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> print_outputs
         | Time -> parse_file f |> expand_regexps_if_necessary |> collect_time
         | GeneratedExamples ->
-            parse_file f |> expand_regexps_if_necessary |> collect_example_number
+          parse_file f |> expand_regexps_if_necessary |> collect_example_number
+        | SynthBoom ->
+            parse_file f |> expand_regexps_if_necessary |> print_outputs_as_boom
         end
       end
     end

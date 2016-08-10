@@ -1,4 +1,3 @@
-open Lang
 open Regex
 open Lens
 open Lenscontext

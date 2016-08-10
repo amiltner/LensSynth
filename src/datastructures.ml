@@ -58,8 +58,8 @@ module ListDictionary : Dictionary = struct
       | Some ans -> ans
       | None -> failwith "find_exn: key not found"
 
-    let keys g = List.map ~f:(fun (k, v) -> k) g.table
-    let vals g = List.map ~f:(fun (k, v) -> v) g.table
+    let keys g = List.map ~f:(fun (k, _) -> k) g.table
+    let vals g = List.map ~f:(fun (_, v) -> v) g.table
 
     let map    f g = { g with table = List.map    ~f:(fun (k, v) -> (k, f k v)) g.table }
     let filter f g = { g with table = List.filter ~f:(fun (k, v) -> f k v)      g.table }

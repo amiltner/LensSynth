@@ -1,23 +1,15 @@
 %{
 open Lang
-open Str
 open Regex
-
-exception Internal_error of string
-
 %}
 
 %token <string> LID   (* lowercase identifiers *)
 %token <string> UID   (* uppercase identifiers *)
 %token <string> STR   (* string identifiers *)
-%token <int> PROJ     (* tuple projection *)
 
 (* integer constants translated to O, S(O), S(S(O)), etc. *)
-%token <string> INT
 
-%token LET        (* let *)
 %token TYPEDEF    (* typedef *)
-%token IN         (* in *)
 %token ABSTRACT   (* abstract *)
 %token TEST       (* test *)
 %token MATCHES    (* matches *)
@@ -35,18 +27,11 @@ exception Internal_error of string
 %token EQ         (* = *)
 %token DOT        (* . *)
 %token SLASH      (* / *)
-%token SPACE      (* ' ' *)
 %token BACKSLASH  (* \ *)
-%token COLON      (* : *)
-%token LT         (* < *)
-%token GT         (* > *)
 %token HYPHEN      (* - *)
-%token NEWLINE    (* \\n *)
 %token LBRACKET   (* [ *)
 %token RBRACKET   (* ] *)
 %token SEMI       (* ; *)
-%token HASH       (* # *)
-
 %token EOF
 
 %start <Lang.program> program
@@ -80,13 +65,26 @@ specification:
 (***** Regexes {{{ *****)
 
 regex:
+  | r=regex_l0 { r }
+
+regex_l0:
+  | r1=regex_l1 PIPE r2=regex_l0 { RegExOr (r1,r2) }
+  | r=regex_l1 { r }
+
+regex_l1:
+  | r1=regex_l2 r2=regex_l1 { RegExConcat (r1,r2) }
+  | r=regex_l2 { r }
+
+regex_l2:
+  | r=regex_l2 STAR { RegExStar r }
+  | r=regex_l2 PLUS { RegExConcat(r, RegExStar r) }
+  | r=regex_l3 { r }
+
+regex_l3:
   | s=base { RegExBase s }
-  | r1=regex r2=regex { RegExConcat (r1,r2) }
-  | r=regex STAR { RegExStar r }
-  | r1=regex PIPE r2=regex { RegExOr (r1,r2) }
-  | r=regex PLUS { RegExConcat (r,RegExStar(r)) }
-  | LPAREN r=regex RPAREN { r }
+  | LPAREN r=regex_l0 RPAREN { r }
   | u=UID { RegExVariable u }
+
 
 base:
   | s=str { s }

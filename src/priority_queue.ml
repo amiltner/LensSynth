@@ -1,21 +1,14 @@
 open Core.Std
-open Util
 
 module type Priority_Queue_Sig = sig
   type 'a t
 
   val create : 'a t
-
   val create_from_list : ('a * float) list -> 'a t
-
   val push : 'a t -> 'a -> float -> 'a t
-
   val push_all : 'a t -> ('a * float) list -> 'a t
-  
   val pop : 'a t -> ('a * float * ('a t)) option
-
   val pp : ('a -> string) -> 'a t -> string
-
   val length : 'a t -> int
 end
 

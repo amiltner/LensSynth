@@ -68,11 +68,7 @@ let assert_comparison_equal =
     ~printer:Pp_general.pp_comparison
 
 let assert_char_list_list_equal = assert_equal
-  ~printer:(fun is ->
-    (String.concat
-    (["[" ^ "]"])
-      ~sep:"  ,  ")
-  )
+    ~printer:Pp_general.pp_char_list_list
 
 let assert_char_list_double_equal = assert_equal
 

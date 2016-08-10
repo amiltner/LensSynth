@@ -68,7 +68,7 @@ end
 module Permutation : Permutation_Sig = struct
   type t = int list
 
-  let rec create (mapping:int list) =
+  let create (mapping:int list) =
     let len = List.length mapping in
     List.rev
       (List.fold_left
@@ -80,7 +80,7 @@ module Permutation : Permutation_Sig = struct
       ~init:[]
       mapping)
 
-  let rec create_from_doubles (mapping:(int*int) list) : t =
+  let create_from_doubles (mapping:(int*int) list) : t =
     let len = List.length mapping in
     let (mapping_ls,mapping_rs) = List.unzip mapping in
     let contains_dup_l = List.contains_dup
@@ -98,13 +98,13 @@ module Permutation : Permutation_Sig = struct
       let sorted_by_second = List.sort
         ~cmp:(fun (_,x) (_,y) -> x - y)
         mapping in
-      List.map ~f:(fun (x,y) -> x) sorted_by_second
+      List.map ~f:(fun (x,_) -> x) sorted_by_second
 
   let create_from_doubles_unsafe (mapping:(int*int) list) : t =
     let sorted_by_second = List.sort
       ~cmp:(fun (_,x) (_,y) -> x - y)
       mapping in
-    List.map ~f:(fun (x,y) -> x) sorted_by_second
+    List.map ~f:(fun (x,_) -> x) sorted_by_second
 
   let create_from_constraints (len:int) (invalid_parts:(int*int) list)
                               (required_parts:(int*int) list)
@@ -183,7 +183,7 @@ module Permutation : Permutation_Sig = struct
 
   let rm x l = List.filter ~f:((<>) x) l  
 
-  let rec create_all (n:int) : t list =
+  let create_all (n:int) : t list =
     let rec permutations = function  
     | [] -> []
     | x::[] -> [[x]]
@@ -214,7 +214,7 @@ module Permutation : Permutation_Sig = struct
   let apply_inverse_to_list_exn (permutation:t) (l:'a list) : 'a list =
     let permutation_list_combo = List.zip_exn permutation l in
     let sorted_by_perm = List.sort
-      ~cmp:(fun (p1,x1) (p2,x2) -> p1 - p2)
+      ~cmp:(fun (p1,_) (p2,_) -> p1 - p2)
       permutation_list_combo in
     let (_,l') = List.unzip sorted_by_perm in
     l'
@@ -228,7 +228,7 @@ module Permutation : Permutation_Sig = struct
 
   let rec to_swap_concat_compose_tree (l:t) : swap_concat_compose_tree =
     let stupidconcat (l:t) : swap_concat_compose_tree =
-      let (h,t) = split_by_first_exn l in
+      let (_,t) = split_by_first_exn l in
       List.fold_left
         ~f:(fun acc _ ->
           SCCTConcat (acc,SCCTLeaf))
@@ -258,7 +258,7 @@ module Permutation : Permutation_Sig = struct
         (range 1 ((List.length l)-1)) in
       begin match valid_split with
       | None ->
-          let (ge,i) =
+          let (_,i) =
             List.foldi
             ~f:(fun i' (acc,i) x ->
               if acc > x then

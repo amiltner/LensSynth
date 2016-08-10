@@ -1,10 +1,10 @@
 open Pp_general
 open Regex
+open Dnf_regex
 open Lang
 open Lens
 open Core.Std
 open Permutation
-open Util
 open Normalized_lang
 
 let rec pp_regexp (r:regex) : string =
