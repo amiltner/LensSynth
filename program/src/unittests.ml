@@ -1587,11 +1587,11 @@ let test_simplify_lens_distribute_inverses _ =
   assert_lens_equal
     (LensConcat
        (LensConcat
-          (LensIdentity (RegExVariable "A")
-          ,LensConst ("B","b"))
-       ,LensConcat
-          (LensIdentity (RegExVariable "C")
-          ,LensConst ("D","d"))))
+          (LensConcat
+             (LensIdentity (RegExVariable "A")
+             ,LensConst ("B","b"))
+          ,LensIdentity (RegExVariable "C"))
+       ,LensConst ("D","d")))
     (simplify_lens
        (LensInverse
           (LensConcat

@@ -1,5 +1,8 @@
 open Core.Std
 
+let (%) (f:'a -> 'b) (g:'b -> 'c) : 'a -> 'c =
+  Fn.compose f g
+
 type comparison =
     EQ
   | LT

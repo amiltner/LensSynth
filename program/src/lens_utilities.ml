@@ -430,20 +430,18 @@ let simplify_lens : lens -> lens =
   in
 
   let perform_cleanups =
-    (fun l -> l
-              |> separate_emptystring_consts
-              |> maximally_factor_lens
-              |> distribute_identities
-              |> clean_identities
-              |> distribute_inverses
-              |> identify_identity_consts
-              |> remove_identity_identities
-              |> merge_concated_consts)
-    in
-
+    distribute_inverses
+    % identify_identity_consts
+    % merge_concated_consts
+    % remove_identity_identities
+    % clean_identities
+    % distribute_identities
+    % maximally_factor_lens
+    % separate_emptystring_consts
+  in
+  
   fold_until_fixpoint
-    (fun l -> l
-              |> split_consts_into_concats_leftfirst
-              |> perform_cleanups
-              |> split_consts_into_concats_rightfirst
-              |> perform_cleanups)
+    (perform_cleanups
+     % split_consts_into_concats_rightfirst
+     % perform_cleanups
+     % split_consts_into_concats_leftfirst)

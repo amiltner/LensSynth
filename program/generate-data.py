@@ -18,6 +18,11 @@ GENERATE_EXAMPLES_TIMEOUT_TIME = 8
 
 REPETITION_COUNT = 2
 
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
 def transpose(matrix):
     return zip(*matrix)
 
@@ -124,6 +129,7 @@ def gather_data(prog, path, base):
     return current_data
 
 def print_data(data):
+    ensure_dir("generated_data/")
     with open("generated_data/data.csv", "wb") as csvfile:
 	datawriter = csv.DictWriter(csvfile,fieldnames=data[0].keys())
 	datawriter.writeheader()
