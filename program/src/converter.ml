@@ -7,7 +7,6 @@ open Util
 open Normalized_lang
 open Regexcontext
 open Lenscontext
-open Dnf_regex
 
 
 let rec clean_exampledness_atom
@@ -24,15 +23,6 @@ let rec clean_exampledness_atom
       in
       let (strs,cs) = List.unzip actual_choices in
       EAVariable (s,sorig,l,strs,cs)
-    | EAMappedPart (s,el,cs) ->
-      let udef_choice_zip = List.zip_exn el cs in
-      let actual_choices =
-        List.filter
-          ~f:(fun (_,c) -> List.mem choices c )
-          udef_choice_zip
-      in
-      let (strs,cs) = List.unzip actual_choices in
-      EAMappedPart (s,strs,cs)
     | EAStar (r,cs) ->
       
       let actual_choices =
@@ -135,18 +125,13 @@ let rec exampled_regex_to_exampled_dnf_regex (rc:RegexContext.t) (lc:LensContext
       exampled_atom_to_exampled_dnf_regex
         (EAVariable (rep_type,s,converter,ss,ill))
         ill
-    | ERegExMapped (s,ss,ill) ->
-      exampled_atom_to_exampled_dnf_regex
-        (EAMappedPart (s,ss,ill))
-        ill
   end
   
 let regex_to_exampled_dnf_regex
     (c:RegexContext.t)
     (lc:LensContext.t)
-    (mcs:mapsbetweencontextside)
     (r:regex)
     (es:string list)
   : exampled_dnf_regex option =
-  let er_option = regex_to_exampled_regex c mcs r es in
+  let er_option = regex_to_exampled_regex c r es in
   Option.map ~f:(exampled_regex_to_exampled_dnf_regex c lc) er_option

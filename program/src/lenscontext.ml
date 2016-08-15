@@ -20,6 +20,8 @@ module type LensContext_Sig = sig
     val create_from_list_exn     : (id * lens * regex * regex) list -> t
     val shortest_path_exn        : t -> id -> id -> lens
     val shortest_path_to_rep_elt : t -> id -> (id * lens)
+    val autogen_id               : t -> lens -> id
+    val autogen_fresh_id         : t -> id
 end
 
 (* add comments *)
@@ -146,6 +148,32 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
     let rep_element = DisjointSet.find_representative lc.equivs regex_name in
     let shortest_path = shortest_path_exn lc regex_name rep_element in
     (rep_element,shortest_path)
+
+  let autogen_id (lc:t) (l:lens) : id =
+    let base = string_of_lens l in
+    let rec fresh n =
+      let x = Printf.sprintf "%s%d" base n in
+      begin match Dict.find x lc.defs with
+        | Some (l',_,_) ->
+          if l = l' then
+            x
+          else
+            fresh (n+1)
+        | _ -> x
+      end
+    in
+    fresh 1
+      
+  let autogen_fresh_id (lc:t) : id =
+    let base = "l" in
+    let rec fresh n =
+      let x = Printf.sprintf "%s%d" base n in
+      begin match Dict.find x lc.defs with
+        | Some _ -> fresh (n+1)
+        | None -> x
+      end
+    in
+    fresh 1
 end
 
 module LensContext = LensContext_Struct(ListDictionary)

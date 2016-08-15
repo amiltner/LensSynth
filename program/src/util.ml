@@ -1,6 +1,6 @@
 open Core.Std
 
-let (%) (f:'a -> 'b) (g:'b -> 'c) : 'a -> 'c =
+let (%) (f:'b -> 'c) (g:'a -> 'b) : 'a -> 'c =
   Fn.compose f g
 
 type comparison =
@@ -546,12 +546,12 @@ let maximally_factor_hemiring_element
       (combiner:'a -> 'a -> 'a)
       (rl:'a list)
     : 'a =
-    let (rlh,rlt) = split_by_first_exn rl in
-    List.fold_left
-      ~f:(fun acc r ->
-          combiner acc r)
-      ~init:rlh
-      rlt
+    let (rlf,rll) = split_by_last_exn rl in
+    List.fold_right
+      ~f:(fun r acc ->
+          combiner r acc)
+      ~init:rll
+      rlf
   in
   let combine_list
       (combiner:'a -> 'a -> 'a)

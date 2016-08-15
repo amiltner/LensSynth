@@ -7,6 +7,7 @@ open Format
 let fpf         = fprintf ;;
 let ident ppf s = fpf ppf "%s" s ;;
 let kwd   ppf s = fpf ppf "%s" s ;;
+type pp_info = int * regex * bool * bool
 
 (*****  *****)
 
@@ -22,7 +23,6 @@ let prec_of_regex (r:regex) =
     | RegExEmpty      -> 150
     | RegExBase     _ -> 150
     | RegExVariable _ -> 150
-    | RegExMapped   _ -> 150
     | RegExStar     _ -> 125
     | RegExConcat   _ -> 100
     | RegExOr       _ -> 75
@@ -43,7 +43,7 @@ let prec_of_lens (l:lens) =
 
 let rec boom_fpf_regex
     (ppf:formatter)
-    ((lvl, r, or_seq, conc_seq):int * regex * bool * bool)
+    ((lvl, r, or_seq, conc_seq):pp_info)
   : unit =
   let this_lvl = prec_of_regex r in
   (if this_lvl < lvl then fpf ppf "(");
@@ -51,24 +51,23 @@ let rec boom_fpf_regex
     | RegExEmpty -> fpf ppf "AHHH" 
     | RegExBase s -> fpf ppf "\"%a\"" ident (desugar_string s)
     | RegExVariable n -> fpf ppf "%a" ident n
-    | RegExMapped _ -> failwith "ahhhh"
     | RegExStar r' -> fpf ppf "%a* " boom_fpf_regex (this_lvl, r', false, false)
     | RegExConcat (r1,r2) ->
       if conc_seq then
-        fpf ppf "@[<-2>%a@ . %a@]"
+        fpf ppf "@[<hv -2>%a@ . %a@]"
           boom_fpf_regex (this_lvl, r1, false, true)
           boom_fpf_regex (this_lvl, r2, false, true)
       else
-        fpf ppf "@[<2>%a@ . %a@]"
+        fpf ppf "@[<hv 2>%a@ . %a@]"
           boom_fpf_regex (this_lvl, r1, false, true)
           boom_fpf_regex (this_lvl, r2, false, true)
     | RegExOr (r1,r2) ->
       if or_seq then
-        fpf ppf "@[<-2>%a@ | %a@]"
+        fpf ppf "@[<hv -2>%a@ | %a@]"
           boom_fpf_regex (this_lvl, r1, true, false)
           boom_fpf_regex (this_lvl, r2, true, false)
       else
-        fpf ppf "@[<2>%a@ | %a@]"
+        fpf ppf "@[<hv 2>%a@ | %a@]"
           boom_fpf_regex (this_lvl, r1, true, false)
           boom_fpf_regex (this_lvl, r2, true, false)
   end;
@@ -96,28 +95,28 @@ let rec boom_fpf_lens
           ident s1
     | LensConcat(l1,l2) ->
       if conc_seq then
-        fpf ppf "@[<-2>%a@ . %a@]"
+        fpf ppf "@[<hv -2>%a@ . %a@]"
           boom_fpf_lens (this_lvl, l1, false, true)
           boom_fpf_lens (this_lvl, l2, false, true)
       else
-        fpf ppf "@[<2>%a@ . %a@]"
-          boom_fpf_lens (this_lvl, l1, false, true)
+        fpf ppf "@[<hv 0>%a@ . %a@]"
+          boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, false, true)
     | LensSwap(l1,l2) ->
-      fpf ppf "@[<2>lens_swap@ %a@ %a@]"
+      fpf ppf "@[<hv 2>lens_swap@ %a@ %a@]"
         boom_fpf_lens (this_lvl+1, l1, false, false)
         boom_fpf_lens (this_lvl+1, l2, false, false)
     | LensUnion(l1,l2) ->
       if or_seq then
-        fpf ppf "@[<-2>%a@ || %a@]"
+        fpf ppf "@[<hv -2>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, true, false)
           boom_fpf_lens (this_lvl, l2, true, false)
       else
-        fpf ppf "@[<2>%a@ || %a@]"
+        fpf ppf "@[<hv 0>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, true, false)
     | LensCompose(l1,l2) ->
-      fpf ppf "@[<2>compose@ %a@ %a@]"
+      fpf ppf "@[<hv 2>compose@ %a@ %a@]"
         boom_fpf_lens (this_lvl+1, l1, false, false)
         boom_fpf_lens (this_lvl+1, l2, false, false)
     | LensIterate(l') ->

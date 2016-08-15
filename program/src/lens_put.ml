@@ -25,7 +25,6 @@ let rec lens_putl_internal
       let (_,limpl_rregex) = type_lens lc limpl in
       let er = Option.value_exn (regex_to_exampled_regex
           rc
-          []
           limpl_rregex
           [relevant_string])
       in
@@ -46,7 +45,6 @@ let rec lens_putl_internal
       let (_,intermediary_regex) = type_lens lc l2 in
       let intermediary_er_o = regex_to_exampled_regex
           rc
-          []
           intermediary_regex
           [intermediary_string]
       in
@@ -90,7 +88,6 @@ and lens_putr_internal
       let (limpl_lregex,_) = type_lens lc limpl in
       let er = Option.value_exn (regex_to_exampled_regex
           rc
-          []
           limpl_lregex
           [relevant_string])
       in
@@ -111,7 +108,6 @@ and lens_putr_internal
       let (intermediary_regex,_) = type_lens lc l1 in
       let intermediary_er_o = regex_to_exampled_regex
           rc
-          []
           intermediary_regex
           [intermediary_string]
       in
@@ -142,7 +138,7 @@ let lens_putr (rc:RegexContext.t)
     (s:string)
   : string =
   let (sr,_) = type_lens lc l in
-  let exampled_sr_o = regex_to_exampled_regex rc [] sr [s] in
+  let exampled_sr_o = regex_to_exampled_regex rc sr [s] in
   begin match exampled_sr_o with
     | None -> failwith "bad input to lens"
     | Some exampled_sr -> lens_putr_internal rc lc l exampled_sr [0]
@@ -154,7 +150,7 @@ let lens_putl (rc:RegexContext.t)
     (s:string)
   : string =
   let (_,tr) = type_lens lc l in
-  let exampled_sr_o = regex_to_exampled_regex rc [] tr [s] in
+  let exampled_sr_o = regex_to_exampled_regex rc tr [s] in
   begin match exampled_sr_o with
     | None -> failwith "bad input to lens"
     | Some exampled_sr -> lens_putl_internal rc lc l exampled_sr [0]

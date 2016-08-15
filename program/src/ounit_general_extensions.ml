@@ -1,5 +1,6 @@
 open OUnit2
 open Core.Std
+open String_utilities
 
 
 let assert_not_equal (printer:'a -> string) (expectednot:'a) (actual:'a) =
@@ -65,10 +66,10 @@ let assert_ordered_string_assoc_list_equal =
 
 let assert_comparison_equal =
   assert_equal
-    ~printer:Pp_general.pp_comparison
+    ~printer:string_of_comparison
 
 let assert_char_list_list_equal = assert_equal
-    ~printer:Pp_general.pp_char_list_list
+    ~printer:string_of_char_list_list
 
 let assert_char_list_double_equal = assert_equal
 

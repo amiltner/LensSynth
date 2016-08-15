@@ -3,7 +3,6 @@ open Lenscontext
 open Converter
 open Regex
 open Regexcontext
-open Dnf_regex
 open Lang
 open Lens
 open Lens_utilities
@@ -13,12 +12,6 @@ open Transform
 open Priority_queue
 open Normalized_lang
 open Language_equivalences
-
-let is_immutable_clause ((al,_,_):ordered_exampled_clause) : bool =
-  begin match al with
-  | [[(OEAMappedUserDefined _,_)]] -> true
-  | _ -> false
-  end
 
 (*let rec map_and_abstract (mc:mapsbetweencontext)
                          (r:ordered_exampled_dnf_regex)
@@ -84,7 +77,6 @@ let is_immutable_clause ((al,_,_):ordered_exampled_clause) : bool =
 let num_stars_current_level_clause ((atoms,_):clause) : int =
   let num_stars_current_level_atom (a:atom) : int =
     begin match a with
-    | AMappedUserDefined _ -> 0
     | AUserDefined _ -> 0
     | AStar _ -> 1
     end in
@@ -120,7 +112,6 @@ let expand_atom_rewrite (expansion_function:dnf_regex -> dnf_regex)
         begin match acc with
         | None -> let atom = List.nth_exn atoms i in
           begin match atom with
-          | AMappedUserDefined _ -> (None,atoms_passed)
           | AUserDefined _ -> (None,atoms_passed)
           | AStar r' ->
               if atoms_passed = num_atom then
@@ -166,7 +157,6 @@ let rec gen_atom_zipper (lc:LensContext.t)
       AtomLensVariable (LensContext.shortest_path_exn lc sorig1 sorig2)
   | (OEAStar r1, OEAStar r2) ->
       AtomLensIterate (gen_dnf_lens_zipper_internal lc r1 r2)
-  | (OEAMappedUserDefined _,OEAMappedUserDefined _) -> failwith "make better"
   | _ -> failwith "invalid"
   end
 
@@ -235,7 +225,7 @@ let gen_dnf_lens_zipper (rc:RegexContext.t)
     | None -> None
     | Some (queue_element,_,q) ->
         begin match queue_element with
-        | QERegexCombo (r1,r2,star_expansions,mc) ->
+        | QERegexCombo (r1,r2,star_expansions) ->
           begin match expand_required_expansions rc lc r1 r2 with
           | Some (r1',r2') ->
 (*let (r1',r2') = (r1,r2) in*)
@@ -243,8 +233,8 @@ let gen_dnf_lens_zipper (rc:RegexContext.t)
               print_endline (Pp.pp_regexp (r1'));
               print_endline (Pp.pp_regexp (r2'));
                 print_endline (string_of_int (List.length (fst mc)));*)
-let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc [] (*get_left_side mc*) r1' lexs in
-let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*) r2' rexs in
+let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc r1' lexs in
+let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc r2' rexs in
               begin match (exampled_r1_opt,exampled_r2_opt) with
               | (Some exampled_r1,Some exampled_r2) ->
                   let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
@@ -275,7 +265,6 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*)
                           max_size
                           rc
                           lc
-                          mc
                           r1'
                           r2'
                           star_expansions
@@ -297,7 +286,7 @@ let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc [] (*get_right_side mc*)
   let dlrro =
     gen_dnf_lens_zipper_queueing
       (Priority_Queue.create_from_list
-         [(QERegexCombo(r1,r2,0,emptymapsbetweencontext),1.0)])
+         [(QERegexCombo(r1,r2,0),1.0)])
   in
   let dlo = Option.map ~f:(fun (dl,_,_) -> dl) dlrro in
   dlo
@@ -357,10 +346,8 @@ let gen_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
   in
   let dnf_lens_option = gen_dnf_lens rc lc r1 r2 exs in
   Option.map
-    ~f:(Fn.compose
-          simplify_lens
-          (Fn.compose
-             (make_lens_safe_in_smaller_context rc_orig rc)
-             dnf_lens_to_lens))
+    ~f:(simplify_lens
+        % (make_lens_safe_in_smaller_context rc_orig rc)
+        % dnf_lens_to_lens)
     dnf_lens_option
-
+    

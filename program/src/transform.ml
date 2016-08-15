@@ -2,18 +2,17 @@ open Core.Std
 open Counters
 open Regexcontext
 open Regex
-open Dnf_regex
 open Language_equivalences
 open Lenscontext
 open Lang
 open Lens
 open Util
 open Permutation
+open Normalized_lang
 
 
 let rec or_size (r:regex) : int =
   begin match r with
-  | RegExMapped _ -> 1
   | RegExEmpty -> 0
   | RegExBase _ -> 1
   | RegExConcat (r1,r2) -> (or_size r1) * (or_size r2)
@@ -24,7 +23,6 @@ let rec or_size (r:regex) : int =
 
 let rec true_max_size (c:RegexContext.t) (r:regex) : int =
   begin match r with
-  | RegExMapped _ -> 1
   | RegExEmpty -> 0
   | RegExBase _ -> 1
   | RegExConcat (r1,r2) -> (true_max_size c r1) * (true_max_size c r2)
@@ -63,7 +61,6 @@ float =
   let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
     : ((string * int) Counters.t) * float =
       begin match r with
-      | RegExMapped _ -> Counters.create comparison_compare,1.0
       | RegExEmpty -> (Counters.create comparison_compare,0.0)
       | RegExBase _ -> (Counters.create comparison_compare,1.0)
       | RegExVariable s ->
@@ -217,7 +214,6 @@ let expand_stars (transformation:regex -> regex) (r:regex) : regex list =
       relevant_primes in*)
   let rec expand_stars_internal (r:regex) : regex list =
     begin match r with
-    | RegExMapped _ -> []
     | RegExEmpty -> []
     | RegExBase _ -> []
     | RegExConcat (r1,r2) ->
@@ -251,7 +247,6 @@ let expand_stars (transformation:regex -> regex) (r:regex) : regex list =
 let rec expand_userdefs (c:RegexContext.t) (r:regex)
                             : regex list =
   begin match r with
-  | RegExMapped _ -> []
   | RegExEmpty -> []
   | RegExBase _ -> []
   | RegExConcat (r1,r2) ->
@@ -289,7 +284,6 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
                             : (regex * regex) option =
   let rec retrieve_transitive_userdefs (r:regex) : string list =
     begin match r with
-    | RegExMapped _ -> []
     | RegExEmpty -> []
     | RegExBase _ -> []
     | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
@@ -308,7 +302,6 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
                                  (r:regex)
                                  : regex option =
     begin match r with
-    | RegExMapped _ -> Some r
     | RegExEmpty -> Some r
     | RegExBase _ -> Some r
     | RegExConcat (r1,r2) -> 
@@ -360,7 +353,7 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
   | _ -> None
   end
 
-let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (mc:mapsbetweencontext) (r1:regex) (r2:regex)
+let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
 (expansions_preformed:int)
                             : (queue_element * float) list =
   let retrieve_expansions_from_transform (transform:regex -> regex list):
@@ -387,7 +380,7 @@ let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (mc:mapsbetweenco
     ((r1,r2):regex*regex)
     : queue_element * float =
       (QERegexCombo
-        (r1,r2,expansions_preformed+1,mc),
+        (r1,r2,expansions_preformed+1),
         (retrieve_priority lc r1 r2 expansions_preformed))
   in
 
@@ -422,12 +415,11 @@ let retrieve_transformation_queue_elements
         (max_size:int)
         (rc:RegexContext.t)
         (lc:LensContext.t)
-        (mc:mapsbetweencontext)
         (r1:regex)
         (r2:regex)
         (expansions_preformed:int)
         : (queue_element * float) list =
-    (expand_once max_size rc lc mc r1 r2 expansions_preformed)
+    (expand_once max_size rc lc r1 r2 expansions_preformed)
   (*let max_size = max (size r1) (size r2) in
   let splits = List.map ~f:(fun m -> (m,n-m)) (range 0 n) in
   List.concat_map
@@ -526,7 +518,6 @@ and dnf_lens_to_lens ((clauses,_):dnf_lens) : lens =
 
 let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
   begin match r with
-  | RegExMapped _ -> (r,RegexContext.empty)
   | RegExEmpty -> (r,RegexContext.empty)
   | RegExBase _ -> (r,RegexContext.empty)
   | RegExConcat (r1,r2) ->
@@ -537,7 +528,6 @@ let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
       let regex_variable =
         RegexContext.autogen_id
           context
-          (Pp.pp_regexp regex_definition)
           regex_definition
       in
       let context =
@@ -556,7 +546,6 @@ let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
       let regex_variable =
         RegexContext.autogen_id
           context
-          (Pp.pp_regexp regex_definition)
           regex_definition
       in
       let context =
@@ -573,7 +562,6 @@ let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
       let regex_variable =
         RegexContext.autogen_id
           c
-          (Pp.pp_regexp regex_definition)
           regex_definition
       in
       let context =

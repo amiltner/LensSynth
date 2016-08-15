@@ -27,8 +27,6 @@ let rec gen_element_of_regex_language
     gen_element_of_regex_language c rex
   | RegExEmpty ->
     failwith "no elements of this language"
-  | RegExMapped _ ->
-    failwith "should not be generated"
   end
 
 let _ = Random.self_init()

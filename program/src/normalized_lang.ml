@@ -1,10 +1,10 @@
 open Lens
 open Core.Std
 open Util
+open Permutation
 
 
 type exampled_atom =
-  | EAMappedPart of int * string list * int list list
   | EAVariable of string * string * lens * string list * int list list
   | EAStar of exampled_dnf_regex * int list list
 
@@ -14,7 +14,6 @@ and exampled_dnf_regex = exampled_clause list * int list list
 
 
 type ordered_exampled_atom =
-  | OEAMappedUserDefined of int
   | OEAUserDefined of string * string * lens * string list
   | OEAStar of ordered_exampled_dnf_regex
 
@@ -59,10 +58,6 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
                                        (a2:ordered_exampled_atom)
                                      : comparison =
     begin match (a1,a2) with
-    | (OEAMappedUserDefined s, OEAMappedUserDefined t) ->
-        comparison_compare s t
-    | (OEAMappedUserDefined _, _) -> LT
-    | (_, OEAMappedUserDefined _) -> GT
     | (OEAUserDefined (s1,_,_,el1), OEAUserDefined (s2,_,_,el2)) ->
         begin match (int_to_comparison (compare s1 s2)) with
         | EQ -> dictionary_order
@@ -100,7 +95,6 @@ and compare_ordered_exampled_dnf_regexs (r1:ordered_exampled_dnf_regex)
 
 let rec to_ordered_exampled_atom (a:exampled_atom) : ordered_exampled_atom =
   begin match a with
-  | EAMappedPart (s,_,_) -> OEAMappedUserDefined s
   | EAVariable (s,sorig,lmap,el,_) -> OEAUserDefined (s,sorig,lmap,el)
   | EAStar (r,_) -> OEAStar (to_ordered_exampled_dnf_regex r)
   end
@@ -154,3 +148,79 @@ and ordered_exampled_dnf_regex_to_dnf_regex
       ~f:(fun (c,_) -> ordered_exampled_clause_to_clause c)
       unordered_clauses
 *)
+
+
+
+type atom_lens =
+  | AtomLensIterate of dnf_lens
+  | AtomLensVariable of lens
+
+and clause_lens = atom_lens list * Permutation.t * string list * string list
+
+and dnf_lens = clause_lens list * Permutation.t
+
+
+
+
+type atom =
+  | AUserDefined of string
+  | AStar of dnf_regex
+
+and clause = atom list * string list
+
+and dnf_regex = clause list
+
+let empty_dnf_string : dnf_regex = [([],[""])]
+
+let concat_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : dnf_regex =
+  cartesian_map
+    (fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
+    r1
+    r2
+
+let or_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : dnf_regex =
+  r1 @ r2
+
+let concat_clause_dnf_rx (cl:clause) (r:dnf_regex) : dnf_regex =
+  concat_dnf_regexs [cl] r
+
+let concat_dnf_rx_clause (r:dnf_regex) (cl:clause) : dnf_regex =
+  concat_dnf_regexs r [cl]
+
+let rec exponentiate_dnf (r:dnf_regex) (n:int) : dnf_regex =
+  if n < 0 then
+    failwith "invalid exponential"
+  else if n = 0 then
+    empty_dnf_string
+  else
+    concat_dnf_regexs (exponentiate_dnf r (n-1)) r
+
+let rec quotiented_star_dnf (r:dnf_regex) (n:int) : dnf_regex =
+  if n < 1 then
+    failwith "invalid modulation"
+  else if n = 1 then
+    empty_dnf_string
+  else
+    or_dnf_regexs (quotiented_star_dnf r (n-1)) (exponentiate_dnf r (n-1))
+
+let singleton_atom (a:atom) : dnf_regex =
+  [([a],["";""])]
+
+
+let rec compare_atoms (a1:atom) (a2:atom) : comparison =
+  begin match (a1,a2) with
+  | (AUserDefined s1, AUserDefined s2) -> int_to_comparison (compare s1 s2)
+  | (AUserDefined  _, AStar         _) -> LT
+  | (AStar         _, AUserDefined  _) -> GT
+  | (AStar        r1, AStar        r2) -> compare_dnf_regexs r1 r2
+  end
+
+and compare_clauses ((atoms1,_):clause) ((atoms2,_):clause) : comparison =
+  ordered_partition_order compare_atoms atoms1 atoms2
+
+and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
+  ordered_partition_order compare_clauses r1 r2
+
+
+
+

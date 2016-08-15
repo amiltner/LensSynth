@@ -75,7 +75,6 @@ let expand_regexps (p:program) : program =
   let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
     print_endline (boom_pp_regex (RegExBase "T"));
     begin match r with
-    | RegExMapped _ -> failwith "AHHH"
     | RegExEmpty -> r
     | RegExBase _ -> r
     | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 c,expand_regexp r2 c)
@@ -135,10 +134,10 @@ let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
       print_endline (s ^ ":");
       begin match lo with
       | None -> print_endline "no lens found"
-      | Some ls -> print_endline (Pp.pp_lens ls);
+      | Some ls -> print_endline (string_of_lens ls);
         let (t1,t2) = type_lens lc ls in
-        print_endline (Pp.pp_regexp t1);
-        print_endline (Pp.pp_regexp t2)
+        print_endline (string_of_regex t1);
+        print_endline (string_of_regex t2)
       end)
     lss
 
@@ -214,10 +213,10 @@ let print_outputs (p:program) : unit =
     (fun (lo:lens option) _ _ _ (exs:examples) rc lc ->
       begin match lo with
         | Some l ->
-          print_endline (Pp.pp_lens l);
+          print_endline (string_of_lens l);
           let (t1,t2) = type_lens lc l in
-          print_endline (Pp.pp_regexp t1);
-          print_endline (Pp.pp_regexp t2);
+          print_endline (string_of_regex t1);
+          print_endline (string_of_regex t2);
           check_examples rc lc l exs
         | None -> print_endline "no lens found"
       end)

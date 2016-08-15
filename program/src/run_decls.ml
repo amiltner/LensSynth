@@ -36,7 +36,6 @@ let create_userdef
   let rec check_welldefined_regex (r:regex) : unit =
     begin match r with
     | RegExEmpty -> ()
-    | RegExMapped _ -> failwith "THIS HSOULDNT HAPPEN AH"
     | RegExBase _ -> ()
     | RegExConcat (r1,r2) -> 
         check_welldefined_regex r1;
@@ -60,10 +59,10 @@ let test_string (showing_strategy:string -> unit)
                 (s:string)
                 : unit =
   let evaluation_result_string =
-    (if fast_eval c [] r s then
-      (s ^ " matches regular expression " ^ (Pp.pp_regexp r))
+    (if fast_eval c r s then
+      (s ^ " matches regular expression " ^ (string_of_regex r))
     else
-      (s ^ " does not match regular expression " ^ (Pp.pp_regexp r)))
+      (s ^ " does not match regular expression " ^ (string_of_regex r)))
   in
   showing_strategy evaluation_result_string
 

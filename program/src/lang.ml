@@ -36,7 +36,6 @@ type exampled_regex =
   | ERegExOr of exampled_regex  * exampled_regex * (int list list)
   | ERegExStar of exampled_regex * (int list list)
   | ERegExVariable of string * string list * (int list list)
-  | ERegExMapped of int * string list * (int list list)
 
 let extract_iterations_consumed (er:exampled_regex) : int list list =
   begin match er with
@@ -46,7 +45,6 @@ let extract_iterations_consumed (er:exampled_regex) : int list list =
     | ERegExOr (_,_,ill) -> ill
     | ERegExStar (_,ill) -> ill
     | ERegExVariable (_,_,ill) -> ill
-    | ERegExMapped (_,_,ill) -> ill
   end
 
 let took_regex (er:exampled_regex)
@@ -86,15 +84,6 @@ let rec extract_string (er:exampled_regex) (iteration:int list)
         | Some (i,_) ->
             List.nth_exn sl i
         end
-    | ERegExMapped (_,sl,ill) ->
-        let dat_opt = List.findi
-          ~f:(fun _ il -> il = iteration)
-          ill in
-        begin match dat_opt with
-        | None -> failwith "im horrible"
-        | Some (i,_) ->
-            List.nth_exn sl i
-        end
   end
 
 let extract_example_list (er:exampled_regex) : int list list =
@@ -105,8 +94,9 @@ let extract_example_list (er:exampled_regex) : int list list =
   | ERegExOr (_,_,ill) -> ill
   | ERegExStar (_,ill) -> ill
   | ERegExVariable (_,_,ill) -> ill
-  | ERegExMapped (_,_,ill) -> ill
   end
 
 
 (***** }}} *****)
+
+

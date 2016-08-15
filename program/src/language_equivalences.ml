@@ -1,7 +1,7 @@
 open Core.Std
-open Dnf_regex
 open Regex
 open Util
+open Normalized_lang
 
 
 let rec to_dnf_regex (r:regex) : dnf_regex =
@@ -9,7 +9,6 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
     [([a],["";""])]
   in
   begin match r with
-  | RegExMapped t -> atom_to_dnf_regex (AMappedUserDefined t)
   | RegExEmpty -> []
   | RegExBase c -> [([],[c])]
   | RegExConcat (r1,r2) ->
@@ -25,7 +24,6 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
 
 let rec atom_to_regex (a:atom) : regex =
   begin match a with
-  | AMappedUserDefined t -> RegExMapped t
   | AUserDefined t -> RegExVariable t
   | AStar dr -> RegExStar (dnf_regex_to_regex dr)
   end
@@ -37,9 +35,9 @@ and clause_to_regex ((atoms,strings):clause) : regex =
   in
   let (hstr,tstr) = split_by_first_exn strings in
   let aslist = List.zip_exn atoms_regex_list tstr in
-  List.fold_left
-    ~f:(fun acc (a,s) ->
-      RegExConcat(acc,RegExConcat(a,RegExBase s)))
+  List.fold_right
+    ~f:(fun (a,s) acc ->
+      RegExConcat(RegExConcat(a,RegExBase s),acc))
     ~init:(RegExBase hstr)
     aslist
 
@@ -48,16 +46,16 @@ and dnf_regex_to_regex (r:dnf_regex) : regex =
     ~f:(fun c -> clause_to_regex c)
     r
   in
-  List.fold_left
-  ~f:(fun acc sqr ->
-    RegExOr (acc,sqr))
+  List.fold_right
+  ~f:(fun sqr acc ->
+    RegExOr (sqr,acc))
   ~init:RegExEmpty
   sequence_regex_list
 
 
 
 type queue_element =
-  | QERegexCombo of regex * regex * int * mapsbetweencontext
+  | QERegexCombo of regex * regex * int
   | QEGenerator of (unit -> ((queue_element * float) list))
 
 
@@ -128,7 +126,6 @@ string) tagged_list_tree list =
 
 and smart_atom_to_regex (a:atom) : regex =
   begin match a with
-  | AMappedUserDefined t -> RegExMapped t
   | AUserDefined t -> RegExVariable t
   | AStar dr -> RegExStar (smart_dnf_regex_to_regex dr)
   end

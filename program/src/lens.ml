@@ -1,5 +1,5 @@
-open Permutation
 open Lang
+open String_utilities
 open Regex
 
 type lens =
@@ -13,13 +13,6 @@ type lens =
   | LensInverse of lens
   | LensVariable of id
 
-type atom_lens =
-  | AtomLensIterate of dnf_lens
-  | AtomLensVariable of lens
-
-and clause_lens = atom_lens list * Permutation.t * string list * string list
-
-and dnf_lens = clause_lens list * Permutation.t
 
 let multiplicative_identity_lens = LensIdentity (multiplicative_identity_regex)
 
@@ -40,3 +33,17 @@ let create_plus_lens (l1:lens) (l2:lens) : lens =
 
 let create_times_lens (l1:lens) (l2:lens) : lens =
   LensConcat (l1,l2)
+
+let rec string_of_lens (l:lens) : string =
+  begin match l with
+  | LensConst (s1,s2) -> "const('" ^ s1 ^ "','" ^ s2 ^ "')"
+  | LensConcat (l1,l2) -> paren ((string_of_lens l1) ^ "." ^ (string_of_lens l2))
+  | LensCompose (l1,l2) -> paren ((string_of_lens l1) ^ ";" ^ (string_of_lens l2))
+  | LensSwap (l1,l2) -> "swap(" ^ (string_of_lens l1) ^ "," ^ (string_of_lens l2) ^ ")"
+  | LensUnion (l1,l2) -> paren ((string_of_lens l1) ^ "|" ^ (string_of_lens l2))
+  | LensIterate (l') -> paren (string_of_lens l') ^ "*"
+  | LensIdentity r -> "id(" ^ (string_of_regex r) ^")"
+  | LensInverse l' -> "inverse(" ^ (string_of_lens l') ^ ")"
+  | LensVariable n -> n
+  end
+

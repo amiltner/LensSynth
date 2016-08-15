@@ -1,9 +1,12 @@
 open OUnit2
 open Core.Std
 open Priority_queue
-open Dnf_regex
+open Normalized_lang
 open Permutation
+open Lens
+open Regex
 open Pp
+open String_utilities
 
 
 let assert_dnf_equal (expected:dnf_regex) (actual:dnf_regex) =
@@ -41,11 +44,11 @@ let assert_permutation_guesses_option_equal =
 
 let assert_lens_equal =
   assert_equal
-    ~printer:pp_lens
+    ~printer:string_of_lens
 
 let assert_dnf_lens_option_equal =
   assert_equal
-    ~printer:(Pp_general.pp_option pp_dnf_lens)
+    ~printer:(String_utilities.string_of_option pp_dnf_lens)
 
 let assert_int_float_int_priority_queue_option_equal =
   assert_equal
@@ -62,7 +65,7 @@ let assert_exampled_dnf_option_equal =
     ~printer:(fun ro ->
       begin match ro with
       | None -> "None"
-      | Some r -> Pp.pp_exampled_dnf_regex r
+      | Some r -> string_of_exampled_dnf_regex r
       end)
 
 let assert_dnf_lens_equal =
@@ -74,40 +77,40 @@ let assert_regex_list_equal =
   ~printer:(fun rs -> "[" ^
     (String.concat
     ~sep:";"
-    (List.map ~f:Pp.pp_regexp rs))
+    (List.map ~f:string_of_regex rs))
                       ^ "]")
 
 let assert_regex_equal =
   assert_equal
-    ~printer:Pp.pp_regexp
+    ~printer:string_of_regex
 
 let assert_regex_option_equal =
   assert_equal
-    ~printer:(Pp_general.pp_option Pp.pp_regexp)
+    ~printer:(string_of_option string_of_regex)
 
 let assert_lens_regex_regex_equal =
   assert_equal
     ~printer:(fun (l,r1,r2) ->
-        Pp_general.paren (
-          (Pp.pp_lens l) ^ "," ^
-          (Pp.pp_regexp r1) ^ "," ^
-          (Pp.pp_regexp r2)))
+        paren (
+          (string_of_lens l) ^ "," ^
+          (string_of_regex r1) ^ "," ^
+          (string_of_regex r2)))
 
 let assert_regex_regex_equal =
   assert_equal
     ~printer:(fun (r1,r2) ->
-        Pp_general.paren (
-          (Pp.pp_regexp r1) ^ "," ^
-          (Pp.pp_regexp r2)))
+        paren (
+          (string_of_regex r1) ^ "," ^
+          (string_of_regex r2)))
 
 let assert_lens_list_equal =
   assert_equal
-    ~printer:(Pp_general.pp_list Pp.pp_lens)
+    ~printer:(string_of_list string_of_lens)
 
 let assert_id_lens_list_equal =
   assert_equal
-    ~printer:(Pp_general.pp_double ident (Pp_general.pp_list Pp.pp_lens))
+    ~printer:(string_of_double ident (string_of_list string_of_lens))
 
 let assert_id_lens_equal =
   assert_equal
-    ~printer:(Pp_general.pp_double ident Pp.pp_lens)
+    ~printer:(string_of_double ident string_of_lens)

@@ -15,8 +15,8 @@ module type RegexContext_Sig = sig
     val insert_list_exn          : t -> (id * regex * bool) list -> t
     val create_from_list_exn     : (id * regex * bool) list -> t
     val lookup_for_expansion_exn : t -> id -> regex option
-    val fresh_id                 : t -> id
-    val autogen_id               : t -> string -> regex -> id
+    val autogen_id               : t -> regex -> id
+    val autogen_fresh_id         : t -> id
     val merge_contexts_exn       : t -> t -> t
 end
 
@@ -53,17 +53,8 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
     let create_from_list_exn (nral:(id * regex * bool) list) : t =
       insert_list_exn empty nral
 
-    let fresh_id (rc:t) : id =
-      let rec fresh n =
-        let x = Printf.sprintf "%d" n in
-        begin match Dict.find x rc with
-          | Some _ -> fresh (n+1)
-          | _ -> x
-        end
-      in
-      fresh 1
-
-    let autogen_id (rc:t) (base:string) (r:regex) : id =
+    let autogen_id (rc:t) (r:regex) : id =
+      let base = string_of_regex r in
       let rec fresh n =
         let x = Printf.sprintf "%s%d" base n in
         begin match Dict.find x rc with
@@ -72,6 +63,17 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
               x
             else
               fresh (n+1)
+          | Some _ -> fresh (n+1)
+          | _ -> x
+        end
+      in
+      fresh 1
+
+    let autogen_fresh_id (rc:t) : id =
+      let base = "r" in
+      let rec fresh n =
+        let x = Printf.sprintf "%s%d" base n in
+        begin match Dict.find x rc with
           | Some _ -> fresh (n+1)
           | _ -> x
         end

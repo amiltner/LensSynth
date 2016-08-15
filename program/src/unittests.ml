@@ -6,7 +6,6 @@ open Priority_queue
 open Disjointset
 open Regex
 open Regexcontext
-open Dnf_regex
 open Language_equivalences
 open Lens
 open Lenscontext
@@ -197,35 +196,35 @@ let _ = run_test_tt_main disjointset_suite
 let test_to_exampled_dnf_constant_noex _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[])],[]))
-    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty []
+    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
       (RegExBase "a")
       [])
 
 let test_to_exampled_dnf_constant_2ex _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[[1];[0]])],[[1];[0]]))
-    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty []
+    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
       (RegExBase "a")
       ["a";"a"])
 
 let test_to_exampled_dnf_or _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[[1]]);([],["b"],[[0]])],[[1];[0]]))
-    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty []
+    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
       (RegExOr (RegExBase "a", RegExBase "b"))
       ["b";"a"])
 
 let test_to_exampled_dnf_userdefined _ =
   assert_exampled_dnf_option_equal
     (Some ([([EAVariable ("A","A",LensIdentity(RegExVariable "A"),["a"],[[0]])],["";""],[[0]])],[[0]]))
-    (regex_to_exampled_dnf_regex (RegexContext.create_from_list_exn ["A",RegExBase "a",true]) LensContext.empty []
+    (regex_to_exampled_dnf_regex (RegexContext.create_from_list_exn ["A",RegExBase "a",true]) LensContext.empty
       (RegExVariable "A")
       ["a"])
 
 let test_to_exampled_dnf_star _ =
   assert_exampled_dnf_option_equal
   (Some ([([EAStar (([[],["a"],[[1;0];[0;0]]],[[1;0];[0;0]]),[[0]])],["";""],[[0]])],[[0]]))
-    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty []
+    (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
       (RegExStar (RegExBase "a"))
       ["aa"])
 
@@ -504,22 +503,22 @@ let _ = run_test_tt_main lens_context_suite
 let test_fast_eval_base_positive _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty [] (RegExBase "x") "x")
+    (fast_eval RegexContext.empty (RegExBase "x") "x")
 
 let test_fast_eval_base_negative1 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty [] (RegExBase "x") "y")
+    (fast_eval RegexContext.empty (RegExBase "x") "y")
 
 let test_fast_eval_base_negative2 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty [] (RegExBase "x") "xx")
+    (fast_eval RegexContext.empty (RegExBase "x") "xx")
 
 let test_fast_eval_concat_positive1 _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExBase "x",
         RegExConcat
@@ -529,7 +528,7 @@ let test_fast_eval_concat_positive1 _ =
 let test_fast_eval_concat_positive2 _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExConcat
           (RegExBase "x",
@@ -539,7 +538,7 @@ let test_fast_eval_concat_positive2 _ =
 let test_fast_eval_concat_negative1 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "x")
@@ -547,7 +546,7 @@ let test_fast_eval_concat_negative1 _ =
 let test_fast_eval_concat_negative2 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "xz")
@@ -555,7 +554,7 @@ let test_fast_eval_concat_negative2 _ =
 let test_fast_eval_concat_negative3 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "yx")
@@ -563,7 +562,7 @@ let test_fast_eval_concat_negative3 _ =
 let test_fast_eval_concat_negative4 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExConcat
         (RegExBase "x",
         RegExBase "y")) "xyz")
@@ -571,7 +570,7 @@ let test_fast_eval_concat_negative4 _ =
 let test_fast_eval_or_positive _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExOr
         (RegExOr
           (RegExBase "a",
@@ -583,7 +582,7 @@ let test_fast_eval_or_positive _ =
 let test_fast_eval_or_negative _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExOr
         (RegExOr
           (RegExBase "a",
@@ -595,28 +594,28 @@ let test_fast_eval_or_negative _ =
 let test_fast_eval_star_empty _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "")
 
 let test_fast_eval_star_one _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "a")
 
 let test_fast_eval_star_two _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "aa")
 
 let test_fast_eval_star_choice _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExOr
           (RegExBase "a"
@@ -626,34 +625,34 @@ let test_fast_eval_star_choice _ =
 let test_fast_eval_star_negative1 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "b")
 
 let test_fast_eval_star_negative2 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "ab")
 
 let test_fast_eval_star_negative3 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty []
+    (fast_eval RegexContext.empty
       (RegExStar
         (RegExBase "a")) "ba")
 
 let test_fast_eval_userdef_positive _ =
   assert_bool_equal
     true
-    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true]) []
+    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
       (RegExVariable "A") "a")
 
 let test_fast_eval_userdef_negative _ =
   assert_bool_equal
     false
-    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true]) []
+    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
       (RegExVariable "A") "b")
 
 let test_fast_eval_concat_userdef _ =
@@ -661,7 +660,6 @@ let test_fast_eval_concat_userdef _ =
   true
   (fast_eval
     (RegexContext.create_from_list_exn [("A", RegExBase "a",true);("B", RegExBase "b",true)])
-    []
     (RegExConcat (RegExVariable "A", RegExVariable "B"))
     "ab")
 
@@ -669,7 +667,7 @@ let test_fast_eval_nested_userdef _ =
   assert_bool_equal
   true
   (fast_eval
-   (RegexContext.create_from_list_exn [("A", RegExBase "a", true);("B", RegExVariable "A",true)]) []
+   (RegexContext.create_from_list_exn [("A", RegExBase "a", true);("B", RegExVariable "A",true)])
    (RegExVariable "B") "a")
 
 let test_fast_eval_fast _ =
@@ -677,7 +675,7 @@ let test_fast_eval_fast _ =
   true
   (fast_eval
      (RegexContext.create_from_list_exn [("A", RegExConcat (RegExBase "c", RegExConcat (RegExStar
-  (RegExBase "a"), RegExStar (RegExBase "b"))),true)]) []
+  (RegExBase "a"), RegExStar (RegExBase "b"))),true)])
   (RegExConcat (RegExStar (RegExVariable "A"), RegExConcat (RegExBase "z",
   RegExStar (RegExConcat (RegExConcat (RegExVariable "A", RegExBase "q"),
   RegExStar (RegExConcat (RegExVariable "A", RegExOr (RegExBase "t",
@@ -992,13 +990,6 @@ let test_extract_string_userdefined _ =
        (ERegExVariable ("t",["userdefined";"not"],[[0];[1]]))
        [0])
 
-let test_extract_string_mappeduserdefined _ =
-  assert_string_equal
-    "mappeduserdefined"
-    (extract_string
-       (ERegExMapped (13,["mappeduserdefined";"not"],[[0];[1]]))
-       [0])
-
 let extract_string_suite = "extract_string Unit Tests" >:::
   [
     "test_extract_string_base" >:: test_extract_string_base;
@@ -1007,7 +998,6 @@ let extract_string_suite = "extract_string Unit Tests" >:::
     "test_extract_string_union_right" >:: test_extract_string_union_right;
     "test_extract_string_iterate" >:: test_extract_string_iterate;
     "test_extract_string_userdefined" >:: test_extract_string_userdefined;
-    "test_extract_string_mappeduserdefined" >:: test_extract_string_mappeduserdefined;
   ]
 
 let _ = run_test_tt_main extract_string_suite
@@ -1587,10 +1577,10 @@ let test_simplify_lens_distribute_inverses _ =
   assert_lens_equal
     (LensConcat
        (LensConcat
-          (LensConcat
-             (LensIdentity (RegExVariable "A")
-             ,LensConst ("B","b"))
-          ,LensIdentity (RegExVariable "C"))
+          (LensIdentity (RegExVariable "A")
+          ,LensConcat
+              (LensConst ("B","b")
+              ,LensIdentity (RegExVariable "C")))
        ,LensConst ("D","d")))
     (simplify_lens
        (LensInverse
