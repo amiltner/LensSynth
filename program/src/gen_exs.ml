@@ -1,5 +1,5 @@
 open Core.Std
-open Regex
+open Lang
 open Regexcontext
 
 let likelihood_of_continuing_star = 0.9

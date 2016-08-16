@@ -1,5 +1,4 @@
 open Core.Std
-open Regex
 open Datastructures
 open Lang
 
@@ -82,7 +81,7 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
 
     let lookup_for_expansion_exn (rc:t) (name:id) : regex option =
       begin match lookup_everything rc name with
-        | None -> failwith "bad regex name"
+        | None -> failwith ("bad regex name: " ^ name)
         | Some (r,abs) ->
           if abs then
             None

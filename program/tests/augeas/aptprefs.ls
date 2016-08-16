@@ -18,7 +18,7 @@ test PACKAGE_DICT matches "{\"Package\"=\"*\"}";;
 typedef PIN_CONF = "Pin: " STRING;;
 test PIN_CONF matches "Pin: release a=backports";;
 typedef PIN_DICT = "{\"Pin\"=\"" STRING "\"}";;
-test PIN_CONF matches "{\"Pin\"=\"release a=backports\"}";;
+test PIN_DICT matches "{\"Pin\"=\"release a=backports\"}";;
 
 typedef PIN_PRIORITY_CONF = "Pin-Priority: " NUMBER;;
 test PIN_PRIORITY_CONF matches "Pin-Priority: 700";;

@@ -1,6 +1,5 @@
 %{
 open Lang
-open Regex
 %}
 
 %token <string> LID   (* lowercase identifiers *)
@@ -46,11 +45,13 @@ program:
 
 decl:
   | d=defn
-    { DeclUserdefCreation d }
+    { DeclRegexCreation d }
   | s=specification
-    { DeclSynthesizeProgram s}
+    { DeclSynthesizeLens s}
   | TEST r=regex MATCHES s=str SEMI SEMI
     { DeclTestString (r,s) }
+  | TEST n=LID exs=examples SEMI SEMI
+    { DeclTestLens (n,exs) }
 
 defn:
   | TYPEDEF u=UID EQ r=regex SEMI SEMI

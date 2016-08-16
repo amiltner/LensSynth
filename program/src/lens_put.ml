@@ -3,7 +3,7 @@ open Regexcontext
 open Lenscontext
 open Lang
 open Eval
-open Lens
+open Normalized_lang
 open Typing
 
 let rec lens_putl_internal

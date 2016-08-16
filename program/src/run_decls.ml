@@ -1,8 +1,6 @@
 open Core.Std
-open Lens
 open Regexcontext
 open Lenscontext
-open Regex
 open Eval
 open Gen
 open Lang
@@ -53,6 +51,15 @@ let create_userdef
   rh userdef_name userdef_meaning;
   (RegexContext.insert_exn c userdef_name userdef_meaning (not concrete))
 
+let create_userdef_lens
+    (lc:LensContext.t)
+    (lens_name:id)
+    (stype:regex)
+    (ttype:regex)
+    (lens_implementation:lens)
+  : LensContext.t =
+  LensContext.insert_exn lc lens_name lens_implementation stype ttype
+
 let test_string (showing_strategy:string -> unit)
                 (c:RegexContext.t)
                 (r:regex)
@@ -71,9 +78,8 @@ let synthesize_lens
     (rc:RegexContext.t)
     (lc:LensContext.t)
     ((n,r1,r2,exs):specification)
-    (iteratively_deepen_strategy:bool)
   : lens option =
-  let lo = gen_lens rc lc r1 r2 exs iteratively_deepen_strategy in
+  let lo = gen_lens rc lc r1 r2 exs in
   lh lo n r1 r2 exs rc lc;
   lo
 
@@ -84,24 +90,32 @@ let run_declaration
     (rc:RegexContext.t)
     (lc:LensContext.t)
     (d:declaration)
-    (iteratively_deepen_strategy:bool)
   : (RegexContext.t * LensContext.t) =
   begin match d with
-    | DeclUserdefCreation (s,r,b) -> (create_userdef rh rc s r b, lc)
+    | DeclRegexCreation (s,r,b) -> (create_userdef rh rc s r b, lc)
     | DeclTestString (r,s) -> (test_string th rc r s); (rc,lc)
-    | DeclSynthesizeProgram (name,r1,r2,exs) ->
+    | DeclSynthesizeLens (name,r1,r2,exs) ->
       let lo = synthesize_lens
           lh
           rc
           lc
           (name,r1,r2,exs)
-          iteratively_deepen_strategy
       in
       let lc = begin match lo with
         | None -> lc
         | Some l -> LensContext.insert_exn lc name l r1 r2
       end in
       (rc,lc)
+    | DeclLensCreation (s,r1,r2,l) ->
+      let lc = create_userdef_lens
+        lc
+        s
+        r1
+        r2
+        l
+      in
+      (rc,lc)
+    | DeclTestLens _ -> (*TODO*)(rc,lc)
   end
   
 let run_declarations
@@ -109,10 +123,9 @@ let run_declarations
     (th:test_handler)
     (rh:regex_handler)
     (ds:declaration list)
-    (iteratively_deepen_strategy:bool)
   : unit =
   let _ = (List.fold_left
-    ~f:(fun (rc,lc) d -> run_declaration lh rh th rc lc d iteratively_deepen_strategy)
+    ~f:(fun (rc,lc) d -> run_declaration lh rh th rc lc d)
     ~init:(RegexContext.empty,LensContext.empty)
     ds) in
   ()

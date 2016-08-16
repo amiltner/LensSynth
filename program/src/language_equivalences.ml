@@ -1,5 +1,5 @@
 open Core.Std
-open Regex
+open Lang
 open Util
 open Normalized_lang
 

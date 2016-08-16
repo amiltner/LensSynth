@@ -13,7 +13,7 @@ typedef OPTIONS_CONF = " [ " (OPTION_KVP_OPERATION_CONF " ")+ "] ";;
 test OPTIONS_CONF matches " [ arch=amd64 trusted-=true ] ";;
 
 typedef APTSOURCE_CONF = (WORD (" " | OPTIONS_CONF) WORD " " WORD (" " WORD)* "\n")*;;
-test APTSOURCE_CONF matches "deb [ arch+=amd64 ] tor+http://ftp.us.debian.org/debian sid main contrib";;
+test APTSOURCE_CONF matches "deb [ arch+=amd64 ] tor+http://ftp.us.debian.org/debian sid main contrib\n";;
 
 typedef APTSOURCE_DICT = ("{\"type\"=\""WORD"\"}"(.|OPTIONS_DICT)"{\"uri\"=\""WORD"\"}{\"distribution\"=\""WORD"\"}" ("{\"component\"=\""WORD"\"}")*)*;;
 test APTSOURCE_DICT matches "{\"type\"=\"deb\"}{\"options\"{\"arch\"=\"amd64\"{\"operation\"=\"+\"}}}{\"uri\"=\"tor+http://ftp.us.debian.org/debian\"}{\"distribution\"=\"sid\"}{\"component\"=\"main\"}{\"component\"=\"contrib\"}";;

@@ -3,8 +3,7 @@ open Core.Std
 open Priority_queue
 open Normalized_lang
 open Permutation
-open Lens
-open Regex
+open Lang
 open Pp
 open String_utilities
 
@@ -114,3 +113,15 @@ let assert_id_lens_list_equal =
 let assert_id_lens_equal =
   assert_equal
     ~printer:(string_of_double ident string_of_lens)
+
+let assert_boom_statement_equal =
+  assert_equal
+    ~printer:Pp_as_boom.pp_statement
+
+let assert_boom_expression_equal =
+  assert_equal
+    ~printer:Pp_as_boom.pp_expression
+
+let assert_boom_program_equal =
+  assert_equal
+    ~printer:Pp_as_boom.pp_program

@@ -1,9 +1,8 @@
-open String_utilities
 open Lang
-open Lens
 open Core.Std
 open Permutation
 open Normalized_lang
+open String_utilities
 
 
 let rec string_of_exampled_dnf_regex ((r,ill):exampled_dnf_regex) : string =

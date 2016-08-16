@@ -1,7 +1,5 @@
 open Core.Std
 open Lang
-open Regex
-open Lens
 open Lens_utilities
 open Datastructures
 open Disjointset

@@ -1,6 +1,6 @@
-open Lang
-open Regex
 open Core.Std
+open Lang
+open Normalized_lang
 open Regexcontext
 
 let rec to_empty_exampled_regex (r:regex) : exampled_regex =

@@ -1,7 +1,6 @@
 open Core.Std
 open Util
-open Lens
-open Regex
+open Lang
 open Regexcontext
 open Regex_utilities
 

@@ -1,6 +1,6 @@
 open Core.Std
 open Util
-open Regex
+open Lang
 open Regexcontext
 
 let rec make_regex_safe_in_smaller_context

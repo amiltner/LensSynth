@@ -1,11 +1,9 @@
 open Core.Std
 open Counters
 open Regexcontext
-open Regex
 open Language_equivalences
 open Lenscontext
 open Lang
-open Lens
 open Util
 open Permutation
 open Normalized_lang

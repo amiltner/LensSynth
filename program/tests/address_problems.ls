@@ -36,3 +36,14 @@ Princeton, NJ  08544
 Susan Miltner
 610 Via Casitas
 Greenbrae, CA  94904"}]
+
+test csv_to_letter {"Miltner,Anders,NJ,08544,Princeton,88,College Road West
+Miltner,Susan,CA,94904,Greenbrae,610,Via Casitas
+" <-> 
+"Anders Miltner
+88 College Road West
+Princeton, NJ  08544
+
+Susan Miltner
+610 Via Casitas
+Greenbrae, CA  94904"};;

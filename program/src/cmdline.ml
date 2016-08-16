@@ -1,17 +1,16 @@
 open Util
 open Pp_as_boom
 open Lens_put
-open Regex
 open Regexcontext
 open Lenscontext
 open Gen_exs
-open Run_decls
 open Gen
-open Lens
 open Core.Std
 open Lang
 open Consts
 open Typing
+open Program_utilities
+open Boom_lang
 
 exception Arg_exception
 
@@ -21,13 +20,10 @@ type driver_mode =
   | Synth
   | Time
   | GeneratedExamples
-  | SynthBoom
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
 let mode : driver_mode ref = ref Default
-let use_iteratively_deepen_strategy : bool ref = ref false
-let force_expand_regexps : bool ref = ref false
 
 let parse_file (f:string) : program =
   Preproc.preprocess_file f
@@ -61,12 +57,8 @@ let args =
     , " Synthesize with definitions forced to be expanded"
     )
   ; ( "-iterativedeepenstrategy"
-    , Arg.Unit (fun _ -> use_iteratively_deepen_strategy := true)
+    , Arg.Unit (fun _ -> use_iterative_deepen_strategy := true)
     , " Set use of iterative deepen strategy"
-    )
-  ; ( "-synthboom"
-    , Arg.Unit (fun _ -> set_opt SynthBoom)
-    , " print as boomerang prog"
     )
   ]
   |> Arg.align
@@ -89,10 +81,12 @@ let expand_regexps (p:program) : program =
                           (d:declaration)
                           : (RegexContext.t * declaration) =
     begin match d with
-    | DeclUserdefCreation (s,r,b) -> (RegexContext.insert_exn c s r b,d)
+    | DeclRegexCreation (s,r,b) -> (RegexContext.insert_exn c s r b,d)
     | DeclTestString _ -> (c,d)
-    | DeclSynthesizeProgram (n,r1,r2,exs) ->
-        (c,DeclSynthesizeProgram (n,expand_regexp r1 c,expand_regexp r2 c,exs))
+    | DeclSynthesizeLens (n,r1,r2,exs) ->
+      (c,DeclSynthesizeLens (n,expand_regexp r1 c,expand_regexp r2 c,exs))
+    | DeclLensCreation _ -> (c,d)
+    | DeclTestLens _ -> (c,d)
     end
   in
   List.rev
@@ -146,82 +140,31 @@ let ignore (_:'a) : unit =
 
 
 let collect_time (p:program) : unit =
-  let (time, _) = Util.time_action ~f:(fun _ ->
-    run_declarations (fun _ _ _ _ _ _ _ -> ()) (fun _ -> ()) (fun _ _ -> ()) p !use_iteratively_deepen_strategy)
-  in
-
+  let (time, _) = Util.time_action ~f:(fun _ -> synthesize_program p) in
   print_endline (Float.to_string time)
 
 let collect_example_number (p:program) : unit =
-  let num_examples = ref 0 in
-  run_declarations (fun lo _ r1 r2 _ rc lc ->
-    let l = Option.value_exn lo in
-    let exs_reqd = fold_until_completion
-        (fun acc ->
-          let l' = Option.value_exn
-            (gen_lens rc lc r1 r2 acc !use_iteratively_deepen_strategy) in
-          if l' = l then
-            Right acc
-          else
-            let leftex = gen_element_of_regex_language rc r1 in
-            let rightex = lens_putr rc lc l leftex in
-            let acc = (leftex,rightex)::acc in
-            Left acc
-        ) [] in
-    num_examples := List.length exs_reqd
-    ) (fun _ -> ()) (fun _ _  -> ()) p !use_iteratively_deepen_strategy;
-  print_endline ((string_of_int !num_examples))
-
-let print_outputs_as_boom (p:program) : unit =
-  print_endline "module Generated =";
-  run_declarations
-    (fun (lo:lens option) n _ _ (exs:examples) rc lc ->
-      begin match lo with
-        | Some l ->
-          print_endline
-            ("\n\nlet " ^ n ^ " =\n" ^ (boom_pp_lens l));
-          check_examples rc lc l exs
-        | None -> print_endline "no lens found"
-      end)
-    print_endline
-    (fun n r ->
-       print_endline
-         ("\n\nlet " ^ n ^ " : regexp =\n" ^ (boom_pp_regex r)))
-    p
-    !use_iteratively_deepen_strategy
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let exs_required = fold_until_completion
+      (fun acc ->
+         let l' = Option.value_exn
+             (gen_lens rc lc r1 r2 acc) in
+         if l' = l then
+           Right (List.length acc)
+         else
+           let leftex = gen_element_of_regex_language rc r1 in
+           let rightex = lens_putr rc lc l leftex in
+           let acc = (leftex,rightex)::acc in
+           Left acc
+      ) [] in
+  print_endline (string_of_int exs_required)
 
 let print_outputs (p:program) : unit =
-  (*let inner_a = RegExStar (RegExBase "a'") in
-  let inner_b = RegExStar (RegExBase "b'") in
-  let inner_c = RegExStar (RegExBase "c'") in
-  let inner_d = RegExStar (RegExBase "d'") in
-
-
-  let a = RegExConcat (RegExOr (inner_a,inner_b),RegExOr(inner_c,inner_d)) in
-  let b = RegExStar (RegExBase "b") in
-  let c = RegExStar (RegExBase "c") in
-  let d = RegExStar (RegExBase "d") in
-  let r = RegExConcat (RegExOr (a,b),RegExOr(c,d)) in
-  print_endline (Pp.pp_regexp r);
-  print_endline "\n";
-  print_endline (Pp.pp_regexp (clean_regex (smart_dnf_regex_to_regex
-  (to_dnf_regex r))));
-  print_endline "\n";
-  print_endline (Pp.pp_regexp (clean_regex (dnf_regex_to_regex (to_dnf_regex
-  r))));*)
-  run_declarations
-    (fun (lo:lens option) _ _ _ (exs:examples) rc lc ->
-      begin match lo with
-        | Some l ->
-          print_endline (string_of_lens l);
-          let (t1,t2) = type_lens lc l in
-          print_endline (string_of_regex t1);
-          print_endline (string_of_regex t2);
-          check_examples rc lc l exs
-        | None -> print_endline "no lens found"
-      end)
-    print_endline (fun _ _ -> ()) p
-    !use_iteratively_deepen_strategy
+  print_endline "module Generated =";
+  let p = synthesize_program p in
+  let bp = boom_program_of_program p in
+  print_endline (pp_program bp)
 
 let main () =
   begin try
@@ -235,22 +178,18 @@ let main () =
   match !filename with
   | None   -> Arg.usage args usage_msg
   | Some f ->
-    print_time_if_timing begin fun _ ->
-      begin match Sys.file_exists f with
+    begin match Sys.file_exists f with
       | `No | `Unknown -> Arg.usage args ("File not found: " ^ f)
       | `Yes -> begin match !mode with
-        | Parse ->
+          | Parse ->
             let _ = parse_file f in (*TODO: pp*) ()(*Printf.printf "%s\n"
-            (Pp.pp_prog prog)*)
-        | Default | Synth ->
+                                                     (Pp.pp_prog prog)*)
+          | Time -> parse_file f |> expand_regexps_if_necessary |> collect_time
+          | GeneratedExamples ->
+            parse_file f |> expand_regexps_if_necessary |> collect_example_number
+          | Default | Synth ->
             parse_file f |> expand_regexps_if_necessary |> print_outputs
-        | Time -> parse_file f |> expand_regexps_if_necessary |> collect_time
-        | GeneratedExamples ->
-          parse_file f |> expand_regexps_if_necessary |> collect_example_number
-        | SynthBoom ->
-            parse_file f |> expand_regexps_if_necessary |> print_outputs_as_boom
         end
-      end
     end
 
 let () = if not !Sys.interactive then main ()

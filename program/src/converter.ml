@@ -1,6 +1,5 @@
 open Lang
 open Core.Std
-open Regex
 open Eval
 open Lens_put
 open Util

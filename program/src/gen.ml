@@ -1,10 +1,8 @@
 open Core.Std
 open Lenscontext
 open Converter
-open Regex
 open Regexcontext
 open Lang
-open Lens
 open Lens_utilities
 open Util
 open Permutation
@@ -12,6 +10,7 @@ open Transform
 open Priority_queue
 open Normalized_lang
 open Language_equivalences
+open Consts
 
 (*let rec map_and_abstract (mc:mapsbetweencontext)
                          (r:ordered_exampled_dnf_regex)
@@ -329,10 +328,10 @@ let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
     gen_dnf_lens_zipper rc lc r1 r2 exs
 
 let gen_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
-             (exs:examples) (iterative_deepen_strategy:bool) : lens option =
+             (exs:examples) : lens option =
   let rc_orig = rc in
   let (r1,r2,rc) =
-    if iterative_deepen_strategy then
+    if !use_iterative_deepen_strategy then
       let (r1,c1) = iteratively_deepen r1 in
       let (r2,c2) = iteratively_deepen r2 in
       let rc = 

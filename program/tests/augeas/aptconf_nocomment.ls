@@ -31,26 +31,16 @@ typedef APT_L0_CONF = WORD " {\n" (NONRECURSIVE_CONF "\n")* "}";;
 test APT_L0_CONF matches "APT {
 hello \"testingh ielloo asdfwer s\";
 --force-confold;
-/*test
-multiline*/
-//comment
-#clear mydata:hello tester
-#include myfolder/my_filE.txt
 }";;
 
 typedef APT_L0_DICT = "{\""WORD"\""NONRECURSIVE_DICT*"}";;
-test APT_L0_DICT matches "{\"APT\"{\"hello\"=\"testingh ielloo asdfwer s\"}{\"@elem\"=\"--force-confold\"}{\"#mcomment\"{\"string\"=\"test\"}{\"string\"=\"multiline\"}}{\"#comment\"=\"comment\"}{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}{\"include\"=\"myfolder/my_filE.txt\"}}";;
+test APT_L0_DICT matches "{\"APT\"{\"hello\"=\"testingh ielloo asdfwer s\"}{\"@elem\"=\"--force-confold\"}{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}{\"include\"=\"myfolder/my_filE.txt\"}}";;
 
-apt_l0_dict = [APT_L0_CONF <=> APT_L0_DICT {}]
-
-(*{"APT {
+apt_l0_dict = [APT_L0_CONF <=> APT_L0_DICT {"APT {
 hello \"testingh ielloo asdfwer s\";
 --force-confold;
-/*test
-multiline*/
-//comment
 #clear mydata:hello tester
 #include myfolder/my_filE.txt
 }"
 <->
-"{\"APT\"{\"hello\"=\"testingh ielloo asdfwer s\"}{\"@elem\"=\"--force-confold\"}{\"#mcomment\"{\"string\"=\"test\"}{\"string\"=\"multiline\"}}{\"#comment\"=\"comment\"}{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}{\"@include\"=\"myfolder/my_filE.txt\"}}"}]*)
+"{\"APT\"{\"hello\"=\"testingh ielloo asdfwer s\"}{\"@elem\"=\"--force-confold\"}{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}{\"@include\"=\"myfolder/my_filE.txt\"}}"}]

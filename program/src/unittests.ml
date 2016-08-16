@@ -4,10 +4,8 @@ open Converter
 open Counters
 open Priority_queue
 open Disjointset
-open Regex
 open Regexcontext
 open Language_equivalences
-open Lens
 open Lenscontext
 open Lens_utilities
 open Permutation
@@ -19,6 +17,7 @@ open Eval
 open Lang
 open Gen
 open Lens_put
+open Boom_lang
 
 let test_to_normalized_exp_base _ =
   assert_dnf_equal
@@ -345,7 +344,7 @@ let test_insert_conflicted _ =
 
 let test_lookup_for_expansion_empty _ =
   assert_raises
-    (Failure "bad regex name")
+    (Failure "bad regex name: none")
     (fun _ -> RegexContext.lookup_for_expansion_exn RegexContext.empty "none")
 
 (* TODO: tests on generated ids *)
@@ -1615,3 +1614,46 @@ let simplify_lens_suite = "simplify_lens Unit Tests" >:::
   ]
 
 let _ = run_test_tt_main simplify_lens_suite
+
+
+let test_boom_program_of_program_userdef_abstract _ =
+  assert_boom_program_equal
+    [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
+    (boom_program_of_program [DeclRegexCreation("r",RegExBase "b",true)])
+
+let test_boom_program_of_program_userdef_concrete _ =
+  assert_boom_program_equal
+    [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
+    (boom_program_of_program [DeclRegexCreation("r",RegExBase "b",false)])
+
+let test_boom_program_of_program_test_string _ =
+  assert_boom_program_equal
+    [BoomStmtTestRegex (RegExBase "b", "c")]
+    (boom_program_of_program [DeclTestString (RegExBase "b", "c")])
+
+let test_boom_program_of_program_synthesize_program _ =
+  assert_raises
+    (Failure "no boom functionality for this")
+    (fun _ ->
+       boom_program_of_program
+         [DeclSynthesizeLens ("n",RegExBase "a", RegExBase "b", [])])
+
+let test_boom_program_of_program_lens_creation _ =
+  assert_boom_program_equal
+    [BoomStmtDefinition
+       ("n"
+       ,BoomTypLens(RegExBase "a",RegExBase "b")
+       ,BoomExpLens(LensVariable "x"))]
+    (boom_program_of_program
+       [DeclLensCreation ("n", RegExBase "a", RegExBase "b", LensVariable "x")])
+
+let boom_program_of_program_suite = "boom_program_of_program Unit Tests" >:::
+  [
+    "test_boom_program_of_program_userdef_abstract" >:: test_boom_program_of_program_userdef_abstract;
+    "test_boom_program_of_program_userdef_concrete" >:: test_boom_program_of_program_userdef_concrete;
+    "test_boom_program_of_program_test_string" >:: test_boom_program_of_program_test_string;
+    "test_boom_program_of_program_synthesize_program" >:: test_boom_program_of_program_synthesize_program;
+    "test_boom_program_of_program_lens_creation" >:: test_boom_program_of_program_lens_creation;
+  ]
+
+let _ = run_test_tt_main boom_program_of_program_suite
