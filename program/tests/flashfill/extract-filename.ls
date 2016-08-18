@@ -1,6 +1,6 @@
 #use "base.decls"
 
-typedef LOCALFOLDER = (LOWERCASE | UPPERCASE | "_" | "." | "-")*;;
+typedef LOCALFOLDER = (LOWERCASE | UPPERCASE | "_" | "." | "-")+;;
 test LOCALFOLDER matches "extract-filename.txt";;
 
 typedef DIRECTORY = ("/" | .) (LOCALFOLDER "/")*;;

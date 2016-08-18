@@ -1,10 +1,10 @@
 #use "base.decls"
 #use "util.decls"
 
-typedef AUTHPAIR_RECORD_CONF = WORD ": " WORD ":" WORD;;
+typedef AUTHPAIR_RECORD_CONF = SIMPLE_WORD ": " SIMPLE_WORD ":" SIMPLE_WORD;;
 test AUTHPAIR_RECORD_CONF matches "AdminAuth: mooma:moopa";;
 
-typedef AUTHPAIR_RECORD_DICT = "{\""WORD"\"{\""WORD"\"=\""WORD"\"}}";;
+typedef AUTHPAIR_RECORD_DICT = "{\""SIMPLE_WORD"\"{\""SIMPLE_WORD"\"=\""SIMPLE_WORD"\"}}";;
 test AUTHPAIR_RECORD_DICT matches "{\"AdminAuth\"{\"mooma\"=\"moopa\"}}";;
 
 typedef APTCACHERNGSECURITY_CONF = ((COMMENT | AUTHPAIR_RECORD_CONF | .) "\n")*;;

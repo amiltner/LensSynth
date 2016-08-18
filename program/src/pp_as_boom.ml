@@ -1,4 +1,5 @@
 open Core.Std
+open String_utilities
 open Lang
 open Format
 open Boom_lang
@@ -14,11 +15,6 @@ type pp_info = int * regex * bool * bool
 
 (***** Regexs  *****)
 
-let desugar_string (s:string) =
-  Str.global_replace (Str.regexp "\"") "\\\\\""
-    (Str.global_replace (Str.regexp "\n") "\\\\n"
-        (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" s))
-
 let prec_of_regex (r:regex) =
   begin match r with
     | RegExEmpty      -> 150
@@ -31,15 +27,17 @@ let prec_of_regex (r:regex) =
 
 let prec_of_lens (l:lens) =
   begin match l with
-    | LensConst    _ -> 150
-    | LensIdentity _ -> 150
-    | LensVariable _ -> 150
-    | LensInverse  _ -> failwith "TODO: inverse support"
-    | LensIterate  _ -> 125
-    | LensSwap     _ -> 112
-    | LensCompose  _ -> 112
-    | LensConcat   _ -> 100
-    | LensUnion    _ -> 75
+    | LensIdentity  _ -> 150
+    | LensVariable  _ -> 150
+    | LensInverse   _ -> 150(*failwith "TODO: inverse support"*)
+    | LensIterate   _ -> 125
+    | LensSwap      _ -> 112
+    | LensCompose   _ -> 112
+    | LensConst("",_) -> 112
+    | LensConst(_,"") -> 112
+    | LensConcat    _ -> 100
+    | LensConst     _ -> 100
+    | LensUnion     _ -> 75
   end
 
 let rec boom_fpf_regex
@@ -50,7 +48,7 @@ let rec boom_fpf_regex
   (if this_lvl < lvl then fpf ppf "(");
   begin match r with
     | RegExEmpty -> fpf ppf "AHHH" 
-    | RegExBase s -> fpf ppf "\"%a\"" ident (desugar_string s)
+    | RegExBase s -> fpf ppf "\"%a\"" ident (delimit_string s)
     | RegExVariable n -> fpf ppf "%a" ident n
     | RegExStar r' -> fpf ppf "%a* " boom_fpf_regex (this_lvl, r', false, false)
     | RegExConcat (r1,r2) ->
@@ -82,8 +80,8 @@ let rec boom_fpf_lens
   (if this_lvl < lvl then fpf ppf "(");
   begin match l with
     | LensConst (s1,s2) ->
-      let s1 = desugar_string s1 in
-      let s2 = desugar_string s2 in
+      let s1 = delimit_string s1 in
+      let s2 = delimit_string s2 in
       if s1 <> "" && s2 <> "" then
         fpf ppf "del \"%a\"@ . ins \"%a\""
           ident s1
@@ -125,8 +123,10 @@ let rec boom_fpf_lens
         boom_fpf_lens (this_lvl, l', false, false);
     | LensIdentity r ->
       boom_fpf_regex ppf (this_lvl,r, false, false)
-    | LensInverse _ ->
-      failwith "inverse doesn't exist in boom"
+    | LensInverse l' ->
+      fpf ppf "@[inverse %a@]"
+        boom_fpf_lens (this_lvl+1, l', false, false)
+      (*failwith "inverse doesn't exist in boom"*)
     | LensVariable n ->
       fpf ppf "%a"
         ident
@@ -142,8 +142,8 @@ let boom_fpf_typ
     | BoomTypRegex -> fpf ppf "regexp"
     | BoomTypLens(r1,r2) ->
       fpf ppf "@[<hv 2>(lens in@ %a@ <=> %a)@]"
-        boom_fpf_regex (0,r1,false,false)
-        boom_fpf_regex (0,r2,false,false)
+        boom_fpf_regex (150,r1,false,false)
+        boom_fpf_regex (150,r2,false,false)
   end
 
 let rec boom_fpf_statement
@@ -157,14 +157,14 @@ let rec boom_fpf_statement
         boom_fpf_typ t
         boom_fpf_expression e
     | BoomStmtTestRegex(r,s) ->
-      fpf ppf "@[<hv 2>test matches_cex@ %a@ <<%a>> = true@]"
+      fpf ppf "@[<hv 2>test matches_cex@ %a@ \"%a\" = true@]"
         boom_fpf_regex (113,r,false,false)
-        ident s
+        ident (delimit_string s)
     | BoomStmtTestLens(l,s1,s2) ->
-      fpf ppf "@[<hv 2>test %a.get@ <<%a>>@ = <<%a>>@]"
+      fpf ppf "@[<hv 2>test %a.get@ \"%a\"@ = \"%a\"@]"
         boom_fpf_lens (113,l,false,false)
-        ident s1
-        ident s2
+        ident (delimit_string s1)
+        ident (delimit_string s2)
   end
 
 and boom_fpf_expression

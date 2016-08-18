@@ -162,8 +162,8 @@ let collect_example_number (p:program) : unit =
 
 let print_outputs (p:program) : unit =
   print_endline "module Generated =";
-  let p = synthesize_program p in
-  let bp = boom_program_of_program p in
+  let (_,lc,p) = synthesize_and_load_program p in
+  let bp = boom_program_of_program lc p in
   print_endline (pp_program bp)
 
 let main () =

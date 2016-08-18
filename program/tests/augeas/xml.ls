@@ -44,14 +44,14 @@ typedef INNER_XML_DICT = "{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TE
 test INNER_XML_DICT matches "{\"element\"}";;
 
 typedef SECONDLEVEL_XML_DICT =
-"{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TEXT_DICT|.|(INNER_XML_DICT*))ENDBRACE_DICT)|.) "}";;
+"{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TEXT_DICT|.|(INNER_XML_DICT+))ENDBRACE_DICT)|.) "}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"endbrace\"=\"test\"}}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"element\"}{\"endbrace\"=\"test\"}}";;
 
 typedef XML_SECONDLEVEL_ELEMENT = (XML_ELEMENT
-				  (TEXT | (XML_INNER_ELEMENT*))
+				  (TEXT | (XML_INNER_ELEMENT+))
 			          XML_END_ELEMENT) | XML_CONTENTLESS_ELEMENT;;
 
 

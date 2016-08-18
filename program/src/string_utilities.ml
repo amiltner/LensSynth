@@ -5,6 +5,17 @@ let paren (s:string) : string = "(" ^ s ^ ")"
 
 let bracket (s:string) : string = "[" ^ s ^ "]"
 
+let undelimit_string : string -> string =
+    (Str.global_replace (Str.regexp "\\\\\\\\") "\\\\")
+  % (Str.global_replace (Str.regexp "\\\\n") "\n")
+  % (Str.global_replace (Str.regexp "\\\\\"") "\"")
+
+      
+let delimit_string : string -> string =
+  Str.global_replace (Str.regexp "\"") "\\\\\""
+  % (Str.global_replace (Str.regexp "\n") "\\\\n")
+  % (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\")
+
 let string_of_option (inner_converter:'a -> string) (ao:'a option) : string =
   begin match ao with
     | None -> "None"

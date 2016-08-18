@@ -1619,23 +1619,23 @@ let _ = run_test_tt_main simplify_lens_suite
 let test_boom_program_of_program_userdef_abstract _ =
   assert_boom_program_equal
     [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
-    (boom_program_of_program [DeclRegexCreation("r",RegExBase "b",true)])
+    (boom_program_of_program LensContext.empty [DeclRegexCreation("r",RegExBase "b",true)])
 
 let test_boom_program_of_program_userdef_concrete _ =
   assert_boom_program_equal
     [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
-    (boom_program_of_program [DeclRegexCreation("r",RegExBase "b",false)])
+    (boom_program_of_program LensContext.empty [DeclRegexCreation("r",RegExBase "b",false)])
 
 let test_boom_program_of_program_test_string _ =
   assert_boom_program_equal
     [BoomStmtTestRegex (RegExBase "b", "c")]
-    (boom_program_of_program [DeclTestString (RegExBase "b", "c")])
+    (boom_program_of_program LensContext.empty [DeclTestString (RegExBase "b", "c")])
 
 let test_boom_program_of_program_synthesize_program _ =
   assert_raises
     (Failure "no boom functionality for this")
     (fun _ ->
-       boom_program_of_program
+       boom_program_of_program LensContext.empty
          [DeclSynthesizeLens ("n",RegExBase "a", RegExBase "b", [])])
 
 let test_boom_program_of_program_lens_creation _ =
@@ -1644,7 +1644,7 @@ let test_boom_program_of_program_lens_creation _ =
        ("n"
        ,BoomTypLens(RegExBase "a",RegExBase "b")
        ,BoomExpLens(LensVariable "x"))]
-    (boom_program_of_program
+    (boom_program_of_program LensContext.empty
        [DeclLensCreation ("n", RegExBase "a", RegExBase "b", LensVariable "x")])
 
 let boom_program_of_program_suite = "boom_program_of_program Unit Tests" >:::

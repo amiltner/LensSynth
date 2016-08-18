@@ -2,7 +2,7 @@ CFLAGS := -w,@A,-w,-4,-w,-44,-w,-48,-w,-26
 OCBFLAGS := -cflags $(CFLAGS)
 OCB := ocamlbuild $(OCBFLAGS)
 
-.PHONY: all debug clean top profile gen-baselines check-baselines unittest functionaltest test
+.PHONY: all debug clean top profile unittest functionaltest test
 
 all: cmdline.native
 debug: all cmdline.cma
@@ -31,12 +31,7 @@ clean:
 top: cmdline.cma
 	utop
 
-CHECK_BASELINE := python check-baseline.py
-
 CHECK_WITH_BOOMERANG := python check-with-boomerang.py
-
-check-baselines: cmdline.native
-	$(CHECK_BASELINE) ./cmdline.native tests/
 
 GENERATE_DATA := python generate-data.py
 

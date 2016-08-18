@@ -1,9 +1,11 @@
-typedef QUOTELESS_STRING = (UPPERCASE | LOWERCASE | DIGIT | " " | "'" | "_" | ":" | "/" | "-" | "." | "*" | "=" | "+")*;;
+typedef QUOTELESS_STRING = (UPPERCASE | LOWERCASE | DIGIT | " " | "'" | "_" | ":" | "/" | "-" | "." |  "=" | "+")*;;
 
-typedef STRING_COMPONENT = UPPERCASE | LOWERCASE | DIGIT | "\"" | " " | "'" | "_" | ":" | "/" | "-" | "." | "*" | "=" | "+";;
+typedef STRING_COMPONENT = UPPERCASE | LOWERCASE | DIGIT | "\"" | " " | "'" | "_" | ":" | "/" | "-" | "." | "=" | "+";;
 typedef STRING = STRING_COMPONENT*;;
 typedef NONEMPTY_STRING = STRING_COMPONENT+;;
-typedef DELIMITED_STRING = (UPPERCASE | LOWERCASE | DIGIT | "\\\"" | " " | "'" | "_" | ":" | "/" | "-" | "." | "*" | "=" | "+")*;;
+typedef DELIMITED_STRING = (UPPERCASE | LOWERCASE | DIGIT | "\\\"" | " " | "'" | "_" | ":" | "/" | "-" | "." | "=" | "+")*;;
+
+string_to_delimited = [STRING <=> DELIMITED_STRING {}]
 
 typedef COMMENT = "# " STRING;;
 (*test COMMENT matches "# comment";;*)
@@ -15,7 +17,7 @@ comment_map = [COMMENT <=> COMMENT_DICT {}]
 typedef EMPTYDICT = "{}";;
 
 typedef ENV_VAR = (UPPERCASE | "_")+;;
-typedef WORD = (LOWERCASE | UPPERCASE | "_" | "." | "-" | ":" | "/" | "+" | DIGIT)*;;
+typedef WORD = (LOWERCASE | UPPERCASE | "_" | "." | "-" | ":" | "/" | "+" | DIGIT)+;;
 (*test WORD matches "my_username";;*)
 
 typedef SIMPLE_WORD = (LOWERCASE | UPPERCASE | DIGIT)+;;

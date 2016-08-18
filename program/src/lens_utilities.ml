@@ -95,6 +95,35 @@ let rec make_lens_safe_in_smaller_context
     | LensVariable _ -> l
   end
 
+let distribute_inverses : lens -> lens =
+  let distribute_inverses_current_level (l:lens) : lens =
+    begin match l with
+      | LensInverse l' ->
+        begin match l' with
+          | LensConst (s1,s2) ->
+            LensConst(s2,s1)
+          | LensConcat (l1',l2') ->
+            LensConcat (LensInverse l1', LensInverse l2')
+          | LensSwap (l1',l2') ->
+            LensSwap (LensInverse l2', LensInverse l1')
+          | LensUnion (l1',l2') ->
+            LensUnion (LensInverse l1', LensInverse l2')
+          | LensCompose (l1',l2') ->
+            LensCompose (LensInverse l2', LensInverse l1')
+          | LensIterate l'' ->
+            LensIterate (LensInverse l'')
+          | LensIdentity r ->
+            LensIdentity r
+          | LensInverse l'' ->
+            l''
+          | LensVariable _ ->
+            l
+        end
+      | _ -> l
+    end
+  in
+  apply_at_every_level_lens distribute_inverses_current_level
+
 
 let simplify_lens : lens -> lens =
   let maximally_factor_lens : lens -> lens =
@@ -264,36 +293,6 @@ let simplify_lens : lens -> lens =
       end
     in
     apply_at_every_level_lens clean_identities_single_level
-  in
-
-  let distribute_inverses : lens -> lens =
-    let distribute_inverses_current_level (l:lens) : lens =
-      begin match l with
-        | LensInverse l' ->
-          begin match l' with
-            | LensConst (s1,s2) ->
-              LensConst(s2,s1)
-            | LensConcat (l1',l2') ->
-              LensConcat (LensInverse l1', LensInverse l2')
-            | LensSwap (l1',l2') ->
-              LensSwap (LensInverse l2', LensInverse l1')
-            | LensUnion (l1',l2') ->
-              LensUnion (LensInverse l1', LensInverse l2')
-            | LensCompose (l1',l2') ->
-              LensCompose (LensInverse l2', LensInverse l1')
-            | LensIterate l'' ->
-              LensIterate (LensInverse l'')
-            | LensIdentity r ->
-              LensIdentity r
-            | LensInverse l'' ->
-              l''
-            | LensVariable _ ->
-              l'
-          end
-        | _ -> l
-      end
-    in
-    apply_at_every_level_lens distribute_inverses_current_level
   in
 
   let identify_identity_consts : lens -> lens =

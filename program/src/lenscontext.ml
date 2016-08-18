@@ -18,6 +18,7 @@ module type LensContext_Sig = sig
     val create_from_list_exn     : (id * lens * regex * regex) list -> t
     val shortest_path_exn        : t -> id -> id -> lens
     val shortest_path_to_rep_elt : t -> id -> (id * lens)
+    val autogen_id_from_base     : t -> string -> id
     val autogen_id               : t -> lens -> id
     val autogen_fresh_id         : t -> id
 end
@@ -147,31 +148,43 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
     let shortest_path = shortest_path_exn lc regex_name rep_element in
     (rep_element,shortest_path)
 
+  let autogen_id_from_base (lc:t) (base:string) : id =
+    let rec fresh nopt =
+      let (x,next) =
+        begin match nopt with
+          | None -> (base,Some 1)
+          | Some n -> (Printf.sprintf "%s%d" base n, Some (n+1))
+        end
+      in
+      begin match Dict.find x lc.defs with
+        | Some _ -> fresh next
+        | None -> x
+      end
+    in
+    fresh None
+
   let autogen_id (lc:t) (l:lens) : id =
     let base = string_of_lens l in
-    let rec fresh n =
-      let x = Printf.sprintf "%s%d" base n in
+    let rec fresh nopt =
+      let (x,next) =
+        begin match nopt with
+          | None -> (base,Some 1)
+          | Some n -> (Printf.sprintf "%s%d" base n, Some (n+1))
+        end
+      in
       begin match Dict.find x lc.defs with
         | Some (l',_,_) ->
           if l = l' then
             x
           else
-            fresh (n+1)
+            fresh next
         | _ -> x
       end
     in
-    fresh 1
+    fresh None
       
   let autogen_fresh_id (lc:t) : id =
-    let base = "l" in
-    let rec fresh n =
-      let x = Printf.sprintf "%s%d" base n in
-      begin match Dict.find x lc.defs with
-        | Some _ -> fresh (n+1)
-        | None -> x
-      end
-    in
-    fresh 1
+    autogen_id_from_base lc "l"
 end
 
 module LensContext = LensContext_Struct(ListDictionary)

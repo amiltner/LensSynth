@@ -1,4 +1,5 @@
 %{
+open String_utilities
 open Lang
 %}
 
@@ -116,8 +117,6 @@ example:
 
 str:
   | s=STR
-    { Str.global_replace (Str.regexp "\\\\\\\\") "\\\\"
-      (Str.global_replace (Str.regexp "\\\\n") "\n"
-      (Str.global_replace (Str.regexp "\\\\\"") "\"" s)) }
+    { undelimit_string s }
 
 (***** }}} *****)
