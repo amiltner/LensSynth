@@ -1,4 +1,4 @@
-CFLAGS := -w,@A,-w,-4,-w,-44,-w,-48,-w,-26
+CFLAGS := -w,+A,-w,-4,-w,-44,-w,-48,-w,-26
 OCBFLAGS := -cflags $(CFLAGS)
 OCB := ocamlbuild $(OCBFLAGS)
 
