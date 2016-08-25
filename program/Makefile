@@ -1,6 +1,10 @@
-CFLAGS := -w,+A,-w,-4,-w,-44,-w,-48,-w,-26
+CFLAGS := -w,@A,-w,-4,-w,-44,-w,-48,-w,-26,-w,-41
 OCBFLAGS := -cflags $(CFLAGS)
 OCB := ocamlbuild $(OCBFLAGS)
+
+CFLAGS_WOFF := -w,-A
+OCBFLAGS_WOFF := cflags $(CFLAGS_WOFF)
+OCB_WOFF := ocamlbuild $(OCBFLAGS_WOFF)
 
 .PHONY: all debug clean top profile unittest functionaltest test
 
