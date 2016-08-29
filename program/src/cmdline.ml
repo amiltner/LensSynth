@@ -128,10 +128,10 @@ let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
       print_endline (s ^ ":");
       begin match lo with
       | None -> print_endline "no lens found"
-      | Some ls -> print_endline (string_of_lens ls);
+      | Some ls -> print_endline (lens_to_string ls);
         let (t1,t2) = type_lens lc ls in
-        print_endline (string_of_regex t1);
-        print_endline (string_of_regex t2)
+        print_endline (regex_to_string t1);
+        print_endline (regex_to_string t2)
       end)
     lss
 

@@ -56,7 +56,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
           | ERegExConcat (er1,er2,_) ->
             let rc_swapsecond = (fun _ _ -> er2) in
             [r1_start_ref, (s,er1,rc_swapsecond::rc,is,so)]
-          | _ -> failwith (Pp.pp_exampled_regex er)
+          | _ -> failwith "i am a bad programmer"
           end
         else
           [r1_start_ref, (s,er,rc,is,so)]) in
@@ -103,7 +103,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
                   ERegExOr (er1,er2',is::il)) in
               [(r1_start_ref, (s,er1,rc_left::rc,is,so))
               ;(r2_start_ref, (s,er2,rc_right::rc,is,so))]
-          | _ -> failwith (Pp.pp_exampled_regex er)
+          | _ -> failwith "bad programming error" 
           end
         else
           [(r1_start_ref, (s,er,rc,is,so))
@@ -149,7 +149,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
                 (fun _ er'' ->
                   ERegExStar (er'',is::il)) in
                 [(inner_end_ref,(s,er',rc_add_star::rc,-1::is,so))]
-            | _ -> failwith (s ^ " " ^ (Pp.pp_exampled_regex er))
+            | _ -> failwith "error between keyboard and chair"
             end)
         else
           (fun x -> [(inner_end_ref,x)])
@@ -168,7 +168,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
                 begin match er' with
                 | ERegExVariable (t,l,il) -> ERegExVariable
                     (t,(String.chop_suffix_exn ~suffix:s' s)::l,is::il)
-                | _ -> failwith (Pp.pp_exampled_regex er')
+                | _ -> failwith "anders < dumpster"
                 end)::rc,is,Some s))]
           )
         else

@@ -164,7 +164,7 @@ module LensContext_Struct (Dict : Dictionary) : LensContext_Sig = struct
     fresh None
 
   let autogen_id (lc:t) (l:lens) : id =
-    let base = string_of_lens l in
+    let base = lens_to_string l in
     let rec fresh nopt =
       let (x,next) =
         begin match nopt with

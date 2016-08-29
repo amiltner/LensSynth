@@ -53,7 +53,7 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
       insert_list_exn empty nral
 
     let autogen_id (rc:t) (r:regex) : id =
-      let base = string_of_regex r in
+      let base = regex_to_string r in
       let rec fresh n =
         let x = Printf.sprintf "%s%d" base n in
         begin match Dict.find x rc with

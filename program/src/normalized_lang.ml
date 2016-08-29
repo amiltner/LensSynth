@@ -2,8 +2,10 @@ open Core.Std
 open Util
 open Permutation
 open Lang
+open String_utilities
 
 
+(**** Exampled Regex {{{ *****)
 
 type exampled_regex =
   | ERegExEmpty
@@ -72,7 +74,34 @@ let extract_example_list (er:exampled_regex) : int list list =
   | ERegExVariable (_,_,ill) -> ill
   end
 
+let rec exampled_regex_to_string (r:exampled_regex) : string =
+  begin match r with
+  | ERegExBase (s,ill) -> paren (s ^ string_of_int_list_list ill)
+  | ERegExConcat (r1,r2,ill) ->
+    paren
+      ((exampled_regex_to_string r1)
+       ^ (exampled_regex_to_string r2)
+       ^ string_of_int_list_list ill)
+  | ERegExOr (r1,r2,ill) ->
+    paren(
+        paren (exampled_regex_to_string r1)
+      ^ "+"
+      ^ paren (exampled_regex_to_string r2)
+      ^ string_of_int_list_list ill)
+  | ERegExStar (r',ill) ->
+    paren (paren (exampled_regex_to_string r') ^ "*" ^ string_of_int_list_list ill)
+  | ERegExVariable (s,ss,ill) -> paren (s ^ (bracket (
+      String.concat
+        ~sep:";"
+        ss) ^ string_of_int_list_list ill))
+  | ERegExEmpty -> "{}"
+  end
 
+
+(***** }}} *****)
+
+
+(**** Exampled DNF Regex {{{ *****)
 
 type exampled_atom =
   | EAVariable of string * string * lens * string list * int list list
@@ -82,6 +111,44 @@ and exampled_clause = (exampled_atom) list * string list * (int list list)
 
 and exampled_dnf_regex = exampled_clause list * int list list
 
+let rec exampled_dnf_regex_to_string ((r,ill):exampled_dnf_regex) : string =
+  paren ((String.concat
+  ~sep:" + "
+  (List.map ~f:exampled_clause_to_string r)) ^ "," ^ (string_of_int_list_list ill))
+
+and exampled_clause_to_string ((atoms,strings,examples):exampled_clause) : string =
+  paren (bracket (
+    String.concat
+    ~sep:";"
+    (List.map ~f:exampled_atom_to_string atoms)))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+    strings))
+  ^ "," ^
+  (bracket (
+    String.concat
+    ~sep:";"
+
+    (List.map ~f:
+          (fun il -> bracket (String.concat ~sep:";"
+          (List.map ~f:string_of_int il)))
+          examples)))
+
+and exampled_atom_to_string (a:exampled_atom) : string =
+  begin match a with
+  | EAVariable (s,_,_,sl,ill) -> paren (
+      s ^ "," ^
+      bracket (
+        String.concat
+        ~sep:";"
+        sl) ^ "," ^ string_of_int_list_list ill
+      )
+  | EAStar (r,ill) -> (paren ((exampled_dnf_regex_to_string r) ^ (string_of_int_list_list ill))) ^ "*"
+  end
+
+(***** }}} *****)
 
 type ordered_exampled_atom =
   | OEAUserDefined of string * string * lens * string list
@@ -184,42 +251,8 @@ and to_ordered_exampled_dnf_regex ((r,_):exampled_dnf_regex)
     compare_ordered_exampled_clauses
     ordered_clauses
 
-(*let rec ordered_exampled_atom_to_atom
-  (a:ordered_exampled_atom)
-  : atom =
-    begin match a with
-    | OEAMappedUserDefined t -> AMappedUserDefined t
-    | OEAStar r -> AStar (ordered_exampled_dnf_regex_to_dnf_regex r)
-    | OEAUserDefined (t,_) -> AUserDefined t
-    end
 
-and ordered_exampled_clause_to_clause
-  ((c,ss,_):ordered_exampled_clause)
-  : clause =
-    let flattened_data = List.concat c in
-    let unordered_atoms =
-      List.sort ~cmp:(fun (_,i) (_,j) -> compare i j)
-      flattened_data
-    in
-    (List.map
-      ~f:(fun (a,_) -> ordered_exampled_atom_to_atom a)
-      unordered_atoms
-    ,ss)
-
-and ordered_exampled_dnf_regex_to_dnf_regex
-  (r:ordered_exampled_dnf_regex)
-  : dnf_regex =
-    let flattened_data = List.concat r in
-    let unordered_clauses =
-      List.sort ~cmp:(fun (_,i) (_,j) -> compare i j)
-      flattened_data
-    in
-    List.map
-      ~f:(fun (c,_) -> ordered_exampled_clause_to_clause c)
-      unordered_clauses
-*)
-
-
+(**** DNF Lens {{{ *****)
 
 type atom_lens =
   | AtomLensIterate of dnf_lens
@@ -229,8 +262,42 @@ and clause_lens = atom_lens list * Permutation.t * string list * string list
 
 and dnf_lens = clause_lens list * Permutation.t
 
+let rec dnf_lens_to_string ((clause_lenses, permutation):dnf_lens) : string =
+  let atom_lens_to_string (a:atom_lens) : string =
+    begin match a with
+    | AtomLensIterate l -> "iterate" ^ (paren (dnf_lens_to_string l))
+    | AtomLensVariable lc -> "librarycall(" ^ (lens_to_string lc) ^ ")"
+    end in
+  let clause_lens_to_string ((atomls,permutation,strings1,strings2):clause_lens) : string =
+    paren (
+      paren (
+        String.concat (List.map ~f:atom_lens_to_string atomls) ~sep:","
+      )
+      ^ " , " ^
+      paren (
+        Permutation.pp permutation
+      )
+      ^ " , " ^
+      paren (
+        String.concat (List.map ~f:(fun x -> "'"^x^"'") strings1) ~sep:","
 
+      )
+      ^ " , " ^
+      paren (
+        String.concat (List.map ~f:(fun x -> "'"^x^"'") strings2) ~sep:","
+      )
+    ) in
+  paren (
+    String.concat (List.map ~f:clause_lens_to_string clause_lenses) ~sep:","
+  )
+  ^ " , " ^
+  paren (
+    Permutation.pp permutation
+  )
 
+(***** }}} *****)
+
+(**** DNF Regex {{{ *****)
 
 type atom =
   | AUserDefined of string
@@ -290,6 +357,24 @@ and compare_clauses ((atoms1,_):clause) ((atoms2,_):clause) : comparison =
 
 and compare_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : comparison =
   ordered_partition_order compare_clauses r1 r2
+
+
+
+let rec dnf_regex_to_string (clauses:dnf_regex) : string =
+  (String.concat (List.map ~f:(fun c -> paren (clause_to_string c)) clauses) ~sep:"+")
+
+and clause_to_string ((atoms,strings):clause) : string =
+  paren ((paren (String.concat (List.map ~f:atom_to_string atoms) ~sep:","))
+    ^ ","
+    ^ (paren (String.concat strings ~sep:",")))
+
+and atom_to_string (a:atom) : string =
+  begin match a with
+  | AStar dnf_rx -> (paren (dnf_regex_to_string dnf_rx)) ^ "*"
+  | AUserDefined s -> s
+  end
+
+(***** }}} *****)
 
 
 

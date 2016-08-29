@@ -62,13 +62,13 @@ let rec apply_at_every_level_regex (f:regex -> regex) (r:regex) : regex =
   in
   f r
 
-let rec string_of_regex (r:regex) : string =
+let rec regex_to_string (r:regex) : string =
   begin match r with
   | RegExEmpty -> "{}"
   | RegExBase s -> "\"" ^ s ^ "\""
-  | RegExConcat (r1,r2) -> paren ((string_of_regex r1) ^ "" ^ (string_of_regex r2))
-  | RegExOr (r1,r2) -> paren ((string_of_regex r1) ^ "|" ^ (string_of_regex r2))
-  | RegExStar (r') -> paren (string_of_regex r') ^ "*"
+  | RegExConcat (r1,r2) -> paren ((regex_to_string r1) ^ "" ^ (regex_to_string r2))
+  | RegExOr (r1,r2) -> paren ((regex_to_string r1) ^ "|" ^ (regex_to_string r2))
+  | RegExStar (r') -> paren (regex_to_string r') ^ "*"
   | RegExVariable s -> s
   end
 
@@ -111,16 +111,16 @@ let create_plus_lens (l1:lens) (l2:lens) : lens =
 let create_times_lens (l1:lens) (l2:lens) : lens =
   LensConcat (l1,l2)
 
-let rec string_of_lens (l:lens) : string =
+let rec lens_to_string (l:lens) : string =
   begin match l with
   | LensConst (s1,s2) -> "const('" ^ s1 ^ "','" ^ s2 ^ "')"
-  | LensConcat (l1,l2) -> paren ((string_of_lens l1) ^ "." ^ (string_of_lens l2))
-  | LensCompose (l1,l2) -> paren ((string_of_lens l1) ^ ";" ^ (string_of_lens l2))
-  | LensSwap (l1,l2) -> "swap(" ^ (string_of_lens l1) ^ "," ^ (string_of_lens l2) ^ ")"
-  | LensUnion (l1,l2) -> paren ((string_of_lens l1) ^ "|" ^ (string_of_lens l2))
-  | LensIterate (l') -> paren (string_of_lens l') ^ "*"
-  | LensIdentity r -> "id(" ^ (string_of_regex r) ^")"
-  | LensInverse l' -> "inverse(" ^ (string_of_lens l') ^ ")"
+  | LensConcat (l1,l2) -> paren ((lens_to_string l1) ^ "." ^ (lens_to_string l2))
+  | LensCompose (l1,l2) -> paren ((lens_to_string l1) ^ ";" ^ (lens_to_string l2))
+  | LensSwap (l1,l2) -> "swap(" ^ (lens_to_string l1) ^ "," ^ (lens_to_string l2) ^ ")"
+  | LensUnion (l1,l2) -> paren ((lens_to_string l1) ^ "|" ^ (lens_to_string l2))
+  | LensIterate (l') -> paren (lens_to_string l') ^ "*"
+  | LensIdentity r -> "id(" ^ (regex_to_string r) ^")"
+  | LensInverse l' -> "inverse(" ^ (lens_to_string l') ^ ")"
   | LensVariable n -> n
   end
 

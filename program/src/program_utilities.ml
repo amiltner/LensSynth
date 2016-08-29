@@ -18,7 +18,7 @@ let run_declaration
       if fast_eval rc r s then
         (rc,lc,d)
       else
-        failwith (s ^ " does not match regex " ^ (string_of_regex r))
+        failwith (s ^ " does not match regex " ^ (regex_to_string r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
