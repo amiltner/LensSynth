@@ -115,12 +115,12 @@ let assert_id_lens_equal =
 
 let assert_boom_statement_equal =
   assert_equal
-    ~printer:Pp_as_boom.pp_statement
+    ~printer:Pp.pp_statement
 
 let assert_boom_expression_equal =
   assert_equal
-    ~printer:Pp_as_boom.pp_expression
+    ~printer:Pp.pp_expression
 
 let assert_boom_program_equal =
   assert_equal
-    ~printer:Pp_as_boom.pp_program
+    ~printer:Pp.pp_program

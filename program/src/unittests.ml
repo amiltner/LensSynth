@@ -1227,8 +1227,6 @@ let lens_putl_suite = "lens_putl Unit Tests" >:::
 
 let _ = run_test_tt_main lens_putl_suite
 
-(* TODO: add in test for lens context nonempty *)
-
 let test_gen_dnf_lens_const_nosoln _ =
   assert_dnf_lens_option_equal
     None
