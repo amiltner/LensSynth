@@ -9,11 +9,13 @@ Quick and Dirty Installation Instructions
 -----------------------------------------
 opam install core
 opam install menhir
+opam install ounit
+pip install EasyProcess
 make
 
 Example Execution
 -----------------
-TODO
+./cmdline.native /path/to/test/directory
 
 Test Locations
 --------------

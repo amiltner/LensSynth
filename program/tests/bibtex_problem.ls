@@ -5,14 +5,14 @@ typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
 
 typedef STARTTOEND = (NAME WSP)* NAME;;
 
-typedef BIBTEXAUTHORLIST = LASTCOMMASTART (WSP "and" WSP LASTCOMMASTART)*;;
+typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
 typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
 
 typedef AUTAG = "au - ";;
 typedef TITAG = "ti - ";;
 typedef JOTAG = "jo - ";;
 
-typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND (WSP "\n" WSP AUTAG STARTTOEND)*;;
+typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
 
 typedef TITLE = NAME (WSP NAME)*;;
 typedef BIBTEXTITLE = "title={" TITLE "}";;
@@ -23,12 +23,13 @@ typedef BIBTEXJOURNAL = "journal={" JOURNAL "}";;
 typedef TAGGEDJOURNAL = JOTAG JOURNAL;;
 
 typedef FULLBIBTEX = "{" ((BIBTEXJOURNAL | BIBTEXAUTHORINFO | BIBTEXTITLE)",")* "}";;
-typedef FULLTAGS = . | ((TAGGEDAUTHORDEFNS | TAGGEDTITLE | TAGGEDJOURNAL)(("\n" (TAGGEDAUTHORDEFNS | TAGGEDTITLE | TAGGEDJOURNAL))*)) ;;
+typedef FULLTAGS = . | ((TAGGEDAUTHORDEFNS | TAGGEDTITLE | TAGGEDJOURNAL)
+(("\n" (TAGGEDAUTHORDEFNS | TAGGEDTITLE | TAGGEDJOURNAL))*)) ;;
 
 bibtex_to_readable_au = [BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
 {"author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron}" <->
-"au - Nathan Foster 
- au - Benjamin Pierce 
+"au - Nathan Foster
+ au - Benjamin Pierce
  au - Aaron Bohannon"}]
 
 bibtext_to_readable_title = [BIBTEXTITLE <=> TAGGEDTITLE
