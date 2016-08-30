@@ -22,8 +22,7 @@ typedef LETTER_ADDRESS = (NAME " " NAME "\n" NUMBER " " STREETNAME "\n"
 			(UPPERCASE (LOWERCASE)*) ", " STATE " " " " ZIP) ;;
 
 typedef CSV_ADDRESS_DATABASE = CSV_ADDRESS*;;
-typedef LETTER_ADDRESS_LIST = . | LETTER_ADDRESS |
-	(LETTER_ADDRESS "\n\n" LETTER_ADDRESS ("\n\n" LETTER_ADDRESS)*);;
+typedef LETTER_ADDRESS_LIST = . | (LETTER_ADDRESS  ("\n\n" LETTER_ADDRESS)*);;
 
 csv_to_letter = [CSV_ADDRESS_DATABASE <=> LETTER_ADDRESS_LIST
 {"Miltner,Anders,NJ,08544,Princeton,88,College Road West
@@ -37,7 +36,8 @@ Susan Miltner
 610 Via Casitas
 Greenbrae, CA  94904"}]
 
-test csv_to_letter {"Miltner,Anders,NJ,08544,Princeton,88,College Road West
+test csv_to_letter
+{"Miltner,Anders,NJ,08544,Princeton,88,College Road West
 Miltner,Susan,CA,94904,Greenbrae,610,Via Casitas
 " <-> 
 "Anders Miltner
@@ -46,4 +46,10 @@ Princeton, NJ  08544
 
 Susan Miltner
 610 Via Casitas
-Greenbrae, CA  94904"};;
+Greenbrae, CA  94904",
+"" <-> "",
+"Miltner,Anders,WA,98122,Seattle,1620,Melrose Avenue
+" <->
+"Anders Miltner
+1620 Melrose Avenue
+Seattle, WA  98122"};;

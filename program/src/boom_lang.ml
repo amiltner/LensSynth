@@ -108,7 +108,11 @@ let replace_inverted_lens_variables
     : lens =
     begin match l with
       | LensInverse(LensVariable n) ->
-        LensVariable (List.Assoc.find_exn inverted_map n)
+        begin match List.Assoc.find inverted_map n with
+          | None ->
+            l
+          | Some v -> LensVariable v
+        end
       | _ -> l
     end
   in

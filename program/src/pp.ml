@@ -98,7 +98,7 @@ let rec boom_fpf_lens
           boom_fpf_lens (this_lvl, l1, false, true)
           boom_fpf_lens (this_lvl, l2, false, true)
       else
-        fpf ppf "@[<hv 0>%a@ . %a@]"
+        fpf ppf "@[<hv 2>%a@ . %a@]"
           boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, false, true)
     | LensSwap(l1,l2) ->
@@ -107,11 +107,11 @@ let rec boom_fpf_lens
         boom_fpf_lens (this_lvl+1, l2, false, false)
     | LensUnion(l1,l2) ->
       if or_seq then
-        fpf ppf "@[<hv -2>%a@ || %a@]"
+        fpf ppf "@[<hv -3>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, true, false)
           boom_fpf_lens (this_lvl, l2, true, false)
       else
-        fpf ppf "@[<hv 0>%a@ || %a@]"
+        fpf ppf "@[<hv 4>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, true, false)
     | LensCompose(l1,l2) ->
@@ -123,10 +123,8 @@ let rec boom_fpf_lens
         boom_fpf_lens (this_lvl, l', false, false);
     | LensIdentity r ->
       boom_fpf_regex ppf (this_lvl,r, false, false)
-    | LensInverse l' ->
-      fpf ppf "@[inverse %a@]"
-        boom_fpf_lens (this_lvl+1, l', false, false)
-      (*failwith "inverse doesn't exist in boom"*)
+    | LensInverse _ ->
+      failwith "inverse doesn't exist in boom"
     | LensVariable n ->
       fpf ppf "%a"
         ident

@@ -28,7 +28,7 @@ def find_tests(root):
 
 def gather_datum(prog, path, base):
     process_output = EasyProcess([prog] + BASE_FLAGS + [join(path, base + TEST_EXT)]).call(timeout=TIMEOUT)
-    return (process_output.stdout,process_output.stderr)
+    return (process_output.stdout,process_output.stderr,process_output.return_code)
 
 def run_boomerang():
     process_output = EasyProcess([BOOMERANG_COMMAND,TEMP_BOOM_FILENAME]).call(timeout=TIMEOUT)
@@ -36,8 +36,10 @@ def run_boomerang():
 
 def check_files(prog, path, base):
     test_name = join(path, base + TEST_EXT)
-    (datum,err) = gather_datum(prog, path, base)
-    if datum == "":
+    (datum,err,return_code) = gather_datum(prog, path, base)
+    if return_code != 0:
+        raise Exception(test_name + " failed with stdout:" + datum + "and stderr:" + err)
+    elif datum == "":
         if err == "":
 	    raise Exception("synthesis of " + test_name + " timed out")
         else:
@@ -67,7 +69,8 @@ def main(args):
                 for path, base in find_tests(path):
 		    check_files(prog, path, base)
             finally:
-                os.remove(TEMP_BOOM_FILENAME)
+                if os.path.exists(TEMP_BOOM_FILENAME):
+                    os.remove(TEMP_BOOM_FILENAME)
         else:
             try:
                 path, filename = os.path.split(path)

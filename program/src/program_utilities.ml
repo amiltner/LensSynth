@@ -31,8 +31,9 @@ let run_declaration
     | DeclTestLens (n,exs) ->
       List.iter
         ~f:(fun (lex,rex) ->
-            if lens_putr rc lc (LensVariable n) lex <> rex then
-              failwith "bad example"
+            let ans = lens_putr rc lc (LensVariable n) lex in
+            if ans <> rex then
+              failwith ("expected:" ^ rex ^ "got:" ^ ans)
             else
               ())
         exs;

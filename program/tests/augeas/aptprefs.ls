@@ -8,10 +8,10 @@ typedef EXPLANATION_DICT = "{\"Explanation\"=\""STRING"\"}";;
 test EXPLANATION_DICT matches "{\"Explanation\"=\"Backport packages are never prioritary\"}";;
 
 
-typedef PACKAGE_CONF = "Package: " STRING;;
+typedef PACKAGE_CONF = "Package: " (STRING | "*");;
 test PACKAGE_CONF matches "Package: *";;
 
-typedef PACKAGE_DICT = "{\"Package\"=\"" STRING "\"}";;
+typedef PACKAGE_DICT = "{\"Package\"=\"" (STRING|"*") "\"}";;
 test PACKAGE_DICT matches "{\"Package\"=\"*\"}";;
 
 
