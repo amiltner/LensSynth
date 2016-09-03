@@ -4,3 +4,9 @@ typedef C = "m" | "n";;
 typedef D = "t" | "w";;
 
 x = [A | B <=> C | D {}]
+
+test x
+{
+"x" <-> "m",
+"z" <-> "t"
+};;
