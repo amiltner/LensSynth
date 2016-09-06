@@ -334,7 +334,7 @@ let test_insert_same =
 
 let test_insert_conflicted _ =
   assert_raises
-    (Failure "bad insert")
+    (Failure (test_rxc_concrete_name ^ " already exists in the context"))
     (fun _ ->
        RegexContext.insert_exn
          test_rxc_context

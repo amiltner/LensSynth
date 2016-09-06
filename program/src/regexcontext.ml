@@ -40,7 +40,7 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
             if ra = (r,is_abstract) then
               rc
             else
-              failwith (name ^ "conflicts already exists in the context")
+              failwith (name ^ " already exists in the context")
       end
 
     let insert_list_exn (rc:t) (nral:(id * regex * bool) list) : t =
