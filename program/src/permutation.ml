@@ -204,8 +204,18 @@ module Permutation : Permutation_Sig = struct
     in
     permutations (range 0 (n-1))
 
-  let inverse (_:t) : t =
-    failwith "TODO"
+  let inverse (p:t) : t =
+    let mapped_doubles =
+      List.mapi
+        ~f:(fun y x -> (x,y))
+        p
+    in
+    let sorted_doubles =
+      List.sort
+        ~cmp:(fun (x1,_) (x2,_) -> x2 - x1)
+        mapped_doubles
+    in
+    List.map ~f:snd sorted_doubles
 
   let apply (permutation:t) (n:int) =
     let rec find x lst =
@@ -303,16 +313,5 @@ module Permutation : Permutation_Sig = struct
               ,to_swap_concat_compose_tree l1)
       end
 
-  let to_int_list (p:t) : int list =
-    let mapped_doubles =
-      List.mapi
-        ~f:(fun y x -> (x,y))
-        p
-    in
-    let sorted_doubles =
-      List.sort
-        ~cmp:(fun (x1,_) (x2,_) -> x2 - x1)
-        mapped_doubles
-    in
-    List.map ~f:snd sorted_doubles
+  let to_int_list : t -> int list = inverse
 end
