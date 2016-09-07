@@ -15,6 +15,14 @@ let rec size_scct (scct:swap_concat_compose_tree) : int =
   | SCCTLeaf -> 1
   end
 
+let rec has_compose (scct:swap_concat_compose_tree) : bool =
+  begin match scct with
+    | SCCTSwap (s1,s2) -> (has_compose s1) || (has_compose s2)
+    | SCCTConcat (s1,s2) -> (has_compose s1) || (has_compose s2)
+    | SCCTCompose _ -> true
+    | SCCTLeaf -> false
+  end
+
 let rec pp_swap_concat_compose_tree (scct:swap_concat_compose_tree)
   : string =
     begin match scct with
@@ -50,6 +58,8 @@ module type Permutation_Sig = sig
   val create_from_constraints : int -> (int * int) list
                                     -> (int * int) list -> (t * ((int * int) list)) option
 
+  val inverse : t -> t
+
   val create_all : int -> t list
 
   val apply : t -> int -> int
@@ -63,6 +73,8 @@ module type Permutation_Sig = sig
   val to_swap_concat_compose_tree : t -> swap_concat_compose_tree
 
   val pp : t -> string
+
+  val to_int_list : t -> int list
 end
 
 module Permutation : Permutation_Sig = struct
@@ -192,6 +204,9 @@ module Permutation : Permutation_Sig = struct
     in
     permutations (range 0 (n-1))
 
+  let inverse (_:t) : t =
+    failwith "TODO"
+
   let apply (permutation:t) (n:int) =
     let rec find x lst =
       begin match lst with
@@ -288,6 +303,16 @@ module Permutation : Permutation_Sig = struct
               ,to_swap_concat_compose_tree l1)
       end
 
-
-    
+  let to_int_list (p:t) : int list =
+    let mapped_doubles =
+      List.mapi
+        ~f:(fun y x -> (x,y))
+        p
+    in
+    let sorted_doubles =
+      List.sort
+        ~cmp:(fun (x1,_) (x2,_) -> x2 - x1)
+        mapped_doubles
+    in
+    List.map ~f:snd sorted_doubles
 end

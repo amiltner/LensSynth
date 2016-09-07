@@ -3,6 +3,7 @@ open String_utilities
 open Lang
 open Format
 open Boom_lang
+open Permutation
 
 (***** Helpers  *****)
 
@@ -35,6 +36,7 @@ let prec_of_lens (l:lens) =
     | LensCompose   _ -> 112
     | LensConst("",_) -> 112
     | LensConst(_,"") -> 112
+    | LensPermute   _ -> 112
     | LensConcat    _ -> 100
     | LensConst     _ -> 100
     | LensUnion     _ -> 75
@@ -129,6 +131,13 @@ let rec boom_fpf_lens
       fpf ppf "%a"
         ident
         n
+    | LensPermute(p,ls) ->
+      fpf ppf "@[<hv 2>lens_permute@ #{int}%a@ #{lens}[%a]@]"
+        ident (String_utilities.string_of_int_list (Permutation.to_int_list p))
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf _ -> fpf ppf "%a" ident ";")
+           (fun ppf l -> boom_fpf_lens ppf (0,l,false,false)))
+        ls
   end;
   (if this_lvl < lvl then fpf ppf ")")
 

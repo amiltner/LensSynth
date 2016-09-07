@@ -63,6 +63,10 @@ let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
       | LensInverse(l') ->
         retrieve_inverses_of_lens_variables_in_lens_exn l'
       | LensVariable _ -> []
+      | LensPermute (_,ls) ->
+        List.concat_map
+          ~f:retrieve_inverses_of_lens_variables_in_lens_exn
+          ls
     end
   in
   List.dedup

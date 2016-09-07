@@ -461,8 +461,9 @@ and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
               remaining_left
               s2 in
           (LensConcat(l1,l2),remaining_total)
-      | SCCTCompose (s1,s2) ->
-          let s2size = size_scct s2 in
+      | SCCTCompose _ ->
+        failwith "compose is too ugly, should have failed faster"
+          (*let s2size = size_scct s2 in
           let identity_copies = duplicate (LensIdentity (RegExBase "TODO")) s2size in
           let (l1,_) =
             combine_scct_and_atom_lenses
@@ -472,7 +473,7 @@ and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
             combine_scct_and_atom_lenses
               atom_lenses
               s2 in
-          (LensCompose(l1,l2),remaining_total)
+            (LensCompose(l1,l2),remaining_total)*)
       | SCCTLeaf -> split_by_first_exn atom_lenses
       end
     in
@@ -500,10 +501,14 @@ and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
     | _ ->
       let permutation_scct =
         Permutation.to_swap_concat_compose_tree permutation in
-      LensConcat(string_lss_hd,
-        (fst (combine_scct_and_atom_lenses
-          atom_string_concats
-          permutation_scct)))
+      if has_compose permutation_scct then
+        LensConcat(string_lss_hd,
+                   LensPermute (permutation,atom_string_concats))
+      else
+        LensConcat(string_lss_hd,
+                   (fst (combine_scct_and_atom_lenses
+                           atom_string_concats
+                           permutation_scct)))
     end
 
 and dnf_lens_to_lens ((clauses,_):dnf_lens) : lens =

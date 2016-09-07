@@ -154,6 +154,25 @@ let split_at_index_exn (l:'a list) (i:int) : 'a list * 'a list =
   else
     split_at_index_exn_internal l i (fun x -> x)
 
+let fold_on_head_exn (f:'a -> 'a -> 'a) (l:'a list) : 'a =
+  let (h,t) = split_by_first_exn l in
+  List.fold_left
+    ~f:f
+    ~init:h
+    t
+
+let fold_on_head (f:'a -> 'a -> 'a) (l:'a list) : 'a option =
+  begin match l with
+    | [] -> None
+    | _ -> Some (fold_on_head_exn f l)
+  end
+
+let fold_on_head_with_default (f:'a -> 'a -> 'a) (d:'a) (l:'a list) : 'a =
+  begin match l with
+    | [] -> d
+    | _ -> fold_on_head_exn f l
+  end
+
 let weld_lists (f: 'a -> 'a -> 'a) (l1:'a list) (l2:'a list) : 'a list =
   let (head,torso1) = split_by_last_exn l1 in
   let (torso2,tail) = split_by_first_exn l2 in

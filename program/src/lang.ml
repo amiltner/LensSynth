@@ -1,6 +1,7 @@
 open Core.Std
 open Printf
 open String_utilities
+open Permutation
 
 
 
@@ -89,6 +90,7 @@ type lens =
   | LensIdentity of regex
   | LensInverse of lens
   | LensVariable of id
+  | LensPermute of Permutation.t * (lens list)
 
 
 let multiplicative_identity_lens = LensIdentity (multiplicative_identity_regex)
@@ -122,6 +124,11 @@ let rec lens_to_string (l:lens) : string =
   | LensIdentity r -> "id(" ^ (regex_to_string r) ^")"
   | LensInverse l' -> "inverse(" ^ (lens_to_string l') ^ ")"
   | LensVariable n -> n
+  | LensPermute (p,ls) -> "permute" ^
+                          ((String_utilities.string_of_double
+                              Permutation.pp
+                              (String_utilities.string_of_list lens_to_string))
+                             (p,ls))
   end
 
 (***** }}} *****)

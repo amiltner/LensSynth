@@ -3,6 +3,7 @@ open Util
 open Lang
 open Regexcontext
 open Regex_utilities
+open Permutation
 
 let rec apply_at_every_level_lens (f:lens -> lens) (l:lens) : lens =
   let l =
@@ -68,6 +69,13 @@ let rec make_lens_safe_in_smaller_context
   : lens =
   begin match l with
     | LensConst _ -> l
+    | LensPermute (p,ls) ->
+      let ls =
+        List.map
+          ~f:(make_lens_safe_in_smaller_context rc_smaller rc_larger)
+          ls
+      in
+      LensPermute (p,ls)
     | LensConcat (l1,l2) ->
       let l1 = make_lens_safe_in_smaller_context rc_smaller rc_larger l1 in
       let l2 = make_lens_safe_in_smaller_context rc_smaller rc_larger l2 in
@@ -118,6 +126,8 @@ let distribute_inverses : lens -> lens =
             l''
           | LensVariable _ ->
             l
+          | LensPermute (p,ls) ->
+            LensPermute (Permutation.inverse p, ls)
         end
       | _ -> l
     end
@@ -227,41 +237,40 @@ let simplify_lens : lens -> lens =
       let rec merge_ored_identities_internal
           (l:lens)
         : ((lens option) * (regex option)) =
+        let merge_ored_beneath (l:lens) : lens =
+          let (lo,ro) = merge_ored_identities_internal l in
+          or_lens_with_identity lo ro
+        in
         begin match l with
           | LensConst _ -> (Some l, None)
           | LensConcat (l1,l2) ->
-            let (l1o,r1o) = merge_ored_identities_internal l1 in
-            let (l2o,r2o) = merge_ored_identities_internal l2 in
-            let l1 = or_lens_with_identity l1o r1o in
-            let l2 = or_lens_with_identity l2o r2o in
+            let l1 = merge_ored_beneath l1 in
+            let l2 = merge_ored_beneath l2 in
             (Some (LensConcat (l1,l2)), None)
           | LensSwap (l1,l2) ->
-            let (l1o,r1o) = merge_ored_identities_internal l1 in
-            let (l2o,r2o) = merge_ored_identities_internal l2 in
-            let l1 = or_lens_with_identity l1o r1o in
-            let l2 = or_lens_with_identity l2o r2o in
+            let l1 = merge_ored_beneath l1 in
+            let l2 = merge_ored_beneath l2 in
             (Some (LensSwap (l1,l2)), None)
           | LensUnion (l1,l2) ->
             let (l1o,r1o) = merge_ored_identities_internal l1 in
             let (l2o,r2o) = merge_ored_identities_internal l2 in
             (or_lens_options l1o l2o, or_regex_options r1o r2o)
           | LensCompose (l1,l2) ->
-            let (l1o,r1o) = merge_ored_identities_internal l1 in
-            let (l2o,r2o) = merge_ored_identities_internal l2 in
-            let l1 = or_lens_with_identity l1o r1o in
-            let l2 = or_lens_with_identity l2o r2o in
+            let l1 = merge_ored_beneath l1 in
+            let l2 = merge_ored_beneath l2 in
             (Some (LensCompose (l1,l2)), None)
           | LensIterate l' ->
-            let (lo',ro') = merge_ored_identities_internal l' in
-            let l' = or_lens_with_identity lo' ro' in
+            let l' = merge_ored_beneath l' in
             (Some (LensIterate l'), None)
           | LensIdentity r ->
             (None, if r = RegExEmpty then None else Some r)
           | LensInverse l' ->
-            let (lo',ro') = merge_ored_identities_internal l' in
-            let l' = or_lens_with_identity lo' ro' in
+            let l' = merge_ored_beneath l' in
             (Some (LensInverse l'), None)
           | LensVariable _ -> (Some l, None)
+          | LensPermute (p,ls) ->
+            let ls = List.map ~f:merge_ored_beneath ls in
+            (Some (LensPermute (p,ls)), None)
         end
       in
       let (lo,ro) = merge_ored_identities_internal l in
