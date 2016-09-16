@@ -9,7 +9,7 @@ We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
 The synthesis algorithm is shown in a schematic diagram in 
 Figure~\ref{fig:synth-lens-schematic}.  The algorithm takes in a pair of
 regular expressions, and examples, and converts the regular expressions into
-DNF regular expressions, using \ToDNFRegex{}.
+DNF regular expressions, using $\ToDNFRegex{}$.
 These then get enqueued, and SynthDNFLens, where the bulk of the work
 occurs.
 
@@ -39,7 +39,7 @@ $\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRege
 $\Distance_{dist}$ captures how far apart the distribution of
 user defined regular expressions are.
 The distribution of user defined regular expressions can be viewed as an
-infinite dimensional free module over the integers, \Module{}.
+infinite dimensional vector space over the reals, $\VectorSpace{}$.
 The basis for this is $\SetOf{1*(\RegexVariable,n) | n\in\Nats, \RegexVariable
 \text{ is a user defined regular expression}}$
 DNF regular expressions with variables can map into this with a function by
@@ -54,7 +54,7 @@ The formal definition for this mapping is given by the function \GetDist{}.
 \GetDist(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}) &
 =\GetDist(\Atom_1)+\ldots+\GetDist(\Atom_n)\\
 \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
-\GetDist(\IterateLens{\DNFLens})&=\phi(\GetDist(\DNFLens))
+\GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
 \end{tabular}
 
 where $\phi$ is the linear map sending $1*(\RegexVariable,n)$ to
@@ -64,8 +64,8 @@ $1*(\RegexVariable,n+1)$
 Using this, we now have a mapping from regular expressions into the distribution
 of user defined regular exprssions.
 
-$\Distance_{dist}(\DNFRegex,\DNFRegexAlt)=\LOneNorm(\phi(\DNFRegex),\phi(\DNFRegexAlt))$
-where \LOneNorm{} is the taxicab metric on \Module{}.
+$\Distance(\DNFRegex,\DNFRegexAlt)=\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$
+where $\LOneNorm$ is the taxicab metric on $\VectorSpace{}$.
 The priority of a pair of DNF regular expressions, $(\DNFRegex{},\DNFRegexAlt{})$,
 is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*expansion_{count}$.
 Keeping track of expansion count is important as it allows for lower priority
@@ -111,7 +111,7 @@ we denote the dictionary ordering on lists of $As$, $\ListOf{\leq}$.
 
 \begin{definition}
   Given an ordering $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$,
-  and $\ListOf{a_1;\ldots;a_n}\in A \ListType$
+  and $\ListOf{a_1;\ldots;a_n}\in \ListTypeOf{A}$
   We define $\SortingOf{\leq}{\ListOf{a_1;\ldots;a_n}}$ as
   $\sigma \in \PermutationSetOf{n}$ where if $i\leq j$,
   then $a_{\sigma(i)} \leq a_{\sigma(j)}$.
@@ -145,6 +145,22 @@ we denote the dictionary ordering on lists of $As$, $\ListOf{\leq}$.
     $\StarOf{\DNFRegex} \AtomLeq \StarOf{\DNFRegexAlt}$
     if
     $\DNFRegex \DNFLeq \DNFRegexAlt$
+
+  \item 
+    $\DNFRegex \DNFEq \DNFRegexAlt$
+    if
+    $\DNFRegex \DNFLeq \DNFRegexAlt$ and $\DNFRegexAlt \DNFLeq \DNFRegex$.
+
+  \item
+    $\Sequence \SequenceEq \SequenceAlt$
+    if
+    $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt \SequenceLeq
+    \Sequence$.
+
+  \item
+    $\Atom \AtomEq \AtomAlt$
+    if
+    $\Atom \AtomLeq \AtomAlt$ and $\AtomAlt \AtomLeq \Atom$.
   \end{enumerate}
 \end{definition}
 
@@ -152,7 +168,7 @@ This allows us to put our DNF regular expressions into a more normal form.
 
 \begin{definition}
   \begin{enumerate}
-  \item A DNF regular expression $\DNFOf{Sequence_1;\ldots;\Sequence_n}$ is
+  \item A DNF regular expression $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ is
     \textit{normalized} if $i \leq j$ implies $\Sequence_1\SequenceLeq\Sequence_j$,
     and each $\Sequence_i$ is normalized.
   \item A sequence $\SequenceOf{\Atom_1;\ldots;\Atom_n}$ is \textit{normalized}
@@ -175,49 +191,95 @@ We can also easily normalize a DNF regular expression
   \item $\NormalizeOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}} =
     \SequenceOf{\String_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\String_n}$,
     where
-    $\sigma=\SortingOf{\SequenceLeq}
+    $\sigma=\SortingOf{\AtomLeq}
     {\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}$
   \item $\NormalizeOf{\StarOf{\DNFRegex}}=\StarOf{\NormalizeOf{\DNFRegex}}$
   \end{enumerate}
 \end{definition}
 
-Critically, the normalized form of the DNF regular expression, and the ordering
-on DNF regular expressions, are tied to the existance of a DNF Lens without
-rewrites.
-
 \begin{theorem}
-  $\NormalizeOf{\DNFRegex}\DNFLeq\NormalizeOf{\DNFRegexAlt}$ and
-  $\NormalizeOf{\DNFRegexAlt}\DNFLeq\NormalizeOf{\DNFRegex}$ if, and only
-  if, there exists a $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-  where $\DNFLens$ has no applications of a rewrite rule.
+  \begin{enumerate}
+  \item
+    If $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+    $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$ are normalized, and
+    $\DNFOf{\Sequence_1;\ldots;\Sequence_n}\DNFEq\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$
+    then
+    $n=m$ and
+    $\Sequence_i = \SequenceAlt_i$ for all $i\in\RangeIncInc{1}{n}$
+  \item
+    If $\NormalizeOf{\SequenceOf{\Atom_1;\ldots;\Atom_n}} \DNFEq
+    \NormalizeOf{\SequenceOf{\AtomAlt_1;\ldots;\AtomAlt_n}}$ then
+    $\NormalizeOf{\Atom_{\sigma_1(i)}} =
+    \NormalizeOf{\AtomAlt_{\sigma_2(i)}}$ for all $i$
+    where $\sigma_1 =
+    \SortingOf{\SequenceLeq}{\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}$
+    and $\sigma_2 =
+    \SortingOf{\DNFLeq}{\ListOf{\NormalizeOf{\AtomAlt_1};\ldots;\NormalizeOf{\AtomAlt_n}}}$
+  \item
+    tester
+   % If $\NormalizeOf{\StarOf{\DNFRegex}}\DNFEq\NormalizeOf{\StarOf{\DNFRegexAlt}}$
+  \end{enumerate}
 \end{theorem}
 
-This can be proven with mutual induction, proving similar statements for
-sequences and atoms.
+\begin{definition}
+  \begin{enumerate}
+  \item
+    Let
+    $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$
+    and
+    $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$
+    be two DNF regular expressions, where
+    $\NormalizeOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}} \DNFEq
+    \NormalizeOf{\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}$.
+    $\DNFLensSynthOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}}
+    {\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}=
+    (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)$
+    where
+    $\SequenceLens_i=\SequenceLensSynthOf{\Sequence_1}{\SequenceAlt_{\sigma(i)}}$
+    and
+    $\sigma=\SortingOf{\SequenceLeq}{\ListOf{\NormalizeOf{\Sequence_1};\ldots;\NormalizeOf{\Sequence_n}}}
+    \Compose
+    \SortingOf{\SequenceLeq}{\ListOf{\NormalizeOf{\SequenceAlt_1};\ldots;\NormalizeOf{\SequenceAlt_n}}}$
+  \item
+    Let
+    $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$
+    and
+    $\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$
+    be two sequences, where
+    $\NormalizeOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}} \SequenceEq
+    \NormalizeOf{\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}}$.
+    $\SequenceLensSynthOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}}
+    {\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}}=
+    (\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma)$
+    where
+    $\AtomLens_i=\AtomLensSynthOf{\Atom_1}{\AtomAlt_{\sigma(i)}}$
+    and
+    $\sigma=\SortingOf{\AtomLeq}{\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}
+    \Compose
+    \SortingOf{\SequenceLeq}{\ListOf{\NormalizeOf{\AtomAlt_1};\ldots;\NormalizeOf{\AtomAlt_n}}}$
+  \item
+    Let
+    $\StarOf{\DNFRegex}$
+    and
+    $\StarOf{\DNFRegexAlt}$
+    be two atoms, where
+    $\NormalizeOf{\StarOf{\DNFRegex}} \SequenceEq
+    \NormalizeOf{\StarOf{\DNFRegexAlt}}$.
+    $\AtomLensSynthOf{\StarOf{\DNFRegex}}
+    {\StarOf{\DNFRegexAlt}}=
+    \IterateLensOf{\DNFLensSynthOf{\DNFRegex}{\DNFRegexAlt}}$
+  \end{enumerate}
+\end{definition}
 
-Furthermore, two DNF regular expressions can be zipped together to form a
-DNF lens.  Consider $\DNFOf{\Sequence_{\sigma_1(0)};\ldots;\Sequence_{\sigma_1(n)}}$, and
-$\DNFOf{\SequenceAlt_{\sigma_2(0)};\ldots;\SequenceAlt_{\sigma_2(n)}}$, two normalized
-DNF regular expressions.  $\Sequence_{\sigma(0)}$ merely needs to be mapped to
-$\SequenceAlt_{\tau(0)}$.  Furthermore, the permutation mapping the two lenses
-merely needs to be $\sigma_1 \Compose \sigma_2^{-1}$
+\begin{theorem}
+  $\NormalizeOf{\DNFRegex}\DNFEq\NormalizeOf{\DNFRegexAlt}$
+  if, and only
+  if, there exists a $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+  where the typing of $\DNFLens\OfType\DNFRegex\Leftrightarrow\DNFRegexAlt$
+  has no applications of a rewrite rule.
+\end{theorem}
 
-We can use these orderings to find 
-
-Beyond that, we can use these orderings to find the lenses.
-If $\DNFOf{\Sequence_1;\ldots;\Sequence_n}\leq\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$,
-and $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}\leq\DNFOf{\Sequence_1;\ldots;\Sequence_n}$,
-then $\Sorting([\Sequence_1;\ldots;\Sequence_n])\leq\Sorting([\Sequence_1;\ldots;\Sequence_n])$
-using the dictionary ordering, which means that
-$\Sorting([\Sequence_1;\ldots;\Sequence_n])[i]\leq
-\Sorting([\SequenceAlt_1;\ldots;\SequenceAlt_n])[i]$ and
-$\Sorting([\SequenceAlt_1;\ldots;\SequenceAlt_n])[i]\leq
-\Sorting([\Sequence_1;\ldots;\Sequence_n])[i]$, which means that there is a
-sequence lens between them.
-\afm{I can keep going on about this stuff, should it go here?  Should I just make a brief claim
-about it and move on}
-
-Unfortunately, while this can find a well typed DNF regular expression, it doesn't
+Unfortunately, while this can find a well typed DNF lens, it doesn't
 necessarily find the one that matches the examples.  In the situation where
 there are multiple valid sorted orderings, there are multiple different lenses
 with potentially different semantics.  Instead of iterating through all the
@@ -237,7 +299,9 @@ the same number of times, and all the invariants must hold for each iterated par
 \end{enumerate}
 
 This is done by joining additional parsing information alongside the regular
-expression components.
+expression components, and creating an ordering on DNF Regular expressions
+with parsing information.\afm{This would be a really in depth thing to describe,
+worth going into?}
 
 %%% Local Variables:
 %%% TeX-master: "main"

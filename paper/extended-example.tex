@@ -1,9 +1,7 @@
 \section{Lens Synthesis by Example}
 
-\dpw{the lstlisting environment is drawing a line underneath the code.
-I don't want that.  we need to fix it but I'm focusing on writing.
-Also, it may be good to hack it so it can be in a backslash small font.
-There is perhaps another environment we could use -- a code environment.}
+\dpw{It may be good to hack lstlisting so it can be in a backslash small font.
+There is perhaps another environment we could use --- a code environment.}
 
 In order to explain the major components of our synthesis algorithm,
 we will consider a running example involving conversion between citations given
@@ -40,7 +38,7 @@ BibEnd : Bib <=> End = {
 \label{fig:bibend-spec}
 \end{figure}
 
-Figure~\cite{fig:bibend-spec} presents
+Figure~\ref{fig:bibend-spec} presents
 the user's specification of such a problem.  In general, such specifications are
 given by defining the source and target data formats~\footnote{Lenses
 operate both left-to-right and right-to-left, so both formats are sometimes
@@ -71,12 +69,12 @@ The simplest lens in the combinator language is the identity lens
 at type $R$,
 $\IdentityLensOf{R}$, which copies data matching regular expression $R$
 from source to target, and vice versa.  The
-constant lens $\ConstLens{\String_1}{\String_2}$, when operated left-to-right, 
+constant lens $\ConstLensOf{\String_1}{\String_2}$, when operated left-to-right, 
 replaces string $\String_1$ with $\String_2$, and when operated right-to-left,
 replaces string $\String_2$ with $\String_1$.
 
 Each of the other lenses manipulate structured data.  For instance,
-$\ConcatLens{\Lens_1}{\Lens_2}$
+$\ConcatLensOf{\Lens_1}{\Lens_2}$
 
 
 
@@ -94,141 +92,105 @@ the source of any lens in this problem, nor will \EndNote{} be able to be the
 target.
 This can be generalized for the sub-expressions of \BibTex{} and \EndNote{},  
 If, any user defined data type does not exist in the possible types of the
-other side, it must be expanded.
+other side, it must be expanded, shown in Figure~\ref{fig:expanded-defs}.
 
-FIGURE:
-Trees of user defined regular expressions, with red x's over those that must be
-removed.
+\begin{figure}
+  \Tree[.\textcolor{dkred}{\sout{\texttt{Bib}}}
+    [.\textcolor{dkred}{\sout{\texttt{BNames}}}
+      \texttt{Name}
+      [.\texttt{Names}
+        \texttt{Name} ]]]
+  \Tree[.\textcolor{dkred}{\sout{\texttt{End}}}
+    [.\textcolor{dkred}{\sout{\texttt{ENames}}}
+      \texttt{Name}
+      [.\texttt{Names}
+        \texttt{Name} ]]]
+\caption{Marking of Definitions which must be expanded}
+\label{fig:expanded-defs}
+\end{figure}
+
+                                
+Trees of user defined regular expressions,
+with those that must be replaced by their definitions crossed out.
 
 After completing these necessary expansions, the problem becomes synthesizing a
 lens between the regular expression
 \begin{lstlisting}
-Bib: ""   | ("author={" Name ", " Name Names (" and " (" Name ", " Name Names))* "},")
+Bib': ""   | ("author={" Name ", " Name Names (" and " (Name ", " Name Names))* "},")
 
-End: ("%A " (Name Names " " Name) "\n")*
+End': ("%A " (Name Names " " Name) "\n")*
 \end{lstlisting}
 and
 
-A basic synthesis approach from here will quickly fail.  Both \texttt{BibTex'}
-and \texttt{EndNote'} are of the form $\Regex_1\Concat\Regex_2$, but there is
+A basic type directed synthesis approach from here will quickly fail.
+Both \texttt{Bib'}
+and \texttt{End'} are of the form $\Regex_1\Concat\Regex_2$, but there is
 not a lens between \texttt{"\%0"} and
 \texttt{("@inproceedings" | "@article" | "@book")}.
 
 These issues can be handled by normalizing the regular expressions slightly.
 By putting them in a form that normalizes away the equivalences of
-associativity, distributivity, and \EmptyString{} identity.
-
-The normalized form of these equivalences is too long to be contained in this
-paper.  Instead, we will work through \afm{or should we just do the easier
-example shown above}.
-
-With those equivalences are handled, perhaps the lens can be synthesized.
-A lens can be synthesized, if there is some pairing of sequences such that
-there are sequence lenses between the two elements of the pair for all pairings.
-A sequence lens can be synthesized if there is some pairing of atoms, such that
-there is an atom lens between the two atoms.  An atom lens can be synthesized
-if the regular expressions the same user defined data type, or if there is a dnf
-lens between the two dnfs under the stars.
-
-FIGURE:
-
-"" | Author Author*
-
-AuthorEndNote*
-
-Looking at the number of sequences, we can easily see that these dnf regular
-expressions do not have a lens between them, without some rewrite rules applied.
-However, there are a large number of possible rewrite rules that can be applied.
-Instead of taking and testing all of them, each rewrite rule is applied, and
-then placed in a priority queue.
-The priority for each problem is a linear combination of the number of rewrites
-applied, and the distance between the two dnf regular expressions by a
-pseudometric.
-
-This pseudometric is defined as the sum of two metrics.
-The first metric is a standard distance metric over the size of the two dnf
-regular expressions.
-The second metric is defined based on the distribution of user defined regular
-expressions.
-We can create an infinite dimensional free module over the integers from the
-regular expressions, generated by the set $\SetOf{(U,i)\SuchThat U\text{is a
-user defined data type}\BooleanAnd i\in\Nats}$.
-We can provide a function $f$ that maps all regular expressions into the element
-which counts how many user defined data types there are at a given depth.
-\afm{i should probably write down this function with a mapsto style, instead of
-just through text}
-The second metric is the taxicab metric on the elements of the vector space
-mapped to by the regular expressions.
-
-FIGURE:
+associativity, distributivity, and \EmptyString{}.
 
 \begin{lstlisting}
-"" | (name,name) (name,name)* -> \{ ((Author,0),2) , ((Author,1),4) \}
-(name,name)* -> \{ ((name,1),2) \}
+DNFBib':
+  ""
+  | "author=" Name ", " Name "" Names ""
+    (" and " Name ", " Name "" Names "")* ""
 
-d("" | (name,name) (name,name)*,(name,name)*) =
-taxicab(\{ ((Author,0),2) , ((Author,1),4) \},other)+(8-2)
+DNFEnd':
+  "" ("%A " Name "" Names " " Name "\n")* ""
 \end{lstlisting}
 
-Empirically, good transformations, like (name,name)* -> (name,name)+
-do very well, giving a distance of zero, where bad transformations, like
-name -> [A-Z][a-z]* do not do as well.
+With those equivalences handled, one might think it is now possible to
+synthesize the lens.
+Unfortunately, we are still unable to preform any synthesis because the types
+on the left and right are quite different, and the lens connectives require
+similar types of the left and right.
+For example, as \texttt{DNFBib'} has an outer |, we know an or lens must be
+synthesized.
+However, an or lens requires an outer | on both sides, and \texttt{DNFEnd'} does
+not have any outer |.
 
-Using the priority queue, the problem that gets popped would be
-"" | (name,name) (name,name)* <=> "" | (name,name) (name,name)*.
-Unlike the previous example, this cannot be so easily determined to not be
-equivalent.
-
-A naive approach to this would be to attempt all possible pairings of sequences,
-and all pairings of atoms within those sequences.  However, the complexity of
-trying all permutations is (\# permutations)!.
-
-Instead, an ordering can be provided to atoms, clauses, and dnf regular
-expressions, where two elements are equal in the ordering if there exists a lens
-between them.  Upon applying that ordering to the elements of the dnf regular
-expression, determining whether there is a lens between two dnf regular
-expressions amounts to merely seeing if each element of the ordering is
-equal with respect to the ordering, as the one on the other side.
-
-FIGURE
-\begin{lstlisting}
-e | (n,n)(n,n)* <=> e | (n,n)(n,n)*
-reorder
-e | (n,n)(n,n)* <=> e | (n,n)(n,n)*
-matched together
-e <=> e , (n,n) <=> (n,n) , etc.
-\end{lstlisting}
-
-This still isn't complete yet, for we don't know if the generated lens will
-satisfy the examples.  The same problem arises with multiple permutations
-being possible.  If all the sequences can be mapped to each other, then there is
-a valid lens for each matching of the sequences!  And not all of these
-valid lenses satisfy the examples.
-To resolve this issue, we embed the parse trees of the examples into the
-regular expressions, and treat regular expressions with different aspects of the
-parse trees embedded as differently in the ordering.
-
-FIGURE
-e | name name(name, name)* , lalalaexample
+While, with normalization, certain equivalences have been handled, there are
+still many equivalences that haven't been handled.
+For example, the star in \texttt{End'} can be unrolled, turning \texttt{End'},
+and \texttt{DNFEnd'} into
 
 \begin{lstlisting}
- /\
-e  |
-   /\
- name *
-      .
-     /\
-   name name
+End'': "" | ("%A " (Name Names " " Name) "\n"
+("%A " (Name Names " " Name) "\n")*)
 
-lalaexample -> or2 (lala . Iterated(ex.am,p.le)
-
-combine to
-
-(the top thing but with the parse tree embedded alongside the expressions)
+DNFEnd'':
+  ""
+  | "%A " Name "" Names " " Name "\n"
+    ("%A " Name "" Names " " Name "\n")* ""
 \end{lstlisting}
 
+\texttt{DNFBib'} and \texttt{DNFEnd'} now look very similar.
+They both have an outer |, which has on one side a string, and on the other
+side, two instances of \texttt{Name}, and an instance of \texttt{Names} outside
+of any stars,
+with two instances of \texttt{Name}, and an instance of \texttt{Name} underneath
+a star.
+From this, a lens can easily be made.
 
+However, there is some element of choice in how the lens can be made.
+The outer \texttt{Name}s can each be sent to each other.
+and the inner \texttt{Name}s can each be sent to each other, so which
+should get sent to which.
+This can be determined from the examples.
+If the first \texttt{Name} in \texttt{DNFBib'} were sent to the first
+\texttt{Name} in \texttt{DNFEnd'}, then \texttt{Conway, John} would
+get mapped to \texttt{\%a Conway John}, which is inconsistent with the
+examples.
+The examples can be used, when this situation arises, to specify which parts
+of a regular expression can be mapped to which, when the types alone leave
+this ambiguous.
 
+\afm{I am not sure going into the metric and priority queue are worth going
+  into,
+  and least not here?}
 %%% Local Variables:
 %%% TeX-master: "main"
 %%% End:
