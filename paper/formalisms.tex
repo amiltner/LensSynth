@@ -5,7 +5,7 @@
 A \textit{character}, denoted \Character{} or \CharacterAlt{}, is a symbol.
 An \textit{alphabet}, denoted \Alphabet{}, is set of characters.
 A \textit{string}, denoted \String{} or \StringAlt{}, is a sequence of characters.
-The empty sequence is denoted \EmptyString{}.
+The empty sequence of characters is denoted \EmptyString{}.
 The set of all strings is denoted \StarOf{\Alphabet}.
 A \textit{language}, denoted \Language{}, is a subset of \StarOf{\Alphabet}.
 
@@ -16,13 +16,6 @@ then the \textit{concatenation} of \String{} and \StringAlt{},
 denoted \String{}\Concat\StringAlt{}, is defined as
 $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
 
-If $\Language$ is a language, where
-for all $n\in\Nats$ and for all strings
-$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\Language$,
-$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$
-implies $\String_i=\StringAlt_i$ for all $i$,
-that language is \textit{unambiguously iterable},
-denoted $\UnambigItOf{\Language}$.
 
 \subsubsection{Regular Expressions}
 
@@ -75,6 +68,15 @@ $\String_2,\StringAlt_2\in\LanguageOf{\Regex_2}$,
 $\String_1\Concat\String_2=\StringAlt_1\Concat\StringAlt_2$ implies
 $\String_1=\StringAlt_1$ and $\String_2=\StringAlt_2$.
 
+If $\Regex$ is a regular expression, where
+for all $n\in\Nats$ and for all strings
+$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\LanguageOf{\Regex}$,
+$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$
+implies $\String_i=\StringAlt_i$ for all $i$,
+that regular expression is \textit{unambiguously iterable},
+denoted $\UnambigItOf{\Regex}$.
+
+
 % fig:regex-equivalence-rules
 \begin{figure}
 \centering
@@ -100,7 +102,7 @@ ${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
 \label{fig:regex-equivalence-rules}
 \end{figure}
 
-If, for two regular expressions, $\Regex_1$ and $\Regex_2$,
+If, $\Regex_1$ and $\Regex_2$ are regular expressions, where
 $\LanguageOf{\Regex_1}=\LanguageOf{\Regex_2}$, those two regular expressions
 are called \textit{equivalent}, denoted $\Regex_1\equiv\Regex_2$.
 There exists an equational theory for determining if two regular expressions are equivalent,
@@ -186,8 +188,8 @@ shown in Figure~\ref{fig:regex-equivalence-rules}.
 \inferrule[\IterateLensRule{}]
 {
 \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
-\UnambigItOf{\LanguageOf{\Regex}}\\
-\UnambigItOf{\LanguageOf{\RegexAlt}}
+\UnambigItOf{\Regex}\\
+\UnambigItOf{\RegexAlt}
 }
 {
 \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
@@ -258,15 +260,18 @@ typed program provides a bijection between the language of the regular expressio
 of its type.
 
 \begin{theorem}[Bijections Between Well-Typed Lenses]
-If there exists a typing $\Lens\OfType\Regex\Leftrightarrow\RegexAlt$, then
-for all $\String\in\LanguageOf{\Regex}$, there exists a unique
-$\StringAlt\in\LanguageOf{\RegexAlt}$ such that
-$(\String,\StringAlt)\in\SemanticsOf{\Lens}$.
+  If there exists a typing $\Lens\OfType\Regex\Leftrightarrow\RegexAlt$, then
+  \begin{enumerate}
+    \item
+      For all $\String\in\LanguageOf{\Regex}$, there exists a unique
+      $\StringAlt\in\LanguageOf{\RegexAlt}$ such that
+      $(\String,\StringAlt)\in\SemanticsOf{\Lens}$.
+    \item
+      For all $\StringAlt\in\LanguageOf{\RegexAlt}$, there exists a unique
+      $\String\in\LanguageOf{\Regex}$ such that
+      $(\String,\StringAlt)\in\SemanticsOf{\Lens}$.
+  \end{enumerate}
 \end{theorem}
-
-The semantics is only defined alongside the typing, as the functions are only
-well defined when the term is well typed.
-
 These lenses can be synthesized from types and examples through an enumeration
 of programs of the desired typing.
 We would like to enumerate all of the lenses that satisfy the desired typing
@@ -323,10 +328,10 @@ distributivity applied wherever possible, causing outer layer of \Or{} operation
 with a sequences of \Concat{} operations being operated on by the \Or{} operations.
 Furthermore, because of the associativity of \Or{} and \Concat{}, we
 remove associativity information through a list representation.
-Furthermore, we can further simplify by requiring the
-and with base string regular expressions to always appear at fixed locations,
+Furthermore, we can further simplify by requiring
+base string regular expressions to always appear at fixed locations,
 utilizing the fact that $\EmptyString{}$ is the $\Concat$ identity, and
-the ability to combine strings.
+the ability to concatenate strings.
 The syntax of the language of DNF regular expressions is formalized in Figure~\ref{fig:dnf-regex-syntax}.
 The shorthand $\DNFOf{\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}}$
 stands for
@@ -337,8 +342,12 @@ denoted $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
 if, $\String_i',\StringAlt_i'\in\LanguageOf{\Atom_i}$ for all $i$, then
 $\String_0\Concat\String_1'\ldots\Concat\String_n'\String_n=
 \String_0\Concat\StringAlt_1'\ldots\Concat\StringAlt_n'\String_n$
+implies $\String_i=\StringAlt_i$ for all $i$.  A DNF Regular expression is said
+to be \textit{unambiguously iterable} denoted $\UnambigItOf{\DNFRegex}$ if, for
+all
+$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\LanguageOf{\DNFRegex}$,
+$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$,
 implies $\String_i=\StringAlt_i$ for all $i$.
-
 
 The outermost layer is a list of sequences.
 This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
@@ -406,7 +415,6 @@ an equivalent DNF regular expression, can be defined.
 \end{array}
 \]
 \end{definition}
-This transformation is a valid transformation.
 \begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
 \label{thm:completeness-dnf-lenses}
 For all regular expressions \Regex{},
@@ -414,7 +422,7 @@ For all regular expressions \Regex{},
 \end{restatable}
 
 Furthermore, we can use prove that language of DNF regular expressions is sound,
-and that \ToDNFRegex{} is surjective, by providing a right inverse.
+and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.
 
 \begin{definition}\leavevmode\\
 $\ToRegex(\StarOf{\DNFRegex}) = \StarOf{\ToRegex(\DNFRegex)}$\\
@@ -552,9 +560,10 @@ Intuitively, these rewrite rules correspond to expanding a regular expression
 into a regular expression which can be used in a more complicated lens.
 These rewrite rules are a way of getting around
 requiring a full retyping rule, as is present in standard lenses.
-These rewrite rules are presented as rewrites that turn atoms into DNF Regular expressions,
-alongside a rule that expresses how these atom rewrites can become rewrites on
-the DNF regular expressions themselves.  For example, consider the DNF Regular
+These rewrite rules present ways for atoms to be rewritten to DNF regular
+expressions.  With the atoms rewritten as regular expressions, \AtomDNFRewriteRule{}
+provides a way to combine the rewritten atom into the broader regular
+expression.  For example, consider the DNF Regular
 Expression $\DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{b};\StarOf{c}};\SequenceOf{d}}$.
 This DNF Regular expression matches either $a$, $b^i\Concat c^j$, or $d$.
 With the above rules,
@@ -571,7 +580,7 @@ Roughly, the \AtomSumstarRule{} rewrite corresponds to \SumstarRule{},
 the \AtomUnrollstarLeftRule{} and \AtomUnrollstarRightRule{} rewrites correspond to \ProductstarRule{}.
 and the \DicyclicRewriteStarRule{} rewrite corresponds to \DicyclicityRule{}.
 There is no rewrite corresponding to Regular Expression equivalence 10, as that
-equivalence is an ambiguity introducing equivalence.
+equivalence introduces ambiguity.
 An application of \AtomSumstarRule{} corresponds to doing different things after the last time a certain event has occured, and before the last time that event occurs.
 An application of \AtomUnrollstarLeftRule{} corresponds to making a different action for
 the empty case of an iteration, the first case of an iteration, and all further cases of the iteration,
@@ -579,7 +588,6 @@ and similarly with \AtomUnrollstarRightRule{} for the empty case, the last case,
 An application of \DicyclicRewriteStarRule{} corresponds to a reordering of the
 variables that corresponds to expressing a ring as an ideal, and the quotient by
 that ideal.
-
 \section{DNF Lenses}
 
 % fig:dnf-lens-syntax
@@ -682,7 +690,7 @@ i \neq j \Rightarrow \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
 \label{fig:dnf-lens-typing}
 \end{figure}
 
-Armed with these rewrites, a strong language for lenses on these regular
+Armed with these rewrites, a language for lenses on DNF regular
 expressions can be defined.
 The syntax is defined in Figure~\ref{fig:dnf-lens-syntax}.
 Similarly to the language of lenses, the typing of the lenses
@@ -694,7 +702,7 @@ Intuitively, a DNF Regex Lens corresponds roughly to an n-ary version of an or l
 a Sequence Lens corresponds to const lenses for the strings, and a combination of
 Concat and Swap lenses for the Atoms.
 
-These DNF lenses only express things expressible in the language of lenses.
+These DNF lenses only express bijections expressible in the language of lenses.
 \begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
 \label{thm:dnfls}
 If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$,
@@ -720,11 +728,14 @@ such that $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
 
-However, these lenses are much more suited to synthesis.
+These lenses are much more suited to synthesis.
 The vast majority of the rules have a syntax directed synthesis algorithm.
-Furthermore, even the rewrite rules that don't have an immediate syntax directed
-synthesis algorithm have an underlying semantic meaning which can be used
-to direct the solution.
+We have reduced the dimensions we are searching in from 3 to 2.  Before, given a
+specification, multiple rules could be applicable, equivalent regular
+expressions would have to be searched through, and regular expressions for
+composition would need to be found.
+For DNF lenses, only the correct rewrites for the regular expressions, and the
+correct permutations for each rule application, must be searched through.
 
 
 
