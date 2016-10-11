@@ -136,9 +136,6 @@
 
 \begin{abstract}
 % begin abstract
-The growing dependence on big data makes reliably converting
-between different data formats increasingly important\bcp{This seems both
-  contentious and not terribly relevant}.
 \emph{Lenses} are a bi-directional technique for specifying such
 conversions.  Specifically, a lens is a declarative program that
 simultaneously specifies a function to convert data from type $A$ to
@@ -147,8 +144,8 @@ $A$.  Such programs usually provide invertibility guarantees, avoiding
 pernicious bugs that can corrupt data and downstream processing.
 Unfortunately, lenses can be quite difficult to write because they
 require programmers to think in two directions at once.  To overcome
-this difficulty, we develop an algorithm to automatically synthesize
-lenses\bcp{just bijective ones!} from format descriptions, specified as regular expressions, and
+this difficulty, we develop an algorithm to automatically synthesize bijective
+lenses from format descriptions, specified as regular expressions, and
 a small number of examples.  The rich structure of regular expressions
 makes lens synthesis more complicated than previous work on other
 forms of type-directed synthesis.  Specifically, finding a term to
@@ -164,7 +161,7 @@ with the given examples.  We demonstrate the effectiveness of our algorithm
 by experimenting on a benchmark suite containing 42 examples
 comprising microbenchmarks, Flash Fill
 examples, and Augeas transformations of Linux configuration files.
-We show we are able to infer lenses for most\bcp{!} examples in the
+We show we are able to infer lenses for all examples in the
 benchmark suite in an average of 0.134 seconds \afm{TODO: automatically calculate this from CSV}. 
 % end abstract
 \end{abstract}
@@ -204,7 +201,9 @@ the native format.
 
 Bidirectional programming is used heavily in practice.\bcp{This may be
   overstating the case, for lenses per se.  Augeas is the only real-world
-  example AFAIK.}
+  example AFAIK.} \afm{Should I discuss only lenses, or general bidirection
+  places or places where bidirectional things are happening, I don't think the
+  third is being overstated}
 Augeas~\cite{?}, a configuration editing system for linux, uses lens combinators
 to provide editable views of configuration files.
 The language biXid~\cite{bixid} is developed for expressing bidirectional XML
@@ -440,274 +439,44 @@ benchmarks.  When it succeeds, synthesis time is typically less than 1 second.
 \end{itemize}
 % end introduction
 
-% begin extended-example
-\section{Lens Synthesis by Example}
-
-In order to explain the major components of our synthesis algorithm,
-we will consider a running example involving conversion between citations given
-in highly simplified BibTex and EndNote formats.  Our BibTex format
-consists entirely of specifying a list of authors on a single line as follows.
-\begin{lstlisting}
-author={Conway, John and Kleene, Stephen Cole}
-\end{lstlisting}
-Our EndNote format contains the same information, but uses different separators,
-rearranges the order of first and last names, and uses a separate line for each
-author. 
-\begin{lstlisting}
-%A John Conway
-%A Stephen Cole Kleene
-\end{lstlisting}
-
-\begin{figure}
-\begin{lstlisting}
-Name = [A-Z][a-z]*
-Names = (" " Name)*
-
-BNames = Name ", " Name Names
-Bib = ""
-    | "author={" BNames (" and " BNames)* "},"
-
-ENames = Name Names " " Name
-End = ("%A " ENames "\n")*
-
-BibEnd : Bib <=> End = {
-"author={Conway, John and Kleene, Stephen Cole}"
-<-> "%A John Conway\n%A Stephen Cole Kleene" }
-\end{lstlisting}
-\caption{Synthesis Problem Definition: Idealized Bibtex to EndNote}
-\label{fig:bibend-spec}
-\end{figure}
-
-Figure~\ref{fig:bibend-spec} presents
-the user's specification of such a problem.  In general, such specifications are
-given by defining the source and target data formats~\footnote{Lenses
-operate both left-to-right and right-to-left, so both formats are sometimes
-sources and sometimes targets. Nevertheless, we will often call the
-format on the left, the ``source,'' and the format on the right, 
-the ``target.''} as well as some examples.  In this case, the lens
-we wish to synthesize is \CF{BibEnd}.  It converts between 
-the formats \CF{Bib} and \CF{End}.
-Such formats are defined using a standard syntax for regular expressions.
-Intermediate regular expressions are named in order to facilitate
-construction of complex formats.
-
-\subsection{Regular Bijective Lenses}
-\afm{I'm not sure how necessary this section is.  While I want to give users a
-  bit of idea about how things map between one another, I think this section
-  might go into too much detail.  How would I be able to give the intuition of
-  finding parts that map to each other, without just describing lenses (assuming
-  that's the right sort of thing to do)?}
-\bcp{I suggest rearranging things a bit.  The problem I see here is that
-  this section ends up duplicating material from section 3.  So why not put
-  it after 3?  I.e., take the example in figure 1 (and the text up to this
-  point) and put it in the intro.  Take the rest of this section, remove all
-the explanations of what lenses are (or move them top the current section 3)
-and move the rest to a new section after the current section 3 that just
-focuses on synthesis.}
-Once we have a synthesis specification, we need to find a lens that
-will convert back and forth between formats and that satisfies the
-given examples.  In this paper, we begin our work with a simple and 
-relatively standard language of bijective string lens combinators.
-In order to guarantee the functions generated by these combinators
-form proper bijections between source and target, they are given types using
-regular expressions.  We typically write
-$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ to indicate that a lens $\Lens$
-converts back and forth between data belonging
-to the languages of regular expressions
-$\Regex$ and $\RegexAlt$.
-
-The simplest lens in the combinator language is the identity lens 
-at type $R$,
-$\IdentityLensOf{R}$, which copies data matching regular expression $R$
-from source to target, and vice versa.  The
-constant lens $\ConstLensOf{\String_1}{\String_2}$, when operated left-to-right, 
-replaces string $\String_1$ with $\String_2$, and when operated right-to-left,
-replaces string $\String_2$ with $\String_1$.
-
-Each of the other lenses manipulate structured data.  For instance,
-$\ConcatLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ to the left
-portion of a string, and $\Lens_2$ to the right, and concatenating the results.
-$\SwapLensOf{\Lens_1}{\Lens_2}$ does the same as $\ConcatLensOf{\Lens_1}{\Lens_2}$
-but it swaps the results before concatenating.
-$\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
-to the string.  $\IterateLensOf{\Lens}$ operates by repeatedly applying $\Lens$
-to subparts of a string.
-
-\paragraph*{Step 1:  Inlining Definitions.}
-
-\begin{figure}
-  \Tree[.\textcolor{dkred}{\sout{\CF{Bib}}}
-    [.\textcolor{dkred}{\sout{\CF{BNames}}}
-      \CF{Name}
-      [.\CF{Names}
-        \CF{Name} ]]]
-  \Tree[.\textcolor{dkred}{\sout{\CF{End}}}
-    [.\textcolor{dkred}{\sout{\CF{ENames}}}
-      \CF{Name}
-      [.\CF{Names}
-        \CF{Name} ]]]
-\caption{
-Trees of user defined regular expressions,
-with those that must be replaced by their definitions crossed out.
-}
-\label{fig:expanded-defs}
-\end{figure}
-
-There is no lens that goes between \BibTex{} and \EndNote{}, so one of them must
-be expanded.
-Indeed, both of them must be expanded, as \BibTex{} will never be able to be
-the source of any lens in this problem, nor will \EndNote{} be able to be the
-target.
-This can be generalized for the sub-expressions of \BibTex{} and \EndNote{},  
-If, any user defined data type does not exist in the possible types of the
-other side, it must be expanded, shown in Figure~\ref{fig:expanded-defs}.
-
-\begin{figure}
-\begin{lstlisting}
-Bib':
-  "" 
-  | ("author={" Name ", " Name Names
-    (" and " (Name ", " Name Names))* "},")
-
-End':
-  ("%A " (Name Names " " Name) "\n")*
-\end{lstlisting}
-\label{fig:examples-expanded}
-\caption{
-  \CF{Bib} and \CF{End} with necessary name replacements preformed.
-}
-\end{figure}
-After completing these necessary expansions, the problem becomes synthesizing a
-lens between the regular expressions \CF{Bib'} and \CF{End'} shown in
-Figure~\ref{fig:examples-expanded}.
-
-A basic type directed synthesis approach from here will quickly fail.
-Both \CF{Bib'}
-and \CF{End'} are of the form $\Regex_1\Concat\Regex_2$, but there is
-not a lens between \CF{"\%0"} and
-\CF{("@inproceedings" | "@article" | "@book")}.
-
-\begin{figure}
-\begin{lstlisting}
-DNFBib':
-  ""
-  | "author={" Name ", " Name "" Names ""
-    (" and " Name ", " Name "" Names "")* "},"
-
-DNFEnd':
-  "" ("%A " Name "" Names " " Name "\n")* ""
-\end{lstlisting}
-\label{fig:examples-expanded-normalized}
-\caption{
-  \CF{Bib'} and \CF{End'} put into a semi-normal form.
-}
-\end{figure}
-
-These issues can be handled by normalizing the regular expressions slightly.
-We put them in a form that normalizes away the equivalences involving
-associativity, distributivity, and \EmptyString{}, shown in
-Figure~\ref{fig:examples-expanded-normalized}
-
-
-With those equivalences handled, one might think it is now possible to
-synthesize the lens.
-Unfortunately, we are still unable to preform any synthesis because the types
-on the left and right are quite different, and the lens connectives require
-similar types of the left and right.
-For example, as \CF{DNFBib'} has an outer $\Or$, we know an or lens must be
-synthesized.
-However, an or lens requires an outer $\Or$ on both sides, and \CF{DNFEnd'} does
-not have any outer $\Or$.
-
-\begin{figure}
-\begin{lstlisting}
-DNFEndUnroll:
-  ""
-  | "%A " Name "" Names " " Name "\n"
-    ("%A " Name "" Names " " Name "\n")* ""
-
-DNFEndMod2:
-  ""
-      ("%A " Name "" Names " " Name
-        "\n%A " Name "" Names " " Name "\n")* ""
-  | "%A " Name "" Names " " Name "\n"
-      ("%A " Name "" Names " " Name
-        "\n%A " Name "" Names " " Name "\n")* ""
-  
-\end{lstlisting}
-\label{fig:examples-star-equivalenced}
-\caption{
-  \CF{DNFEnd'} with some star equivalences preformed.
-}
-\end{figure}
-
-\paragraph*{Step 2:  Traversing Equivalences.}
-While, with normalization, certain equivalences have been handled, there are
-still many equivalences that haven't been handled.
-For example, the equivalences $\StarOf{A}=\EmptyString \Or A\StarOf{A}$ and
-$\StarOf{A}=(\EmptyString \Or A)\StarOf{(AA)}$ can be applied to the star in
-\CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndMod2}, shown in
-Figure~\ref{fig:examples-star-equivalenced}.
-
-However, now a single problem of finding a lens between regular expression has
-become two problems!  This can be solved by using a priority queue, where the
-elements in the queue are regular expression specifications.  The priority of
-each specification is a combination of how many expansions have been preformed,
-and how different the two regular expressions in the specification are.
-\CF{DNFEndUnroll} and \CF{DNFBib'} are very similar, in that they have the same
-number of instances of \CF{Name} and \CF{Names}.  However, \CF{DNFEndMod2} is
-very different, with a different number of \CF{Name}, \CF{Names}, and a
-different number of $\Star$s.  Because of this large difference, the
-specification of \CF{DNFBib' <=> DNFEndUnroll} would get popped, instead of the
-specification of \CF{DNFBib' <=> DNFEndMod2}.
-
-\paragraph*{Step 3: Creating Lenses.}
-Because the regular expressions of  \CF{DNFBib'} and \CF{DNFEndUnroll} are so
-similar, type directed synthesis can now happen between them.
-Following the types, the outer \CF{""}s
-would get mapped to each other, and the sides of the disjunct with $\Star$s
-would get mapped to each other.  Within that side, \CF{Name} would map to
-\CF{Name}, \CF{Names} would map to \CF{Names} and the $\Star$s would map to the
-$\Star$s.
-
-In doing this though, some ambiguity is introduced.  There are two
-instances of \CF{Name} present outside a star, so which one should get mapped to
-which?  The basic solution would be to map the first to the first, and the
-second to the second.  This is not correct, however, as the generated lens for
-this will not match the examples.  We can determine which maps to which, as they
-must each match the same substrings.  The first \CF{Name} in \CF{DNFBib'}
-matches \CF{"Conway"} and the second matches \CF{"John"}.  The first \CF{Name} in
-\CF{DNFEndUnroll} matches \CF{"John"} and the second matches \CF{"Conway"}.
-This means that the first \CF{Name} in \CF{DNFBib'} must map to the second
-\CF{Name} in \CF{DNFEndUnroll}, and vice-versa.  Doing this will generate a lens
-that satisfies the type and the examples.
-% end extended-example
-
-% begin formalisms
+% begin background
 \section{Background}
 
 \subsubsection{Languages and Alphabets}
 
-A \textit{character}, denoted\bcp{written} \Character{} or \CharacterAlt{}, is a symbol.
-An \textit{alphabet}, denoted \Alphabet{}, is set of characters.
-A \textit{string}, denoted \String{} or \StringAlt{}, is a sequence of characters.
-The empty sequence of characters is denoted \EmptyString{}.
-The set of all strings is denoted \StarOf{\Alphabet}.
-A \textit{language}, denoted \Language{}, is a subset of \StarOf{\Alphabet}.
+A \textit{character}, written \Character{} or \CharacterAlt{}, is a symbol.
+An \textit{alphabet}, written \Alphabet{}, is set of characters.
+A \textit{string}, written \String{} or \StringAlt{}, is a sequence of characters.
+The empty sequence of characters is written \EmptyString{}.
+The set of all strings is written \StarOf{\Alphabet}.
+A \textit{language}, written \Language{}, is a subset of \StarOf{\Alphabet}.
 
 If \String{} and \StringAlt{} are strings, with
 $\String=\Character_1\ldots\Character_n$,
 and $\StringAlt=\CharacterAlt_1\ldots\CharacterAlt_m$,
 then the \textit{concatenation} of \String{} and \StringAlt{},
-denoted \String{}\Concat\StringAlt{}, is defined as
+written \String{}\Concat\StringAlt{}, is defined as
 $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
+
+If $\Language$ is a language, where
+for all $n\in\Nats$ and for all strings
+$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\Language$,
+$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$
+implies $\String_i=\StringAlt_i$ for all $i$,
+that language is \textit{unambiguously iterable},
+written $\UnambigItOf{\Language}$.
 
 
 \subsubsection{Regular Expressions}
 
-% fig:regex-syntax
+% fig:regex-semantics
 \begin{figure}
-\centering
+\caption{Regex Semantics}
+\label{fig:regex-semantics}
+\end{figure}
+
+The syntax for the regular expressions we use is given below.
+
 \begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
 
 (Strings)& \String{},\StringAlt{} & \GEq{} & $\String\in\StarOf{\Sigma}$ \\
@@ -717,12 +486,13 @@ $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
 & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ & Concat \\
 & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & Or \\
 \end{tabular}
-\caption{Regular Expression Syntax}
-\label{fig:regex-syntax}
-\end{figure}
 
-% fig:regex-semantics
-\begin{figure}
+$\Regex^n$ can be used for shorthand for $n$ instances of $\Regex$ concatenated
+with each other.
+$\Regex^{<n}$ can be used for shorthand for $\Regex^0 \Or \Regex^1 \Or \ldots
+\Or \Regex^{n-1}$.
+These regular expressions have an underlying semantics to express languages,
+formalized below
 \[
 \begin{array}{lcl}
 \LanguageOf{\String} &=& \{\String\}\\
@@ -738,31 +508,18 @@ $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
 n\in\Nats \wedge \String_i\in\LanguageOf{\Regex}\}
 \end{array}
 \]
-\caption{Regex Semantics}
-\label{fig:regex-semantics}
-\end{figure}
 
-The syntax for regular expressions is given in Figure~\ref{fig:regex-syntax}.
-These regular expressions have an underlying semantics to express languages,
-formalized in Figure~\ref{fig:regex-semantics}.\bcp{Putting small things in
-  figures wastes both space and reader attention (since they have to jump
-  over and find the figure).} 
-
-Two regular expressions, $\Regex_1$, $\Regex_2$ are said to be 
-\textit{unambiguously concatenable}, denoted
-$\Language_1\UnambigConcat\Language_2$ if, 
-for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex_1}$ and
-$\String_2,\StringAlt_2\in\LanguageOf{\Regex_2}$,
+Two regular expressions, $\Regex$, $\RegexAlt$ are said to be 
+\textit{unambiguously concatenable}, written
+$\Regex\UnambigConcat\RegexAlt$ if, 
+for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
+$\String_2,\StringAlt_2\in\LanguageOf{\RegexAlt}$,
 $\String_1\Concat\String_2=\StringAlt_1\Concat\StringAlt_2$ implies
 $\String_1=\StringAlt_1$ and $\String_2=\StringAlt_2$.
 
-If $\Regex$ is a regular expression, where
-for all $n\in\Nats$ and for all strings
-$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\LanguageOf{\Regex}$,
-$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$
-implies $\String_i=\StringAlt_i$ for all $i$,
-that regular expression is \textit{unambiguously iterable},
-denoted $\UnambigItOf{\Regex}$.
+If $\Regex$ is a regular expression, where $\UnambigItOf{\LanguageOf{\Regex}}$,
+then that regular expression is \textit{unambiguously iterable},
+written $\UnambigItOf{\Regex}$.
 
 
 % fig:regex-equivalence-rules
@@ -772,7 +529,7 @@ denoted $\UnambigItOf{\Regex}$.
 \Regex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
 \RegexOr{\Regex}{\emptyset} & $\equiv$ & \Regex{} & \OrIdentityRule{} \\
 $\RegexConcat{\Regex}{\emptyset}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleRightRule{} \\
-$\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{}\SubLeft{} \\
+$\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{} \\
 \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\equiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
 \RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\equiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
 \RegexOr{\Regex{}}{\RegexAlt{}} & $\equiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
@@ -790,12 +547,64 @@ ${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
 \label{fig:regex-equivalence-rules}
 \end{figure}
 
-If, $\Regex_1$ and $\Regex_2$ are regular expressions, where
-$\LanguageOf{\Regex_1}=\LanguageOf{\Regex_2}$, those two regular expressions
-are called \textit{equivalent}, denoted $\Regex_1\equiv\Regex_2$.
-There exists an equational theory for determining if two regular expressions are equivalent,
-presented by Conway \cite{conway}, and proven complete by Krob \cite{Krob},
-shown in Figure~\ref{fig:regex-equivalence-rules}.
+% fig:definitional-equivalence-rules
+\begin{figure}
+\centering
+\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
+\Regex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
+\RegexOr{\Regex}{\emptyset} & $\equiv$ & \Regex{} & \OrIdentityRule{} \\
+$\RegexConcat{\Regex}{\emptyset}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleRightRule{} \\
+$\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{} \\
+\RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\equiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
+\RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\equiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
+\RegexOr{\Regex{}}{\RegexAlt{}} & $\equiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
+\RegexConcat{\Regex{}}{(\RegexOr{\Regex{}'}{\Regex{}''})} & $\equiv$ & \RegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})} & \DistributivityLeftRule{} \\
+\RegexConcat{(\RegexOr{\Regex{}'}{\Regex{}''})}{\Regex{}} & $\equiv$ & \RegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})} & \DistributivityRightRule{} \\
+\RegexConcat{\Regex{}}{\EmptyString{}} & $\equiv$ & \Regex{} & \ConcatIdentityRule{} \\
+  \StarOf{\Regex{}} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
+  \StarOf{\Regex{}} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} \\
+\StarOf{\Regex{}} & $\equiv$ & \RegexConcat{\Regex^{<n}}{\StarOf{(\Regex^n)}} & \QuotientstarRule{}
+\end{tabular}
+\caption{Definitional Regular Expression Equivalences}
+\label{fig:definitional-equivalence-rules}
+\end{figure}
+
+If $\Regex$ and $\RegexAlt$ are regular expressions, where
+$\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$, those two regular expressions
+are called \textit{equivalent}, written $\Regex\equiv\RegexAlt$.
+There exists an equational theory for determining if two regular expressions
+are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
+\cite{Krob}, shown in Figure~\ref{fig:regex-equivalence-rules}.
+
+It is possible to look into finer equivalence rules than this.  There is an
+infinite number of equivalence rules operating on two variables, so the regular
+expression equivalence rules are very complicated.  A subset of
+this, the \textit{definitional equivalence rules} are shown in
+Figure~\ref{fig:definitional-equivalence-rules}.  These equivalence rules are
+unable to express all of the equivalences of language equivalence.  In this
+subset, the full generality of \SumstarRule{} is not present, the full
+generality of \DicyclicityRule{} is not present, \StarstarRule{} is not present,
+and \SumstarRule{} is not present.  \StarstarRule{} is a rule that introduces
+ambiguity, so removing it no longer allows ambiguity to be introduced.  \SumstarRule{} takes an iteration of two
+different regular expressions, and groups together when one regular expression occurs,
+separated by when the other regular expression occurs.  The
+removal of \SumstarRule{} no longer allows for different choices of an
+interation to be grouped by when they occur.  \ProductstarRule{} is similar to
+\UnrollstarLeftRule{} and \UnrollstarRightRule{}, though more expressible.
+\ProductstarRule{}
+allows for the order of what's under the star to be changed, by popping
+different parts of the regular expression out on different sides of the star.
+\DicyclicityRule{} is
+similar to \QuotientstarRule{}, in that it breaks a repetition of a regular
+expression into different parts based on it's divisibility by a number $n$.  However
+it also takes into account different parts of the regular expression repeating.
+
+The primary difference between the regular expression equivalence rules and the
+definitional equivalence rules, are that the regular expression equivalence
+rules allow for breaking up parts of the regular expression under a star by
+grouping together different parts of the repetition, whereas the definitional
+equivalence rules breaks parts of a regular expression under a star up only by
+how many times the already defined repetition occurs.
 
 \subsubsection{Bijective Lenses}
 
@@ -947,34 +756,226 @@ and the typing is given in Figure~\ref{fig:lens-typing}, where a well
 typed program provides a bijection between the language of the regular expressions
 of its type.
 
-\begin{theorem}[Bijections Between Well-Typed Lenses\bcp{??}]
-  If there exists a typing $\Lens\OfType\Regex\Leftrightarrow\RegexAlt$, then
-  \begin{enumerate}
-    \item
-      For all $\String\in\LanguageOf{\Regex}$, there exists a unique
-      $\StringAlt\in\LanguageOf{\RegexAlt}$ such that
-      $(\String,\StringAlt)\in\SemanticsOf{\Lens}$.
-    \item
-      For all $\StringAlt\in\LanguageOf{\RegexAlt}$, there exists a unique
-      $\String\in\LanguageOf{\Regex}$ such that
-      $(\String,\StringAlt)\in\SemanticsOf{\Lens}$.
-  \end{enumerate}
-\end{theorem}
-\bcp{I think the rest of the subsection doesn't belong here---this kind of
-  explanation belongs in the ``by example'' section, which I propose should
-  come next.}These lenses can be synthesized from types and examples through an enumeration
-of programs of the desired typing.
-We would like to enumerate all of the lenses that satisfy the desired typing
-until we find one that satisfies the examples.
-Through enumeration of the programs that satisfy the desired typing, eventually
-one that satisfies the examples will be found.
-The strict typing of these programs allows for enumeration by creating
-subproblems based on typing rules.
+The simplest lens in the combinator language is the identity lens 
+at type $R$,
+$\IdentityLensOf{R}$, which copies data matching regular expression $R$
+from source to target, and vice versa.  The
+constant lens $\ConstLensOf{\String_1}{\String_2}$, when operated left-to-right, 
+replaces string $\String_1$ with $\String_2$, and when operated right-to-left,
+replaces string $\String_2$ with $\String_1$.
 
-For example, given the type $\RegexConcat{\Regex_1}{\Regex_2}\Leftrightarrow\RegexConcat{\RegexAlt_1}{\RegexAlt_2}$.
-A lens of this type can be created from a Concat Lens rule,
-which would create the subproblems of finding a lens of type $\Regex_1\Leftrightarrow\RegexAlt_1$
-and a lens of type $\Regex_2\Leftrightarrow\RegexAlt_2$.
+Each of the other lenses manipulate structured data.  For instance,
+$\ConcatLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ to the left
+portion of a string, and $\Lens_2$ to the right, and concatenating the results.
+$\SwapLensOf{\Lens_1}{\Lens_2}$ does the same as $\ConcatLensOf{\Lens_1}{\Lens_2}$
+but it swaps the results before concatenating.
+$\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
+to the string.  $\IterateLensOf{\Lens}$ operates by repeatedly applying $\Lens$
+to subparts of a string.
+% end background
+
+% begin extended-example
+\section{Lens Synthesis by Example}
+
+In order to explain the major components of our synthesis algorithm,
+we will consider a running example involving conversion between citations given
+in highly simplified BibTex and EndNote formats.  Our BibTex format
+consists entirely of specifying a list of authors on a single line as follows.
+\begin{lstlisting}
+author={Conway, John and Kleene, Stephen Cole}
+\end{lstlisting}
+Our EndNote format contains the same information, but uses different separators,
+rearranges the order of first and last names, and uses a separate line for each
+author. 
+\begin{lstlisting}
+%A John Conway
+%A Stephen Cole Kleene
+\end{lstlisting}
+
+\begin{figure}
+\begin{lstlisting}
+Name = [A-Z][a-z]*
+Names = (" " Name)*
+
+BNames = Name ", " Name Names
+Bib = ""
+    | "author={" BNames (" and " BNames)* "},"
+
+ENames = Name Names " " Name
+End = ("%A " ENames "\n")*
+
+BibEnd : Bib <=> End = {
+"author={Conway, John and Kleene, Stephen Cole}"
+<-> "%A John Conway\n%A Stephen Cole Kleene" }
+\end{lstlisting}
+\caption{Synthesis Problem Definition: Idealized Bibtex to EndNote}
+\label{fig:bibend-spec}
+\end{figure}
+
+Figure~\ref{fig:bibend-spec} presents
+the user's specification of such a problem.  In general, such specifications are
+given by defining the source and target data formats~\footnote{Lenses
+operate both left-to-right and right-to-left, so both formats are sometimes
+sources and sometimes targets. Nevertheless, we will often call the
+format on the left, the ``source,'' and the format on the right, 
+the ``target.''} as well as some examples.  In this case, the lens
+we wish to synthesize is \CF{BibEnd}.  It converts between 
+the formats \CF{Bib} and \CF{End}.
+Such formats are defined using a standard syntax for regular expressions.
+Intermediate regular expressions are named in order to facilitate
+construction of complex formats.
+
+\paragraph*{Step 1:  Inlining Definitions.}
+
+\begin{figure}
+  \Tree[.\textcolor{dkred}{\sout{\CF{Bib}}}
+    [.\textcolor{dkred}{\sout{\CF{BNames}}}
+      \CF{Name}
+      [.\CF{Names}
+        \CF{Name} ]]]
+  \Tree[.\textcolor{dkred}{\sout{\CF{End}}}
+    [.\textcolor{dkred}{\sout{\CF{ENames}}}
+      \CF{Name}
+      [.\CF{Names}
+        \CF{Name} ]]]
+\caption{
+Trees of user defined regular expressions,
+with those that must be replaced by their definitions crossed out.
+}
+\label{fig:expanded-defs}
+\end{figure}
+
+There is no lens that goes between \BibTex{} and \EndNote{}, so one of them must
+be expanded.
+Indeed, both of them must be expanded, as \BibTex{} will never be able to be
+the source of any lens in this problem, nor will \EndNote{} be able to be the
+target.
+This can be generalized for the sub-expressions of \BibTex{} and \EndNote{},  
+If any user defined data type does not exist in the possible types of the
+other side, it must be expanded, shown in Figure~\ref{fig:expanded-defs}.
+
+\begin{figure}
+\begin{lstlisting}
+Bib':
+  "" 
+  | ("author={" Name ", " Name Names
+    (" and " (Name ", " Name Names))* "},")
+
+End':
+  ("%A " (Name Names " " Name) "\n")*
+\end{lstlisting}
+\label{fig:examples-expanded}
+\caption{
+  \CF{Bib} and \CF{End} with necessary name replacements preformed.
+}
+\end{figure}
+After completing these necessary expansions, the problem becomes synthesizing a
+lens between the regular expressions \CF{Bib'} and \CF{End'} shown in
+Figure~\ref{fig:examples-expanded}.
+
+A basic type directed synthesis approach from here will quickly fail.
+Both \CF{Bib'}
+and \CF{End'} are of the form $\Regex_1\Concat\Regex_2$, but there is
+not a lens between \CF{"\%0"} and
+\CF{("@inproceedings" | "@article" | "@book")}.
+
+\begin{figure}
+\begin{lstlisting}
+DNFBib':
+  ""
+  | "author={" Name ", " Name "" Names ""
+    (" and " Name ", " Name "" Names "")* "},"
+
+DNFEnd':
+  "" ("%A " Name "" Names " " Name "\n")* ""
+\end{lstlisting}
+\label{fig:examples-expanded-normalized}
+\caption{
+  \CF{Bib'} and \CF{End'} put into a pseudo-normal form.
+}
+\end{figure}
+
+These issues can be handled by normalizing the regular expressions slightly.
+We put them in a form that normalizes away the equivalences involving
+associativity, distributivity, and \EmptyString{}, shown in
+Figure~\ref{fig:examples-expanded-normalized}
+
+
+With those equivalences handled, one might think it is now possible to
+synthesize the lens.
+Unfortunately, we are still unable to preform any synthesis because the types
+on the left and right are quite different, and the lens connectives require
+similar types of the left and right.
+For example, as \CF{DNFBib'} has an outer $\Or$, we know an or lens must be
+synthesized.
+However, an or lens requires an outer $\Or$ on both sides, and \CF{DNFEnd'} does
+not have any outer $\Or$.
+
+\begin{figure}
+\begin{lstlisting}
+DNFEndUnroll:
+  ""
+  | "%A " Name "" Names " " Name "\n"
+    ("%A " Name "" Names " " Name "\n")* ""
+
+DNFEndMod2:
+  ""
+      ("%A " Name "" Names " " Name
+        "\n%A " Name "" Names " " Name "\n")* ""
+  | "%A " Name "" Names " " Name "\n"
+      ("%A " Name "" Names " " Name
+        "\n%A " Name "" Names " " Name "\n")* ""
+  
+\end{lstlisting}
+\label{fig:examples-star-equivalenced}
+\caption{
+  \CF{DNFEnd'} with some star equivalences preformed.
+}
+\end{figure}
+
+\paragraph*{Step 2:  Traversing Equivalences.}
+While, with normalization, certain equivalences have been handled, there are
+still many equivalences that haven't been handled.
+For example, the equivalences $\StarOf{A}=\EmptyString \Or A\StarOf{A}$ and
+$\StarOf{A}=(\EmptyString \Or A)\StarOf{(AA)}$ can be applied to the star in
+\CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndMod2}, shown in
+Figure~\ref{fig:examples-star-equivalenced}.
+
+However, now a single problem of finding a lens between regular expression has
+become two problems!  This can be solved by using a priority queue, where the
+elements in the queue are regular expression specifications.  The priority of
+each specification is a combination of how many expansions have been preformed,
+and how different the two regular expressions in the specification are.
+\CF{DNFEndUnroll} and \CF{DNFBib'} are very similar, in that they have the same
+number of instances of \CF{Name} and \CF{Names}.  However, \CF{DNFEndMod2} is
+very different, with a different number of \CF{Name}, \CF{Names}, and a
+different number of $\Star$s.  Because of this large difference, the
+specification of \CF{DNFBib' <=> DNFEndUnroll} would get popped, instead of the
+specification of \CF{DNFBib' <=> DNFEndMod2}.
+
+\paragraph*{Step 3: Creating Lenses.}
+Because the regular expressions of  \CF{DNFBib'} and \CF{DNFEndUnroll} are so
+similar, type directed synthesis can now happen between them.
+Following the types, the outer \CF{""}s
+would get mapped to each other, and the sides of the disjunct with $\Star$s
+would get mapped to each other.  Within that side, \CF{Name} would map to
+\CF{Name}, \CF{Names} would map to \CF{Names} and the $\Star$s would map to the
+$\Star$s.
+
+In doing this though, some ambiguity is introduced.  There are two
+instances of \CF{Name} present outside a star, so which one should get mapped to
+which?  The basic solution would be to map the first to the first, and the
+second to the second.  This is not correct, however, as the generated lens for
+this will not match the examples.  We can determine which maps to which, as they
+must each match the same substrings.  The first \CF{Name} in \CF{DNFBib'}
+matches \CF{"Conway"} and the second matches \CF{"John"}.  The first \CF{Name} in
+\CF{DNFEndUnroll} matches \CF{"John"} and the second matches \CF{"Conway"}.
+This means that the first \CF{Name} in \CF{DNFBib'} must map to the second
+\CF{Name} in \CF{DNFEndUnroll}, and vice-versa.  Doing this will generate a lens
+that satisfies the type and the examples.
+% end extended-example
+
+% begin formalisms
 
 \section{DNF Regular Expressions}
 
@@ -1028,16 +1029,13 @@ stands for
 $\DNFOf{\SequenceOf{\EmptyString\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\EmptyString}}$.
 
 A sequence of strings and atoms is said to be \textit{unambiguously concatenable},
-denoted $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
+written $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
 if, $\String_i',\StringAlt_i'\in\LanguageOf{\Atom_i}$ for all $i$, then
 $\String_0\Concat\String_1'\ldots\Concat\String_n'\String_n=
 \String_0\Concat\StringAlt_1'\ldots\Concat\StringAlt_n'\String_n$
 implies $\String_i=\StringAlt_i$ for all $i$.  A DNF Regular expression is said
-to be \textit{unambiguously iterable} denoted $\UnambigItOf{\DNFRegex}$ if, for
-all
-$\String_1,\StringAlt_1,\ldots,\String_n,\StringAlt_n\in\LanguageOf{\DNFRegex}$,
-$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$,
-implies $\String_i=\StringAlt_i$ for all $i$.
+to be \textit{unambiguously iterable} written $\UnambigItOf{\DNFRegex}$ if
+$\UnambigItOf{\LanguageOf{\DNFRegex}}$.
 
 The outermost layer is a list of sequences.
 This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
@@ -1328,48 +1326,48 @@ $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
 \begin{mathpar}
 \inferrule[\IterateAtomLensRule{}]
 {
-\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
+\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
 }
 {
-\IterateLensOf{\DNFLens} \OfType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+\IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
 (\PutRight\Apply\String_1)\Concat\ldots\Concat(\PutRight\Apply\String_n)
 }
 
 \inferrule[\SequenceLensRule{}]
 {
-\AtomLens_1 \OfType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+\AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
 \ldots\\
-\AtomLens_n \OfType \Atom_n \Leftrightarrow \AtomAlt_n\\
+\AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
 \sigma \in \PermutationSetOf{n}\\
 \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
 \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
 }
 {
-(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfType\\
+(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
 \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
 \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
 }
 
 \inferrule[\DNFLensRule{}]
 {
-\SequenceLens_1 \OfType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+\SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
 \ldots\\
-\SequenceLens_n \OfType \Sequence_n \Leftrightarrow \SequenceAlt_n\\
+\SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\
 \sigma \in \PermutationSetOf{n}\\
 i \neq j \Rightarrow \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
 i \neq j \Rightarrow \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
 }
 {
-(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfType\\
+(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
 \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
 \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
 }
 
 \inferrule[\DNFRewriteLensRule{}]
 {
-\DNFRegex \RewriteDNF \DNFRegex'\\
-\DNFRegexAlt \RewriteDNF \DNFRegexAlt'\\
-\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
+\DNFRegex' \RewriteDNF \DNFRegex\\
+\DNFRegexAlt' \RewriteDNF \DNFRegexAlt\\
+\DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
 }
 {
 \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
@@ -1408,13 +1406,8 @@ expressible in a subset of the language of lenses.
 \label{thm:dnflc}
 If there exists a derivation for $\Lens \OfType \Regex \Leftrightarrow
 \RegexAlt$,
-where there is no use of \DicyclicityRule{}, or \SumstarRule{} in the
-proof of equivalence of regular expressions\bcp{I think we should give a
-  name to this restricted equivalence relation (in the Background section)
-  and talk about its properties a bit, rather than introducing it {\em en
-    passant} here.} in the application of
-\RewriteRegexLensRule{} in the typing of
-$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
+where the proof of equivalence of regular expressions is done in the
+Definitional Regular Expression equivalences,
 then there exists a derivation for
 $\DNFLens \OfType \ToDNFRegex(\Regex) \Leftrightarrow \ToDNFRegex(\RegexAlt)$
 such that $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
@@ -4126,7 +4119,7 @@ So we have the final typing derivation
 \begin{definition}
   Let $\rightarrow$ and $\Property$ be two binary relations on a set $\Set$.
   We say that the $\rightarrow$ is confluent with respect to
-  $\Property$, denoted
+  $\Property$, written
   $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, if, given $s_1,s_2\in\Set$,
   where $\Property(s_1,s_2)$, if $s_1\rightarrow s_1'$ and
   $s_2 \rightarrow s_2'$, then there exists $s_1''$ and $s_2''$ such that
