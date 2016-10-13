@@ -5104,6 +5104,86 @@ So we have the final typing derivation
   \end{mathpar}
 \end{definition}
 
+\begin{definition}[Minimized DNF Equivational Theory Without Swapping]\leavevmode
+  \begin{mathpar}
+    \inferrule
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+      {(\ConcatDNFOf{\DNFRegex}{\StarOf{\DNFRegex}})}
+    }
+    
+    \inferrule
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+      {(\ConcatDNFOf{\StarOf{\DNFRegex}}{\DNFRegex})}
+    }
+
+    \inferrule
+    {
+      n\in\Nats_{\geq1}
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+    }
+
+    \inferrule
+    {
+      n\in\Nats_{\geq1}
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \ConcatDNFOf
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+      {\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+    }
+
+    \inferrule
+    {
+      \DNFRegex \equiv \DNFRegex'
+    }
+    {
+      \StarOf{\DNFRegex} \AtomEquiv \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
+    }
+
+    \inferrule
+    {
+      \Atom_j \AtomEquiv \DNFRegex
+    }
+    {
+      \DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep
+      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep
+      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\equiv\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+    }
+
+    \inferrule
+    {
+      \DNFRegex \equiv \DNFRegex'\\
+      \DNFRegex' \equiv \DNFRegex''
+    }
+    {
+      \DNFRegex \equiv \DNFRegex''
+    }
+
+    \inferrule
+    {
+    }
+    {
+      \DNFRegex \equiv \DNFRegex
+    }
+  \end{mathpar}
+\end{definition}
+
 \begin{theorem}[Expressibility of Minimized DNF Equational Theory]
   $\Regex \equiv \RegexAlt$ if, and only if $\ToDNFRegexOf{\Regex} \equiv
   \ToDNFRegexOf{\RegexAlt}$
@@ -5197,24 +5277,16 @@ So we have the final typing derivation
 
     \inferrule
     {
-      \Atom_j \RewriteToAtom \DNFRegex
+      \DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
+      \forall i. \Sequence_i =
+      \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}\\
+      \forall i,j. \Atom_{i,j} \RewriteToAtom \DNFRegex_{i,j}\\
+      \forall i. \DNFRegex_i = \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegex_{i,1}
+      \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i} \ConcatDNF
+      \DNFOf{\SequenceOf{\String_{i,n_i}}}
     }
     {
-      \DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep
-      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep
-      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\equiv\\
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
-      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
-    }
-
-    \inferrule
-    {
-      \DNFRegex \RewriteTo \DNFRegex'\\
-      \DNFRegex' \RewriteTo \DNFRegex''
-    }
-    {
-      \DNFRegex \RewriteTo \DNFRegex''
+      \DNFRegex \RewriteTo \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
     }
 
     \inferrule
