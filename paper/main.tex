@@ -1345,7 +1345,7 @@ $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
 {
 (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
 \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
-\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
+\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
 }
 
 \inferrule[\DNFLensRule{}]
@@ -1440,9 +1440,10 @@ DNF regular expressions, using $\ToDNFRegex{}$.
 These then get enqueued, and SynthDNFLens, where the bulk of the work
 occurs.
 
-In SynthDNFLens, the highest priority DNF regular expression pair is popped.
-Then, SynthRewritelessDNF sees if a DNF lens which satisfies the examples, which
-does not include any applications of the rewrite rule, can be found.
+In SynthDNFLens, the highest priority DNF regular expression pair, $\DNFRegex$
+and $\DNFRegexAlt$, is popped.
+Then, SynthRewritelessDNF sees if there exists DNF lens $\DNFLens
+\OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ which satisfies the examples.
 If none are found, then each rewrite is applied once on each side of the regular
 expressions.
 This new list of DNF regular expression doubles is enqueued, and SynthDNFLens is
@@ -1451,7 +1452,7 @@ If one is found, this DNF lens gets converted to a normal lens, and is returned
 to the user.
 
 \subsection{Priority Queue}
-The priority queue is implemented with a list implementation of a priority queue.
+The priority queue is implemented using a naive list implementation.
 We say that the lower the priority value, the higher the priority.
 The priority value of an element is based on the number of expansions that have been
 preformed, combined with the distance between the two regular expressions, based
@@ -1463,8 +1464,8 @@ $\Distance_{size}$ is defined as merely the difference in the sizes of the DNF
 regular expressions.
 $\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$
 
-$\Distance_{dist}$ captures how far apart the distribution of
-user defined regular expressions are.
+$\Distance_{dist}$ captures how different the distribution of
+user defined regular expressions are from each other.
 The distribution of user defined regular expressions can be viewed as an
 infinite dimensional vector space over the reals, $\VectorSpace{}$.
 The basis for this is $\SetOf{1*(\RegexVariable,n) | n\in\Nats, \RegexVariable
@@ -3118,7 +3119,289 @@ $\OrDNFLensOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)}
   \BooleanAnd(\String_2,\StringAlt_2)\in\SemanticsOf{\SequenceLens_2}}$
 \end{lemma}
 \begin{proof}
-  TODO:
+  By assumption, there exists typing derivations
+  
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
+    }
+  \]
+
+  By inversion, we know that the last rule application on each side was
+  \DNFLensRule{}, giving
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
+      }\\
+      \sigma_1 \in \PermutationSetOf{n}\\
+      \SequenceUnambigConcatOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+      \SequenceUnambigConcatOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma_1(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_1(n)}\SequenceSep\StringAlt_n}
+    }
+    {
+      (\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n},\sigma_1)
+      \OfRewritelessType
+      \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \Leftrightarrow
+      \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'
+      }\\
+      \sigma_2 \in \PermutationSetOf{m}\\
+      \SequenceUnambigConcatOf{\String_0'\SequenceSep\Atom_1'\SequenceSep\ldots\SequenceSep\Atom_m'\SequenceSep\String_m'}\\
+      \SequenceUnambigConcatOf{\StringAlt_0'\SequenceSep\AtomAlt_{\sigma_2(1)}'\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_2(n)}'\SequenceSep\StringAlt_n'}
+    }
+    {
+      (\SequenceLensOf{(\String_0',\StringAlt_0');\AtomLens_1';\ldots;\AtomLens_m';(\String_m',\StringAlt_m')},\sigma_2)
+      \OfRewritelessType
+      \SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'} \Leftrightarrow
+      \SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}
+    }
+  \]
+  where
+  \[
+    \begin{array}{rcl}
+      \SequenceLens_1 & = &
+                            (\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n},
+                            \sigma_1)\\
+      \Sequence_1 & = &
+                        \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}\\
+      \SequenceAlt_1 & = &
+                       \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}\\
+      \SequenceLens_2 & = &
+                            (\SequenceLensOf{(\String_0',\StringAlt_0');\AtomLens_1';\ldots;\AtomLens_m';(\String_m',\StringAlt_m')},\sigma_2)\\
+      \Sequence_2 & = &
+                        \SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}\\
+      \SequenceAlt_2 & = &
+                           \SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}
+    \end{array}
+  \]
+
+  Define $\String_i''$ as $\String_i$ for $i \in \RangeIncInc{1}{n-1}$, and as
+  $\String_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$, and as
+  $\String_n\Concat\String_0'$ for $i=n$.
+
+  Define $\StringAlt_i''$ as $\StringAlt_i$ for $i \in \RangeIncInc{1}{n-1}$,
+  and as $\StringAlt_i'$ as $\StringAlt_{i-n}$ for $i \in
+  \RangeIncInc{n+1}{n+m}$, and as $\StringAlt_n\Concat\StringAlt_0$ for $i=n$.
+
+  Define $\Atom_i''$ as $\Atom_i$ for $i \in \RangeIncInc{1}{n}$, and as
+  $\Atom_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$.
+
+  Define $\AtomAlt_i''$ as $\Atom_i$ for $i \in \RangeIncInc{1}{n}$, and as
+  $\AtomAlt_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$.
+
+  Define $\AtomLens_i$ as $\AtomLens_i$ for $i \in \RangeIncInc{1}{n}$, and as
+  $\AtomLens_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$.
+
+  From Lemma~\ref{?}, as
+  $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
+  $\SequenceUnambigConcatOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}$,
+  and
+  $\UnambigConcatOf
+  {\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}}
+  {\SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}}$,
+  then $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;
+    \String_n\Concat\String_0';
+    \Atom_1';\ldots;\Atom_m';\String_m'}$, so
+  $\SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}$.
+
+  From Lemma~\ref{?}, as
+  $\SequenceUnambigConcatOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)}';\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}$,
+  $\SequenceUnambigConcatOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}$,
+  and
+  $\UnambigConcatOf
+  {\SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}}
+  {\SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}}$, then
+  $\SequenceUnambigConcatOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};
+    \StringAlt_n\Concat\StringAlt_0';
+    \AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}$, so
+  $\SequenceUnambigConcatOf{\StringAlt_0'';
+    \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+    \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}$.
+
+  Consider the derivation
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
+      }\\
+      \ConcatPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n+m}\\
+      \SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}\\
+      \SequenceUnambigConcatOf{\StringAlt_0'';
+    \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+    \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+    }
+    {
+      (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1;
+        \ldots;
+        \SequenceLens_{n+m};(\String_{n+m}'',\StringAlt_{n+m}'')},
+        \ConcatPermutationOf{\sigma_1}{\sigma_2})
+      \OfRewritelessType
+      \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}
+      \Leftrightarrow
+      \SequenceUnambigConcatOf{\StringAlt_0'';
+        \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+        \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+    }
+  \]
+  
+  We wish to show that this is a derivation of
+  $\ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_2} \OfType
+  \ConcatSequenceOf{\Sequence_1}{\Sequence_2} \Leftrightarrow
+  \ConcatSequenceOf{\SequenceAlt_1}{\SequenceAlt_2}$.
+  
+  \[
+    \begin{array}{rcl}
+      (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+        \ldots;
+        \SequenceLens_{n+m}'';(\String_{n+m}'',\StringAlt_{n+m}'')},
+        \ConcatPermutationOf{\sigma_1}{\sigma_2})
+      & = & (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+            \ldots;\SequenceLens_n'';(\String_n'',\StringAlt_n'');\\
+      & & \hspace*{4.5em}\SequenceLens_{n+1}'';
+            \ldots;\SequenceLens_{n+m}'';(\String_{n+m}'',\StringAlt_{n+m}'')},
+            \ConcatPermutationOf{\sigma_1}{\sigma_2})\\
+      & = & (\SequenceLensOf{(\String_0,\StringAlt_0);\SequenceLens_1;
+            \ldots;\SequenceLens_n;(\String_n\Concat\String_0',\StringAlt_n\Concat\StringAlt_0');\\
+      & & \hspace*{4.5em}\SequenceLens_0';
+          \ldots;\SequenceLens_m';(\String_m',\StringAlt_m')},
+          \ConcatPermutationOf{\sigma_1}{\sigma_2})\\
+      & = & \ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}
+      & = & \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_n'';\String_n'';\Atom_{n+1}'';
+            \ldots\Atom_{n+m}'';\String_{n+m}''}\\
+      & = & \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;(\String_n\Concat\String_0');\Atom_1';
+            \ldots\Atom_m';\String_m'}\\
+      & = & \ConcatSequenceOf{\Sequence_1}{\Sequence_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \SequenceOf{\StringAlt_0'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+      \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+      & = &
+            \SequenceOf{\StringAlt_0'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';
+            \ldots;\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n)}'';
+            \StringAlt_n'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+1)}'';
+            \ldots;
+            \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\SequenceAlt_{n+m}''}\\
+      & = &
+            \SequenceOf{\StringAlt_0'';\AtomAlt_{\sigma_1(1)}'';
+            \ldots;\AtomAlt_{\sigma_1(n)}'';
+            \StringAlt_n'';\AtomAlt_{\sigma_2(1)+n}'';
+            \ldots;
+            \AtomAlt_{\sigma_2(m)+n}'';\StringAlt_{n+m}''}\\
+      & = &
+            \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};
+            \ldots;\AtomAlt_{\sigma_1(n)};
+            \StringAlt_n\Concat\StringAlt_0';\AtomAlt_{\sigma_2(1)}';
+            \ldots;
+            \AtomAlt_{\sigma_2(m)}';\StringAlt_m'}\\
+      & = & \ConcatSequenceOf{\SequenceAlt_1}{\SequenceAlt_2}
+    \end{array}
+  \]
+
+  So we have a derivation of $\ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_2} \OfType
+  \ConcatSequenceOf{\Sequence_1}{\Sequence_2} \Leftrightarrow
+  \ConcatSequenceOf{\SequenceAlt_1}{\SequenceAlt_2}$
+  
+  We also wish to have the desired semantics.
+
+  \[
+    \begin{array}{l}
+      \SemanticsOf{(\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+      \ldots;
+      \SequenceLens_{n+m}'';(\String_{n+m}'',\StringAlt_{n+m}'')},
+      \ConcatPermutationOf{\sigma_1}{\sigma_2})}\\
+      = \SetOf{(\String_0''\Concat\overline{\String_1}\Concat
+      \ldots\Concat\overline{\String_{n+m}}\Concat\String_{n+m}'',
+      \StringAlt_0''\Concat\overline{\StringAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}}\Concat
+      \ldots\Concat\overline{\StringAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}}\Concat\StringAlt_{n+m}''))\SuchThat
+      \forall i\in\RangeIncInc{1}{n+m}.(\overline{\String_i},\overline{\StringAlt_i})\in\SequenceLens_i''}\\
+      = \SetOf{(\String_0\Concat\overline{\String_1}\Concat\ldots\Concat
+      \overline{\String_n}\Concat\String_n\Concat\String_0'\Concat\overline{\String_{0}'}\Concat
+      \ldots\Concat\overline{\String_m'}\Concat\String_m',
+      \StringAlt_0\Concat\overline{\StringAlt_{\sigma_1(1)}}\Concat\ldots\Concat
+      \overline{\StringAlt_{\sigma_1(n)}}\Concat\StringAlt_n\Concat\StringAlt_0'
+      \Concat\overline{\StringAlt_{\sigma_2(0)}'}\Concat
+      \ldots\Concat\overline{\StringAlt_{\sigma_2(m)}'}\Concat\StringAlt_m'))\\
+      \hspace*{3em}\SuchThat
+      (\forall i\in\RangeIncInc{1}{n}.
+      (\overline{\String_i},\overline{\StringAlt_i})\in\SequenceLens_i
+      \BooleanAnd
+      \forall i\in\RangeIncInc{1}{m}.
+      (\overline{\String_i'},\overline{\StringAlt_i'})\in\SequenceLens_i'}\\
+      = \SetOf{(\String\Concat\String',\StringAlt\Concat\StringAlt')\SuchThat
+      (\String,\StringAlt)\in\SemanticsOf{\SequenceLens_1}
+      \BooleanAnd
+      (\String',\StringAlt')\in\SemanticsOf{\SequenceLens_2}}
+    \end{array}
+  \]
+
 \end{proof}
 
 \begin{lemma}[Typing and Semantics of $\SwapSequenceLens$]
@@ -3136,7 +3419,290 @@ $\OrDNFLensOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)}
   \BooleanAnd(\String_2,\StringAlt_2)\in\SemanticsOf{\SequenceLens_2}}$
 \end{lemma}
 \begin{proof}
-  TODO:
+  By assumption, there exists typing derivations
+  
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
+    }
+  \]
+
+  By inversion, we know that the last rule application on each side was
+  \DNFLensRule{}, giving
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
+      }\\
+      \sigma_1 \in \PermutationSetOf{n}\\
+      \SequenceUnambigConcatOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+      \SequenceUnambigConcatOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma_1(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_1(n)}\SequenceSep\StringAlt_n}
+    }
+    {
+      (\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n},\sigma_1)
+      \OfRewritelessType
+      \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \Leftrightarrow
+      \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'
+      }\\
+      \sigma_2 \in \PermutationSetOf{m}\\
+      \SequenceUnambigConcatOf{\String_0'\SequenceSep\Atom_1'\SequenceSep\ldots\SequenceSep\Atom_m'\SequenceSep\String_m'}\\
+      \SequenceUnambigConcatOf{\StringAlt_0'\SequenceSep\AtomAlt_{\sigma_2(1)}'\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_2(n)}'\SequenceSep\StringAlt_n'}
+    }
+    {
+      (\SequenceLensOf{(\String_0',\StringAlt_0');\AtomLens_1';\ldots;\AtomLens_m';(\String_m',\StringAlt_m')},\sigma_2)
+      \OfRewritelessType
+      \SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'} \Leftrightarrow
+      \SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}
+    }
+  \]
+  where
+  \[
+    \begin{array}{rcl}
+      \SequenceLens_1 & = &
+                            (\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n},
+                            \sigma_1)\\
+      \Sequence_1 & = &
+                        \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}\\
+      \SequenceAlt_1 & = &
+                       \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}\\
+      \SequenceLens_2 & = &
+                            (\SequenceLensOf{(\String_0',\StringAlt_0');\AtomLens_1';\ldots;\AtomLens_m';(\String_m',\StringAlt_m')},\sigma_2)\\
+      \Sequence_2 & = &
+                        \SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}\\
+      \SequenceAlt_2 & = &
+                           \SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}
+    \end{array}
+  \]
+
+  Define $\String_i''$ as $\String_i$ for $i \in \RangeIncInc{1}{n-1}$, and as
+  $\String_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$, and as
+  $\String_n\Concat\String_0'$ for $i=n$.
+  
+  Define $\StringAlt_i''$ as $\StringAlt_i'$ for $i \in \RangeIncInc{1}{m-1}$,
+  and as $\StringAlt_{i-m}$ for $i \in
+  \RangeIncInc{m+1}{m+n}$, and as $\StringAlt_m'\Concat\StringAlt_0$ for $i=m$.
+  
+  Define $\Atom_i''$ as $\Atom_i$ for $i \in \RangeIncInc{1}{n}$, and as
+  $\Atom_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$.
+  
+  Define $\AtomAlt_i''$ as $\AtomAlt_i'$ for $i \in \RangeIncInc{1}{m}$, and as
+  $\AtomAlt_{i-m}$ for $i \in \RangeIncInc{m+1}{m+n}$.
+  
+  Define $\AtomLens_i$ as $\AtomLens_i$ for $i \in \RangeIncInc{1}{n}$, and as
+  $\AtomLens_{i-n}'$ for $i \in \RangeIncInc{n+1}{n+m}$.
+  
+  From Lemma~\ref{?}, as
+  $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
+  $\SequenceUnambigConcatOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}$,
+  and
+  $\UnambigConcatOf
+  {\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}}
+  {\SequenceOf{\String_0';\Atom_1';\ldots;\Atom_m';\String_m'}}$,
+  then $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;
+    \String_n\Concat\String_0';
+    \Atom_1';\ldots;\Atom_m';\String_m'}$, so
+  $\SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}$.
+
+  From Lemma~\ref{?}, as
+  $\SequenceUnambigConcatOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}$,
+  $\SequenceUnambigConcatOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)}';\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}$,
+  and
+  $\UnambigConcatOf
+  {\SequenceOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';\StringAlt_m'}}
+  {\SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}}$, then
+  $\SequenceUnambigConcatOf{\StringAlt_0';\AtomAlt_{\sigma_2(1)}';\ldots;\AtomAlt_{\sigma_2(m)}';
+    \StringAlt_m'\Concat\StringAlt_0;
+    \AtomAlt_{\sigma_1(1)};\ldots;\AtomAlt_{\sigma_1(n)};\StringAlt_n}$, so
+  $\SequenceUnambigConcatOf{\StringAlt_0'';
+    \AtomAlt_{\SwapPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+    \AtomAlt_{\SwapPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}$.
+
+  Consider the derivation
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
+      }\\
+      \SwapPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n+m}\\
+      \SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}\\
+      \SequenceUnambigConcatOf{\StringAlt_0'';
+        \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+        \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+    }
+    {
+      (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1;
+        \ldots;
+        \SequenceLens_{n+m};(\String_{n+m}'',\StringAlt_{n+m}'')},
+        \SwapPermutationOf{\sigma_1}{\sigma_2})
+      \OfRewritelessType
+      \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}
+      \Leftrightarrow
+      \SequenceUnambigConcatOf{\StringAlt_0'';
+        \AtomAlt_{\SwapPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+        \AtomAlt_{\SwapPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+    }
+  \]
+  
+  We wish to show that this is a derivation of
+  $\SwapSequenceLensOf{\SequenceLens_1}{\SequenceLens_2} \OfType
+  \ConcatSequenceOf{\Sequence_1}{\Sequence_2} \Leftrightarrow
+  \ConcatSequenceOf{\SequenceAlt_2}{\SequenceAlt_1}$.
+
+  TODO: redefine so different if $n>m$ or $n<=m$.
+
+  \[
+    \begin{array}{rcl}
+      (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+        \ldots;
+        \SequenceLens_{n+m}'';(\String_{n+m}'',\StringAlt_{n+m}'')},
+        \SwapPermutationOf{\sigma_1}{\sigma_2})
+      & = & (\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+            \ldots;\SequenceLens_m'';(\String_m'',\StringAlt_m'');\\
+      & & \hspace*{4.5em}\SequenceLens_{m+1}'';
+            \ldots;\SequenceLens_{m+n}'';(\String_{m+n}'',\StringAlt_{m+n}'')},
+            \SwapPermutationOf{\sigma_1}{\sigma_2})\\
+      & = & (\SequenceLensOf{(\String_0,\StringAlt_0');\SequenceLens_1;
+            \ldots;\SequenceLens_n;(\String_n\Concat\String_0',\StringAlt_n\Concat\StringAlt_0');\\
+      & & \hspace*{4.5em}\SequenceLens_0';
+          \ldots;\SequenceLens_m';(\String_m',\StringAlt_m')},
+          \SwapPermutationOf{\sigma_1}{\sigma_2})\\
+      & = & \ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}
+      & = & \SequenceOf{\String_0'';\Atom_1'';\ldots;\Atom_n'';\String_n'';\Atom_{n+1}'';
+            \ldots\Atom_{n+m}'';\String_{n+m}''}\\
+      & = & \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;(\String_n\Concat\String_0');\Atom_1';
+            \ldots\Atom_m';\String_m'}\\
+      & = & \ConcatSequenceOf{\Sequence_1}{\Sequence_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \SequenceOf{\StringAlt_0'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';\ldots;
+      \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\StringAlt_{n+m}''}
+      & = &
+            \SequenceOf{\StringAlt_0'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}'';
+            \ldots;\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n)}'';
+            \StringAlt_n'';\AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+1)}'';
+            \ldots;
+            \AtomAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}'';\SequenceAlt_{n+m}''}\\
+      & = &
+            \SequenceOf{\StringAlt_0'';\AtomAlt_{\sigma_1(1)}'';
+            \ldots;\AtomAlt_{\sigma_1(n)}'';
+            \StringAlt_n'';\AtomAlt_{\sigma_2(1)+n}'';
+            \ldots;
+            \AtomAlt_{\sigma_2(m)+n}'';\StringAlt_{n+m}''}\\
+      & = &
+            \SequenceOf{\StringAlt_0;\AtomAlt_{\sigma_1(1)};
+            \ldots;\AtomAlt_{\sigma_1(n)};
+            \StringAlt_n\Concat\StringAlt_0';\AtomAlt_{\sigma_2(1)}';
+            \ldots;
+            \AtomAlt_{\sigma_2(m)}';\StringAlt_m'}\\
+      & = & \ConcatSequenceOf{\SequenceAlt_1}{\SequenceAlt_2}
+    \end{array}
+  \]
+
+  So we have a derivation of $\ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_2} \OfType
+  \ConcatSequenceOf{\Sequence_1}{\Sequence_2} \Leftrightarrow
+  \ConcatSequenceOf{\SequenceAlt_1}{\SequenceAlt_2}$
+  
+  We also wish to have the desired semantics.
+
+  \[
+    \begin{array}{l}
+      \SemanticsOf{(\SequenceLensOf{(\String_0'',\StringAlt_0'');\SequenceLens_1'';
+      \ldots;
+      \SequenceLens_{n+m}'';(\String_{n+m}'',\StringAlt_{n+m}'')},
+      \ConcatPermutationOf{\sigma_1}{\sigma_2})}\\
+      = \SetOf{(\String_0''\Concat\overline{\String_1}\Concat
+      \ldots\Concat\overline{\String_{n+m}}\Concat\String_{n+m}'',
+      \StringAlt_0''\Concat\overline{\StringAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)}}\Concat
+      \ldots\Concat\overline{\StringAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}}\Concat\StringAlt_{n+m}''))\SuchThat
+      \forall i\in\RangeIncInc{1}{n+m}.(\overline{\String_i},\overline{\StringAlt_i})\in\SequenceLens_i''}\\
+      = \SetOf{(\String_0\Concat\overline{\String_1}\Concat\ldots\Concat
+      \overline{\String_n}\Concat\String_n\Concat\String_0'\Concat\overline{\String_{0}'}\Concat
+      \ldots\Concat\overline{\String_m'}\Concat\String_m',
+      \StringAlt_0\Concat\overline{\StringAlt_{\sigma_1(1)}}\Concat\ldots\Concat
+      \overline{\StringAlt_{\sigma_1(n)}}\Concat\StringAlt_n\Concat\StringAlt_0'
+      \Concat\overline{\StringAlt_{\sigma_2(0)}'}\Concat
+      \ldots\Concat\overline{\StringAlt_{\sigma_2(m)}'}\Concat\StringAlt_m'))\\
+      \hspace*{3em}\SuchThat
+      (\forall i\in\RangeIncInc{1}{n}.
+      (\overline{\String_i},\overline{\StringAlt_i})\in\SequenceLens_i
+      \BooleanAnd
+      \forall i\in\RangeIncInc{1}{m}.
+      (\overline{\String_i'},\overline{\StringAlt_i'})\in\SequenceLens_i'}\\
+      = \SetOf{(\String\Concat\String',\StringAlt\Concat\StringAlt')\SuchThat
+      (\String,\StringAlt)\in\SemanticsOf{\SequenceLens_1}
+      \BooleanAnd
+      (\String',\StringAlt')\in\SemanticsOf{\SequenceLens_2}}
+    \end{array}
+  \]
 \end{proof}
 
 \begin{lemma}[Typing and Semantics of $\ConcatDNFLens$]
@@ -3176,6 +3742,7 @@ $\OrDNFLensOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)}
 \end{proof}
 
 \begin{lemma}[Typing and Semantics of $\OrDNFLens$]
+  \label{lem:typ_sem_or}
   Let $\DNFLens_1 \OfType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1$ and
   $\DNFLens_2 \OfType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2$ be the typing of
   two DNF lenses, where
@@ -3189,7 +3756,360 @@ $\OrDNFLensOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)}
   \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\DNFLens_2}}$
 \end{lemma}
 \begin{proof}
-  TODO:
+  By assumption, there exists typing derivations
+  
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
+    }
+  \]
+
+  By inversion, we know that the last rule application on each side was
+  \DNFLensRule{}, giving
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i
+      }\\
+      \sigma_1 \in \PermutationSetOf{n}\\
+      i \neq j \BooleanImplies \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
+      i \neq j \BooleanImplies \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)
+      \OfRewritelessType
+      \DNFOf{\Sequence_1;\ldots;\Sequence_n} \Leftrightarrow
+      \DNFOf{\SequenceAlt_{\sigma_1(1)};\ldots;\SequenceAlt_{\sigma_1(n)}}
+    }
+  \]
+  and
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \SequenceLens_i' \OfType \Sequence_i' \Leftrightarrow \SequenceAlt_i'
+      }\\
+      \sigma_2 \in \PermutationSetOf{m}\\
+      i \neq j \BooleanImplies \Sequence_{i}' \cap \Sequence_{j}'=\emptyset\\
+      i \neq j \BooleanImplies \SequenceAlt_{i}' \cap \SequenceAlt_{j}'=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1';\ldots;\SequenceLens_m'},\sigma_2)
+      \OfRewritelessType
+      \DNFOf{\Sequence_1';\ldots;\Sequence_m'} \Leftrightarrow
+      \DNFOf{\SequenceAlt_{\sigma_2(1)}';\ldots;\SequenceAlt_{\sigma_2(m)}'}
+    }
+  \]
+  where
+  $\DNFLens_1 = (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma_1)$,
+  $\DNFRegex_1 = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$,
+  $\DNFRegexAlt_1 = \DNFOf{\SequenceAlt_{\sigma_1(1)};\ldots;\SequenceAlt_{\sigma_1(n)}}$,
+  $\DNFLens_2 = (\DNFLensOf{\SequenceLens_1';\ldots;\SequenceLens_m'},\sigma_2)$,
+  $\DNFRegex_2 = \DNFOf{\Sequence_1';\ldots;\Sequence_m'}$, and
+  $\DNFRegexAlt_2 =
+  \DNFOf{\SequenceAlt_{\sigma_2(1)}';\ldots;\SequenceAlt_{\sigma_2(m)}'}$.
+
+  Define $\Sequence_i$ as $\Sequence_{i-n}'$ for
+  $i \in \RangeIncInc{n+1}{n+m}$.
+  Define $\SequenceAlt_i$ as $\SequenceAlt_{i-n}$ for $i \in
+  \RangeIncInc{n+1}{n+m}$.
+  Define $\SequenceLens_i$ as $\SequenceLens_{i-n}'$ for $i \in
+  \RangeIncInc{n+1}{n+m}$.
+
+  If $i \neq j$, and $i,j\in\RangeIncInc{1}{n}$, then $\Sequence_i \cap
+  \Sequence_j = \emptyset$ by the derivation of $\DNFLens_1$.
+  If $i \neq j$, and $i,j\in\RangeIncInc{n+1}{n+m}$, then $\Sequence_i \cap
+  \Sequence_j = \emptyset$ by the derivation of $\DNFLens_2$.
+  If $i \neq j$ and $i\in\RangeIncInc{1}{n}$ and $j\in\RangeIncInc{n+1}{n+m}$,
+  then $\Sequence_i \cap \Sequence_j = \emptyset$ as $\DNFRegex_1 \cap
+  \DNFRegex_2 = \emptyset$, and $\LanguageOf{\Sequence_i} \subset
+  \LanguageOf{\DNFRegex_1}$, and $\LanguageOf{\Sequence_j} \subset
+  \LanguageOf{\DNFRegex_1}$.
+  If $i \neq j$ and $i\in\RangeIncInc{n+1}{n+m}$ and $j\in\RangeIncInc{1}{n}$,
+  then $\Sequence_i \cap \Sequence_j = \emptyset$ as $\cap$ is commutative.
+  Because of these cases, if $i \neq j$, then $\Sequence_i \cap \Sequence_j = \emptyset$ for all $i,j
+  \in \RangeIncInc{1}{n+m}$.
+
+  For a symmetric reason, if $i \neq j$, then $\SequenceAlt_i \cap
+  \SequenceAlt_j = \emptyset$, for all $i,j \in \RangeIncInc{1}{n+m}$.
+
+  Consider the derivation
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+        }
+      }
+      {
+        \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i
+      }\\
+      \ConcatPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n}\\
+      i \neq j \BooleanImplies \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
+      i \neq j \BooleanImplies \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n+m}},
+        \ConcatPermutationOf{\sigma_1}{\sigma_2})
+      \OfRewritelessType
+      \DNFOf{\Sequence_1;\ldots;\Sequence_{n+m}} \Leftrightarrow
+      \DNFOf{\SequenceAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)};\ldots
+        ;\SequenceAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)(n+m)}}
+    }
+  \]
+  
+  We wish to show that this is a derivation of
+  $\OrDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfType
+  \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+  \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
+  
+  \[
+    \begin{array}{rcl}
+      (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n+m}},
+        \ConcatPermutationOf{\sigma_1}{\sigma_2})
+      & = & (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n;
+            \SequenceLens_1';\ldots;\SequenceLens_m'},
+            \ConcatPermutationOf{\sigma_1}{\sigma_2})\\
+      & = & \OrDNFLensOf{\DNFLens_1}{\DNFLens_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \DNFOf{\Sequence_1;\ldots;\Sequence_{n+m}}
+      & = & \DNFOf{\Sequence_1;\ldots;\Sequence_n;
+            \Sequence_1';\ldots\Sequence_n'}\\
+      & = & \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}
+    \end{array}
+  \]
+
+
+  \[
+    \begin{array}{rcl}
+      \DNFOf{\SequenceAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(1)};\ldots;
+      \SequenceAlt_{\ConcatPermutationOf{\sigma_1}{\sigma_2}(n+m)}}
+      & = & \DNFOf{\SequenceAlt_{\sigma_1(1)};\ldots;\SequenceAlt_{\sigma_1(n)};
+            \SequenceAlt_{\sigma_2(n+1-n)+n};\SequenceAlt_{\sigma_2(n+m-n)+n}}\\
+      & = & \DNFOf{\SequenceAlt_{\sigma_1(1)};\ldots;\SequenceAlt_{\sigma_1(n)};
+            \SequenceAlt_{\sigma_2(1)+n};\SequenceAlt_{\sigma_2(m)+n}}\\
+      & = & \DNFOf{\SequenceAlt_{\sigma_1(1)};\ldots;\SequenceAlt_{\sigma_1(n)};
+            \SequenceAlt_{\sigma_2(1)}';\SequenceAlt_{\sigma_2(m)}'}\\
+      & = & \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
+    \end{array}
+  \]
+
+  So we have a derivation of $\OrDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfType
+  \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+  \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$
+  
+  We also wish to have the desired semantics.
+
+  \[
+    \begin{array}{rcl}
+      \SemanticsOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n+m}},
+      \ConcatPermutationOf{\sigma_1}{\sigma_2})}
+      & = & \SetOf{(\String,\StringAlt)\SuchThat
+            (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}\\
+      & = & \SetOf{(\String,\StringAlt)\SuchThat
+            (\String,\StringAlt)\in\SequenceLens_i
+            \text{ for some $i\in\RangeIncInc{1}{n}$} \BooleanOr
+            (\String,\StringAlt)\in\SequenceLens_i
+            \text{ for some $i\in\RangeIncInc{n+1}{n+m}$}}\\
+      & = & \SetOf{(\String,\StringAlt)\SuchThat
+            (\String,\StringAlt)\in\SequenceLens_i
+            \text{ for some $i\in\RangeIncInc{1}{n}$} \BooleanOr
+            (\String,\StringAlt)\in\SequenceLens_i'
+            \text{ for some $i\in\RangeIncInc{1}{m}$}}\\
+      & = & \SetOf{(\String,\StringAlt) \SuchThat
+            (\String,\StringAlt)\in\SemanticsOf{\DNFLens_1}
+            \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\DNFLens_2}}
+    \end{array}
+  \]
+
+\end{proof}
+
+\begin{lemma}[Typing and Semantics of $\DNFLensOf{\SequenceLensOf{\IterateLensOf{\cdot}}}$]
+  \label{lem:typ_sem_it}
+  Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ be
+  the typing of a rewriteless DNF lens, where
+  $\UnambigItOf{\DNFRegex}$ and $\UnambigItOf{\DNFRegexAlt}$.
+  $\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}} \OfRewritelessType
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \Leftrightarrow
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$ and
+  $\SemanticsOf{\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}} =
+  \SetOf{
+    (\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+    \SuchThat
+    (\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$
+\end{lemma}
+\begin{proof}
+  By assumption, there exists a typing derivation
+  
+  \[
+    \inferrule*
+    {
+      \inferrule*[vdots=1.5em]
+      {
+      }
+      {
+      }
+    }
+    {
+      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
+    }
+  \]
+
+  Consider the typing derivation
+  
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*
+        {
+          \inferrule*
+          {
+            \inferrule*[vdots=1.5em]
+            {
+            }
+            {
+            }
+          }
+          {
+            \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
+          }\\
+          \UnambigItOf{\DNFRegex}\\
+          \UnambigItOf{\DNFRegexAlt}
+        }
+        {
+          \IterateLensOf{\DNFLens} \OfRewritelessType
+          \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+        }\\
+        \SequenceUnambigConcatOf{\EmptyString;\DNFRegex;\EmptyString}\\
+        \SequenceUnambigConcatOf{\EmptyString;\DNFRegexAlt;\EmptyString}
+      }
+      {
+        \SequenceLensOf{(\EmptyString,\EmptyString);\IterateLensOf{\DNFLens};(\EmptyString,\EmptyString)}
+        \OfRewritelessType \SequenceOf{\EmptyString;\DNFRegex;\EmptyString}
+        \Leftrightarrow \SequenceOf{\EmptyString;\DNFRegex;\EmptyString}
+      }
+    }
+    {
+      \DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}} \OfRewritelessType
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \Leftrightarrow
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
+    }
+  \]
+
+  And the semantics are shown to be equal to the desired semantics.
+
+  \[
+    \begin{array}{rcl}
+      \SemanticsOf{\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}}
+      & = &
+            \SetOf{
+            (\String,\StringAlt)
+            \SuchThat
+            (\String,\StringAlt)\in\SemanticsOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}}\\
+      & = &
+            \SetOf{
+            (\EmptyString\Concat\String\Concat\EmptyString,\EmptyString\Concat\StringAlt\Concat\EmptyString)
+            \SuchThat
+            (\String,\StringAlt)\in\SemanticsOf{\IterateLensOf{\DNFLens}}}\\
+      & = &
+            \SetOf{
+            (\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+            \SuchThat
+            (\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}
+    \end{array}
+  \]
+  
+\end{proof}
+
+\begin{lemma}[Rewriting Maintained Under Iteration]
+  \label{lem:rewriting-iteration}
+  Let $\DNFRegex \RewriteTo \DNFRegexAlt$, then
+  $\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \RewriteTo
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.
+\end{lemma}
+\begin{proof}
+  Consider the derivation
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \inferrule*
+        {
+          \inferrule*[vdots=1.5em]
+          {
+          }
+          {
+          }
+        }
+        {
+          \DNFRegex \RewriteTo \DNFRegexAlt
+        }
+      }
+      {
+        \StarOf{\DNFRegex} \RewriteToAtom
+        \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
+      }
+    }
+    {
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \RewriteTo
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
+    }
+  \]
+  
 \end{proof}
 
 \begin{lemma}[Partial Completeness of Composition]\leavevmode
@@ -4048,18 +4968,70 @@ So we have the final typing derivation
 \end{mathpar}
 \end{proof}
 
+\begin{lemma}[Repeatable Semantics Left]
+  \begin{enumerate}\leavevmode\\
+  \item Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+    \DNFRegexAlt$ and $\DNFRegex \RewriteTo \DNFRegex'$.  There exists some
+    $\DNFRegexAlt'$, $\DNFLens'$ such that $\DNFRegexAlt \RewriteTo
+    \DNFRegexAlt'$,
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\DNFLens'}$.
+  \item Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$ and
+    $\Atom \RewriteToAtom \DNFRegex$.  There exists some $\DNFRegexAlt$,
+    $\DNFLens$, such that $\AtomAlt \RewriteToAtom \DNFRegexAlt$,
+    $\DNFLens' \OfRewritelessType \DNFRegex
+    \Leftrightarrow \DNFRegexAlt$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\AtomLens}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the derivation of $\RewriteTo$ and $\RewriteToAtom$
+  \begin{description}
+  \item[StarExpandRuleLeft]
+    Let $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$
+  \end{description}
+\end{proof}
+
+\begin{lemma}[Repeatable Semantics Right]
+  \begin{enumerate}\leavevmode\\
+  \item Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+    \DNFRegexAlt$ and $\DNFRegexAlt \RewriteTo \DNFRegexAlt'$.  There exists some
+    $\DNFRegex'$, $\DNFLens'$ such that $\DNFRegex \RewriteTo
+    \DNFRegex'$,
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\DNFLens'}$.
+  \item Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$ and
+    $\AtomAlt \RewriteToAtom \DNFRegexAlt$.  There exists some $\DNFRegex$,
+    $\DNFLens$, such that $\Atom \RewriteToAtom \DNFRegex$,
+    $\DNFLens' \OfRewritelessType \DNFRegex
+    \Leftrightarrow \DNFRegexAlt$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\AtomLens}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  This can be proven symmetrically to Lemma~\ref{?}.
+\end{proof}
+
 \begin{definition}[Minimized DNF Equivational Theory]\leavevmode
   \begin{mathpar}
     \inferrule
     {
-      \DNFRegex = \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}
     }
     {
       \StarOf{\DNFRegex}\AtomEquiv
       \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
-      {(\ConcatDNFOf{\DNFRegex_1}
-        {\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\ConcatDNFOf{\DNFRegex_2}{\DNFRegex_1})}}}}}
-        {\DNFRegex_2})}
+      {(\ConcatDNFOf{\DNFRegex}{\StarOf{\DNFRegex}})}
+    }
+    
+    \inferrule
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+      {(\ConcatDNFOf{\StarOf{\DNFRegex}}{\DNFRegex})}
     }
 
     \inferrule
@@ -4070,6 +5042,27 @@ So we have the final typing derivation
       \StarOf{\DNFRegex}\AtomEquiv
       \ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
       {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+    }
+
+    \inferrule
+    {
+      n\in\Nats_{\geq1}
+    }
+    {
+      \StarOf{\DNFRegex}\AtomEquiv
+      \ConcatDNFOf
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+      {\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+    }
+
+    \inferrule
+    {
+      \sigma\in\PermutationSetOf{n}
+    }
+    {
+      \DNFOf{\Sequence_1;\ldots;\Sequence_n}
+      \equiv
+      \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}
     }
 
     \inferrule
@@ -4141,101 +5134,227 @@ So we have the final typing derivation
   $\Property(s_1',s_2')$.
 \end{theorem}
 
+
+
 \begin{definition}\leavevmode
   \begin{mathpar}
     \inferrule
     {
     }
     {
-      \Regex \RewritesTo \Regex
+      \StarOf{\DNFRegex}\RewriteToAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+      {(\ConcatDNFOf{\DNFRegex}{\StarOf{\DNFRegex}})}
+    }
+    
+    \inferrule
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\RewriteToAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+      {(\ConcatDNFOf{\StarOf{\DNFRegex}}{\DNFRegex})}
     }
 
     \inferrule
     {
-      \Regex \RewritesTo \RegexAlt
+      n\in\Nats_{\geq1}
     }
     {
-      \StarOf{\Regex} \RewritesTo \StarOf{\RegexAlt}
+      \StarOf{\DNFRegex}\RewriteToAtom
+      \ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
     }
 
     \inferrule
     {
-      \Regex_1 \RewritesTo \RegexAlt_1\\
-      \Regex_2 \RewritesTo \RegexAlt_2
+      n\in\Nats_{\geq1}
     }
     {
-      \RegexConcat{\Regex_1}{\Regex_2} \RewritesTo
+      \StarOf{\DNFRegex}\RewriteToAtom
+      \ConcatDNFOf
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+      {\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
+    }
+
+    \inferrule
+    {
+      \sigma\in\PermutationSetOf{n}
+    }
+    {
+      \DNFOf{\Sequence_1;\ldots;\Sequence_n}
+      \RewriteTo
+      \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}
+    }
+
+    \inferrule
+    {
+      \DNFRegex \RewriteTo \DNFRegex'
+    }
+    {
+      \StarOf{\DNFRegex} \AtomEquiv \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
+    }
+
+    \inferrule
+    {
+      \Atom_j \RewriteToAtom \DNFRegex
+    }
+    {
+      \DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep
+      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep
+      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\equiv\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+    }
+
+    \inferrule
+    {
+      \DNFRegex \RewriteTo \DNFRegex'\\
+      \DNFRegex' \RewriteTo \DNFRegex''
+    }
+    {
+      \DNFRegex \RewriteTo \DNFRegex''
+    }
+
+    \inferrule
+    {
+    }
+    {
+      \DNFRegex \RewriteTo \DNFRegex
+    }
+  \end{mathpar}
+\end{definition}
+
+\begin{definition}\leavevmode
+  \begin{mathpar}
+    \inferrule[\IdentityRewriteRule{}]
+    {
+    }
+    {
+      \Regex \RewriteTo \Regex
+    }
+
+    \inferrule[\StarIntroRewriteRule{}]
+    {
+      \Regex \RewriteTo \RegexAlt
+    }
+    {
+      \StarOf{\Regex} \RewriteTo \StarOf{\RegexAlt}
+    }
+
+    \inferrule[\ConcatIntroRewriteRule{}]
+    {
+      \Regex_1 \RewriteTo \RegexAlt_1\\
+      \Regex_2 \RewriteTo \RegexAlt_2
+    }
+    {
+      \RegexConcat{\Regex_1}{\Regex_2} \RewriteTo
       \RegexConcat{\RegexAlt_1}{\RegexAlt_2}
     }
 
-    \inferrule
+    \inferrule[\OrIntroRewriteRule{}]
     {
-      \Regex_1 \RewritesTo \RegexAlt_1\\
-      \Regex_2 \RewritesTo \RegexAlt_2
+      \Regex_1 \RewriteTo \RegexAlt_1\\
+      \Regex_2 \RewriteTo \RegexAlt_2
     }
     {
-      \RegexOr{\Regex_1}{\Regex_2} \RewritesTo
+      \RegexOr{\Regex_1}{\Regex_2} \RewriteTo
       \RegexOr{\RegexAlt_1}{\RegexAlt_2}
     }
 
-    \inferrule
+    \inferrule[\ConcatAssocRewriteRule{}]
     {
     }
     {
-      (\Regex_1\Concat\Regex_2)\Concat\Regex_3 \RewritesTo
+      (\Regex_1\Concat\Regex_2)\Concat\Regex_3 \RewriteTo
       \Regex_1\Concat(\Regex_2\Concat\Regex_3)
     }
 
-    \inferrule
+    \inferrule[\OrIntroRewriteRule{}]
     {
     }
     {
-      (\Regex_1\Or\Regex_2)\Or\Regex_3 \RewritesTo
+      (\Regex_1\Or\Regex_2)\Or\Regex_3 \RewriteTo
       \Regex_1\Or(\Regex_2\Or\Regex_3)
     }
 
-    \inferrule
+    \inferrule[\LeftDistributivityRewriteRule{}]
     {
     }
     {
-      \Regex_1\Concat(\Regex_2\Or\Regex_3) \RewritesTo
+      \Regex_1\Concat(\Regex_2\Or\Regex_3) \RewriteTo
       (\Regex_1\Concat\Regex_2)\Or(\Regex_1\Concat\Regex_3)
     }
 
-    \inferrule
+    \inferrule[\RightDistributivityRewriteRule{}]
     {
     }
     {
-      (\Regex_1\Or\Regex_2)\Concat\Regex_3 \RewritesTo
+      (\Regex_1\Or\Regex_2)\Concat\Regex_3 \RewriteTo
       (\Regex_1\Concat\Regex_3)\Or(\Regex_2\Concat\Regex_3)
     }
 
-    \inferrule
+    \inferrule[\OrCommuteRewriteRule{}]
     {
     }
     {
-      \Regex_1\Or\Regex_2 \RewritesTo
+      \Regex_1\Or\Regex_2 \RewriteTo
       \Regex_2\Or\Regex_1
     }
 
-    \inferrule
+    \inferrule[\LeftUnrollRewriteRule{}]
     {
     }
     {
-      \StarOf{\Regex} \RewritesTo \EmptyString \Or (\Regex\Concat\StarOf{\Regex})
+      \StarOf{\Regex} \RewriteTo \EmptyString \Or (\Regex\Concat\StarOf{\Regex})
     }
 
-    \inferrule
+    \inferrule[\RightUnrollRewriteRule{}]
     {
     }
     {
-      \StarOf{\Regex} \RewritesTo \EmptyString \Or (\StarOf{\Regex}\Concat\Regex)
+      \StarOf{\Regex} \RewriteTo \EmptyString \Or (\StarOf{\Regex}\Concat\Regex)
+    }
+
+    \inferrule[\LeftQuotientRewriteRuleOf{n}]
+    {
+    }
+    {
+      \StarOf{\Regex} \RewriteTo \Regex^{<n}\Concat\StarOf{(\Regex^n)}
+    }
+
+    \inferrule[\RightQuotientRewriteRuleOf{n}]
+    {
+    }
+    {
+      \StarOf{\Regex} \RewriteTo \StarOf{(\Regex^n)}\Concat\Regex^{<n}
     }
   \end{mathpar}
 \end{definition}
 
 \begin{lemma}
-  If $\Regex \RewritesTo \RegexAlt$ and $\Regex \RewritesTo \RegexAlt'$, there exists
+  Let $\Lens$ be a lens.  Define the binary relation, $\DNFLensHasSemanticsOf{\Lens}$,
+  on $\RegexType$ as $\DNFLensHasSemanticsOf{\Lens}(\Regex,\RegexAlt)$ if, and
+  only if there exists a DNF Lens $\DNFLens$ such that $\DNFLens
+  \OfRewritelessType \ToDNFRegexOf{\Regex} \Leftrightarrow
+  \ToDNFRegexOf{\RegexAlt}$.
+\end{lemma}
+
+\begin{lemma}
+  For all lenses $\Lens$,
+  $\IsConfluentWithPropertyOf{\RewriteTo}{\DNFLensHasSemanticsOf{\Lens}}$
+\end{lemma}
+\begin{proof}
+  We will proceed by cases:
+  \begin{description}
+  \item[\IdentityRewriteRule{},Anything] lasd;lfkjas;ldkfjal;sdkjf
+  \item[starintro] ;alsjkehdfpqwoijenflk
+  \end{description}
+\end{proof}
+
+\begin{lemma}
+  If $\Regex \RewriteTo \RegexAlt$ and $\Regex \RewriteTo \RegexAlt'$, there exists
 \end{lemma}
 
 other proof attempt thing blah blah
@@ -4315,8 +5434,8 @@ other proof attempt thing blah blah
       {
         \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
       }\\
-      \ToDNFRegex{\Regex}\RewritesTo\DNFRegex\\
-      \ToDNFRegex{\RegexAlt}\RewritesTo\DNFRegexAlt
+      \ToDNFRegex{\Regex}\RewriteTo\DNFRegex\\
+      \ToDNFRegex{\RegexAlt}\RewriteTo\DNFRegexAlt
     }
     {
       \DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow
@@ -4324,12 +5443,13 @@ other proof attempt thing blah blah
     }
   \]
 
-  By Lemma~\ref{?}, $\DNFLensOf{\SequenceLensOf{\StarOf{\DNFLens}}}
+  By Lemma~\ref{lem:typ_sem_it},
+  $\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}
   \OfRewritelessType \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \Leftrightarrow
-  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.  By Lemma~\ref{?},
-  $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \RewritesTo
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.  By Lemma~\ref{lem:rewriting-iteration},
+  $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \RewriteTo
   \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$ and
-  $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \RewritesTo
+  $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \RewriteTo
   \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.  From this, we get
 
   \[
@@ -4344,29 +5464,29 @@ other proof attempt thing blah blah
         }
       }
       {
-        \DNFLensOf{\SequenceLensOf{\StarOf{\DNFLens}}}
+        \DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}
         \OfRewritelessType \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}
         \Leftrightarrow \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
       }\\
-      \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \RewritesTo
+      \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \RewriteTo
       \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}\\
-      \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \RewritesTo
+      \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \RewriteTo
       \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
     }
     {
-      \DNFLensOf{\SequenceLensOf{\StarOf{\DNFLens}}} \OfType
+      \DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}} \OfType
       \ToDNFRegexOf{\StarOf{\Regex}} \Leftrightarrow
       \ToDNFRegexOf{\StarOf{\RegexAlt}}
     }
   \]
 
-  By Lemma~\ref{?},
-  $\SemanticsOf{\DNFLensOf{\SequenceLensOf{\StarOf{\DNFLens}}}} =
+  By Lemma~\ref{lem:typ_sem_it},
+  $\SemanticsOf{\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}} =
   \SetOf{(\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
     \SuchThat (\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}} =
   \SetOf{(\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
     \SuchThat (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}} =
-  \SemanticsOf{\StarOf{\Lens}}$
+  \SemanticsOf{\IterateLensOf{\Lens}}$
   \\
   \\
   
@@ -4397,8 +5517,8 @@ other proof attempt thing blah blah
         \DNFOf{\SequenceOf{\String_1}} \Leftrightarrow
         \DNFOf{\SequenceOf{\String_2}}
       }\\
-      \DNFOf{\SequenceOf{\String_1}} \RewritesTo \DNFOf{\SequenceOf{\String_1}}\\
-      \DNFOf{\SequenceOf{\String_2}} \RewritesTo \DNFOf{\SequenceOf{\String_2}}
+      \DNFOf{\SequenceOf{\String_1}} \RewriteTo \DNFOf{\SequenceOf{\String_1}}\\
+      \DNFOf{\SequenceOf{\String_2}} \RewriteTo \DNFOf{\SequenceOf{\String_2}}
     }
     {
       \DNFLensOf{\SequenceLensOf{(\String_1,\String_2)}} \OfType
@@ -4462,8 +5582,8 @@ other proof attempt thing blah blah
       {
         \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
       }\\
-      \ToDNFRegex{\Regex_1}\RewritesTo\DNFRegex_1\\
-      \ToDNFRegex{\RegexAlt_1}\RewritesTo\DNFRegexAlt_1
+      \ToDNFRegex{\Regex_1}\RewriteTo\DNFRegex_1\\
+      \ToDNFRegex{\RegexAlt_1}\RewriteTo\DNFRegexAlt_1
     }
     {
       \DNFLens_1 \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow
@@ -4487,8 +5607,8 @@ other proof attempt thing blah blah
       {
         \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
       }\\
-      \ToDNFRegex{\Regex_2}\RewritesTo\DNFRegex_2\\
-      \ToDNFRegex{\RegexAlt_2}\RewritesTo\DNFRegexAlt_2
+      \ToDNFRegex{\Regex_2}\RewriteTo\DNFRegex_2\\
+      \ToDNFRegex{\RegexAlt_2}\RewriteTo\DNFRegexAlt_2
     }
     {
       \DNFLens_2 \OfType \ToDNFRegexOf{\Regex_2} \Leftrightarrow
@@ -4501,9 +5621,9 @@ other proof attempt thing blah blah
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
   By Lemma~\ref{?},
-  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewritesTo
+  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewriteTo
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
-  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \RewritesTo
+  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \RewriteTo
   \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.  From this, we get
   
   \[
@@ -4522,9 +5642,9 @@ other proof attempt thing blah blah
         \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
         \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
       }\\
-      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewritesTo
+      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewriteTo
       \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
-      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \RewritesTo
+      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \RewriteTo
       \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$
     }
     {
@@ -4595,8 +5715,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
       }\\
-      \ToDNFRegex{\Regex_1}\RewritesTo\DNFRegex_1\\
-      \ToDNFRegex{\RegexAlt_1}\RewritesTo\DNFRegexAlt_1
+      \ToDNFRegex{\Regex_1}\RewriteTo\DNFRegex_1\\
+      \ToDNFRegex{\RegexAlt_1}\RewriteTo\DNFRegexAlt_1
     }
     {
       \DNFLens_1 \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow
@@ -4620,8 +5740,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
       }\\
-      \ToDNFRegex{\Regex_2}\RewritesTo\DNFRegex_2\\
-      \ToDNFRegex{\RegexAlt_2}\RewritesTo\DNFRegexAlt_2
+      \ToDNFRegex{\Regex_2}\RewriteTo\DNFRegex_2\\
+      \ToDNFRegex{\RegexAlt_2}\RewriteTo\DNFRegexAlt_2
     }
     {
       \DNFLens_2 \OfType \ToDNFRegexOf{\Regex_2} \Leftrightarrow
@@ -4629,14 +5749,14 @@ Let the last typing rule be an instance of \OrLensRule{}.
     }
   \]
 
-  From Lemma~\ref{?}, $\OrDNFLensOf{\DNFLens_1}{\DNFLens_2}
+  From Lemma~\ref{lem:typ_sem_or}, $\OrDNFLensOf{\DNFLens_1}{\DNFLens_2}
   \OfRewritelessType
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
   By Lemma~\ref{?},
-  $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \RewritesTo
+  $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \RewriteTo
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
-  $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \RewritesTo
+  $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \RewriteTo
   \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.  From this, we get
   
   \[
@@ -4655,9 +5775,9 @@ Let the last typing rule be an instance of \OrLensRule{}.
         \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
         \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
       }\\
-      $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \RewritesTo
+      $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \RewriteTo
       \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
-      $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \RewritesTo
+      $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \RewriteTo
       \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$
     }
     {
@@ -4667,7 +5787,7 @@ Let the last typing rule be an instance of \OrLensRule{}.
     }
   \]
 
-  By Lemma~\ref{?},
+  By Lemma~\ref{lem:typ_sem_or},
   $\SemanticsOf{\OrDNFLensOf{\DNFLens_1}{\DNFLens_2}} =
   \SetOf{(\String,\StringAlt) \SuchThat
     (\String,\StringAlt)\in\SemanticsOf{\DNFLens_1} \BooleanOr
@@ -4781,8 +5901,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
       }\\
-      \ToDNFRegex{\Regex_1}\RewritesTo\DNFRegex_1\\
-      \ToDNFRegex{\RegexAlt_1}\RewritesTo\DNFRegexAlt_1
+      \ToDNFRegex{\Regex_1}\RewriteTo\DNFRegex_1\\
+      \ToDNFRegex{\RegexAlt_1}\RewriteTo\DNFRegexAlt_1
     }
     {
       \DNFLens_1 \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow
@@ -4806,8 +5926,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
       }\\
-      \ToDNFRegex{\Regex_2}\RewritesTo\DNFRegex_2\\
-      \ToDNFRegex{\RegexAlt_2}\RewritesTo\DNFRegexAlt_2
+      \ToDNFRegex{\Regex_2}\RewriteTo\DNFRegex_2\\
+      \ToDNFRegex{\RegexAlt_2}\RewriteTo\DNFRegexAlt_2
     }
     {
       \DNFLens_2 \OfType \ToDNFRegexOf{\Regex_2} \Leftrightarrow
@@ -4820,9 +5940,9 @@ Let the last typing rule be an instance of \OrLensRule{}.
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$.
   By Lemma~\ref{?},
-  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewritesTo
+  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewriteTo
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
-  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \RewritesTo
+  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \RewriteTo
   \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$.  From this, we get
   
   \[
@@ -4841,9 +5961,9 @@ Let the last typing rule be an instance of \OrLensRule{}.
         \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
         \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}
       }\\
-      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewritesTo
+      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \RewriteTo
       \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
-      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \RewritesTo
+      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \RewriteTo
       \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$
     }
     {
@@ -4904,8 +6024,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2
       }\\
-      \ToDNFRegex{\Regex_1}\RewritesTo\DNFRegex_1\\
-      \ToDNFRegex{\Regex_2}\RewritesTo\DNFRegex_2
+      \ToDNFRegex{\Regex_1}\RewriteTo\DNFRegex_1\\
+      \ToDNFRegex{\Regex_2}\RewriteTo\DNFRegex_2
     }
     {
       \DNFLens_1 \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow
@@ -4929,8 +6049,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens_2 \OfRewritelessType \DNFRegexAlt_2 \Leftrightarrow \DNFRegex_3
       }\\
-      \ToDNFRegex{\Regex_2}\RewritesTo\DNFRegexAlt_2\\
-      \ToDNFRegex{\Regex_3}\RewritesTo\DNFRegex_3
+      \ToDNFRegex{\Regex_2}\RewriteTo\DNFRegexAlt_2\\
+      \ToDNFRegex{\Regex_3}\RewriteTo\DNFRegex_3
     }
     {
       \DNFLens_2 \OfType \ToDNFRegexOf{\Regex_2} \Leftrightarrow
@@ -4943,17 +6063,17 @@ Let the last typing rule be an instance of \OrLensRule{}.
   \ToDNFRegex{\Regex_2}$ where $\SemanticsOf{\DNFLens_{\IdentityLens}} =
   \SetOf{(\String,\String)\SuchThat \String\in\LanguageOf{\Regex_2}}$.
   From Lemma~\ref{?}, we know that, as
-  $\ToDNFRegex{\Regex_2}\RewritesTo\DNFRegex_2$ and as
-  $\ToDNFRegex{\Regex_2}\RewritesTo\DNFRegexAlt_2$, there must exist some
+  $\ToDNFRegex{\Regex_2}\RewriteTo\DNFRegex_2$ and as
+  $\ToDNFRegex{\Regex_2}\RewriteTo\DNFRegexAlt_2$, there must exist some
   $\DNFRegex_2'$, $\DNFRegexAlt_2'$ such that
-  $\DNFRegex_2\RewritesTo\DNFRegex_2'$ and
-  $\DNFRegexAlt_2\RewritesTo\DNFRegexAlt_2'$ and there exists a rewriteless dnf
+  $\DNFRegex_2\RewriteTo\DNFRegex_2'$ and
+  $\DNFRegexAlt_2\RewriteTo\DNFRegexAlt_2'$ and there exists a rewriteless dnf
   lens $\DNFLens_{\IdentityLens}' \OfRewritelessType \DNFRegex_2' \Leftrightarrow
   \DNFRegexAlt_2'$ where $\SemanticsOf{\DNFLens_{\IdentityLens}'} =
   \SetOf{(\String,\String)\SuchThat \String\in\LanguageOf{\Regex_2}}$.
   From Lemma~\ref{?}, there exists $\DNFRegex_1'$, $\DNFRegex_3'$,
   $\DNFLens_1'$, and $\DNFLens_2'$ such that
-  $\DNFRegex_1\RewritesTo\DNFRegex_1'$, $\DNFRegex_3\RewritesTo\DNFRegex_3'$,
+  $\DNFRegex_1\RewriteTo\DNFRegex_1'$, $\DNFRegex_3\RewriteTo\DNFRegex_3'$,
   $\DNFLens_1' \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_2'$,
   $\DNFLens_2' \OfRewritelessType \DNFRegexAlt_2' \Leftrightarrow \DNFRegex_3'$,
   $\SemanticsOf{\DNFLens_1} = \SemanticsOf{\DNFLens_1'}$ and
@@ -4965,10 +6085,10 @@ Let the last typing rule be an instance of \OrLensRule{}.
   \SemanticsOf{\DNFLens_1'} = \SemanticsOf{\DNFLens_2'} \Compose
   \SemanticsOf{\DNFLens_1'} = \SemanticsOf{\Lens_2} \Compose
   \SemanticsOf{\Lens_1} = \SemanticsOf{\Lens_2\Compose\Lens_1}$.  Furthermore,
-  $\ToDNFRegexOf{\Regex_1} \RewritesTo \DNFRegex \RewritesTo \DNFRegex_1'$ so
-  $\ToDNFRegex{\Regex_1} \RewritesTo \DNFRegex_1$. $\ToDNFRegex{\Regex_3}
-  \RewritesTo \DNFRegex_3 \RewritesTo \DNFRegex_3'$ so $\ToDNFRegex{\Regex_3}
-  \RewritesTo \DNFRegex_3'$.  So we get the typing derivation
+  $\ToDNFRegexOf{\Regex_1} \RewriteTo \DNFRegex \RewriteTo \DNFRegex_1'$ so
+  $\ToDNFRegex{\Regex_1} \RewriteTo \DNFRegex_1$. $\ToDNFRegex{\Regex_3}
+  \RewriteTo \DNFRegex_3 \RewriteTo \DNFRegex_3'$ so $\ToDNFRegex{\Regex_3}
+  \RewriteTo \DNFRegex_3'$.  So we get the typing derivation
 
   \[
     \inferrule*
@@ -4984,8 +6104,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens' \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_3'
       }\\
-      \ToDNFRegex{\Regex_1}\RewritesTo\DNFRegex_1'\\
-      \ToDNFRegex{\Regex_3}\RewritesTo\DNFRegex_3'
+      \ToDNFRegex{\Regex_1}\RewriteTo\DNFRegex_1'\\
+      \ToDNFRegex{\Regex_3}\RewriteTo\DNFRegex_3'
     }
     {
       \DNFLens' \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow
@@ -5035,8 +6155,8 @@ Let the last typing rule be an instance of \OrLensRule{}.
       {
         \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
       }\\
-      \ToDNFRegex{\Regex}\RewritesTo\DNFRegex\\
-      \ToDNFRegex{\RegexAlt}\RewritesTo\DNFRegexAlt
+      \ToDNFRegex{\Regex}\RewriteTo\DNFRegex\\
+      \ToDNFRegex{\RegexAlt}\RewriteTo\DNFRegexAlt
     }
     {
       \DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow
@@ -5050,9 +6170,9 @@ Let the last typing rule be an instance of \OrLensRule{}.
     \SuchThat \String \in \LanguageOf{\ToDNFRegexOf{\Regex}}}$.  From
   Lemma~\ref{?} as $\Regex \equiv \Regex'$, $\ToDNFRegexOf{\Regex} \equiv
   \ToDNFRegexOf{\Regex'}$.  By Lemma~\ref{?}, $\ToDNFRegexOf{\Regex}
-  \equiv_{\RewritesTo} \ToDNFRegexOf{\Regex'}$.  By Lemma~\ref{?}, there exists
-  a $\DNFRegex_1$, $\DNFRegex_2$, and $\DNFLens_{\Regex}'$ such that $\ToDNFRegexOf{\Regex} \RewritesTo
-  \DNFRegex_1$, and $\ToDNFRegexOf{\Regex'} \RewritesTo \DNFRegex_2$,
+  \equiv_{\RewriteTo} \ToDNFRegexOf{\Regex'}$.  By Lemma~\ref{?}, there exists
+  a $\DNFRegex_1$, $\DNFRegex_2$, and $\DNFLens_{\Regex}'$ such that $\ToDNFRegexOf{\Regex} \RewriteTo
+  \DNFRegex_1$, and $\ToDNFRegexOf{\Regex'} \RewriteTo \DNFRegex_2$,
   $\DNFLens_{\Regex}' \OfRewritelessType \DNFRegex_1 \Leftrightarrow
   \DNFRegex_2$ and $\SemanticsOf{\DNFLens_{\Regex}'} =
   \SemanticsOf{\DNFLens_{\Regex}}$.
@@ -5060,16 +6180,16 @@ Let the last typing rule be an instance of \OrLensRule{}.
   From a symmetric argument, there exists similar things for $\RegexAlt$ (TODO,
   make this paragraph better).
 
-  By Lemma~\ref{?}, as $\ToDNFRegexOf{\Regex}\RewritesTo\DNFRegex$ and
-  $\ToDNFRegexOf{\Regex}\RewritesTo\DNFRegex_1$, and there exists a DNF Lens
+  By Lemma~\ref{?}, as $\ToDNFRegexOf{\Regex}\RewriteTo\DNFRegex$ and
+  $\ToDNFRegexOf{\Regex}\RewriteTo\DNFRegex_1$, and there exists a DNF Lens
   $\DNFLens_{\Regex} \OfRewritelessType \ToDNFRegexOf{\Regex} \Leftrightarrow
   \ToDNFRegexOf{\Regex}$, there exists $\DNFRegex'$, $\DNFRegex_1'$,
   $\DNFLens_{\Regex}''$, and $\DNFLens'$ such that
-  $\DNFRegex \RewritesTo \DNFRegex'$, $\DNFRegex_1 \RewritesTo \DNFRegex_1'$,
+  $\DNFRegex \RewriteTo \DNFRegex'$, $\DNFRegex_1 \RewriteTo \DNFRegex_1'$,
   and $\DNFLens_{\Regex}'' \OfRewritelessType \DNFRegex_1' \Leftrightarrow
   \DNFRegex'$, where $\SemanticsOf{\DNFLens_{\Regex}''} =
   \SemanticsOf{\DNFLens_{\Regex}}$.  By Lemma~\ref{?}, there exists a
-  $\DNFRegex_2'$, $\DNFLens_{\Regex}$ such that $\DNFRegex_2 \RewritesTo
+  $\DNFRegex_2'$, $\DNFLens_{\Regex}$ such that $\DNFRegex_2 \RewriteTo
   \DNFRegex_2'$ and there exists a $\DNFLens_{\Regex}'''$ such that
   $\DNFLens_{\Regex}''' \OfRewritelessType \DNFRegex_1' \Leftrightarrow
   \DNFRegex_2'$.
@@ -5078,7 +6198,7 @@ Let the last typing rule be an instance of \OrLensRule{}.
   make this paragraph better)
 
   There exists $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
-  $\DNFRegex \RewritesTo \DNFRegex'$ and $\DNFRegexAlt \RewritesTo
+  $\DNFRegex \RewriteTo \DNFRegex'$ and $\DNFRegexAlt \RewriteTo
   \DNFRegexAlt'$.  From Lemma~\ref{?}, there exists a $\DNFRegex''$ and
   $\DNFRegexAlt''$ such that $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
   \DNFRegexAlt''$.
