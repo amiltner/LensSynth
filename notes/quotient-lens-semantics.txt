@@ -1,0 +1,101 @@
+Syntax
+
+r ::= 0 | "s" | (r1 | r2) | r1...rn | r*
+
+q ::= 0 | (q | q) | (q1...qn) | q* | r -> "s" | perm(q1...qn) sep s
+
+Denotational semantics of q:
+
+[[q]] is defined via three functions W, K, and l.
+W is a regex that matches the whole language, K is the kernel, and l is a lens from W to K.
+
+W(0) = 0
+W("s") = "s"
+W(q1 | q2) = W(q1) | W(q2)
+W(q1...qn) = W(q1)...W(qn)
+W(q*) = W(q)*
+W(r->"s") = r
+W(perm(q1...qn) sep s) = <union of all permutations separated by s>
+
+K(0) = 0
+K("s") = "s"
+K(q1 | q2) = K(q1) | K(q2)
+K(q1...qn) = K(q1)...K(qn)
+K(q*) = K(q)*
+K(r->"s") = "s"
+K(perm(q1...qn) sep s) = K(q1) s ... s K(qn)
+
+l(0) = id
+l("s") = id
+l(q1 | q2) = l(q1) | l(q2)
+l(q1...qn) = l(q1)...l(qn)
+l(q*) = l(q)*
+l(r->"s") = get: gives "s" 
+            put: identity ignoring the first argument
+l(perm(q1...qn) sep s) = get: reorders everything into the canonical ordering
+                         put: take pieces from first argument, 
+                              take ordering from the second argument
+
+Validity Checking
+
+0 valid
+"s" valid
+r -> "s" is valid if: "s" is in the language of r.
+q1 | q2 is valid if: W(q1) and W(q2) are disjoint
+q1...qn is valid if: W(q1), ..., W(qn) are unambiguously catenable.
+q* is valid if: W(q) is unambiguously iterable.
+perm(q1...qn) sep s if: all ways of ordering W(q_i1),...,W(q_in) are all disjoint
+                        all permutations of W(q_i1) s ... s W(q_in) are unambiguously catenable
+
+Theorem: W(q) always contains K(q).
+0, "s", r -> "s": obvious.
+q1...qn sep s: This follows because q1 s ... s qn is a particular permutation of the parts.
+
+Other cases follow by induction:
+q1 | q2 : By induction, W(q1) contains K(q1) and W(q2) contains K(q2).
+          So W(q1) U W(q2) contains K(q1) U K(q2).
+q1...qn : By induction, W(qi) contains K(qi).
+          This means any catenation of K(qi) is also a catenation of W(qi).
+Similar logic for iteration.
+
+Theorem: If q is valid, l(q) is a valid lens.
+0, "s", r -> "s": obvious.
+
+q1 | q2 : By induction, l(q1) and l(q2) are both valid lenses.
+          Note W(q1) and W(q2) are disjoint. Since W(q) always contains K(q), this means K(q1) and K(q2) are also disjoint.
+          This implies that l(q1 | q2) is also valid.
+
+q* : By induction, l(q) is a valid lens.
+     W(q) is unambiguously iterable, so since W(q) contains K(q), K(q) is also.
+     The unambiguous iterability condition is exactly what we need for l(q)* to be a valid lens.
+
+q1...qn : By induction, l(qi) are all valid lenses.
+          Note that W(q1)...W(qn) are unambiguously catenable.
+          Since W(q) contains K(q), K(q) is also unambiguously catenable, so l(q1...qn) is also a valid lens.
+
+perm(q1...qn) sep s : By induction, l(qi) are all valid lenses.
+  Note that validity of l(perm(q1...qn) sep s) follows directly from our assumptions.
+  This is because each (q1 s ... s qn) must be disjoint, so the union between them is valid, and we've ensured each (q1 s ... s qn) is unambiguously iterable.
+
+Theorem: Quotient lenses generated from QREs are closed under choice, concatenation, and iteration.
+
+Given q1 <-> q2, q3 <-> q4, W(q1) and W(q3) disjoint, W(q2) and W(q4) disjoint,
+we need to show that we can generate a lens q1 + q2 <-> q3 + q4.
+
+Note that the quotient lens generated from q1 <-> q2 can be decomposed:
+W(q1) <-> K(q1) <-> K(q2) <-> W(q2)
+and similarly with the lens generated from q3 <-> q4:
+W(q3) <-> K(q3) <-> K(q4) <-> W(q4).
+
+Since W(q1) and W(q3) are disjoint, and W(q1) contains K(q1) and W(q3) contains K(q3), K(q1) and K(q3) must be disjoint. This means we can take the union in the center.
+
+This means we can immediately compose these lenses pairwise, giving a lens
+W(q1) + W(q3)
+<->
+K(q1) + K(q3)
+<->
+K(q2) + K(q4)
+<->
+W(q2) + W(q4).
+
+Similar logic applies to concatenation, iteration, and permutation.
