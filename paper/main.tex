@@ -4686,20 +4686,19 @@ whitespace problem.
           }
         }
         {
-          \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
+          \DNFRegex \ParallelRewrite \DNFRegexAlt
         }
       }
       {
-        \StarOf{\DNFRegex} \StarOf{\Rewrite}
+        \StarOf{\DNFRegex} \ParallelRewriteAtom
         \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
       }
     }
     {
-      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \StarOf{\Rewrite}
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \ParallelRewrite
       \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
     }
   \]
-  TODO: this isn't real pf
 \end{proof}
 
 \begin{lemma}[$\ParallelRewriteSwap$ Maintained Under Iteration]
@@ -4725,20 +4724,19 @@ whitespace problem.
           }
         }
         {
-          \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
+          \DNFRegex \ParallelRewrite \DNFRegexAlt
         }
       }
       {
-        \StarOf{\DNFRegex} \StarOf{\Rewrite}
+        \StarOf{\DNFRegex} \ParallelRewriteAtom
         \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
       }
     }
     {
-      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \StarOf{\Rewrite}
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \ParallelRewrite
       \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
     }
   \]
-  TODO: this isn't real pf
 \end{proof}
 
 \begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$]
@@ -4839,8 +4837,167 @@ whitespace problem.
 \begin{proof}
 \end{proof}
 
+\begin{lemma}[Equivalence of Preimage of $\ToDNFRegex$]
+  \label{lem:preimage-equiv}
+  If $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$, then $\Regex
+  \DefinitionalEquiv \RegexAlt$.
+\end{lemma}
+\begin{proof}
+  $\Regex \DefinitionalEquiv \ToRegex \ToDNFRegexOf{\Regex}$ merely
+  through application of distributivity wherever possible to fully distribute,
+  and using the associativity rules to always associate to the right.
 
+  For the same reason, $\RegexAlt \DefinitionalEquiv
+  \ToRegex \ToDNFRegexOf{\RegexAlt}$  As $\ToDNFRegexOf{\RegexAlt} =
+  \ToDNFRegexOf{\Regex}$, from transitivity of $\DefinitionalEquiv$, $\Regex
+  \DefinitionalEquiv \RegexAlt$.
+\end{proof}
 
+\begin{lemma}[Expressibility of $\ParallelRewriteSwap$ in $\DefinitionalEquiv$]
+  \leavevmode
+  \begin{enumerate}
+  \item If $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$, then
+    $\Regex \DefinitionalEquiv \RegexAlt$.
+  \item If $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$ and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ then $\Regex
+    \DefinitionalEquiv \RegexAlt$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}By mutual induction on the derivation of $\ParallelRewriteSwap$ and
+  $\ParallelRewriteSwapAtom$.
+  \begin{description}
+  \item[\LeftUnrollRewriteRule{}]
+    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
+    \LeftUnrollRewriteRule{}.
+    This means that $\Atom = \StarOf{\DNFRegex}$ and
+    $\ToDNFRegexOf{\RegexAlt} = \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+    {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}$.
+
+    Let $\Regex' = \ToRegexOf{\DNFRegex}$.
+    As $\ToDNFRegexOf{\StarOf{\Regex'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
+    \DefinitionalEquiv \Regex$.
+    Similarly, as $\ToDNFRegexOf{(\EmptyString \Or
+      (\Regex'\Concat\StarOf{\Regex'}))} =
+    \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+    {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}$,
+    then from
+    Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
+    (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$.
+    
+    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    \EmptyString \Or
+    (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$, as desired.
+
+  \item[\RightUnrollRewriteRule{}]
+    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
+    \RightUnrollRewriteRule{}.
+    This means that $\Atom = \StarOf{\DNFRegex}$ and
+    $\ToDNFRegexOf{\RegexAlt} = \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+    {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}$.
+
+    Let $\Regex' = \ToRegexOf{\DNFRegex}$.
+    As $\ToDNFRegexOf{\StarOf{\Regex'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
+    \DefinitionalEquiv \Regex$.
+    Similarly, as $\ToDNFRegexOf{(\EmptyString \Or
+      (\StarOf{\Regex'}\Concat\Regex'))} =
+    \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
+    {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}$,
+    then from
+    Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
+    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$.
+    
+    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    \EmptyString \Or
+    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$, as desired.
+
+  \item[\LeftQuotientRewriteRuleOf{n}]
+    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
+    \LeftQuotientRewriteRuleOf{n}.
+    This means that $\Atom = \StarOf{\DNFRegex}$ and
+    $\ToDNFRegexOf{\RegexAlt} = \ConcatDNFOf{\DNFRegex^{<n}}
+    {\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}$.
+
+    Let $\Regex' = \ToRegexOf{\DNFRegex}$.
+    As $\ToDNFRegexOf{\StarOf{\Regex'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
+    \DefinitionalEquiv \Regex$.
+    Similarly, as $\ToDNFRegexOf{(\Regex'^{<n} \Concat
+      \StarOf{(\Regex'^n)})} =
+    \ConcatDNFOf{\DNFRegex^{<n}}
+    {\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}$,
+    then from
+    Lemma~\ref{lem:preimage-equiv}, $\Regex'^{<n} \Concat
+      \StarOf{(\Regex'^n)} \DefinitionalEquiv \RegexAlt$.
+    
+    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    \Regex'^{<n} \Concat \StarOf{(\Regex'^n)} \DefinitionalEquiv \RegexAlt$,
+    as desired.
+    
+  \item[\RightQuotientRewriteRuleOf{n}]
+    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
+    \RightQuotientRewriteRuleOf{n}.
+    This means that $\Atom = \StarOf{\DNFRegex}$ and
+    $\ToDNFRegexOf{\RegexAlt} =
+    \ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}
+    {\DNFRegex^{<n}}$.
+
+    Let $\Regex' = \ToRegexOf{\DNFRegex}$.
+    As $\ToDNFRegexOf{\StarOf{\Regex'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
+    \DefinitionalEquiv \Regex$.
+    Similarly, as $\ToDNFRegexOf{(\StarOf{(\Regex'^n)}) \Concat
+      \Regex'^{<n}} =
+    \ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}
+    {\DNFRegex^{<n}}$,
+    then from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{(\Regex'^n)} \Concat
+      \Regex'^{<n} \DefinitionalEquiv \RegexAlt$.
+    
+    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+     \StarOf{(\Regex'^n)} \Concat \Regex'^{<n} \DefinitionalEquiv \RegexAlt$,
+    as desired.
+
+  \item[\StarIntroRewriteRule{}]
+    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$
+    This means that $\Atom = \StarOf{\DNFRegex}$ and
+    $\ToDNFRegexOf{\RegexAlt} =
+    \DNFOf{\SequenceOf{\DNFRegexAlt})}$ where $\DNFRegex \ParallelRewriteSwap
+    \DNFRegexAlt$.
+
+    Let $\ToRegexOf{\DNFRegex} = \Regex'$ and
+    $\ToRegexOf{\DNFRegexAlt} = \RegexAlt'$.  By induction assumption, $\Regex'
+    \DefinitionalEquiv \RegexAlt'$.  By structural equivalence,
+    $\StarOf{\Regex'} = \StarOf{\RegexAlt'}$.
+    As $\ToDNFRegexOf{\StarOf{\Regex'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'} \DefinitionalEquiv
+    \Regex$.
+    As $\ToDNFRegexOf{\StarOf{\RegexAlt'}} =
+    \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$, from
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\RegexAlt'} \DefinitionalEquiv
+    \RegexAlt$.
+
+    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    \StarOf{\RegexAlt'} \DefinitionalEquiv \RegexAlt$, as desired.
+
+  \item[\DNFReorderRule{}]
+
+  \item[\IdentityRewriteRule{}]
+
+  \item[\DNFIntroRewriteRule{}]
+  \end{description}
+\end{proof}
 
 \begin{lemma}[Equivalence of $\EquivalenceOf{\ParallelRewriteSwap}$ and
   $\DefinitionalEquiv$]
@@ -4849,6 +5006,168 @@ whitespace problem.
   \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\RegexAlt}$
 \end{lemma}
 \begin{proof}
+  For the forward direction, assume $\Regex \DefinitionalEquiv \RegexAlt$.
+  Prove by cases on the deduction of $\DefinitionalEquiv$.
+  \begin{description}
+  \item[\EqualityRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \EqualityRule{}.  That means that $\RegexAlt
+    = \Regex$.  Through reflexivity, $\ToDNFRegexOf{\Regex}
+    \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\Regex} =
+    \ToDNFRegexOf{\RegexAlt}$.
+
+  \item[\OrIdentityRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \OrIdentityRule{}.  Without loss of
+    generality, from symmetry, $\RegexAlt = \Regex \Or \emptyset$.
+    
+    $\ToDNFRegexOf{\Regex \Or \emptyset} = \ToDNFRegexOf{\Regex} \OrDNF
+    \ToDNFRegexOf{\emptyset} = \ToDNFRegexOf{\Regex} \OrDNF \DNFOf{} =
+    \ToDNFRegexOf{\Regex}$.  Through reflexivity, $\ToDNFRegexOf{\Regex}
+    \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\Regex} =
+    \ToDNFRegexOf{\Regex \Or \emptyset}$
+    
+  \item[\EmptyProjectionRuleRightRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \EmptyProjectionRuleRightRule{}.  Without
+    loss of generality, from symmetry, $\Regex = \Regex' \Concat \emptyset$, and
+    $\RegexAlt = \emptyset$.
+
+    $\ToDNFRegexOf{\Regex' \Concat \emptyset} = \ToDNFRegexOf{\Regex} \ConcatDNF
+    \ToDNFRegexOf{\emptyset} = \ToDNFRegexOf{\Regex} \ConcatDNF \DNFOf{} =
+    \DNFOf{}$.  Through reflexivity, $\ToDNFRegexOf{\Regex} =
+    \ToDNFRegexOf{\emptyset} \DefinitionalEquiv \ToDNFRegexOf{\emptyset} =
+    \ToDNFRegexOf{\RegexAlt}$.
+    
+  \item[\EmptyProjectionRuleLeftRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \EmptyProjectionRuleRightRule{}.  Without
+    loss of generality, from symmetry, $\Regex = \emptyset \Concat \Regex'$, and
+    $\RegexAlt = \emptyset$.
+
+    $\ToDNFRegexOf{\emptyset \Concat \Regex'} = \ToDNFRegexOf{\emptyset} \ConcatDNF
+    \ToDNFRegexOf{\Regex} = \DNFOf{} \ConcatDNF \ToDNFRegexOf{\Regex} =
+    \DNFOf{}$.  Through reflexivity, $\ToDNFRegexOf{\Regex} =
+    \ToDNFRegexOf{\emptyset} \EquivalenceOf{\ParallelRewriteSwap}
+    \ToDNFRegexOf{\emptyset} = \ToDNFRegexOf{\RegexAlt}$.
+
+  \item[\ConcatAssocRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \ConcatAssocRule{}.  Without loss of
+    generality, from symmetry,
+    $\Regex = \Regex_1 \Concat (\Regex_2 \Concat \Regex_3)$, and
+    $\RegexAlt = (\Regex_1 \Concat \Regex_2) \Concat \Regex_3$.
+
+    $\ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Concat \Regex_3))} =
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \ConcatDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \ConcatDNF
+    \ToDNFRegexOf{\Regex_3} =
+    \ToDNFRegexOf{(\Regex_1 \Concat \Regex_2) \Concat \Regex_3}$.  Through
+    reflexivity, $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\Regex_1} \ConcatDNF
+    (\ToDNFRegexOf{\Regex_2} \ConcatDNF \ToDNFRegexOf{\Regex_3})
+    \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\Regex_1} \ConcatDNF
+    (\ToDNFRegexOf{\Regex_2} \ConcatDNF \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{\RegexAlt}$.
+    
+  \item[\OrAssociativityRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \OrAssociativityRule{}.  Without loss of
+    generality, from symmetry,
+    $\Regex = \Regex_1 \Or (\Regex_2 \Or \Regex_3)$, and
+    $\RegexAlt = (\Regex_1 \Or \Regex_2) \Or \Regex_3$.
+
+    $\ToDNFRegexOf{(\Regex_1 \Or (\Regex_2 \Concat \Regex_3))} =
+    \ToDNFRegexOf{\Regex_1} \OrDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    (\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
+    \ToDNFRegexOf{\Regex_3} =
+    \ToDNFRegexOf{(\Regex_1 \Or \Regex_2) \Or \Regex_3}$.  Through
+    reflexivity, $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\Regex_1} \OrDNF
+    (\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3})
+    \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\Regex_1} \OrDNF
+    (\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{\RegexAlt}$.
+
+  \item[\OrCommutativityRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    deduction is an application of \OrCommutativityRule{}.
+    $\Regex = \Regex_1 \Or \Regex_2$, and
+    $\RegexAlt = \Regex_2 \Or \Regex_1$.
+
+    Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{\SequenceAlt_1;\ldots;\Sequence_m}$.
+    $\OrDNFOf
+    {\DNFOf{\Sequence_1;\ldots;\Sequence_n}}
+    {\DNFOf{\SequenceAlt_1;\ldots;\Sequence_m}} =
+    \DNFOf{\Sequence_1;\ldots;\Sequence_n;\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+    $\OrDNFOf
+    {\DNFOf{\SequenceAlt_1;\ldots;\Sequence_m}}
+    {\DNFOf{\Sequence_1;\ldots;\Sequence_n}} =
+    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n;\Sequence_1;\ldots;\Sequence_m}$.
+
+    Let $\Sequence_i' =
+    \begin{cases*}
+      \Sequence_i & if $i \in \RangeIncInc{1}{n}$\\
+      \SequenceAlt_{i-n} & if $i \in \RangeIncInc{n+1}{m}$
+    \end{cases*}$
+    
+    Consider the deduction
+    \[
+      \inferrule*
+      {
+        \SwapPermutationOf{\Identity_n}{\Identity_m} \in \PermutationSetOf{n+m}
+      }
+      {
+        \DNFOf{\Sequence_1';\ldots;\Sequence_{n+m}'}
+        \ParallelRewriteSwap
+        \DNFOf{\Sequence_{\SwapPermutationOf{\Identity_n}{\Identity_m}(1)}';\ldots;
+        \Sequence_{\SwapPermutationOf{\Identity_n}{\Identity_m}(n+m)}'}
+      }
+    \]
+
+    \[
+      \begin{array}{rcl}
+        \DNFOf{\Sequence_1'';\ldots;\Sequence_{n+m}''}
+        & = & \DNFOf{\Sequence_1;\ldots;\Sequence_n;
+              \SequenceAlt_1;\ldots;\SequenceAlt_n}\\
+        & = & \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}
+      \end{array}
+    \]
+
+    \[
+      \begin{array}{rcl}
+        \DNFOf{\Sequence_{\SwapPermutationOf{\Identity_n}{\Identity_m}(1)}';\ldots;
+        \Sequence_{\SwapPermutationOf{\Identity_n}{\Identity_m}(n+m)}'}
+        & = & \DNFOf{\Sequence_{\Identity_m(1)+n}';\ldots;\Sequence_{\Identity_m(m)+n}';
+              \Sequence_{\Identity_n(1)}';\ldots;\Sequence_{\Identity_n(n)}}\\
+        & = & \DNFOf{\Sequence_{n+1}';\ldots;\Sequence_{n+m};
+              \Sequence_1';\ldots;\Sequence_n'}\\
+        & = & \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m;
+              \Sequence_1;\ldots;\Sequence_n}\\
+        & = & \ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_1}
+      \end{array}
+    \]
+
+    So $\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}
+    \ParallelRewriteSwap
+    \ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_1}$, which means
+    $\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}
+    \EquivalenceOf{\ParallelRewriteSwap}
+    \ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_1}$
+
+  \item[\DistributivityLeftRule{}]
+
+  \item[\DistributivityRightRule{}]
+
+  \item[\ConcatIdentityRule{}]
+
+  \item[\UnrollstarLeftRule{}]
+
+  \item[\UnrollstarRightRule{}]
+
+  \item[\QuotientstarRule{}]
+  \end{description}
 \end{proof}
 
 \begin{lemma}
