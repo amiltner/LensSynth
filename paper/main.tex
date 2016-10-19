@@ -736,7 +736,6 @@ but this one was able to handle the equivalences that showed up in practice.
   \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % REGEX
     (Lenses)& \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
-            & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity\\
             & & & \GBar{} $\IterateLensOf{\Lens}$ & Iterate \\
             & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
             & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
@@ -752,8 +751,6 @@ but this one was able to handle the equivalences that showed up in practice.
   \[
     \begin{array}{rcl}
       \SemanticsOf{const(\String_1,\String_2)} &=& \SetOf{(\String_1,\String_2)}\\
-
-      \SemanticsOf{\IdentityLensOf{\Regex}} &=& \SetOf{(\String,\String)\SuchThat\String\in\LanguageOf{\Regex}}\\
 
       \SemanticsOf{\IterateLensOf{\Lens}} &=& \SetOf{(\String_1\Concat\ldots\Concat\String_n,
                                               \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
@@ -795,13 +792,6 @@ but this one was able to handle the equivalences that showed up in practice.
     }
     {
       \ConstLensOf{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
-    }
-
-    \inferrule[\IdentityLensRule{}]
-    {
-    }
-    {
-      \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
     }
 
     \inferrule[\IterateLensRule{}]
@@ -858,8 +848,8 @@ but this one was able to handle the equivalences that showed up in practice.
     \inferrule[\RewriteRegexLensRule{}]
     {
       \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-      \Regex_1 \equiv \Regex_1'\\
-      \Regex_2 \equiv \Regex_2'
+      \Regex_1 \DefinitionalEquiv \Regex_1'\\
+      \Regex_2 \DefinitionalEquiv \Regex_2'
     }
     {
       \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
@@ -880,13 +870,11 @@ of its type.  \saz{You should ``pronounce'' the semantics and rules so
   the reader can understand them.  What does it mean for the pair
   $(s,t)$ to be in the meaning of $l$?}
 
-The simplest lens in the combinator language is the identity lens 
-at type $R$,
-$\IdentityLensOf{R}$, which copies data matching regular expression $R$
-from source to target, and vice versa.  The
-constant lens $\ConstLensOf{\String_1}{\String_2}$, when operated left-to-right, 
-replaces string $\String_1$ with $\String_2$, and when operated right-to-left,
-replaces string $\String_2$ with $\String_1$.
+The simplest lens in the combinator language is the the constant lens between
+strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
+The lens $\ConstLensOf{\String_1}{\String_2}$, when operated left-to-right,
+replaces the string $\String_1$ with $\String_2$, and when operated
+right-to-left, replaces string $\String_2$ with $\String_1$.
 
 Each of the other lenses manipulates structured data.  For instance,
 $\ConcatLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ to the left
@@ -1155,8 +1143,8 @@ Figure~\ref{fig:dnf-regex-semantics}.
   \[
     \begin{array}{rcccl}
       \DNFLeft & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1}\DNFSep & \cdots
-      & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m}\DNFSep & \cdots \\
-               & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} & \DNFRight
+      & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m}\DNFSep \\
+      \cdots  & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} & \DNFRight
     \end{array}
   \]
   \\
@@ -1226,7 +1214,7 @@ and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.
 
 \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}\leavevmode\\
   \label{thm:soundness-dnf-lenses}
-  $\ToDNFRegex\ToRegexOf{\DNFRegex} = \DNFRegex$
+  $\ToDNFRegexOf{\ToRegexOf{\DNFRegex}} = \DNFRegex$
 \end{restatable}
 
 \saz{DNF Rewrites --- this needs a seque and more context, also
@@ -1292,7 +1280,7 @@ regular expressions.  \saz{``can be'' or ``are''?}
 
     \inferrule[\DNFRewriteStarRule{}]
     {
-      \DNFRegex \RewriteDNF \DNFRegex'
+      \DNFRegex \Rewrite \DNFRegex'
     }
     {
       \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
@@ -1305,17 +1293,26 @@ regular expressions.  \saz{``can be'' or ``are''?}
     {
       \DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep\\\\
       \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep\\\\
-      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\RewriteDNF\\\\
+      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\Rewrite\\\\
       \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF\\
       \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF\\
       \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
     }
 
-    \inferrule[\IdentityDNFRewriteRule{}]
+    \inferrule[\ReflexivityRule{}]
     {
     }
     {
-      \DNFRegex \RewriteDNF \DNFRegex
+      \DNFRegex \StarOf{\Rewrite} \DNFRegex
+    }
+
+    \inferrule[\TransitivityRule{}]
+    {
+      \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
+      \DNFRegex_2 \Rewrite \DNFRegex_3
+    }
+    {
+      \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
     }
 
   \end{mathpar}
@@ -1340,12 +1337,12 @@ $\StarOf{b}\RewriteAtom\DNFOf{\SequenceOf{};\SequenceOf{b\StarOf{b}}}$, which
 corresponds to an application of \ProductstarRule{} on $\EmptyString\Concat b$.
 This then gets applied in the rules above, leading to the full DNF rewrite
 $\DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{b};\StarOf{c}};\SequenceOf{d}}
-\RewriteDNF
+\Rewrite
 \DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{c}};\SequenceOf{b;\StarOf{b};\StarOf{c}};\SequenceOf{d}}$.
 This has the same language, but $\SequenceOf{\StarOf{b};\StarOf{c}}$
 has been expanded into matching $b^0c^j$ and $b^{i>0}c^j$ separately.
-$\StarOf{\RewriteDNF}$ is used to represent the transitive and
-reflexive closure of $\RewriteDNF$.
+$\StarOf{\Rewrite}$ is used to represent the transitive and
+reflexive closure of $\Rewrite$.
 
 Roughly, the \AtomSumstarRule{} rewrite corresponds to \SumstarRule{},
 the \AtomUnrollstarLeftRule{} and \AtomUnrollstarRightRule{} rewrites correspond to \ProductstarRule{}.
@@ -1448,8 +1445,8 @@ that ideal.
 
     \inferrule[\DNFRewriteLensRule{}]
     {
-      \DNFRegex' \RewriteDNF \DNFRegex\\
-      \DNFRegexAlt' \RewriteDNF \DNFRegexAlt\\
+      \DNFRegex' \Rewrite \DNFRegex\\
+      \DNFRegexAlt' \Rewrite \DNFRegexAlt\\
       \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
     }
     {
@@ -1485,14 +1482,12 @@ These DNF lenses only express bijections that are already expressible in the lan
 
 Furthermore, these DNF lenses are able to express a large number of things
 expressible in a subset of the language of lenses.
-\begin{restatable}[Partial Completeness of DNF Lenses]{theorem}{dnflc}
+\begin{restatable}[Completeness of DNF Lenses]{theorem}{dnflc}
   \label{thm:dnflc}
   If there exists a derivation for $\Lens \OfType \Regex \Leftrightarrow
   \RegexAlt$,
-  where the proof of equivalence of regular expressions is done using the
-  Definitional Regular Expression equivalences,
   then there exists a derivation for
-  $\DNFLens \OfType \ToDNFRegex(\Regex) \Leftrightarrow \ToDNFRegex(\RegexAlt)$
+  $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow \ToDNFRegexOf{\RegexAlt}$
   such that $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
@@ -2259,6 +2254,7 @@ whitespace problem.
 \end{proof}
 
 
+TODO: theorem about identity
 \begin{lemma}[Expressibility of Safe Boilerplate Alterations]
   \label{lem:boilerplate-alterations}
   Suppose
@@ -2301,17 +2297,7 @@ whitespace problem.
   \begin{mathpar}
     \inferrule*[left=\Derivation]
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens \OfType \Regex \Leftrightarrow \RegexAlt
-      }\\
+      \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
       \inferrule*
       {
       }
@@ -2386,17 +2372,7 @@ whitespace problem.
       \ldots\SequenceSep\AtomAlt_{n-1}\SequenceSep\StringAlt_{n-1}}$
     By induction assumption, there exists a typing derivation
     \begin{mathpar}
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens\OfType\ToRegex(\Sequence')\Leftrightarrow\ToRegex(\SequenceAlt')
-      }
+      \Lens\OfType\ToRegex(\Sequence')\Leftrightarrow\ToRegex(\SequenceAlt')
     \end{mathpar}
     satisfying $\SemanticsOf{\Lens}=\\
     \SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1 ;
@@ -2404,18 +2380,8 @@ whitespace problem.
 
     By problem statement, there exists a typing derivation
     \begin{mathpar}
-      \inferrule*[left=$\Derivation_n$]
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_{\AtomLens_{n}} \OfType
-        \ToRegex(\Atom_{n}) \Leftrightarrow \ToRegex(\AtomAlt_{n})
-      }
+      \Lens_{\AtomLens_{n}} \OfType
+      \ToRegex(\Atom_{n}) \Leftrightarrow \ToRegex(\AtomAlt_{n})
     \end{mathpar}
     satisfying $\SemanticsOf{\Lens_{\Atom_n}}
     =\SemanticsOf{\Atom_n}$.
@@ -2441,18 +2407,9 @@ whitespace problem.
         \ToRegex(\AtomAlt_n)\Concat\StringAlt_n
       }
 
-      \inferrule*{
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens\OfType\ToRegex(\Sequence) \Leftrightarrow \ToRegex(\SequenceAlt)
-        }\\
+      \inferrule*
+      {
+        \Lens\OfType\ToRegex(\Sequence) \Leftrightarrow \ToRegex(\SequenceAlt)\\
         \Derivation{}
       }
       {
@@ -2674,33 +2631,13 @@ whitespace problem.
       {
         \inferrule*
         {
-          \inferrule*
-          {
-            \inferrule*[vdots=1.5em]
-            {
-            }
-            {
-            }
-          }
-          {
-            \Lens \OfType \Regex \Leftrightarrow \RegexAlt
-          }\\
+          \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
           \LanguageOf{\RegexAlt}=\LanguageOf{\RegexAlt'}
         }
         {
           \Lens \OfType \Regex \Leftrightarrow \RegexAlt'
         }\\
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens_m \OfType \RegexAlt' \Leftrightarrow \RegexAlt''
-        }
+        \Lens_m \OfType \RegexAlt' \Leftrightarrow \RegexAlt''
       }
       {
         \ComposeLensOf{\Lens_m}{\Lens} \OfType \Regex \Leftrightarrow \RegexAlt''
@@ -2784,28 +2721,8 @@ whitespace problem.
     \begin{mathpar}
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')
-        }\\
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens_n \OfType \ToRegex(\Sequence_n) \Leftrightarrow \ToRegex(\SequenceAlt_n)
-        }
+        \Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')\\
+        \Lens_n \OfType \ToRegex(\Sequence_n) \Leftrightarrow \ToRegex(\SequenceAlt_n)
       }
       {
         \OrLensOf{\Lens_n}{\Lens} \OfType \RegexOr{\ToRegex(\DNFRegex')}{\ToRegex(\Sequence_n)} \Leftrightarrow \RegexOr{\ToRegex(\DNFRegexAlt')}{\ToRegex(\Sequence_n)}
@@ -2872,19 +2789,9 @@ whitespace problem.
     \begin{mathpar}
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \DNFLens \OfType \DNFRegex' \Leftrightarrow \DNFRegexAlt'
-        }\\
-        \DNFRegex' \RewriteDNF \DNFRegex\\
-        \DNFRegexAlt' \RewriteDNF \DNFRegexAlt
+        \DNFLens \OfType \DNFRegex' \Leftrightarrow \DNFRegexAlt'\\
+        \DNFRegex' \Rewrite \DNFRegex\\
+        \DNFRegexAlt' \Rewrite \DNFRegexAlt
       }
       {
         \DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
@@ -2899,17 +2806,7 @@ whitespace problem.
     \begin{mathpar}
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')
-        }\\
+        \Lens \OfType \ToRegex(\DNFRegex') \Leftrightarrow \ToRegex(\DNFRegexAlt')\\
         \LanguageOf{\ToRegex(\DNFRegex')} = \LanguageOf{\ToRegex(\DNFRegex)}\\
         \LanguageOf{\ToRegex(\DNFRegexAlt')} = \LanguageOf{\ToRegex(\DNFRegexAlt)}
       }
@@ -2933,17 +2830,7 @@ whitespace problem.
     \begin{mathpar}
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \Lens \OfType \ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_{n}}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})
-        }\\
+        \Lens \OfType \ToRegex(\DNFOf{\Sequence_1;\ldots;\Sequence_{n}}) \Leftrightarrow \ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})\\
         \LanguageOf{\ToRegex(\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_{n}})} =
         \LanguageOf{\ToRegex(\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}})}
       }
@@ -3059,6 +2946,143 @@ whitespace problem.
 % proof-dnflc start
 % We will prove a couple of lemmas first.
 
+\begin{lemma}[DNF Lens Inversion]
+  \label{lem:dnf-lens-inversion}
+  \leavevmode
+  \begin{enumerate}
+  \item If $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then there
+    exists some $\DNFRegex'$, $\DNFRegexAlt'$ such that
+    $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
+    $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$, and $\DNFRegexAlt
+    \StarOf{\Rewrite} \DNFRegexAlt'$.
+  \item If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    then there exists some $n\in\NatsZero$, $\Sequence_1,\ldots,\Sequence_n$,
+    $\SequenceAlt_1,\ldots\SequenceAlt_n$, $\sigma\in\PermutationSetOf{n}$, and
+    $\SequenceLens_1;\ldots;\SequenceLens_n$ such that
+    for all $i\in\RangeIncInc{1}{n}$, $\SequenceLens_i \OfRewritelessType
+    \Sequence_i \Leftrightarrow \SequenceAlt_i$, $\DNFLens =
+    (\DNFLensOf{\Sequence_0;\ldots;\Sequence_n},\sigma)$, $\DNFRegex =
+    \DNFOf{\Sequence_1;\ldots;\Sequence_n}$, and $\DNFRegexAlt =
+    \DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$.
+  \item If $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow
+    \SequenceAlt$, there exists some $n \in \NatsZero$,
+    $\Atom_1,\ldots,\Atom_n$, $\AtomAlt_1,\ldots,\AtomAlt_n$,
+    $String_0,\ldots,\String_n$, $\StringAlt_0,\ldots,\StringAlt_n$,
+    $\sigma\in\PermutationSetOf{n}$, and $\AtomLens_1,\ldots,\AtomLens_n$ such that
+    for all $i\in\RangeIncInc{1}{n}$, $\AtomLens_i \OfRewritelessType \Atom_i
+    \Leftrightarrow \AtomAlt_i$, $\SequenceLens =
+    (\SequenceLensOf{(\String_0,\StringAlt_0);\Atom_1;\ldots;
+      \Atom_n;(\String_n,\StringAlt_n)},\sigma)$, $\Sequence =
+    \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$, and $\SequenceAlt =
+    \SequenceOf{\StringAlt_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\StringAlt_n}$.
+  \item If $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$, then
+    there exists some $\DNFLens$, $\DNFRegex$, $\DNFRegexAlt$, such that
+    $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    $\AtomLens = \IterateLensOf{\DNFLens}$, $\Atom = \StarOf{\DNFRegex}$, and
+    $\AtomAlt = \StarOf{\DNFRegexAlt}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}\leavevmode
+  \begin{enumerate}
+  \item
+    Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$.  The
+    only rule that introduces a typing of this form is
+    \DNFRewriteLensRule{}.  Because of this, there
+    exists some $\DNFRegex'$, $\DNFRegexAlt'$ such that
+    $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
+    $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$, and $\DNFRegexAlt
+    \StarOf{\Rewrite} \DNFRegexAlt'$, to build up the typing
+    \[
+      \inferrule*
+      {
+        \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'\\
+        \DNFRegex \StarOf{\Rewrite} \DNFRegex'\\
+        \DNFRegexAlt \StarOf{\Rewrite} \DNFRegexAlt'
+      }
+      {
+        \DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
+      }
+    \]
+  \item
+    Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
+    The only rule that introduces a typing of this form is \DNFLensRule{}.
+    Because of this there exists some $n\in\NatsZero$, $\Sequence_1,\ldots,\Sequence_n$,
+    $\SequenceAlt_1,\ldots\SequenceAlt_n$, $\sigma\in\PermutationSetOf{n}$, and
+    $\SequenceLens_1;\ldots;\SequenceLens_n$ such that
+    for all $i\in\RangeIncInc{1}{n}$, $\SequenceLens_i \OfRewritelessType
+    \Sequence_i \Leftrightarrow \SequenceAlt_i$, $\DNFLens =
+    (\DNFLensOf{\Sequence_0;\ldots;\Sequence_n},\sigma)$, $\DNFRegex =
+    \DNFOf{\Sequence_1;\ldots;\Sequence_n}$, $\DNFRegexAlt =
+    \DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$,
+    $i \neq j \BooleanImplies \Sequence_i \Intersect \Sequence_j = \emptyset$,
+    and
+    $i \neq j \BooleanImplies \SequenceAlt_i \Intersect \SequenceAlt_j = \emptyset$,
+    to build up the typing
+    \[
+      \inferrule*
+      {
+        \SequenceLens_i \OfRewritelessType \Sequence_i \Leftrightarrow
+        \SequenceAlt_i\\
+        i \neq j \BooleanImplies \Sequence_i \Intersect \Sequence_j =
+        \emptyset\\
+        i \neq j \BooleanImplies \SequenceAlt_i \Intersect \SequenceAlt_j =
+        \emptyset
+      }
+      {
+        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
+      }
+    \]
+  \item
+    Let $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$.
+    The only rule that introduces a typing of this form is \SequenceLensRule{}.
+    Because of this there exists some $n \in \NatsZero$,
+    $\Atom_1,\ldots,\Atom_n$, $\AtomAlt_1,\ldots,\AtomAlt_n$,
+    $String_0,\ldots,\String_n$, $\StringAlt_0,\ldots,\StringAlt_n$,
+    $\sigma\in\PermutationSetOf{n}$, and $\AtomLens_1,\ldots,\AtomLens_n$ such that
+    for all $i\in\RangeIncInc{1}{n}$, $\AtomLens_i \OfRewritelessType \Atom_i
+    \Leftrightarrow \AtomAlt_i$, $\SequenceLens =
+    (\SequenceLensOf{(\String_0,\StringAlt_0);\Atom_1;\ldots;
+      \Atom_n;(\String_n,\StringAlt_n)},\sigma)$, $\Sequence =
+    \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$, and $\SequenceAlt =
+    \SequenceOf{\StringAlt_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\StringAlt_n}$
+    to build up the typing
+    \[
+      \inferrule*
+      {
+        \AtomLens_i \OfRewritelessType \Atom_i \Leftrightarrow \AtomAlt_i\\
+        \SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}\\
+        \SequenceUnambigConcatOf{\StringAlt_0;\AtomAlt_{\sigma(1)};\ldots;\AtomAlt_{\sigma(n)};\StringAlt_n}
+      }
+      {
+        (\SequenceLensOf{(\String_0,\StringAlt_0);\Atom_1;\ldots;
+          \Atom_n;(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType
+        \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \Leftrightarrow
+        \SequenceOf{\StringAlt_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\StringAlt_n}
+      }
+    \]
+  \item
+    Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$.
+    The only rule that introduces a typing of this form is
+    \IterateAtomLensRule{}.
+    Because of this, there exists some $\DNFLens$, $\DNFRegex$, $\DNFRegexAlt$, such that
+    $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    $\AtomLens = \IterateLensOf{\DNFLens}$, $\Atom = \StarOf{\DNFRegex}$, and
+    $\AtomAlt = \StarOf{\DNFRegexAlt}$ to build up the typing
+    \[
+      \inferrule*
+      {
+        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
+        \UnambigItOf{DNFRegex}\\
+        \UnambigItOf{DNFRegexAlt}
+      }
+      {
+        \IterateLensOf{\DNFLens} \OfRewritelessType
+        \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+      }
+    \]
+  \end{enumerate}
+\end{proof}
+
 \begin{definition}[Permutation Functions]\leavevmode\\
   $\ConcatPermutation{} \OfType{}
   \ArrowTypeOf{\PermutationSetOf{n}}
@@ -3125,8 +3149,7 @@ whitespace problem.
   \[
     \begin{array}{rcccl}
       (\DNFLensLeft & \ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_1'}\DNFSep & \cdots & \ConcatSequenceLensOf{\SequenceLens_1}{\SequenceLens_m'}\DNFSep \\
-                    & \vdots & \ddots & \vdots \\
-                    & \ConcatSequenceLensOf{\SequenceLens_n}{\SequenceLens_1'}\DNFSep & \cdots & \ConcatSequenceLensOf{\SequenceLens_n}{\SequenceLens_m'} & \DNFLensRight,\DistributePermutationOf{\sigma_1}{\sigma_1})
+          \cdots    & \ConcatSequenceLensOf{\SequenceLens_n}{\SequenceLens_1'}\DNFSep & \cdots & \ConcatSequenceLensOf{\SequenceLens_n}{\SequenceLens_m'} & \DNFLensRight,\DistributePermutationOf{\sigma_1}{\sigma_1})
     \end{array}
   \]
   \\
@@ -3137,8 +3160,7 @@ whitespace problem.
   \[
     \begin{array}{rcccl}
       (\DNFLensLeft & \SwapSequenceLensOf{\SequenceLens_1}{\SequenceLens_1'}\DNFSep & \cdots & \SwapSequenceLensOf{\SequenceLens_1}{\SequenceLens_m'}\DNFSep \\
-                    & \vdots & \ddots & \vdots \\
-                    & \SwapSequenceLensOf{\SequenceLens_n}{\SequenceLens_1'}\DNFSep & \cdots & \SwapSequenceLensOf{\SequenceLens_n}{\SequenceLens_m'} & \DNFLensRight,\DistributePermutationOf{\sigma_1}{\sigma_1})
+          \cdots    & \SwapSequenceLensOf{\SequenceLens_n}{\SequenceLens_1'}\DNFSep & \cdots & \SwapSequenceLensOf{\SequenceLens_n}{\SequenceLens_m'} & \DNFLensRight,\DistributePermutationOf{\sigma_1}{\sigma_1})
     \end{array}
   \]
   \\
@@ -3169,31 +3191,11 @@ whitespace problem.
   By assumption, there exists typing derivations
   
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
-    }
+    \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
   \]
   and
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
-    }
+    \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
   \]
 
   By inversion, we know that the last rule application on each side was
@@ -3202,17 +3204,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
-      }\\
+      \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i\\
       \sigma_1 \in \PermutationSetOf{n}\\
       \SequenceUnambigConcatOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
       \SequenceUnambigConcatOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma_1(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_1(n)}\SequenceSep\StringAlt_n}
@@ -3228,17 +3220,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'
-      }\\
+      \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'\\
       \sigma_2 \in \PermutationSetOf{m}\\
       \SequenceUnambigConcatOf{\String_0'\SequenceSep\Atom_1'\SequenceSep\ldots\SequenceSep\Atom_m'\SequenceSep\String_m'}\\
       \SequenceUnambigConcatOf{\StringAlt_0'\SequenceSep\AtomAlt_{\sigma_2(1)}'\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_2(n)}'\SequenceSep\StringAlt_n'}
@@ -3317,17 +3299,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
-      }\\
+      \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i\\
       \ConcatPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n+m}\\
       \SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}\\
       \SequenceUnambigConcatOf{\StringAlt_0'';
@@ -3469,31 +3441,11 @@ whitespace problem.
   By assumption, there exists typing derivations
   
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
-    }
+    \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1
   \]
   and
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
-    }
+    \SequenceLens_2 \OfRewritelessType \Sequence_2 \Leftrightarrow \Sequence_2
   \]
 
   By inversion, we know that the last rule application on each side was
@@ -3502,17 +3454,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
-      }\\
+      \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i\\
       \sigma_1 \in \PermutationSetOf{n}\\
       \SequenceUnambigConcatOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
       \SequenceUnambigConcatOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma_1(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_1(n)}\SequenceSep\StringAlt_n}
@@ -3528,17 +3470,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'
-      }\\
+      \AtomLens_i' \OfType \Atom_i' \Leftrightarrow \AtomAlt_i'\\
       \sigma_2 \in \PermutationSetOf{m}\\
       \SequenceUnambigConcatOf{\String_0'\SequenceSep\Atom_1'\SequenceSep\ldots\SequenceSep\Atom_m'\SequenceSep\String_m'}\\
       \SequenceUnambigConcatOf{\StringAlt_0'\SequenceSep\AtomAlt_{\sigma_2(1)}'\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma_2(n)}'\SequenceSep\StringAlt_n'}
@@ -3617,17 +3549,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i
-      }\\
+      \AtomLens_i \OfType \Atom_i \Leftrightarrow \AtomAlt_i\\
       \SwapPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n+m}\\
       \SequenceUnambigConcatOf{\String_0'';\Atom_1'';\ldots;\Atom_{n+m}'';\String_{n+m}''}\\
       \SequenceUnambigConcatOf{\StringAlt_0'';
@@ -3808,31 +3730,11 @@ whitespace problem.
   By assumption, there exists typing derivations
   
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
-    }
+    \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
   \]
   and
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
-    }
+    \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
   \]
 
   By inversion, we know that the last rule application on each side was
@@ -3841,17 +3743,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i
-      }\\
+      \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i\\
       \sigma_1 \in \PermutationSetOf{n}\\
       i \neq j \BooleanImplies \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
       i \neq j \BooleanImplies \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
@@ -3867,17 +3759,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \SequenceLens_i' \OfType \Sequence_i' \Leftrightarrow \SequenceAlt_i'
-      }\\
+      \SequenceLens_i' \OfType \Sequence_i' \Leftrightarrow \SequenceAlt_i'\\
       \sigma_2 \in \PermutationSetOf{m}\\
       i \neq j \BooleanImplies \Sequence_{i}' \cap \Sequence_{j}'=\emptyset\\
       i \neq j \BooleanImplies \SequenceAlt_{i}' \cap \SequenceAlt_{j}'=\emptyset\\
@@ -3927,17 +3809,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i
-      }\\
+      \SequenceLens_i \OfType \Sequence_i \Leftrightarrow \SequenceAlt_i\\
       \ConcatPermutationOf{\sigma_1}{\sigma_2} \in \PermutationSetOf{n}\\
       i \neq j \BooleanImplies \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
       i \neq j \BooleanImplies \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
@@ -4041,17 +3913,7 @@ whitespace problem.
   By assumption, there exists a typing derivation
   
   \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
-    }
+    \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
   \]
 
   Consider the typing derivation
@@ -4063,17 +3925,7 @@ whitespace problem.
       {
         \inferrule*
         {
-          \inferrule*
-          {
-            \inferrule*[vdots=1.5em]
-            {
-            }
-            {
-            }
-          }
-          {
-            \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
-          }\\
+          \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
           \UnambigItOf{\DNFRegex}\\
           \UnambigItOf{\DNFRegexAlt}
         }
@@ -4730,17 +4582,7 @@ whitespace problem.
     {
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \DNFRegex \ParallelRewrite \DNFRegexAlt
-        }
+        \DNFRegex \ParallelRewrite \DNFRegexAlt
       }
       {
         \StarOf{\DNFRegex} \ParallelRewriteAtom
@@ -4768,17 +4610,7 @@ whitespace problem.
     {
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \DNFRegex \ParallelRewrite \DNFRegexAlt
-        }
+        \DNFRegex \ParallelRewrite \DNFRegexAlt
       }
       {
         \StarOf{\DNFRegex} \ParallelRewriteAtom
@@ -5238,12 +5070,18 @@ whitespace problem.
 \end{proof}
 
 \begin{definition}
-  Let $\Lens$ be a lens.  Define the binary relation, $\DNFLensHasSemanticsOf{\Lens}$,
+  Let $\Relation$ be a binary relation on strings.
+  Define the binary relation, $\DNFLensHasSemanticsOf{\Relation}$,
   on $\DNFRegexType$ as
-  $\SatisfiesDNFLensHasSemanticsOf{\Lens}{\DNFRegex}{\DNFRegexAlt}$ if, and
+  $\SatisfiesDNFLensHasSemanticsOf{\Relation}{\DNFRegex}{\DNFRegexAlt}$ if, and
   only if there exists a DNF Lens $\DNFLens$ such that $\DNFLens
   \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
-  $\SemanticsOf{\DNFLens}=\SemanticsOf{\Lens}$
+  $\SemanticsOf{\DNFLens}=\Relation$.
+  $\SatisfiesIdentitySemantics{\DNFRegex}{\DNFRegexAlt}$ is
+  shorthand for
+  $\SatisfiesDNFLensHasSemanticsOf{\Identity_{\DNFRegex}}{\DNFRegex}{\DNFRegexAlt}$ where
+  $\Identity_{\DNFRegex} = \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex}}$.
 \end{definition}
 
 \begin{lemma}
@@ -5274,17 +5112,7 @@ whitespace problem.
     \[
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'
-        }\\
+        \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'\\
         \UnambigItOf{\DNFRegex'}\\
         \UnambigItOf{\DNFRegexAlt'}
       }
@@ -5329,18 +5157,8 @@ whitespace problem.
       {
         \inferrule*
         {
-          \inferrule*
-          {
-            \inferrule*[vdots=1.5em]
-            {
-            }
-            {
-            }
-          }
-          {
-            \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex} \Leftrightarrow
-            \StarOf{\DNFRegexAlt}
-          }
+          \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex} \Leftrightarrow
+          \StarOf{\DNFRegexAlt}
         }
         {
           \SequenceLensOf{\IterateLensOf{\DNFLens}} \OfRewritelessType
@@ -5441,17 +5259,7 @@ whitespace problem.
     \[
       \inferrule*
       {
-        \inferrule*
-        {
-          \inferrule*[vdots=1.5em]
-          {
-          }
-          {
-          }
-        }
-        {
-          \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'
-        }\\
+        \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'\\
         \UnambigItOf{\DNFRegex'}\\
         \UnambigItOf{\DNFRegexAlt'}
       }
@@ -5483,18 +5291,8 @@ whitespace problem.
         {
           \inferrule*
           {
-            \inferrule*
-            {
-              \inferrule*[vdots=1.5em]
-              {
-              }
-              {
-              }
-            }
-            {
-              \DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
-              \DNFRegexAlt''
-            }\\
+            \DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
+            \DNFRegexAlt''\\
             \UnambigItOf{\DNFRegex''}\\
             \UnambigItOf{\DNFRegexAlt''}
           }
@@ -5908,17 +5706,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens \OfType \Regex \Leftrightarrow \RegexAlt
-      }
+      \Lens \OfType \Regex \Leftrightarrow \RegexAlt
     }
     {
       \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow
@@ -5932,17 +5720,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
-      }\\
+      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
       \ToDNFRegex{\Regex}\StarOf{\Rewrite}\DNFRegex\\
       \ToDNFRegex{\RegexAlt}\StarOf{\Rewrite}\DNFRegexAlt
     }
@@ -5956,7 +5734,7 @@ whitespace problem.
   $\DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}
   \OfRewritelessType \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \Leftrightarrow
   \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.  By
-  Lemma~\ref{cor:rewrite-maintained-iteration},
+  Corollary~\ref{cor:rewrite-maintained-iteration},
   $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \StarOf{\Rewrite}
   \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$ and
   $\DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \StarOf{\Rewrite}
@@ -5965,19 +5743,9 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}
-        \OfRewritelessType \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}
-        \Leftrightarrow \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
-      }\\
+      \DNFLensOf{\SequenceLensOf{\IterateLensOf{\DNFLens}}}
+      \OfRewritelessType \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}
+      \Leftrightarrow \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}\\
       \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\Regex}}}} \StarOf{\Rewrite}
       \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}\\
       \DNFOf{\SequenceOf{\StarOf{\ToDNFRegexOf{\RegexAlt}}}} \StarOf{\Rewrite}
@@ -6046,28 +5814,8 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1
-      }\\
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
-      }\\
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
     }
     {
       \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \RegexConcat{\Regex_1}{\Regex_2}
@@ -6081,17 +5829,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
-      }\\
+      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1\\
       \ToDNFRegex{\Regex_1}\StarOf{\Rewrite}\DNFRegex_1\\
       \ToDNFRegex{\RegexAlt_1}\StarOf{\Rewrite}\DNFRegexAlt_1
     }
@@ -6106,17 +5844,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
-      }\\
+      \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2\\
       \ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegex_2\\
       \ToDNFRegex{\RegexAlt_2}\StarOf{\Rewrite}\DNFRegexAlt_2
     }
@@ -6130,7 +5858,7 @@ whitespace problem.
   \OfRewritelessType
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
-  By Lemma~\ref{cor:rewrite-maintained-concat},
+  By Corollary~\ref{cor:rewrite-maintained-concat},
   $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
   $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
@@ -6139,19 +5867,9 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
-        \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
-        \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
-      }\\
+      \ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
+      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+      \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}\\
       $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
       \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
       $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
@@ -6179,28 +5897,8 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1
-      }\\
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
-      }\\
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
     }
     {
       \OrLensOf{\Lens_1}{\Lens_2} \OfType \RegexOr{\Regex_1}{\Regex_2}
@@ -6214,17 +5912,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
-      }\\
+      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1\\
       \ToDNFRegex{\Regex_1}\StarOf{\Rewrite}\DNFRegex_1\\
       \ToDNFRegex{\RegexAlt_1}\StarOf{\Rewrite}\DNFRegexAlt_1
     }
@@ -6239,17 +5927,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
-      }\\
+      \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2\\
       \ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegex_2\\
       \ToDNFRegex{\RegexAlt_2}\StarOf{\Rewrite}\DNFRegexAlt_2
     }
@@ -6263,7 +5941,7 @@ whitespace problem.
   \OfRewritelessType
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
-  By Lemma~\ref{cor:rewrite-maintained-or},
+  By Corollary~\ref{cor:rewrite-maintained-or},
   $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
   $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
@@ -6272,19 +5950,9 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \OrDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
-        \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
-        \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
-      }\\
+      \OrDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
+      \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+      \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}\\
       $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
       \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
       $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
@@ -6308,86 +5976,12 @@ whitespace problem.
   \SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$.
   \\
   \\
-  Let the last typing rule be an instance of \IdentityLensRule{}.
-  \[
-    \inferrule*
-    {
-    }
-    {
-      \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
-    }
-  \]
-
-  By Lemma~\ref{lem:strongly-unambiguous-identity-expressible} there is a lens
-  $\DNFLens$ such that
-  \[
-    \inferrule*
-    {
-      \inferrule*[vdots=1.5em]
-      {
-      }
-      {
-      }
-    }
-    {
-      \DNFLens \OfRewritelessType
-      \ToDNFRegex{\Regex} \Leftrightarrow \ToDNFRegex{\Regex}
-    }
-  \]
-
-  Where $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String) \SuchThat
-    \String\in\ToDNFRegex{\Regex}}$.
-
-  Consider the typing
-  \[
-    \inferrule*
-    {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens \OfRewritelessType
-        \ToDNFRegex{\Regex} \Leftrightarrow \ToDNFRegex{\Regex}
-      }
-    }
-    {
-      \DNFLens \OfType
-      \ToDNFRegex{\Regex} \Leftrightarrow \ToDNFRegex{\Regex}
-    }
-  \]
-  \\
-  \\
   Let the last typing rule be an instance of \SwapLensRule{}.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1
-      }\\
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
-      }\\
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\
     }
     {
       \SwapLensOf{\Lens_1}{\Lens_2} \OfType \RegexConcat{\Regex_1}{\Regex_2}
@@ -6401,17 +5995,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
-      }\\
+      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1\\
       \ToDNFRegex{\Regex_1}\StarOf{\Rewrite}\DNFRegex_1\\
       \ToDNFRegex{\RegexAlt_1}\StarOf{\Rewrite}\DNFRegexAlt_1
     }
@@ -6426,17 +6010,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2
-      }\\
+      \DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegexAlt_2\\
       \ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegex_2\\
       \ToDNFRegex{\RegexAlt_2}\StarOf{\Rewrite}\DNFRegexAlt_2
     }
@@ -6450,7 +6024,7 @@ whitespace problem.
   \OfRewritelessType
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$.
-  By Lemma~\ref{cor:rewrite-maintained-or},
+  By Corollary~\ref{cor:rewrite-maintained-or},
   $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
   $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \StarOf{\Rewrite}
@@ -6459,19 +6033,9 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \SwapDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
-        \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
-        \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}
-      }\\
+      \SwapDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
+      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+      \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}\\
       $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
       \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
       $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \StarOf{\Rewrite}
@@ -6490,28 +6054,8 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2
-      }\\
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3
-      }\\
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
     }
     {
       \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
@@ -6524,17 +6068,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2
-      }\\
+      \DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2\\
       \ToDNFRegex{\Regex_1}\StarOf{\Rewrite}\DNFRegex_1\\
       \ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegex_2
     }
@@ -6549,17 +6083,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens_2 \OfRewritelessType \DNFRegexAlt_2 \Leftrightarrow \DNFRegex_3
-      }\\
+      \DNFLens_2 \OfRewritelessType \DNFRegexAlt_2 \Leftrightarrow \DNFRegex_3\\
       \ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegexAlt_2\\
       \ToDNFRegex{\Regex_3}\StarOf{\Rewrite}\DNFRegex_3
     }
@@ -6574,7 +6098,7 @@ whitespace problem.
   $\DNFLens_{\IdentityLens} \OfRewritelessType \ToDNFRegex{\Regex_2} \Leftrightarrow
   \ToDNFRegex{\Regex_2}$ where $\SemanticsOf{\DNFLens_{\IdentityLens}} =
   \SetOf{(\String,\String)\SuchThat \String\in\LanguageOf{\Regex_2}}$.
-  From Lemma~\ref{cor:rewrite-confluence}, we know that, as
+  From Corollary~\ref{cor:rewrite-confluence}, we know that, as
   $\ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegex_2$ and as
   $\ToDNFRegex{\Regex_2}\StarOf{\Rewrite}\DNFRegexAlt_2$, there must exist some
   $\DNFRegex_2'$, $\DNFRegexAlt_2'$ such that
@@ -6583,8 +6107,8 @@ whitespace problem.
   lens $\DNFLens_{\IdentityLens}' \OfRewritelessType \DNFRegex_2' \Leftrightarrow
   \DNFRegexAlt_2'$ where $\SemanticsOf{\DNFLens_{\IdentityLens}'} =
   \SetOf{(\String,\String)\SuchThat \String\in\LanguageOf{\Regex_2}}$.
-  From Lemma~\ref{cor:copyable_expansions_left_serialized_star} and
-  Lemma~\ref{cor:copyable_expansions_right_serialized_star}, there exists
+  From Corollary~\ref{cor:copyable_expansions_left_serialized_star} and
+  Corollary~\ref{cor:copyable_expansions_right_serialized_star}, there exists
   $\DNFRegex_1'$, $\DNFRegex_3'$, $\DNFLens_1'$, and $\DNFLens_2'$ such that
   $\DNFRegex_1\StarOf{\Rewrite}\DNFRegex_1'$, $\DNFRegex_3\StarOf{\Rewrite}\DNFRegex_3'$,
   $\DNFLens_1' \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_2'$,
@@ -6607,17 +6131,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens' \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_3'
-      }\\
+      \DNFLens' \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_3'\\
       \ToDNFRegex{\Regex_1}\StarOf{\Rewrite}\DNFRegex_1'\\
       \ToDNFRegex{\Regex_3}\StarOf{\Rewrite}\DNFRegex_3'
     }
@@ -6633,17 +6147,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \Lens \OfType \Regex \Leftrightarrow \RegexAlt
-      }\\
+      \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
       \Regex \equiv \Regex'\\
       \RegexAlt \equiv \RegexAlt'
     }
@@ -6658,17 +6162,7 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
-      }\\
+      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
       \ToDNFRegex{\Regex} \StarOf{\Rewrite} \DNFRegex\\
       \ToDNFRegex{\RegexAlt} \StarOf{\Rewrite} \DNFRegexAlt
     }
@@ -6798,19 +6292,9 @@ whitespace problem.
   \[
     \inferrule*
     {
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-        }
-        {
-        }
-      }
-      {
-        \boldsymbol{\DNFLens} \OfRewritelessType
-        \underline{\tilde{\overline{\DNFRegex'}}} \Leftrightarrow
-        \underline{\tilde{\overline{\DNFRegexAlt'}}}
-      }\\
+      \boldsymbol{\DNFLens} \OfRewritelessType
+      \underline{\tilde{\overline{\DNFRegex'}}} \Leftrightarrow
+      \underline{\tilde{\overline{\DNFRegexAlt'}}}\\
       \ToDNFRegexOf{\Regex'} \StarOf{\Rewrite}
       \underline{\tilde{\overline{\DNFRegex'}}}\\
       \ToDNFRegexOf{\RegexAlt'} \StarOf{\Rewrite}
@@ -6823,10 +6307,11 @@ whitespace problem.
   \]
 
   with $\SemanticsOf{\boldsymbol{\DNFLens}} = \SemanticsOf{\Lens}$
-  
-
 \end{proof}
 
+\dnflc*
+\begin{proof}
+\end{proof}
 
 % proof-dnflc end
 % end proofs
