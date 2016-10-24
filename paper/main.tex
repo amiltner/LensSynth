@@ -207,22 +207,20 @@ the user.  If the user updates the new view, the corresponding
 \emph{put} function can translate the edited data back into
 the native format.
 
-\saz{The flow and transition of this paragraph is not great.  Also the
-  sentence structure uses the phrase ``back and forth'' too often.
-  The point is to get quickly to a list of uses of bidirectional programming.}
-Converting data back and forth between representations is a common pattern.
-Serializers convert from
-strings into objects, and deserializers convert from objects back into strings.
-Bidirectional programs perform both the back and the forth
-transformations between representations.
-Bidirectional programs are used in some instances of back and forth data
-transformations.
+Converting data back and forth between representations is a common problem.
+This problem arises in serializers and deserializers, models and views, picklers
+and unpicklers, and more.
+Bidirectional programs express both transformations in a single program, instead
+of requiring a program for each transformation.
+Bidirectional programming has begun to be used in practice for expressing some
+classes of back and forth transformations.
 Augeas~\cite{?}, a configuration editing system for linux, uses lens combinators
 to provide editable views of configuration files.
 The language biXid~\cite{bixid} is developed for expressing bidirectional XML
 transformations.
 XSugar~\cite{xsugar} is used to convert bidirectionally between XML and non-XML data,
-and is used to convert between EpiDoc~\cite{epidoc} and Leiden+~\cite{leidenplus} formats for
+and is used to convert between EpiDoc~\cite{epidoc} and
+Leiden+~\cite{leidenplus} formats for
 encoding ancient documents~\cite{epidocleidenplus}.
 
 Lenses are popular because they typically come with strong guarantees
@@ -404,20 +402,15 @@ equivalent to  $\Regex_1'$ and $\Regex_2'$ respectively
 and there are infinitely many such regular expressions to choose
 from.
 
-\saz{Is the subject ``Boomerang's lens language'' languages like
-  Boomerang but without the composition operator?  The point is that
-  leaving out composition reduces expressiveness.}
-Furthermore, Boomerang's language of lenses without a composition operator is not closed
-under composition.  More specifically, let $\Regex_1 = A \Concat B \Concat C
-\Concat D$, and $\Regex_2 = B \Concat D \Concat A \Concat C$.
-There does not exist a lens $\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2$,
-which maps $A$ to $A$, $B$ to $B$, $C$ to $C$, and $D$ to $D$
-which does not use the composition operator.  So, if we
-would like to be able to synthesize such a lens through naive type-directed
-synthesis, we must search through
-possible compositions.  This means that we must find some arbitrary $\Regex_3$,
-and then synthesize two lenses of types $\Regex_1 \Leftrightarrow \Regex_3$ and
-$\Regex_3 \Leftrightarrow \Regex_2$ to compose.  Searching through all possible
+Furthermore, removing the composition operator from Boomerang reduces
+expressivity.
+That means to have a synthesis procedure that can synthesize all lenses,
+composition lenses must be synthesized.
+To synthesize a composition lens between $\Regex_1$ and $\Regex_2$, an arbitrary
+$\Regex_3$ must be found,
+and then two lenses of types $\Regex_1 \Leftrightarrow \Regex_3$ and
+$\Regex_3 \Leftrightarrow \Regex_2$ must also be created.  Searching through all
+possible
 regular expressions for the correct $\Regex_3$ becomes a difficult infinite search
 problem.
 
@@ -457,34 +450,12 @@ using a subset of Conway's axioms~\cite{conway} for
 equivalent regular expression types that might allow a new search
 in the first phase of the search to succeed.
 
-\saz{Throughout: the word ``expressibility'' is the \textit{property}
-  of being expressible, so it should be used as: The expressibility of
-  the string ``foo'' by the language L,...  The words
-  ``expressiveness'' or ``expressivity'' refer to how many things can
-  be expressed, as in ``lense languages with composition are strictly
-  more expressive (i.e. have more expressivity) than languages without.''}
-
-\saz{This paragraph is roundabout: the structures of the DNF lenses
-  permit the synthesis of more lenses than would a language without composition.}
-Furthermore, the specialized lenses between these pseudo-canonical forms are able to express
-a number of lenses that previously required composition.
-% These specialized lenses have additional expressibility without composition than
-% standard lenses.
-With the
-increased expressibility, we have found searching for a central regular
-expression to compose with to be unnecessary in practice.
-While we do not search through possible lens compositions,
-in practice the increased expressibility is sufficiently expressible to
-synthesize all provided lenses, and the additional expressibility of adding a
-composition operator is unnecessary.
-
-\saz{This paragraph feels redundant, and this exposition is getting long.}
-Furthermore, in this new language, we can express transformations which were
-previously inexpressible without composition.
-In our synthesis algorithm, we do not search through possible central regular
-expressions for compositions.
-However, with the increased expressibility of this new language, we have found
-this search to be unnecessary in practice.
+Furthermore, the specialized lenses between these
+pseudo-canonical forms can express more than lenses without composition.
+Indeed, despite not having a composition operator, these specialized lenses 
+are closed under composition.  This reduces the search space by an entire
+dimension!  The synthesis algorithm no longer needs to search through possible
+regular expressions for the central type in compositions.
 
 The types
 describing data formats may be very large --- they are regular
@@ -612,6 +583,17 @@ If $\Regex$ is a regular expression, where $\UnambigItOf{\LanguageOf{\Regex}}$,
 then that regular expression is \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$.
 
+A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
+\String$, $\Regex = \emptyset$, or the following conditions are held:
+\begin{enumerate}
+\item If $\Regex = \Regex_1 \Concat \Regex_2$ then $\Regex_1 \UnambigConcat
+  \Regex_2$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
+\item If $\Regex = \Regex_1 \Or \Regex_2$ then $\Regex_1 \Intersect \Regex_2 =
+  \emptyset$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
+\item If $\Regex = \StarOf{(\Regex')}$, then $\UnambigItOf{(\Regex')}$ and
+  $\Regex'$ is strongly unambiguous
+\end{enumerate}
+
 
 % fig:regex-equivalence-rules
 \begin{figure}
@@ -659,7 +641,7 @@ written $\UnambigItOf{\Regex}$.
   \label{fig:definitional-equivalence-rules}
 \end{figure}
 
-\saz{Introduce a new paragraph header about equivalence.}
+\section{Regular Expression Equivalences}
 
 If $\Regex$ and $\RegexAlt$ are regular expressions, where
 $\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$, those two regular expressions
@@ -675,24 +657,21 @@ separated by when the other regular expression occurs.  \StarstarRule{} is used
 to 
 introduce ambiguity.  \DicyclicityRule{} is used to separate out the iteration
 of two elements into a quotiented portion, and a remainder portion.  An
-equational theory was looked into, instead of other means to prove regular
-expressions equivalent, as an equational theory encodes a very straightforward
-search procedure for generating equivalent expressions.\saz{This is
-  passive.  Why not just say that an equational theory provides a straightforward
-search procedure for generating equivalent expressions?}
+equational theory provides a straightforward search procedure for generating
+equivalent regular expressions.
 
-\saz{What is the flow here? The next few paragraphs seem to talk about
-  picking out a particular set of equations, the ones in Figure 3,
-  that we actually use for synthesis.  This is straying from
-  ``background'' material into ``design.'' The reader doesn't
-  understand how the equational theory fits into the synthesis process
-yet, so this discussion is too soon.}
-It is possible to look into finer \saz{coarser?} equivalence rules than this.
+It is possible to look into other equivalence rules than this.  In particular,
+we are interested in equivalence rules that are \emph{finer} than those in
+Figure~\ref{fig:regex-equivalence-rules}, to maintain the invariant that
+equivalent regular expressions have the same language.
 Our algorithm is based on a rewriting system, and it is necessary for that
 rewriting system to be confluent, to reduce the need for an analogue to
 \ComposeLensRule{}.  Furthermore, for the same reason, if two regular
-expressions have a lens between them, any rewrite rule on one side must be
-mimicked on the other.
+expressions have a lens between them, any rewrite rule on one side must be able
+to be
+mimicked on the other.  As such, we need equivalence rules that can be written
+as the transitive, reflexive, and symmetric closure of a rewrite relation that
+satisfies the requirement of our algorithm.
 
 A subset of
 the regular expression equivalence rules, the \textit{definitional equivalence
@@ -722,12 +701,11 @@ grouping together different parts of the repetition, whereas the definitional
 equivalence rules breaks parts of a regular expression under a star up only by
 how many times the already defined repetition occurs.
 
-\saz{This is, again, design, not background.  What are the ``required properties''?}
 This was the largest subset of the Regular Expression equivalence rules we could
 find that still satisfied the required properties.  There may be larger ones,
 but this one was able to handle the equivalences that showed up in practice.
 
-\subsubsection{Bijective Lenses}
+\section{Bijective Lenses}
 
 % fig:lens-syntax
 \begin{figure}
@@ -740,6 +718,7 @@ but this one was able to handle the equivalences that showed up in practice.
             & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
             & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
             & & & \GBar{} $\ComposeLensOf{\Lens_1}{\Lens_2}$ & Compose\\
+            & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
   \end{tabular}
   \caption{Lens Syntax}
   \label{fig:lens-syntax}
@@ -773,7 +752,11 @@ but this one was able to handle the equivalences that showed up in practice.
       \SemanticsOf{\ComposeLensOf{\Lens_1}{\Lens_2}} &=&
                                                          \SetOf{(\String_1,\String_3)\SuchThat\exists\String_2\\
                                                & & \hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                   (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}
+                                                   (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}\\
+
+      \SemanticsOf{\IdentityLensOf{\Regex}} &=& \SetOf{(\String,\String)
+                                                \SuchThat \String\in
+                                                \LanguageOf{\Regex}}
     \end{array}
   \]
   \caption{Lens Semantics}
@@ -853,6 +836,14 @@ but this one was able to handle the equivalences that showed up in practice.
     {
       \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
     }
+
+    \inferrule[\IdentityLensRule{}]
+    {
+      \Regex \text{ is strongly unambiguous}
+    }
+    {
+      \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
+    }
   \end{mathpar}
 
   \caption{Lens Typing}
@@ -862,12 +853,13 @@ but this one was able to handle the equivalences that showed up in practice.
 Bijective lenses are a certain class of lenses which define bijective functions
 between the languages of regular expressions.
 The syntax for these bijective lenses is provided in Figure~\ref{fig:lens-syntax}.
-The semantics and for these lenses are defined in Figure~\ref{fig:lens-semantics},
-and the typing is given in Figure~\ref{fig:lens-typing}, where a well
+The semantics and for these lenses are defined in
+Figure~\ref{fig:lens-semantics}.  If $(\String_1,\String_2) \in
+\SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
+$\String_2$.
+The typing is given in Figure~\ref{fig:lens-typing}, where a well
 typed program provides a bijection between the language of the regular expressions
-of its type.  \saz{You should ``pronounce'' the semantics and rules so
-  the reader can understand them.  What does it mean for the pair
-  $(s,t)$ to be in the meaning of $l$?}
+of its type.
 
 The simplest lens in the combinator language is the the constant lens between
 strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
@@ -883,13 +875,20 @@ $\SwapLensOf{\Lens_1}{\Lens_2}$ does the same as $\ConcatLensOf{\Lens_1}{\Lens_2
 but it swaps the results before concatenating.
 The combinator $\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
 to the string.  The combinator $\IterateLensOf{\Lens}$ operates by repeatedly
-applying $\Lens$ to subparts of a string.
-
-\saz{What about compose?}
+applying $\Lens$ to subparts of a string.  The combinator
+$\ComposeLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ then $\Lens_2$
+when operating left to right, and applying $\Lens_2$ then $\Lens_1$ when
+operating right to left.
+$\IdentityLensOf{\Regex}$ operates by applying the identity transformation to
+any string in $\LanguageOf{\Regex}$.
 % end background
 
 % begin extended-example
 \section{Lens Synthesis by Example}
+
+Recall the previous example of synthesizing a lens between \CF{Bib} and
+\CF{End}, specified in Figure~\ref{fig:bibend-spec}.
+
 \paragraph*{Step 1:  Inlining Definitions.}
 
 \begin{figure}
@@ -910,15 +909,12 @@ applying $\Lens$ to subparts of a string.
   \label{fig:expanded-defs}
 \end{figure}
 
-\saz{This needs a transition to remind the reader of what the running
-  example is.}
-
-There is no lens that goes between \BibTex{} and \EndNote{}, so one of them must
+There is no lens that goes between \CF{Bib} and \CF{End}, so one of them must
 be expanded.
-Indeed, both of them must be expanded, as \BibTex{} will never be able to be
-the source of any lens in this problem, nor will \EndNote{} be able to be the
+Indeed, both of them must be expanded, as \CF{Bib} will never be able to be
+the source of any lens in this problem, nor will \CF{End} be able to be the
 target.
-This can be generalized for the sub-expressions of \BibTex{} and \EndNote{},  
+This can be generalized for the sub-expressions of \CF{Bib} and \CF{End},  
 If any user defined data type does not exist in the possible types of the
 other side, it must be expanded, shown in Figure~\ref{fig:expanded-defs}.
 
@@ -941,12 +937,9 @@ After completing these necessary expansions, the problem becomes synthesizing a
 lens between the regular expressions \CF{Bib'} and \CF{End'} shown in
 Figure~\ref{fig:examples-expanded}.
 
-\saz{This paragraph seems to be out of sync with the Figures.}
 A basic type-directed synthesis approach from here will quickly fail.
-Both \CF{Bib'}
-and \CF{End'} are of the form $\Regex_1\Concat\Regex_2$, but there is
-not a lens between \CF{"\%0"} and
-\CF{("@inproceedings" | "@article" | "@book")}.
+\CF{Bib'} is of the form $\Regex_1\Or\Regex_2$, where \CF{End'} is of the form
+$\StarOf{\Regex'}$.
 
 \begin{figure}
 \begin{lstlisting}
@@ -1010,9 +1003,11 @@ $\StarOf{A}=(\EmptyString \Or A)\StarOf{(AA)}$ can be applied to the star in
 \CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndMod2}, shown in
 Figure~\ref{fig:examples-star-equivalenced}.
 
-\saz{Somehow the priority queue comes out of nowhere.}
 However, now a single problem of finding a lens between regular expression has
-become two problems!  This can be solved by using a priority queue, where the
+become two problems!  However, trying to find the lenses between either of these
+two regular expressions could create even more problems.  Because of this, it is
+important to find a way to find which subproblem should be approached next.
+This can be solved by using a priority queue, where the
 elements in the queue are regular expression specifications.  The priority of
 each specification is a combination of how many expansions have been performed,
 and how different the two regular expressions in the specification are.
@@ -1024,10 +1019,8 @@ specification of \CF{DNFBib' <=> DNFEndUnroll} would get popped, instead of the
 specification of \CF{DNFBib' <=> DNFEndMod2}.
 
 \paragraph*{Step 3: Creating Lenses.}
-Because the regular expressions of  \CF{DNFBib'} and \CF{DNFEndUnroll} \saz{``are so
-similar, type-directed synthesis derived from the typings in
-Figure~\ref{fig:lens-typing} can now happen between them.'' $\to$
-``type-directed synthesis applies.''}
+Because the regular expressions of  \CF{DNFBib'} and \CF{DNFEndUnroll} are so
+similar, type-directed synthesis applies.
 Following the types, the outer \CF{""}s
 would get mapped to each other, and the sides of the disjunct with $\Star$s
 would get mapped to each other.  Within that side, \CF{Name} would map to
@@ -1045,6 +1038,7 @@ matches \CF{"Conway"} and the second matches \CF{"John"}.  The first \CF{Name} i
 This means that the first \CF{Name} in \CF{DNFBib'} must map to the second
 \CF{Name} in \CF{DNFEndUnroll}, and vice-versa.  Doing this will generate a lens
 that satisfies the type and the examples.
+
 % end extended-example
 
 % begin formalisms
@@ -1079,31 +1073,27 @@ that satisfies the type and the examples.
   \label{fig:dnf-regex-semantics}
 \end{figure}
 
-\saz{This transition is old.  The need for DNF Regular expressions has
-  already been made clear.}
-When attempting to synthesize a lens, one would be able to synthesize the lens
-in a type-directed fashion, were it not for \RewriteRegexLensRule{}.
-Because of that, the job of synthesis is made easier if there is less of a use
-for \RewriteRegexLensRule{}.
-A good way to minimize the impact of this rule is to make more
-regular expressions equivalent.  This is done by putting the regular expressions
-into a normal form called DNF regular expressions. \saz{What does
-  ``DNF'' stand for?}
+We put our regular expressions into a normal form for synthesis, by putting the
+regular expressions into a normal form, called ``disjunctive normal form'' or
+``DNF'' regular expressions.
 A DNF regular expression is, intuitively, a regular expression with
-distributivity applied wherever possible, \saz{``causing'' $\to$
-  ``yielding an''} outer layer of \Or{} operations,
-with inner sequences of \Concat{} operations.
-\saz{This paragraph needs serious word smithing.}
-Furthermore, because of the associativity of \Or{} and \Concat{}, we
-remove associativity information through a list representation.
-Furthermore, we can further simplify by requiring
+all terms fully distributed.  This yields an outer layer of regular expressions
+separated by $\Or{}$s.  The regular expressions separated by $\Or{}$s are
+sequences of strings and $\Star$s all separated by $\Concat{}$s.
+The regular expressions beneath the $\Star$s have the same operations applied to
+them.
+Furthermore, because of the associativity of $\Or{}$ and $\Concat{}$, we
+remove associativity information of $\Or{}$ and $\Concat{}$ through a list
+representation.  Furthermore, we can further simplify by requiring
 base string regular expressions to always appear at fixed locations,
 utilizing the fact that $\EmptyString{}$ is the $\Concat$ identity, and
 the ability to concatenate strings.
-The syntax of the language of DNF regular expressions is formalized in Figure~\ref{fig:dnf-regex-syntax}.
-The shorthand $\DNFOf{\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}}$
+The syntax of the language of DNF regular expressions is formalized in
+Figure~\ref{fig:dnf-regex-syntax}.
+The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
 stands for
-$\DNFOf{\SequenceOf{\EmptyString\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\EmptyString}}$.
+$\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
+with every string being the empty string.
 
 A sequence of strings and atoms is said to be \textit{unambiguously concatenable},
 written $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
@@ -1131,6 +1121,8 @@ in the iteration to stop iteration.
 This intuition is formalized by the semantics, given in
 Figure~\ref{fig:dnf-regex-semantics}.
 
+\subsection{Expressivity of DNF Regular Expressions}
+
 % fig:dnf-regex-functions
 \begin{figure}
   \ConcatSequence{} \OfType{} \ArrowTypeOf{\SequenceType{}}{\ArrowTypeOf{\SequenceType{}}{\SequenceType{}}}\\
@@ -1156,25 +1148,21 @@ Figure~\ref{fig:dnf-regex-semantics}.
   (-)\RepeatDNFOfTimes{n} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}\\
   $\RepeatDNFOf{0}{\DNFRegex}=\DNFOf{\SequenceOf{\EmptyString}}$\\
   $\RepeatDNFOf{n}{\DNFRegex}=\ConcatDNFOf{\DNFRegex}{\RepeatDNFOf{n-1}{\DNFRegex}}$\\
-  \caption{DNF Regex Functions} 
+  \\
+  \AtomToDNF{} \OfType
+  \ArrowTypeOf{\AtomType{}}{\DNFRegexType{}}\\
+  $\AtomToDNFOf{\Atom} = \DNFOf{\SequenceOf{\Atom}}$
+  \caption{DNF Regex Functions}
   \label{fig:dnf-regex-functions}
 \end{figure}
 
-\saz{Can we explicitly write down the pseudo-code for the synthesis
-  algorithm? Having the concrete steps of synthesis to refer to in the
-  description in this section would help a lot.}
-
 A DNF regular expression can be created from a regular expression through repeated
-application of the distributivity rule, and through removal of association information.
-\saz{``To create a DNF regular expresion from a regular expression,
-some functions need to be defined on DNF regular expressions,'' $\to$
-``This process requires some auxiliary definitions''}
+application of the distributivity rule, and through removal of association
+information.
+This process requires some auxiliary definitions
 which are defined in Figure~\ref{fig:dnf-regex-functions}.
 From these functions, \ToDNFRegex{}, a function which converts a regular expression into
 an equivalent DNF regular expression, can be defined.
-
-\saz{This definition and the upcoming theorems need some explanatory
-  setup. This discussion perhaps merits its own subsection.}
 
 \begin{definition}
   \leavevmode
@@ -1182,12 +1170,20 @@ an equivalent DNF regular expression, can be defined.
     \begin{array}{rcl}
       \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
       \ToDNFRegexOf{\emptyset} & = & \DNFOf{}\\
-      \ToDNFRegexOf{(\StarOf{\Regex})} & = & \DNFOf{\SequenceOf{\StarOf{(\ToDNFRegexOf{\Regex})}}}\\
+      \ToDNFRegexOf{(\StarOf{\Regex})} & = & \AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex})}}\\
       \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}\\
       \ToDNFRegexOf{(\RegexOr{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}\\
     \end{array}
   \]
 \end{definition}
+
+Intuitively, this means that the DNF regular expression with no sequences
+corresponds to the empty set.  A single sequence with only a string corresponds
+to a base string.  The stars of DNF regular expressions correspond to the stars
+of atoms.  The function $\OrDNF$ corresponds to the regular expression
+primitive $\Or$.  The function $\ConcatDNF$ corresponds to the regular
+expression primitive $\Concat$.  We formalize this in the following theorem.
+
 \begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
   \label{thm:completeness-dnf-lenses}
   For all regular expressions \Regex{},
@@ -1211,31 +1207,23 @@ and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.
   \Or \ToRegexOf{\Sequence_n}$
 \end{definition}
 
+This provides a way to find a regular expression which corresponds to a given
+DNF regular expression.  We formalize this correspondence with the theorem
+below.
+
 \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}\leavevmode\\
   \label{thm:soundness-dnf-lenses}
   $\ToDNFRegexOf{\ToRegexOf{\DNFRegex}} = \DNFRegex$
 \end{restatable}
 
-\saz{DNF Rewrites --- this needs a seque and more context, also
-  perhaps its own subsection.}
+\subsection{DNF Regular Expression Rewrites}
 
-A reasonable approach to further normalizing a DNF regular expression is to attempt to minimize the
-regular expression as much as possible, using the star laws.
-Unfortunately, this strategy doesn't work
-well for finding lenses.  For example, there is clearly a lens of type
-$\MapsBetweenTypeOf{\RegexOr{\EmptyString}{(\RegexConcat{a}{\StarOf{a}})}}{\RegexOr{b}{(\RegexConcat{c}{\StarOf{d}})}}$,
-namely $\OrLensOf{\ConstLensOf{\EmptyString}{b}}{\ConcatLensOf{\ConstLensOf{a}{c}}{\IterateLensOf{\ConstLensOf{a}{d}}}}$.
-However, if the system simplifies as much as possible, then it will have to find a lens
-of type $\MapsBetweenTypeOf{\StarOf{a}}{\RegexOr{b}{(\RegexConcat{c}{\StarOf{d}})}}$.
-Unlike the type before being minified, where there was a type-directed way to find
-this lens, there is no longer a type-directed way: should the lens be an iterate lens
-or an or lens?
-Instead of handling these equivalences through further minimation of the DNF
-regular expressions, these equivalences can be handled through a search through
-their applications.
-Using the star equivalences, rewrites can be applied to the stars in a DNF
-regular expression, and type-directed synthesis can be applied to the rewritten
-regular expressions.  \saz{``can be'' or ``are''?}
+In our synthesis algorithm we need to allow for a rewrite system on DNF Regular
+Expressions, to search through the equivalences.
+Using the star equivalences, rewrites are applied to the stars in a DNF
+regular expression, for type-directed synthesis to eventually be applied to the
+rewritten regular expressions.  These rewrites are the same ones used in
+\textbf{Step 2:  Traversing Equivalences}.
 
 % fig:dnf-regex-rewrites
 \begin{figure}
@@ -2233,7 +2221,6 @@ whitespace problem.
 \end{proof}
 
 
-TODO: theorem about identity
 \begin{lemma}[Expressibility of Safe Boilerplate Alterations]
   \label{lem:boilerplate-alterations}
   Suppose
@@ -5828,7 +5815,7 @@ TODO: theorem about identity
       \StarIntroRewriteRule{}.  This means that there eixsts some
       $\DNFRegexAlt'$, $\DNFRegexAlt''$ such that $\AtomAlt =
       \StarOf{\DNFRegexAlt'}$, $\DNFRegexAlt =
-      \AtomToDNFRegexOf{\StarOf{\DNFRegexAlt''}}$, and
+      \AtomToDNFOf{\StarOf{\DNFRegexAlt''}}$, and
       \[
         \inferrule*
         {
@@ -5836,7 +5823,7 @@ TODO: theorem about identity
         }
         {
           \StarOf{\DNFRegexAlt''} \ParallelRewrite
-          \AtomToDNFRegexOf{\StarOf{\DNFRegexAlt'}}
+          \AtomToDNFOf{\StarOf{\DNFRegexAlt'}}
         }
       \]
     \end{subcase}
