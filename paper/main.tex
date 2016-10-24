@@ -39,6 +39,9 @@
 \usepackage{qtree}
 \usepackage[normalem]{ulem}
 \usepackage{relsize}
+\usepackage{tikz}
+
+\usetikzlibrary{matrix}
 
 %%%% Hyperlinks – must come late!
 \usepackage[pdftex,%
@@ -1027,6 +1030,64 @@ would get mapped to each other.  Within that side, \CF{Name} would map to
 \CF{Name}, \CF{Names} would map to \CF{Names} and the $\Star$s would map to the
 $\Star$s.
 
+\begin{figure}
+  \label{fig:lens-synth-ex}
+  \centering
+  \CF{Bib' <=> DNFEndUnroll}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
+    {
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
+    };
+    \path[<->]
+    (m-1-1) edge node [left] {} (m-2-1);
+    \path[<->]
+    (m-1-3) edge node [right] {\CF{lclause}} (m-2-3);
+  \end{tikzpicture}
+
+  \CF{lclause : BibClause2 <=> EndClause2}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
+    {
+      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
+      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{} & \CF{""}
+      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
+    };
+    \path[<->]
+    (m-1-2) edge node [right] {} (m-2-6);
+    \path[<->]
+    (m-1-4) edge node [left] {} (m-2-2);
+    \path[<->]
+    (m-1-6) edge node [left] {} (m-2-4);
+    \path[<->]
+    (m-1-8) edge node [right] {\CF{lstar}} (m-2-8);
+  \end{tikzpicture}
+
+  \CF{lstar : BibStar <=> EndStar}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
+    {
+      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
+      \CF{""}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{}
+      & \CF{""}\\
+    };
+    \path[<->]
+    (m-1-2) edge node [right] {} (m-2-6);
+    \path[<->]
+    (m-1-4) edge node [left] {} (m-2-2);
+    \path[<->]
+    (m-1-6) edge node [left] {} (m-2-4);
+  \end{tikzpicture}
+  \caption{Synthesized Lens Mappings}
+\end{figure}
+
 In doing this though, some ambiguity is introduced.  There are two
 instances of \CF{Name} present outside a star, so which one should get mapped to
 which?  The basic solution would be to map the first to the first, and the
@@ -1037,7 +1098,8 @@ matches \CF{"Conway"} and the second matches \CF{"John"}.  The first \CF{Name} i
 \CF{DNFEndUnroll} matches \CF{"John"} and the second matches \CF{"Conway"}.
 This means that the first \CF{Name} in \CF{DNFBib'} must map to the second
 \CF{Name} in \CF{DNFEndUnroll}, and vice-versa.  Doing this will generate a lens
-that satisfies the type and the examples.
+that satisfies the type and the examples, shown in Figure~\ref{fig:lens-synth-ex}
+
 
 % end extended-example
 
@@ -1053,7 +1115,7 @@ that satisfies the type and the examples.
     (Atoms)& \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
     (Sequences)& \Sequence{},\SequenceAlt{} & \GEq{} &
                                                        $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ & \MultiConcatSequenceType{} \\
-    (DNF Regexes)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & MultiOrDNFRegexType{} \\
+    (DNF Regexes)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & \MultiOrDNFRegexType{} \\
   \end{tabular}
   \caption{DNF Regex Syntax} 
   \label{fig:dnf-regex-syntax}
@@ -1115,9 +1177,6 @@ The clause corresponds to the concatenated data, and is a concatenation of the
 fixed data of base strings, and the iterated data of stars.
 Finally is the atom, which is a star.
 The iteration in atoms correspond to the iteration that takes place in normal stars.
-There is no fixed way to break the choices of the iteration into the clause,
-as there is an arbitrarily large number of choices made in the stars, proceed
-in the iteration to stop iteration.
 This intuition is formalized by the semantics, given in
 Figure~\ref{fig:dnf-regex-semantics}.
 
@@ -1315,7 +1374,7 @@ reflexive closure of $\Rewrite$.
 Roughly, the \AtomSumstarRule{} rewrite corresponds to \SumstarRule{},
 the \AtomUnrollstarRule{} rewrite correspond to \ProductstarRule{}.
 and the \DicyclicRewriteStarRule{} rewrite corresponds to \DicyclicityRule{}.
-There is no rewrite corresponding to Regular Expression equivalence 10, as that
+There is no rewrite corresponding to \StarstarRule{}, as that
 equivalence introduces ambiguity.
 An application of \AtomSumstarRule{} corresponds to doing different things after the last time a certain event has occured, and before the last time that event occurs.
 An application of \AtomUnrollstarRule{} corresponds to making a different action for
@@ -1469,114 +1528,6 @@ For DNF lenses, only the correct rewrites for the regular expressions, and the
 correct permutations for each rule application, must be searched through.
 % end formalisms
 
-\section{DNF Regular Expression Orderings}
-While performing type directed synthesis on DNF Regular Expressions, both
-synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
-the generation of a permutation.  Naively searching through all possible
-permutations is incredibly inefficient.  If naively searching through all the
-rewriteless DNF Lenses between
-the DNF regular expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
-processed.
-
-Instead of searching through all possible permutations, a better approach is to
-recognize which subcomponents of the types can be mapped to each other, and
-create the permutations based on those mappings.  The approach taken for this is
-one of further normalization.  A DNF Lens is normalized through ordering its
-sequence subcomponents, and a sequence is normalized through ordering its atom
-subcomponents.  Through the correct choice of ordering, a rewriteless DNF lens
-can be synthesized between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
-lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.  Similarly, through
-the correct choice of ordering, a a rewriteless Sequence lens can be synthesized
-between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
-$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$ through
-finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for all $i$.
-
-However, doing these normalizations can change the semantics of the regular
-expressions.  To get around this, the alterations taken for normalization can be
-remembered, and applied in reverse to the DNF lens to retrieve a lens between
-the original DNF regular expressions.
-
-\begin{definition}[Dictionary Ordering]
-  Given an ordering $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$,
-  the dictionary ordering on lists of $A$s is represented as $\ListOf{\leq}$.
-\end{definition}
-
-\afm{There's some overloading of syntax here, where [] is used for Sequences,
-  but also it's used for lists.  \#1: should I explicitly describe that [] is
-  used for the syntax of lists.  \#2: should one of them be changed for clarity?
-  Maybe I can use $\{\}$ for DNFs, and $\langle \rangle$ for Sequences, and []
-  for lists?}
-
-\begin{definition}[Sorting of a List]
-  Let $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$ be an ordering,
-  and $\ListOf{a_1;\ldots;a_n}\in \ListTypeOf{A}$.
-  The permutation that sorts the list according to $\leq$,
-  $\SortingOf{\leq}{\ListOf{a_1;\ldots;a_n}}$ is defined as
-  $\sigma \in \PermutationSetOf{n}$,
-  where if $i\leq j$, then $a_{\sigma(i)} \leq a_{\sigma(j)}$.
-\end{definition}
-
-\begin{definition}[Orderings on DNF Regular Expressions]\leavevmode
-  \begin{enumerate}
-  \item
-    $\DNFOf{\Sequence_1;\ldots\Sequence_n}
-    \DNFLeq
-    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$
-    if\\
-    $\ListOf{\Sequence_1;\ldots;\Sequence_n}\hspace*{.5em}
-    \ListOf{\SequenceLeq}\hspace*{.5em}
-    \ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
-  
-  \item
-    $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}
-    \SequenceLeq
-    \SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_m;\StringAlt_m}$
-    if\\
-    $\ListOf{\Atom_1;\ldots;\Atom_n}\hspace*{.5em}
-    \ListOf{\AtomLeq}\hspace*{.5em}
-    \ListOf{\AtomAlt_1\ldots;\AtomAlt_m}$.
-
-  \item
-    $\StarOf{\DNFRegex} \AtomLeq \StarOf{\DNFRegexAlt}$ if
-    $\DNFRegex \DNFLeq \DNFRegexAlt$
-  \end{enumerate}
-\end{definition}
-
-This provides the machinery for the DNF regular expression to become
-\textit{normalized}.
-
-\begin{definition}[Normalization of DNF Regular Expressions]
-  \leavevmode
-  \begin{enumerate}
-  \item $\NormalizeOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}} =
-    \DNFOf{\NormalizeOf{\Sequence_{\sigma(1)}};\ldots;\NormalizeOf{\Sequence_{\sigma(n)}}}$,
-    where
-    $\sigma=\SortingOf{\SequenceLeq}
-    {\ListOf{\NormalizeOf{\Sequence_1};\ldots;\NormalizeOf{\Sequence_n}}}$
-  \item $\NormalizeOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}} =
-    \SequenceOf{\String_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\String_n}$,
-    where
-    $\sigma=\SortingOf{\AtomLeq}
-    {\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}$
-  \item $\NormalizeOf{\StarOf{\DNFRegex}}=\StarOf{\NormalizeOf{\DNFRegex}}$
-  \end{enumerate}
-\end{definition}
-
-\begin{theorem}
-  $\NormalizeOf{\DNFRegex}\DNFLeq\NormalizeOf{\DNFRegexAlt}$ and
-  $\NormalizeOf{\DNFRegexAlt}\DNFLeq\NormalizeOf{\DNFRegex}$
-  if, and only
-  if, there exists some
-  $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
-\end{theorem}
-
-\afm{So this shows a nice theorem, but it doesn't actually show the construction
-of the DNF lens from the normalized forms.  Should I actually show the
-construction, or is that not worth going into / clear enough from the
-description?}
-
 % begin implementation
 \section{Implementation}
 We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
@@ -1660,11 +1611,159 @@ minima in the search space, while still allowing for the distance to choose the
 correct expansion the majority of the time.
 
 \subsection{SynthRewritelessDNF}
+
+While performing type directed synthesis on DNF Regular Expressions, both
+synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
+the generation of a permutation.  Naively searching through all possible
+permutations is incredibly inefficient.  If naively searching through all the
+rewriteless DNF Lenses between
+the DNF regular expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
+processed.
+
+Instead of searching through all possible permutations, a better approach is to
+recognize which subcomponents of the types can be mapped to each other, and
+create the permutations based on those mappings.  The approach taken for this is
+one of further normalization.  A DNF Lens is normalized through ordering its
+sequence subcomponents, and a sequence is normalized through ordering its atom
+subcomponents.  Through the correct choice of ordering, a rewriteless DNF lens
+can be synthesized between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
+lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.  Similarly, through
+the correct choice of ordering, a a rewriteless Sequence lens can be synthesized
+between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
+$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$ through
+finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for all $i$.
+
+However, doing these normalizations can change the semantics of the regular
+expressions.  To get around this, the alterations taken for normalization can be
+remembered, and applied in reverse to the DNF lens to retrieve a lens between
+the original DNF regular expressions.
+
+\begin{figure}
+  \label{fig:lens-synth-ordering-ex}
+  \centering
+  \CF{Bib' <=> DNFEndUnroll}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
+    {
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
+    };
+    \path[<->]
+    (m-1-1) edge node [left] {} (m-2-1);
+    \path[<->]
+    (m-2-1) edge node [left] {} (m-3-1);
+    \path[<->]
+    (m-3-1) edge node [left] {} (m-4-1);
+    \path[<->]
+    (m-1-3) edge node [right] {} (m-2-3);
+    \path[<->]
+    (m-2-3) edge node [right] {\CF{lclause}} (m-3-3);
+    \path[<->]
+    (m-3-3) edge node [right] {} (m-4-3);
+  \end{tikzpicture}
+
+  \CF{lclause : BibClause2 <=> EndClause2}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
+    {
+      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
+      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
+      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
+      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Name}\Concat{} & \CF{" "} & \Concat{}\CF{Names}\Concat{} & \CF{""}
+      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{} & \CF{""}
+      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
+    };
+    \path[<->]
+    (m-1-2) edge node [right] {} (m-2-4);
+    \path[<->]
+    (m-1-4) edge node [right] {} (m-2-2);
+    \path[<->]
+    (m-1-6) edge node [left] {} (m-2-6);
+    \path[<->]
+    (m-1-8) edge node [left] {} (m-2-8);
+    \path[<->]
+    (m-2-2) edge node [right] {} (m-3-2);
+    \path[<->]
+    (m-2-4) edge node [right] {} (m-3-4);
+    \path[<->]
+    (m-2-6) edge node [left] {} (m-3-6);
+    \path[<->]
+    (m-2-8) edge node [right] {\CF{lstar}} (m-3-8);
+    \path[<->]
+    (m-3-2) edge node [right] {} (m-4-2);
+    \path[<->]
+    (m-3-4) edge node [right] {} (m-4-6);
+    \path[<->]
+    (m-3-6) edge node [left] {} (m-4-4);
+    \path[<->]
+    (m-3-8) edge node [right] {} (m-4-8);
+  \end{tikzpicture}
+
+  \CF{lstar : BibStar <=> EndStar}
+  \begin{tikzpicture}
+    \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
+    {
+      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
+      \CF{""}\\
+      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
+      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
+      \CF{""}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Name}\Concat{} & \CF{" "} & \Concat{}\CF{Names}\Concat{}
+      & \CF{""}\\
+      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
+      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{}
+      & \CF{""}\\
+    };
+    \path[<->]
+    (m-1-2) edge node [right] {} (m-2-4);
+    \path[<->]
+    (m-1-4) edge node [left] {} (m-2-2);
+    \path[<->]
+    (m-1-6) edge node [left] {} (m-2-6);
+    \path[<->]
+    (m-2-2) edge node [right] {} (m-3-2);
+    \path[<->]
+    (m-2-4) edge node [left] {} (m-3-4);
+    \path[<->]
+    (m-2-6) edge node [left] {} (m-3-6);
+    \path[<->]
+    (m-3-2) edge node [right] {} (m-4-2);
+    \path[<->]
+    (m-3-4) edge node [left] {} (m-4-6);
+    \path[<->]
+    (m-3-6) edge node [left] {} (m-4-4);
+  \end{tikzpicture}
+  \caption{Synthesized Lens Mappings from Orderings}
+\end{figure}
+
+Consider the example of synthesizing a lens between \CF{Bib'} and
+\CF{DNFEndUnroll}, shown in Figure~\ref{fig:lens-synth-ordering-ex}.  In this,
+the subparts of the Bibtex regular expression are ordered from the top, the
+subparts of the Endnote regular expression are ordered from the bottom, and the
+center matches which subparts map to which.  The final permutation for the DNF
+Lens between the two is determined through composition of the orderings done for
+normalization.
+
 Unfortunately, while this can find a well typed DNF lens, it doesn't
 necessarily find the one that matches the examples.  In the situation where
 there are multiple valid sorted orderings, there are multiple different lenses
-with potentially different semantics.  Instead of iterating through all the
-possible sortings, and finding one that matches the examples, we would like to
+with potentially different semantics.  For example, in the
+synthesis of a lens between \CF{BibStar} and \CF{EndStar}, there are two
+instances of \CF{Name}.  Which of these should go first when ordered?  Instead
+of iterating through all the possible sortings, and finding one that matches
+the examples, we would like to
 be able to immediately find only a sorting which satisfies the examples.
 
 The key insight here is that certain invariants must hold for a DNF lens to have
@@ -1681,8 +1780,12 @@ semantics which match the examples.
 
 This is done by joining additional parsing information alongside the regular
 expression components, and creating an ordering on DNF Regular expressions
-with parsing information.\afm{This would be a really in depth thing to describe,
-  worth going into?}
+with parsing information.  By attaching additional parsing information,
+each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
+\CF{"Stephen"} or \CF{"Kleene"}.  With that additional information, the
+\CF{Name}s can be ordered, and correctly mapped to the other
+\CF{Name}s in a manner that satisfies the examples.
+
 
 % end implementation
 
