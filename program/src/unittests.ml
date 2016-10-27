@@ -18,6 +18,7 @@ open Lang
 open Gen
 open Lens_put
 open Boom_lang
+open Quotient_regex
 
 let test_to_normalized_exp_base _ =
   assert_dnf_equal
@@ -1605,6 +1606,42 @@ let simplify_lens_suite = "simplify_lens Unit Tests" >:::
 
 let _ = run_test_tt_main simplify_lens_suite
 
+let test_quotient_whole_empty _ =
+  assert_regex_equal
+    (whole QuotientRegExEmpty)
+    (RegExEmpty)
+
+let test_quotient_whole_permute _ =
+  assert_regex_equal
+    (whole (QuotientRegExPermute ([QuotientRegExBase "hello"; QuotientRegExBase "world"], RegExBase ",")))
+    (RegExOr (RegExConcat (RegExBase "world", RegExConcat (RegExBase ",", RegExBase "hello")),
+              RegExConcat (RegExBase "hello", RegExConcat (RegExBase ",", RegExBase "world"))))
+
+let test_quotient_whole_map _ =
+  assert_regex_equal
+    (whole (QuotientRegExMap (RegExOr (RegExBase "hello", RegExBase "Hello"), "hello")))
+    (RegExOr (RegExBase "hello", RegExBase "Hello"))
+
+let test_quotient_kernel_map _ =
+  assert_regex_equal
+    (kernel (QuotientRegExMap (RegExOr (RegExBase "hello", RegExBase "Hello"), "hello")))
+    (RegExBase "hello")
+
+let test_quotient_kernel_permute _ =
+  assert_regex_equal
+    (kernel (QuotientRegExPermute ([QuotientRegExBase "hello"; QuotientRegExBase "world"], RegExBase ",")))
+    (RegExConcat (RegExBase "hello", RegExConcat (RegExBase ",", RegExBase "world")))
+
+let quotient_regex_suite = "Quotient Regex Unit Tests" >:::
+  [
+    "test_quotient_whole_empty" >:: test_quotient_whole_empty;
+    "test_quotient_whole_permute" >:: test_quotient_whole_permute;
+    "test_quotient_whole_map" >:: test_quotient_whole_map;
+    "test_quotient_kernel_map" >:: test_quotient_kernel_map;
+    "test_quotient_kernel_permute" >:: test_quotient_kernel_permute;
+  ]
+
+let _ = run_test_tt_main quotient_regex_suite
 
 let test_boom_program_of_program_userdef_abstract _ =
   assert_boom_program_equal

@@ -27,6 +27,7 @@ let rec promote_regex r =
 let rec intersperse l sep =
   match l with
   | [] -> QuotientRegExBase ""
+  | [h] -> h
   | h :: t -> QuotientRegExConcat (h, QuotientRegExConcat (promote_regex sep, intersperse t sep))
 
 let rec kernel q =
@@ -50,8 +51,8 @@ let rec whole q =
   | QuotientRegExVariable s -> RegExVariable s
   | QuotientRegExMap (r, _) -> r
   | QuotientRegExPermute (l, sep) -> 
-      List.fold_left ~init:(RegExBase "") 
-        ~f:(fun acc x -> RegExOr (x, acc))
+      List.fold_left ~init:(RegExEmpty) 
+        ~f:(fun acc x -> if acc = RegExEmpty then x else RegExOr (x, acc))
         (List.map ~f:(fun x -> kernel (intersperse x sep)) 
           (List.map ~f: (fun p -> Permutation.apply_to_list_exn p l) 
           (Permutation.create_all (List.length l))))
