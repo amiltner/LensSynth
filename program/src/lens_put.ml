@@ -3,6 +3,7 @@ open Regexcontext
 open Lenscontext
 open Lang
 open Eval
+open Quotient_regex
 open Normalized_lang
 open Typing
 
@@ -155,3 +156,37 @@ let lens_putl (rc:RegexContext.t)
     | None -> failwith "bad input to lens"
     | Some exampled_sr -> lens_putl_internal rc lc l exampled_sr [0]
   end
+
+let rec quotient_lens_canonize_internal rc lc ql er it : string =
+  match (ql, er) with
+  | QuotientRegExBase s, _ -> s
+  | QuotientRegExMap (_, s), _ -> s
+  | QuotientRegExConcat (q1, q2), ERegExConcat (e1, e2, _) ->
+      (quotient_lens_canonize_internal rc lc q1 e1 it) ^
+      (quotient_lens_canonize_internal rc lc q2 e2 it)
+  | QuotientRegExOr (q1, q2), ERegExOr (e1, e2, _) ->
+      if took_regex e1 it then
+        quotient_lens_canonize_internal rc lc q1 e1 it
+      else
+        quotient_lens_canonize_internal rc lc q2 e2 it
+  | QuotientRegExStar q, ERegExStar (e, _) ->
+      let valid_iterations =
+        List.rev
+          (List.filter
+            ~f:(fun iter -> List.tl_exn iter = it)
+            (extract_iterations_consumed e)) in
+      String.concat 
+        (List.map 
+          ~f:(quotient_lens_canonize_internal rc lc q e)
+          valid_iterations)
+  | QuotientRegExVariable _, _ (*
+      let relevant_string = extract_string er it in
+      let lens_impl = LensContext.lookup_impl_exn lc s *)
+  | _ -> failwith "Failure to typecheck"
+  
+(* This should work since the kernel always is contained in the whole*)
+let quotient_lens_choose (_ : RegexContext.t) 
+    (_ : LensContext.t) 
+    (_ : quotient_regex) 
+    (s : string) 
+  : string = s
