@@ -4,6 +4,7 @@ open Lenscontext
 open Lang
 open Eval
 open Quotient_regex
+open Qre_context
 open Normalized_lang
 open Typing
 open Permutation
@@ -175,18 +176,18 @@ let rec get_elems_and_seps e n =
   | x, 0 -> ([x], [])
   | _ -> failwith "Failure to typecheck"
 
-let rec quotient_lens_canonize_internal rc lc ql er it : string =
+let rec quotient_lens_canonize_internal rc qc ql er it : string =
   match (ql, er) with
   | QuotientRegExBase s, _ -> s
   | QuotientRegExMap (_, s), _ -> s
   | QuotientRegExConcat (q1, q2), ERegExConcat (e1, e2, _) ->
-      (quotient_lens_canonize_internal rc lc q1 e1 it) ^
-      (quotient_lens_canonize_internal rc lc q2 e2 it)
+      (quotient_lens_canonize_internal rc qc q1 e1 it) ^
+      (quotient_lens_canonize_internal rc qc q2 e2 it)
   | QuotientRegExOr (q1, q2), ERegExOr (e1, e2, _) ->
       if took_regex e1 it then
-        quotient_lens_canonize_internal rc lc q1 e1 it
+        quotient_lens_canonize_internal rc qc q1 e1 it
       else
-        quotient_lens_canonize_internal rc lc q2 e2 it
+        quotient_lens_canonize_internal rc qc q2 e2 it
   | QuotientRegExStar q, ERegExStar (e, _) ->
       let valid_iterations =
         List.rev
@@ -195,43 +196,43 @@ let rec quotient_lens_canonize_internal rc lc ql er it : string =
             (extract_iterations_consumed e)) in
       String.concat 
         (List.map 
-          ~f:(quotient_lens_canonize_internal rc lc q e)
+          ~f:(quotient_lens_canonize_internal rc qc q e)
           valid_iterations)
   | QuotientRegExPermute (l, _), r ->
     let (matched_or, perm_index) = get_matched_or r it 0 in
     let permutation = List.nth_exn (Permutation.create_all (List.length l)) perm_index in
     let (elems, seps) = get_elems_and_seps matched_or (List.length l) in
     let ordered_elems = Permutation.apply_inverse_to_list_exn permutation elems in
-    permutation_to_string l elems seps rc lc it
-  | QuotientRegExVariable _, _ (*
-      Here we don't need the lens context.
-      Should we have a separate QRE context? Design question
+    permutation_to_string l elems seps rc qc it
+  | QuotientRegExVariable s, _ ->
       let relevant_string = extract_string er it in
-      let lens_impl = LensContext.lookup_impl_exn lc s *)
+      let qre = QuotientRegexContext.lookup_exn qc s in
+      let exampled = Option.value_exn (regex_to_exampled_regex rc (whole qre) [relevant_string]) in
+      quotient_lens_canonize_internal rc qc qre exampled [0]
   | _ -> failwith "Failure to typecheck"
 
-and permutation_to_string l elems seps rc lc it : string =
+and permutation_to_string l elems seps rc qc it : string =
   match l, elems, seps with
   | [], _, _ -> ""
-  | [h], [e], [] -> quotient_lens_canonize_internal rc lc h e it
+  | [h], [e], [] -> quotient_lens_canonize_internal rc qc h e it
   | h :: t, e :: es, sep :: seps ->
-      (quotient_lens_canonize_internal rc lc h e it) ^
+      (quotient_lens_canonize_internal rc qc h e it) ^
       (extract_string sep it) ^
-      (permutation_to_string t es seps rc lc it)
+      (permutation_to_string t es seps rc qc it)
   | _ -> failwith "Failure to typecheck"
   
 (* This should work since the kernel always is contained in the whole*)
 let quotient_lens_choose (_ : RegexContext.t) 
-    (_ : LensContext.t) 
+    (_ : QuotientRegexContext.t) 
     (_ : quotient_regex) 
     (s : string) 
   : string = s
 
-let quotient_lens_canonize rc lc q s =
+let quotient_lens_canonize rc qc q s =
   let exampled_sr_o = regex_to_exampled_regex rc (whole q) [s] in
   begin match exampled_sr_o with
     | None -> failwith "bad input to lens"
-    | Some exampled_sr -> quotient_lens_canonize_internal rc lc q exampled_sr [0]
+    | Some exampled_sr -> quotient_lens_canonize_internal rc qc q exampled_sr [0]
   end
 
 

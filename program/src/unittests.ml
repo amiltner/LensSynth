@@ -19,6 +19,7 @@ open Gen
 open Lens_put
 open Boom_lang
 open Quotient_regex
+open Qre_context
 
 let test_to_normalized_exp_base _ =
   assert_dnf_equal
@@ -1231,7 +1232,7 @@ let test_canonize_base _ =
     "hello"
     (quotient_lens_canonize
       RegexContext.empty
-      LensContext.empty
+      QuotientRegexContext.empty
       (QuotientRegExBase "hello")
       "hello")
 
@@ -1240,7 +1241,7 @@ let test_canonize_map _ =
     " "
     (quotient_lens_canonize
       RegexContext.empty
-      LensContext.empty
+      QuotientRegexContext.empty
       (QuotientRegExMap (RegExStar (RegExBase " "), " "))
       "      ")
 
@@ -1249,7 +1250,7 @@ let test_canonize_perm _ =
     "a,b"
     (quotient_lens_canonize
       RegexContext.empty
-      LensContext.empty
+      QuotientRegexContext.empty
       (QuotientRegExPermute ([QuotientRegExBase "a"; QuotientRegExBase "b"], RegExBase ","))
       "b,a")
 
