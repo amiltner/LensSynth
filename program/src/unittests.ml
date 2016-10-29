@@ -1226,7 +1226,42 @@ let lens_putl_suite = "lens_putl Unit Tests" >:::
     "test_lens_putl_inverse"           >:: test_lens_putl_inverse;
   ]
 
+let test_canonize_base _ =
+  assert_string_equal
+    "hello"
+    (quotient_lens_canonize
+      RegexContext.empty
+      LensContext.empty
+      (QuotientRegExBase "hello")
+      "hello")
+
+let test_canonize_map _ =
+  assert_string_equal
+    " "
+    (quotient_lens_canonize
+      RegexContext.empty
+      LensContext.empty
+      (QuotientRegExMap (RegExStar (RegExBase " "), " "))
+      "      ")
+
+let test_canonize_perm _ =
+  assert_string_equal
+    "a,b"
+    (quotient_lens_canonize
+      RegexContext.empty
+      LensContext.empty
+      (QuotientRegExPermute ([QuotientRegExBase "a"; QuotientRegExBase "b"], RegExBase ","))
+      "b,a")
+
 let _ = run_test_tt_main lens_putl_suite
+
+let quotient_canonize_suite = "Canonize unit tests" >:::
+  [
+    "test_canonize_base"  >:: test_canonize_base;
+    "test_canonize_map"   >:: test_canonize_map;
+  ]
+
+let _ = run_test_tt_main quotient_canonize_suite
 
 let test_gen_dnf_lens_const_nosoln _ =
   assert_dnf_lens_option_equal
