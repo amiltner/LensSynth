@@ -139,6 +139,9 @@
 
 \begin{abstract}
   % begin abstract
+  \afm{TODO: make sure all adjacent math expressions are separated by more than just
+    punctuation, unless they are very short and very regular}
+  \afm{TODO: subject verb agreement}
   \emph{Lenses} are a bi-directional technique for specifying conversions between
   data formats.  Specifically, a bijective lens is a declarative program that
   simultaneously specifies a function to convert data from type $A$ to
@@ -554,8 +557,6 @@ and $\StringAlt=\CharacterAlt_1\ldots\CharacterAlt_m$,
 then the \textit{concatenation} of \String{} and \StringAlt{},
 written \String{}\Concat\StringAlt{}, is defined as
 $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
-At times, The $\Concat$ will be omitted, and $\String\StringAlt$ will be used in
-place of $\String\Concat\StringAlt$.
 
 If $\Language_1$ and $\Language_2$ are languages, such that
 for all strings $\String_1,\StringAlt_1 \in \Language_1$, and for all strings
@@ -1142,16 +1143,16 @@ would get mapped to each other.  Within that side, \CF{Name} would map to
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
     {
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
     };
     \path[<->]
     (m-1-1) edge node [left] {} (m-2-1);
     \path[<->]
-    (m-1-3) edge node [right] {\CF{lsequence}} (m-2-3);
+    (m-1-3) edge node [right] {\CF{lclause}} (m-2-3);
   \end{tikzpicture}
 
-  \CF{lsequence : BibSequence2 <=> EndSequence2}
+  \CF{lclause : BibClause2 <=> EndClause2}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
@@ -1252,53 +1253,59 @@ expressions, sequences, and atoms are given in
 Figure~\ref{fig:dnf-regex-syntax}, and their semantics are given in
 Figure~\ref{fig:dnf-regex-semantics}.
 
-A DNF Regular expression is a list of sequences.
-This list of sequences corresponds to a regular expression consisting of many
-\OrRegexType{}s.  We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
-to show that a list of sequences creates a DNF regular expression.
+A DNF Regular expression is a list of Sequences.
+This list of sequences corresponds to a regular expression consisting only of
+\OrRegexType{}s.
 This is mirrored in the semantics, as the language of a DNF regular expression
-is the union of the sequences it is composed of.  This is very similar to the
-language of
-\OrRegexType{}, which is also the union of its constituent components.
+is the union of the sequences it is composed of, much like the language of
+\OrRegexType{} is the union of its constituent components.
 
 A sequence is a list of atoms, with strings surrounding each atom.
 This list of atoms and strings corresponds to a regular expression consisting
-of many \ConcatRegexType{}s.
-We use the balanced delimiters of $\SequenceLeft$ and $\SequenceRight$ to show
-that a list of atoms and strings creates a sequence.
+only of \ConcatRegexType{}s.
 This is mirrored in the semantics, as the language of a sequence is a
 concatenation of strings, where each string is either the string in the
-sequence, or a string belonging to the language of the atom.  This is very
-similar to the language of \ConcatRegexType{}, which is also a concatenation of
-strings from its constituent components.
-A sequence can be put into this form, where every atom is separated by a string,
-because if two atoms are next to each other, $\EmptyString$ can be placed
-between them.  If there are multiple strings between atoms, those strings can be
-concatenated into a single string.
+sequence, or a string belonging to the language of the atom.  
+This yields an outer layer of regular expressions
+separated by \OrRegexType{}s.  The regular expressions separated by \OrRegexType{}s are
+sequences of strings and \StarRegexType{}s all separated by \ConcatRegexType{}s.
+The regular expressions beneath the \StarRegexType{}s have the same operations applied to
+them.
+Furthermore, because of the associativity of \OrRegexType{} and \ConcatRegexType{}, we
+remove associativity information of \OrRegexType{} and \ConcatRegexType{} through a list
+representation.  Furthermore, we can further simplify by requiring
+base string regular expressions to always appear at fixed locations,
+utilizing the fact that $\EmptyString{}$ is the \ConcatRegexType{} identity, and
+the ability to concatenate strings.
+The syntax of the language of DNF regular expressions is formalized in
+Figure~\ref{fig:dnf-regex-syntax}.
 The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
 stands for
 $\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
-with every string in the sequence being the empty string.
+with every string being the empty string.
 
-An atom is an iteration of DNF Regular expression.  Atoms correspond very
-closely to regular expression \StarRegexType{}s.  This correspondence is mirrored in the
-semantics, as the language of an atom is constructed in the exact same way as a
-\StarRegexType{}.  The only difference is that the iteration in atoms
-corresponds to the iteration of languages of DNF regular expressions, while the
-iteration in \StarRegexType{}s corresponds to the iteration of languages of
-regular expressions.  In the implementation, user defined regular expressions are
-atoms as well, turning atoms into a sum type of user defined regular
-expressions, and \StarAtomType{}s.
-
-A sequence of strings and atoms is said to be \textit{sequence unambiguously
-  concatenable},
-written $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
+A sequence of strings and atoms is said to be \textit{unambiguously concatenable},
+written $\UnambigConcat\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
 if, $\String_i',\StringAlt_i'\in\LanguageOf{\Atom_i}$ for all $i$, then
 $\String_0\Concat\String_1'\ldots\Concat\String_n'\String_n=
 \String_0\Concat\StringAlt_1'\ldots\Concat\StringAlt_n'\String_n$
 implies $\String_i=\StringAlt_i$ for all $i$.  A DNF Regular expression is said
 to be \textit{unambiguously iterable} written $\UnambigItOf{\DNFRegex}$ if
 $\UnambigItOf{\LanguageOf{\DNFRegex}}$.
+
+The outermost layer is a list of sequences.
+This layer intuitively corresponds to the choices involved in regular expression matching, and so represents where the Ors of normal regular expressions exist.
+The second layer is a list of alternating strings and stars.
+After the choice has been made about what will be expressed,
+the base strings and iterated portions remains to be expressed.
+This is kept in a normal form by requiring a (possibly empty) string between
+each clause.
+The clause corresponds to the concatenated data, and is a concatenation of the
+fixed data of base strings, and the iterated data of stars.
+Finally is the atom, which is a star.
+The iteration in atoms correspond to the iteration that takes place in normal stars.
+This intuition is formalized by the semantics, given in
+Figure~\ref{fig:dnf-regex-semantics}.
 
 \subsection{Expressivity of DNF Regular Expressions}
 
@@ -1308,8 +1315,6 @@ $\UnambigItOf{\LanguageOf{\DNFRegex}}$.
   $\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=$\\
   \hspace*{2ex}$[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
   \\
-  \afm{What about using bigodot\_\{[1,n]\}bigodot\_\{[1,m]\ldots\}, or would that be
-    not understood}
   \ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
   $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
   \[
@@ -1324,8 +1329,7 @@ $\UnambigItOf{\LanguageOf{\DNFRegex}}$.
   \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}
   }\\
   $\OrDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}$=\\
-  \hspace*{2ex}$\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$
-  \\
+  \hspace*{2ex}$\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$\\
   \\
   (-)\RepeatDNFOfTimes{n} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}\\
   $\RepeatDNFOf{0}{\DNFRegex}=\DNFOf{\SequenceOf{\EmptyString}}$\\
@@ -1343,8 +1347,8 @@ application of the distributivity rule, and through removal of association
 information.
 This process requires some auxiliary definitions
 which are defined in Figure~\ref{fig:dnf-regex-functions}.
-From these functions, we can define \ToDNFRegex{}, a function which converts a regular expression into
-an equivalent DNF regular expression.
+From these functions, \ToDNFRegex{}, a function which converts a regular expression into
+an equivalent DNF regular expression, can be defined.
 
 \begin{definition}
   \leavevmode
@@ -1358,13 +1362,10 @@ an equivalent DNF regular expression.
     \end{array}
   \]
 \end{definition}
-\afm{$\ToDNFRegex$ is usually postfix or infix, depending on use, but we're
-  kinda using it as a function, is this ok?}
 
 Intuitively, this means that the DNF regular expression with no sequences
 corresponds to the empty set.  A single sequence with only a string corresponds
-to a \BaseRegexType{} regular expression string.
-The stars of DNF regular expressions correspond to the stars
+to a base string.  The stars of DNF regular expressions correspond to the stars
 of atoms.  The function $\OrDNF$ corresponds to the regular expression
 primitive $\Or$.  The function $\ConcatDNF$ corresponds to the regular
 expression primitive $\Concat$.  We formalize this in the following theorem.
@@ -1375,8 +1376,7 @@ expression primitive $\Concat$.  We formalize this in the following theorem.
   \LanguageOf{\ToDNFRegex(\Regex)}=\LanguageOf{\Regex{}}.
 \end{restatable}
 
-Furthermore, we can prove that DNF regular expressions are sound with respect to
-regular expressions,
+Furthermore, we can use prove that language of DNF regular expressions is sound,
 and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.
 
 \begin{definition}\leavevmode\\
@@ -1405,15 +1405,14 @@ below.
 \subsection{DNF Regular Expression Rewrites}
 
 In our synthesis algorithm we need to allow for a rewrite system on DNF Regular
-Expressions to search through the equivalences.
-Using the star equivalences, the synthesis algorithm applies rewrites
-to the stars in a DNF
-regular expression for type-directed synthesis to eventually be applied to the
-rewritten regular expressions.  These rewrites are the ones used in
+Expressions, to search through the equivalences.
+Using the star equivalences, rewrites are applied to the stars in a DNF
+regular expression, for type-directed synthesis to eventually be applied to the
+rewritten regular expressions.  These rewrites are the same ones used in
 \textbf{Step 2: Traversing Equivalences}.
 
 % fig:dnf-regex-rewrites
-\begin{figure*}
+\begin{figure}
   \begin{mathpar}
     \inferrule[\AtomUnrollstarRule{}]
     {
@@ -1433,7 +1432,7 @@ rewritten regular expressions.  These rewrites are the ones used in
       {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n}{\DNFRegex})}
     }
 
-    \inferrule[\AtomStructuralRewriteRule{}]
+    \inferrule[\DNFRewriteStarRule{}]
     {
       \DNFRegex \Rewrite \DNFRegex'
     }
@@ -1441,21 +1440,19 @@ rewritten regular expressions.  These rewrites are the ones used in
       \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
     }
 
-    \inferrule[\DNFStructuralRewriteRule{}]
+    \inferrule[\AtomDNFRewriteRule{}]
     {
       \Atom_j \RewriteAtom \DNFRegex
     }
     {
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
-      \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
-      \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
-      \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+      \DNFLeft\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}\DNFSep\\\\
+      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}\SequenceSep\Atom_j\SequenceSep\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}\DNFSep\\\\
+      \Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n\DNFRight\Rewrite\\\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF\\
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF\\
       \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
     }
-    
+
     \inferrule[\ReflexivityRule{}]
     {
     }
@@ -1475,28 +1472,43 @@ rewritten regular expressions.  These rewrites are the ones used in
   \end{mathpar}
   \caption{DNF Regex Rewrite Rules}
   \label{fig:dnf-regex-rewrites}
-\end{figure*}
+\end{figure}
 
 
-Figure~\ref{fig:dnf-regex-rewrites} defines the rewrite rules.
-Intuitively, applications of these rewrite rules correspond to traversing
-through equivalences of the DNF regular expressions.
-However, by having rewrite rules, instead of a rule similar to
-\RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
-to limit the fan-out and only traverse a few.
-
+Rewrite rules are provided in Figure~\ref{fig:dnf-regex-rewrites}.
+Intuitively, these rewrite rules correspond to expanding a regular expression
+into a regular expression which can be used in a more complicated lens.
+These rewrite rules are a way of getting around
+requiring a full retyping rule, as is present in standard lenses.
 These rewrite rules present ways for atoms to be rewritten to DNF regular
-expressions, with rules like \AtomUnrollstarRule{} and \AtomPowerstarRule{}.
-These rewrite rules are similar to the equivalence rules for DNF regular
-expressions, \UnrollstarRule{} and \QuotientstarRule{}.
-With the atoms rewritten to DNF regular expressions, \DNFStructuralRewriteRule{}
+expressions.  With the atoms rewritten as regular expressions, \AtomDNFRewriteRule{}
 provides a way to combine the rewritten atom into the broader regular
-expression.
-Similarly, if a DNF regular expression is rewritten to a different
-DNF regular expression, the rewrite rule \AtomStructuralRewriteRule{} can extend
-this to rewriting atoms containing those regular expressions.
-The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
+expression.  For example, consider the DNF Regular
+Expression $\DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{b};\StarOf{c}};\SequenceOf{d}}$.
+This DNF Regular expression matches either $a$, $b^i\Concat c^j$, or $d$.
+With the above rules,
+$\StarOf{b}\RewriteAtom\DNFOf{\SequenceOf{};\SequenceOf{b\StarOf{b}}}$, which
+corresponds to an application of \ProductstarRule{} on $\EmptyString\Concat b$.
+This then gets applied in the rules above, leading to the full DNF rewrite
+$\DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{b};\StarOf{c}};\SequenceOf{d}}
+\Rewrite
+\DNFOf{\SequenceOf{a};\SequenceOf{\StarOf{c}};\SequenceOf{b;\StarOf{b};\StarOf{c}};\SequenceOf{d}}$.
+This has the same language, but $\SequenceOf{\StarOf{b};\StarOf{c}}$
+has been expanded into matching $b^0c^j$ and $b^{i>0}c^j$ separately.
+$\StarOf{\Rewrite}$ is used to represent the transitive and
+reflexive closure of $\Rewrite$.
 
+Roughly, the \AtomSumstarRule{} rewrite corresponds to \SumstarRule{},
+the \AtomUnrollstarRule{} rewrite correspond to \ProductstarRule{}.
+and the \DicyclicRewriteStarRule{} rewrite corresponds to \DicyclicityRule{}.
+There is no rewrite corresponding to \StarstarRule{}, as that
+equivalence introduces ambiguity.
+An application of \AtomSumstarRule{} corresponds to doing different things after the last time a certain event has occured, and before the last time that event occurs.
+An application of \AtomUnrollstarRule{} corresponds to making a different action for
+the empty case of an iteration, the first case of an iteration, and all further cases of the iteration
+An application of \DicyclicRewriteStarRule{} corresponds to a reordering of the
+variables that corresponds to expressing a ring as an ideal, and the quotient by
+that ideal.
 \section{DNF Lenses}
 
 % fig:dnf-lens-syntax
@@ -1504,10 +1516,10 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
   \centering
   \begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
     % REGEX
-    (Atom Lenses) &\AtomLens{} & \GEq{} & $\IterateLensOf{\DNFLens}$ & Iterate\\
+    (Atom Lenses) &\AtomLens{} & \GEq{} & $Iterate(\DNFLens)$ & Iterate\\
     (Sequence Lenses) &\SequenceLens{} & \GEq{} &
                                                   $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)}$, &\\
-                  & & & $\sigma \in S_n)$ & Sequence\SubN{}\\
+                  & & & $\sigma \in S_n)$ & Clause\SubN{}\\
     (DNF Lenses)& \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ & DNF\SubN{}\\
   \end{tabular}
   \caption{DNF Lens Syntax}
@@ -1520,17 +1532,17 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
   $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
   \hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
     \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-    n\in\Nats\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
+    n\in\NatsZero\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
   \\
   Semantics of Sequence Lenses:\\
   $\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
       \AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n
       \SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}=$\\
   \hspace*{3em}$\SetOf{
-    (\String_0\String_1'\ldots\String_n'\String_n,
-    \StringAlt_0\StringAlt_{\Permutation(1)}'\ldots
-    \StringAlt_{\Permutation(n)}'\StringAlt_n)\SuchThat
-    (\String_i',\StringAlt_i')\in\SemanticsOf{\AtomLens_i}}$\\
+    (\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n,
+    \String_{\Permutation(0)}\Concat\String_{\Permutation(1)}'\Concat\ldots
+    \Concat\String_{\Permutation(n)}'\Concat\String_{\Permutation(n)})\SuchThat$\\
+    \hspace*{4em}$(\String_i',\StringAlt_i')\in\SemanticsOf{\Atom_i}}$\\
   \\
   Semantics of DNF Lenses:\\
   $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
@@ -1545,12 +1557,13 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
 \begin{figure}
   \centering
   \begin{mathpar}
-    \inferrule[\AtomLensRule{}]
+    \inferrule[\IterateAtomLensRule{}]
     {
       \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
     }
     {
       \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+      (\PutRight\Apply\String_1)\Concat\ldots\Concat(\PutRight\Apply\String_n)
     }
 
     \inferrule[\SequenceLensRule{}]
@@ -1572,10 +1585,10 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
     {
       \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
       \ldots\\
-      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\
       \sigma \in \PermutationSetOf{n}\\
-      i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
-      i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+      i \neq j \Rightarrow \Sequence_{i} \cap \Sequence_{j}=\emptyset\\
+      i \neq j \Rightarrow \SequenceAlt_{i} \cap \SequenceAlt_{j}=\emptyset\\
     }
     {
       (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
@@ -1583,11 +1596,11 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
       \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
     }
 
-    \inferrule[\RewriteDNFRegexLensRule{}]
+    \inferrule[\DNFRewriteLensRule{}]
     {
-      \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}\\
       \DNFRegex' \Rewrite \DNFRegex\\
-      \DNFRegexAlt' \Rewrite \DNFRegexAlt
+      \DNFRegexAlt' \Rewrite \DNFRegexAlt\\
+      \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
     }
     {
       \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
@@ -1598,55 +1611,17 @@ The transitive and reflexive closure of $\Rewrite$ is $\StarOf{\Rewrite}$.
   \label{fig:dnf-lens-typing}
 \end{figure}
 
-Armed with these rewrites, we can define a language for lenses on DNF regular
-expressions, called \emph{DNF lenses}, for Disjunctive Normal Form lenses.
-Figure~\ref{fig:dnf-lens-syntax} defines the syntax of DNF lenses, and
-Figure~\ref{fig:dnf-lens-semantics} defines the semantics.  DNF lenses are
-defined via 3 mutually recursive data structures, DNF lenses, sequence lenses,
-and atom lenses.
-
-A DNF lenses is a list of sequence lenses.   This list of sequences corresponds
-to a lens consisting of many \OrLens{}s.  We use the balanced delimiters of
-$\DNFLensLeft$ and $\DNFLensRight$ to show that a list of sequence lenses
-creates a DNF regular expression.  This is mirrored in the semantics, as the
-bijection determined by a DNF lens corresponds to applying one of many sequence
-lenses, just as the bijection determined by an \OrLens{} is determined through
-applying one of two lenses.  Furthermore, if a DNF lens is defined on $n$,
-elements, then a permutation on $n$ elements, $\sigma$, is also provided.  This
-does nothing for the semantics, but is used for typechecking, and eliminates the
-need to have a rewrite rule corresponding to the commutativity of union.
-
-A sequence lens is a list of atom lenses and pairs of strings.  This list of
-sequences corresponds to a lens consisting of many \ConcatLens{}s,
-\SwapLens{}s, and \ConstLens{}s.
-We use the balanced delimiters of $\SequenceLensLeft$ and 
-$\SequenceLensRight$ to show that a list of atom lenses and pairs of strings is
-a sequence lens.  Sequence lenses bear similarities to \ConcatLens{} and
-\SwapLens{}, as they both are made for handling concatenated strings.  The
-pairs of strings within a sequence lens correspond to the pairs of strings on
-\ConstLens{}s.
-To handle the reordering of lenses that comes from
-\SwapLens{}, sequence lenses with $n$ atom lenses come with $\sigma$, a
-permutation on $n$ elements.  This permutation permutes the output strings of
-the atom lenses.
-
-An atom lens is an iteration of a DNF lens.  This corresponds very closely to
-the $\IterateLens$ present in lenses.  However, atom lens $\IterateLens$s
-iterate DNF lenses,
-whereas the $\IterateLens$ present in lenses iterate lenses.  In our
-implementation, identity lenses which operate on user defined regular
-expressions are also considered atom lenses.  This makes atom lenses a sum type
-in the implementation.
-
+Armed with these rewrites, a language for lenses on DNF regular
+expressions can be defined.
+The syntax is defined in Figure~\ref{fig:dnf-lens-syntax}.
 Similarly to the language of lenses, the typing of the lenses
 correspond closely to the syntax for the lenses themselves.
+The semantics of these DNF lenses are defined in
+Figure~\ref{fig:dnf-lens-semantics}.
 The typing of these DNF lenses are defined in Figure~\ref{fig:dnf-lens-typing}.
-The typing $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ means that
-$\DNFLens$ maps bijectively between the languages of $\DNFRegex$ and
-$\DNFRegexAlt$.  The typing $\DNFLens \OfRewritelessType \DNFRegex
-\Leftrightarrow \DNFRegexAlt$ means that $\DNFLens$ maps bijectively between the
-languages of $\DNFRegex$ and $\DNFRegexAlt$, and no rewrites were used in the
-application of the typing.
+Intuitively, a DNF Regex Lens corresponds roughly to an n-ary version of an ``Or'' lens,
+a Sequence Lens corresponds to const lenses for the strings, and a combination of
+Concat and Swap lenses for the Atoms.
 
 These DNF lenses only express bijections that are already expressible in the language of lenses.
 \begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
@@ -1655,13 +1630,11 @@ These DNF lenses only express bijections that are already expressible in the lan
   then there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ such that
   $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
   $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$, and
-  $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.\afm{worth having a specific
-    syntax for dnf lens semantics vs normal lens semantics for clarity?}
+  $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
-Furthermore, these DNF lenses can express everything
-expressible in the language of lenses.
-
+Furthermore, these DNF lenses are able to express a large number of things
+expressible in a subset of the language of lenses.
 \begin{restatable}[Completeness of DNF Lenses]{theorem}{dnflc}
   \label{thm:dnflc}
   If there exists a derivation for $\Lens \OfType \Regex \Leftrightarrow
@@ -1671,19 +1644,15 @@ expressible in the language of lenses.
   such that $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
-DNF lenses are much more suited to synthesis.
-All rules except for \RewriteDNFRegexLensRule{} have a simple inductive
-algorithm that comes from the type.  Furthermore, even
-\RewriteDNFRegexLensRule{} can only be applied once at the end of the typing
-derivation, and it is not computationally intensive to find what rewrites can
-apply to a given DNF regular expression.
-Furthermore, there is no composition operator, so
-we have reduced the dimensions we are searching in from 3 to 2.  Before, given a
+
+These lenses are much more suited to synthesis.
+The vast majority of the rules have a syntax-directed synthesis algorithm.
+We have reduced the dimensions we are searching in from 3 to 2.  Before, given a
 specification, multiple rules could be applicable, equivalent regular
 expressions would have to be searched through, and regular expressions for
 composition would need to be found.
 For DNF lenses, only the correct rewrites for the regular expressions, and the
-correct permutations for each rule application, must be found.
+correct permutations for each rule application, must be searched through.
 % end formalisms
 
 % begin implementation
@@ -1695,75 +1664,48 @@ We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
 \begin{figure}
   \includegraphics[scale=.5]{synth-lens-schematic.png}
   \label{fig:synth-lens-schematic}
-  \caption{Schematic Diagram for Lens Synthesis\afm{TODO: not right angles are
-      wrong angles, TODO: SynthDNFLens, TODO: priority queue only inside SynthDNFLens}}
+  \caption{Schematic Diagram for Lens Synthesis}
 \end{figure}
 The synthesis algorithm is shown in a schematic diagram in 
 Figure~\ref{fig:synth-lens-schematic}.  The algorithm takes in a pair of
-regular expressions, and examples, and uses $\ToDNFRegex{}$ to convert the
-regular expressions into DNF regular expressions.
-This pair of two DNF regular expressions are then input into SynthDNFLens, which
-takes a pair of DNF regular expressions, and a set of input and output
-examples, and synthesizes a DNF lens, satisfying the typing and example
-constraints.
+regular expressions, and examples, and converts the regular expressions into
+DNF regular expressions, using $\ToDNFRegex{}$.
+These then get enqueued, and SynthDNFLens, where the bulk of the work
+occurs.
 
-In SynthDNFLens, a priority queue of typing constraints is created, and the
-two input DNF regular expressions are enqueued.  The priority queue is designed
-such that lower priority typing constraints either have undergone a large number
-of rewrites, or have typing constraints that are very difference in appearance
-from each other.  Next, SynthDNFLens pops the
-highest priority typing constraints, and inputs them to SynthRewritelessDNFLens.
-This attempts to synthesize a lens of the typing and example constraints, with
-no applications of
-\RewriteDNFRegexLensRule{}.  If this returns a DNF Lens, then the process is
-terminated, and that DNF Lens is returned by SynthDNFLens.  If this does not
-return a DNF Lens, then rewrites are applied to the input regular expressions,
-and the rewritten regular expressions are enqueued.  After this, the highest
-priority typing constraints are again popped, and the process continues.
-
-After a DNF lens has been found by SynthDNFLens, the algorithm converts the DNF lens
-into a lens.  Next the algorithm applies transformations to make the lens more human
-readable, when is then returned to the user.
+In SynthDNFLens, the highest priority DNF regular expression pair, $\DNFRegex$
+and $\DNFRegexAlt$, is popped.
+Then, SynthRewritelessDNF sees if there exists DNF lens $\DNFLens
+\OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ which satisfies the examples.
+If none are found, then each rewrite is applied once on each side of the regular
+expressions.
+This new list of DNF regular expression doubles is enqueued, and SynthDNFLens is
+called again.
+If one is found, this DNF lens gets converted to a normal lens, and is returned
+to the user.
 
 \subsection{Priority Queue}
+The priority queue is implemented using a naive list implementation.
 We say that the lower the priority value, the higher the priority.
-The priority value of an element is based on two factors.  The first factor is
-the number of expansions that have been performed.  If more expansions have been
-preformed, the priority will be lower.  This forces some exploration of the
-search space; if it were the only factor of priority, the search would be
-entirely a breadth first search through rewrite rule application.
-The second factor is the distance between the two regular expressions of the
-specification, based
-on a psuedometric $\Distance$ we have implemented.  Our distance $\Distance$ is
-a pseudometric, as $\Distance$ satisfies the triangle property, $\Distance$ is
-symmetric, and $\Distance(\DNFRegex,\DNFRegex) = 0$, but
-$\Distance(\DNFRegex,\DNFRegexAlt) = 0$ does not imply $\DNFRegex =
-\DNFRegexAlt$.  This pseudometric is implemented
+The priority value of an element is based on the number of expansions that have been
+performed, combined with the distance between the two regular expressions, based
+on a psuedometric $\Distance$ we have implemented.  This pseudometric is implemented
 as the sum of simpler pseudometrics,
 $\Distance = \Distance_{size}+\Distance_{dist}$.
 
 $\Distance_{size}$ is defined as merely the difference in the sizes of the DNF
-regular expressions.  The size of a DNF regular expression is the sum of the
-sizes of all lists present in the DNF regular expression data structure.
-The size distance, $\Distance_{size}$ is formally defined as
-$\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$.
-For two DNF regular expressions to have a rewriteless DNF lens between
-them, they must be the same size, so using this pseudometric makes ones closer
-in size popped sooner.
+regular expressions.
+$\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$
 
-$\Distance_{dist}$ captures how different the distributions of
-user defined regular expressions in the two input regular expressions
-are.
-The distribution of user defined regular expressions can be viewed as,
-$\VectorSpace{}$, an
-infinite dimensional vector space over the reals.
-The set $\SetOf{1*(\RegexVariable,n) | n\in\Nats, \RegexVariable
-  \text{ is a user defined regular expression}}$ serves as a basis for this
-vector space.
+$\Distance_{dist}$ captures how different the distribution of
+user defined regular expressions are from each other.
+The distribution of user defined regular expressions can be viewed as an
+infinite dimensional vector space over the reals, $\VectorSpace{}$.
+The basis for this is $\SetOf{1*(\RegexVariable,n) | n\in\Nats, \RegexVariable
+  \text{ is a user defined regular expression}}$
 DNF regular expressions with variables can map into this with a function by
 counting the number of user defined data types present at a given level.
-The function, $\GetDist{}$ formalizes the mapping from DNF regular expressions
-into $\VectorSpace$.
+The formal definition for this mapping is given by the function \GetDist{}.
 
 \begin{definition}\leavevmode\\
   \label{def:getdist}
@@ -1780,22 +1722,18 @@ into $\VectorSpace$.
   $1*(\RegexVariable,n+1)$
 \end{definition}
 
-$\Distance_{dist}(\DNFRegex,\DNFRegexAlt)=\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$
-where $\LOneNorm$ computes manhattan distance on $\VectorSpace{}$.  This
-distance calculates how different the distribution of user defined regular
-expressions are in two DNF regular expressions.  Only when the distribution of
-user defined regular expressions are equal can a lens between two DNF regular
-expressions be synthesized.  This metric makes regular expressions with
-similar distributions of user defined regular expressions be popped earlier.
+Using this, we now have a mapping from regular expressions into the distribution
+of user defined regular exprssions.
 
+$\Distance(\DNFRegex,\DNFRegexAlt)=\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$
+where $\LOneNorm$ is the taxicab metric on $\VectorSpace{}$.
 The priority of a pair of DNF regular expressions, $(\DNFRegex{},\DNFRegexAlt{})$,
-is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*\mathit{ExpansionCount}$, where
-$\mathit{ExpansionCount}$ is the total number of expansions preformed.
+is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*expansion_{count}$.
 Keeping track of expansion count is important as it allows for lower priority
 expansions to be eventually popped, instead of getting stuck doing incorrect,
 increasingly deep expansions whose DNF regular expressions have a low distance.
 \afm{should i do an example, or is that going into too much detail?}
-Experimentally, 8 is a good value for how much weight the expansion
+Experimentally, 8 was a good value for how much weight the expansion
 count should get in the priority.  It allows for not getting stuck in a local
 minima in the search space, while still allowing for the distance to choose the
 correct expansion the majority of the time.
@@ -1813,9 +1751,8 @@ processed.
 
 Instead of searching through all possible permutations, a better approach is to
 recognize which subcomponents of the types can be mapped to each other, and
-create the permutations based on those mappings.  To handle finding which
-subcomponents can be mapped to each other, SynthRewritelessDNF further
-normalizes the input regular expressions.  A DNF Lens is normalized through ordering its
+create the permutations based on those mappings.  The approach taken for this is
+one of further normalization.  A DNF Lens is normalized through ordering its
 sequence subcomponents, and a sequence is normalized through ordering its atom
 subcomponents.  Through the correct choice of ordering, a rewriteless DNF lens
 can be synthesized between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
@@ -1838,10 +1775,10 @@ the original DNF regular expressions.
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
     {
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{BibClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
+      \CF{""} & $\Or$ & \CF{EndClause2} \\
     };
     \path[<->]
     (m-1-1) edge node [left] {} (m-2-1);
@@ -1852,12 +1789,12 @@ the original DNF regular expressions.
     \path[<->]
     (m-1-3) edge node [right] {} (m-2-3);
     \path[<->]
-    (m-2-3) edge node [right] {\CF{lsequence}} (m-3-3);
+    (m-2-3) edge node [right] {\CF{lclause}} (m-3-3);
     \path[<->]
     (m-3-3) edge node [right] {} (m-4-3);
   \end{tikzpicture}
 
-  \CF{lsequence : BibSequence2 <=> EndSequence2}
+  \CF{lclause : BibClause2 <=> EndClause2}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
@@ -1958,11 +1895,11 @@ the examples, we would like to
 be able to immediately find only a sorting which satisfies the examples.
 
 The key insight here is that certain invariants must hold for a DNF lens to have
-semantics that match the examples.
+semantics which match the examples.
 
 \begin{enumerate}
-\item If a source example string matches one of the sequences during parsing,
-  it must be sent to the sequence the target example string matches during parsing.
+\item If a source example string matches one of the clauses during parsing,
+  it must be sent to the clause the target example string matches during parsing.
 \item If a source example string matches a user defined regular expression during
   parsing, the target must match the exact same string during parsing.
 \item If a source example string matches an iteration, then the target must iterate
@@ -1984,116 +1921,70 @@ each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
 % begin evaluation
 \section{Evaluation}
 \label{evaluation}
+We ran our algorithm on tests validating our ability to handle regular
+expression equivalences, tests derived from the Augeus test suite, and from
+tests derived from the FlashFill tests.
+The values presented are the arithmetic means of 10 test runs.
+The tests were run on a 2.5 GHz Intel Core i7 processor, with
+16 GB of 1600 MHz DDR3, running Mac OS X Yosemite.
 
 \begin{figure*}
   \centering
   \begin{tabular}{|c|c|c|c|c|}
     \hline
-    \bfseries Test & \bfseries Computation Time (s)
-    & \bfseries No UserDef Time (s) & \bfseries Examples Required
+    \bfseries Test & \bfseries ForceExpandTime & \bfseries ForceExpandExamplesRequired
+    & \bfseries Computation Time & \bfseries Examples Required
                                    \csvreader[head to column names]{generated-data/data.csv}{}
-                                   {\\\hline\Test & \ComputationTime  & \ForceExpandTime & \ExamplesRequired}
+                                   {\\\hline\Test & \ForceExpandTime & \ForceExpandExamplesRequired & \ComputationTime & \ExamplesRequired}
     \\\hline
   \end{tabular}
-  \label{fig:evaluation-data}
+
 \end{figure*}
 
-We evaluated our algorithm by testing its ability to synthesize bijective lenses
-that would be seen in practice.  As such, we derived the bijective lens synthesis problems
-from string and data transformation problems present in the Augeas
-repository, from FlashFill examples, and from Boomerang's test suite.
-Furthermore, through generating random examples, we test the importance of
-examples.  Through removing all user input user defined data type information,
-we test the importance of user defined data types to our algorithm.
-Figure~\ref{fig:evaluation-data} presents the data from our test runs.
-The values presented are the arithmetic means of 10 test runs.
-The tests were run on a 2.5 GHz Intel Core i7 processor, with
-16 GB of 1600 MHz DDR3, running Mac OS X Yosemite.
-
-\subsection{Test Selection}
-
-Our tests were modified from examples of string transformations found in Augeas,
-Boomerang, and FlashFill.
-
-Augeas uses combinators similar to Boomerang, but enables transformations of the
-data into a structured format, instead of merely a string format.  We mimicked
-these in our lens synthesis problems by making the output formats look like
-the a serialized version of the structure.  Furthermore, Augeas is able to
-handle all lenses,
-where the synthesis algorithm can only synthesize bijective ones.  By including
-more fields data format on the right, we were able to turn non-bijective lenses
-into bijective ones.
-
-Just like Augeas, Boomerang has combinators that go beyond the basic lens
-combinators, including keyed data and quotienting.  Keyed data has little impact
-on the output format, but merely changes how the invertibility laws behave.  Because
-we have bijective lenses, keyed data has no impact.  We treat quotienting
-similarly to non-bijective lenses.  Any part of the string that would be
-quotiented, instead is included in a different area of the string, to maintain
-bijectivity.
-
-FlashFill examples, unlike the other tests, are not in fact lenses, they are
-merely string transformations.  Furthermore, many of them are non-bijective, as
-FlashFill examples are often about extracting certain pieces of information.
-However, through the same process of making the transformations bijective as
-tackled in other ports, we
-add in invertibility constraints that allow the transformation to be interpreted
-as a lens.
-
-These tests were selected to demonstrate our algorithms ability to synthesize
-transformations used in practice.  Many had an appearance similar to the
-\CF{BibEnd} example given in Figure~\ref{fig:bibend-spec}.  However, \CF{BibEnd}
-was simplified for clarity's sake, and the examples taken from real world
-applications are usually much longer and involve far more user defined regular
-expressions.  Furthermore, in larger synthesis problems,
-we build intermediary lenses
-between intermediary regular expressions as a sanity check for bijectivity.
-These intermediary lenses are then used in the synthesis algorithm for mapping
-the intermediary sub-expressions, to avoid repeating the same synthesis
-algorithm.
-
-\subsection{Speed of Synthesis}
-Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
-test suite, with the column \textbf{ComputationTime} showing the runtime of the
-overall synthesis algorithm.
-
+\subsection{Speed}
+\bcp{There should be a subsection discussing the choice of tests -- why did we
+  choose the ones we did, in what way are they representative, what are they
+  like, maybe giving an example or two of what they look like, which ones are
+  easy (and why) and hard (and why)...}
+Figure~\ref{fig:runtimes-table} provides the runtime of our algorithm on our
+test suite.
 In this figure, we want to minimize runtime, as a smaller runtime means we were
 able to synthesize very efficiently.
 We found that, on many of our difficult examples, our algorithm was able to find
 the appropriate lens very quickly.
 
-This figure shows us where the strengths and weaknesses of our algorithm lie.
+However, we can also see where the strengths and weaknesses are in our approach.
 In particular, our synthesis strategy does quite well on problems that only
-include a small number of transformations, even if the number of sequences is
+include a small number of transformations, even if the number of clauses is
 decently large.
-There are two tests where our algorithm is weaker, however.  The test
-double-capitalization-problem.ls, and the test xml.ls are both quite slow.
+This is as expected, for after the appropriate transformations have been found,
+the problem of finding the lens between the resulting DNF Regular Expressions
+is merely as difficult as ordering the clauses.
 
-The test double-capitalization-problem.ls was intentionally made to be slow to
-exploit an issue that can arise from DNF conversion.  In converting to DNF form,
-a concatenation of many \OrRegexType{}s causes a huge blowup.  In
-double-capitalization-problem.ls, this is exploited.  This problem causes a
-blowup, causing there to be 676 sequences created immediately.  This means that
-any time SynthRewritelessDNF is called, it must find the correct mapping of all
-676 sequences.  A single instance of finding 676 sequences is not that bad, but it
-becomes worse when that must be done on every expansion, and some of the bad
-expansions that are popped create 17576 sequences.
+For example, the address problem is the second slowest lens to synthesize.
+This is because there is a large number of required expansions of user defined
+data types, and there are multiple required star transformations.
+Furthermore, there are a large number of potential star transformations because
+of the large number of stars.
+In addition to requiring a relatively deep search, this search is made much
+more difficult because of the breadth of the search.
+This shows us where our algorithm can hit issues.
+When there are a large number of potential transformations, and there are a
+large number of required transformations, our search gets more complicated,
+and things slow down.
+
+Another place where our synthesis algorithm performs badly is where there is not
+only a large number of clauses generated, but they also have a non-identity
+lens between them.
+For example, the double capitalization problem is another slowest test, despite
+being an intuitively easy function to figure out, looking at it as a human.
+This is because the algorithm problem has an exponential blow up in terms
+of the number of clauses, when there are many regular expressions +d together.
 If we take this problem to the logical extremes, we see that the the triple
 capitalization problem takes 6.974 seconds, and the quadruple capitalization
 problem takes 33 minutes and 54.730 seconds.
 
-The test xml.ls takes a long time, as it is a very complicated regular
-expression.  Because full xml is not expressible as a regular expression, xml.ls
-expresses xml of depth up to 3.  This is a huge regular expression.  Not only
-this, but a number of regular expression expansions must be preformed to get it
-into dictionary form; different things must happen on a star that is matched
-0 times, and a star that is matched one or more times.  Because of the size of
-the regular expression, many expansions can be preformed, and because expansions
-must be preformed, it requires a large amount of search to find the correct
-expansions to synthesize a lens.
-
 \subsection{Importance of Examples}
-
 We wanted to see how many examples were required to synthesize the correct
 bijective lens.
 However, because of our implicit understanding of the algorithm, we fear we may
@@ -2102,13 +1993,15 @@ instead of choosing examples that users are likely to.
 Because of that, we test the number of examples that it takes to generate the
 correct lens, with randomly generated examples.
 
-The column \textbf{Examples Required} in Figure~\ref{fig:evaluation-data}
-provides the number of randomly generated examples it takes, on average, to
-synthesize the correct lens on our test suite.  
 
-As we see in Figure~\ref{fig:examples-required-table}, examples are not
-incredibly
-important for synthesizing bijective lenses.
+As we see in Figure~\ref{fig:examples-required-table}, examples are not too
+important for synthesizing bijective lenses.\bcp{If that's really the
+  conclusion, then maybe we should have written a paper about synthesizing
+  bijective lenses {\em without\/} examples!  But I don't think we can
+  actually conclude this from the examples we have.  }
+\bcp{I still agree with my comment from before.  What I think is really going on
+is that we don't have sufficiently interesting tests!!  What sort of tests would
+we need, to show where examples are useful}
 Because bijective lenses have very few well typed programs, compared to the
 number of functions, oftentimes just a few examples is sufficient.
 As would be expected, the functions that have to make choices about the
@@ -2117,26 +2010,12 @@ In particular, the address problem requires more examples, because it must make
 choices of where information goes, like which name is the a person's first name,
 and which is their last.
 
-However, this does not tell the whole story.  A large reason why these require
-so few examples is that we unintentionally ordered the $\OrRegexType$s in the
-regular expressions in similar ways on regular expressions that map to each
-other.  Because the synthesis algorithm chooses the simplest permutation when
-there are multiple possible, it will choose the one that is most similar in
-order to the order of the regular expressions.
-
-The column \textbf{RO Examples Required} (TODO) in Figure~\ref{fig:evaluation-data}
-provides how many randomized examples were required, when the order of
-$\OrRegexType$s are randomly permuted.  This shows that, while sometimes few
-examples are required, in instances where the ordering of $\OrRegexType$ is very
-different between the regular expressions being mapped, many examples can be
-required to synthesize the correct lens.
-
 \subsection{Importance of User Defined Data Types}
 
 User defined data types are very critical to the algorithm and performance of
 the synthesis algorithm.  User defined data types help direct the search of
 which expansions should be performed.  Furthermore, they help to reduce the
-number of sequences we have to deal with.  There is a potentially exponentially
+number of clauses we have to deal with.  There is a potentially exponentially
 large blowup in converting regular expressions into DNF form, but keeping
 certain portions of the regular expressions abstracted lessens that blowup,
 as those regular expressions are kept atomic in converting into DNF form.
@@ -2155,37 +2034,20 @@ giving regular expressions which have the same syntax the same user defined data
 type, manually inputting them performs better in practice.  This is because the
 procedure for automatically creating user defined data types creates far more
 data types, which then creates a more complicated search problem.
-
-\subsection{Impact of Incompleteness to Full Regular Expression Equivalence}
-We found that not being able to synthesize lenses where retyping used full
-regular expression equivalence was not a detriment to the algorithm at all.  The
-only regular expression equivalences that naturally occured were ones that we
-had already incorporated in our equivalences.
-
-This is likely because, when the languages of two regular expressions have
-bijective lenses between them, the data is naturally grouped in similar ways on each
-side of the regular expression.  If there was a block of text, it would likely
-be written on both sides as \CF{Character*}, instead of \CF{(A*notA)*A*}, where
-\CF{A} is the character \CF{A}, and \CF{notA} is all characters except for
-\CF{A}.  If for some reason it were important that \CF{A} and \CF{notA} were
-separated, we found that it would be important in both data representations.
-The only places where \StarRegexType{} equivalences were used was in
-differentiating number of iterations, and in placing separators, the
-equivalences of which are already accounted for in $\DefinitionalEquiv$.
+\bcp{We should also have some discussion of whether the incompleteness of the
+  synthesis algorithm (because we didn't do all the equivalences) actually hurts
+  us in practice}
 % end evaluation
 
 % begin discussion
 \subsection{Discussion}
 
 We found that in practice, requiring a user to put in more information for the
-synthesis of a string transformation creates a more reliable algorithm, which
-also requires fewer examples.
-However, this comes at a few costs: the user needs to know how to write out
-regular expressions, and the user must spend the time writing out the regular
-expressions, and must do so correctly.  However, for our use case of a
-programmer working on enterprise software, these additional costs are minor.
+synthesis of a string transformation creates a more reliable algorithm.
+However, this comes at a few costs.  The user needs to know how to write out
+regular expressions.
 
-The largest difficulty the use of this program is the restriction to bijective lenses.
+The largest difficulty in this is the restriction to bijective lenses.
 Oftentimes, we find the need to hide information away in some alternate form.
 For example, there is oftentimes whitespace in the definition of a regular
 expression.  This whitespace must be copied somehow over to the other side.
@@ -2194,8 +2056,7 @@ holding the whitespace information of the other side.
 
 Another annoyance is the fact that if the correct lens does not exist,
 rarely does the tool terminate.  Much of the time it will just spin trying to
-perform increasingly complicated regular expression transformations to find the
-correct lens.
+perform increasingly complicated transformations to find the correct lens.
 A better solution would be to find something close to the correct lens, and have
 a user interaction model that supports iterative synthesis.  The user could give
 more examples which fix where the program is wrong.
@@ -2223,12 +2084,8 @@ fail on inputs it doesn't know how to handle, rather it tries to provide an
 output.  This is different from the generated lenses, which will quickly
 fail on inputs that do not match it's intended specification.  Furthermore, the
 specification of what inputs should be handled are provided by the user, not
-inferred from the examples, giving it more reliability.
-
-Beyond this, FlashFill is unable to synthesize programs with nexted loops
-without custom configuration.  This was a pragmatic choice in allowing FlashFill
-to efficiently find many correct transformations very quickly.  However, in
-many complicated data formats, nested loops are inevitable. 
+inferred from the examples, giving it more reliability. \afm{talk about how it
+  did on bibtex example, more specific on what it did wrong, maybe?}
 
 \subsection{FlashExtract}
 FlashExtract is a program that takes an input of a string, and a partial
@@ -2239,15 +2096,6 @@ extracting data when the data came in the same form, for example, when given a
 Bibtex file where the fields come in a specific order, the data would do well,
 however, FlashExtract was unable to handle when fields were given in different
 orders, even if previous examples in that order were given.
-
-The schemas for FlashExtract are not customized for data formats which have many
-\OrRegexType{}s.  In particular, there is no \OrRegexType{} schema at all!  The
-only way that \OrRegexType{}s can be simulated is through the concatenation of
-all the choices, where all but one of the choices becomes \CF{null} on each
-application.  However, this is only a hack, and as such, FlashExtract preforms badly on
-circumstances like this.  Indeed, after providing 30 examples of BibTex
-examples, FlashExtract was still unable to generalize to correctly extract
-the fields of a BibTex example.
 % end related-work
 
 % begin conclusion
@@ -2255,7 +2103,7 @@ the fields of a BibTex example.
 
 We have coded up an implementation of type-directed synthesis on a domain
 specific language of bijective lenses.  This program allows users to input two
-regular expressions, and a few input/output examples, and will synthesize a
+regular expressions, and a few input/output examples, and synthesizes a
 bijective lens between those regular expressions, matching those input/output
 examples.  While lenses are very useful for their guarantees, they are a
 difficult domain specific language to code in, in practice.  This program
@@ -2263,9 +2111,8 @@ provides an easier interaction model for the creation of lenses through using
 synthesis as the way to interact with the programmer.
 
 This synthesis algorithm is competitive with state of the art tools for
-synthesis on strings transformations, and is better at synthesizing very
-complicated transformations.  The additional capabilities are gained through requiring a
-larger amount of user interaction with the synthesis algorithm.  However,
+synthesis on strings transformations.  This gain is made through requiring a
+larger amount of user interaction with the synthesis algorithm.  However, in the
 for this increased interaction, the program provides the capabilities of
 synthesizing very complicated transformations, and provides stronger guarantees
 about correctness on inputs dissimilar to those provided in the examples.
@@ -3136,7 +2983,7 @@ whitespace problem.
     Atom lenses typing.\\ 
     \\
     Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ be formed from an
-    application of\\$\RewriteDNFRegexLensRule{}$.
+    application of\\$\DNFRewriteLensRule{}$.
     \begin{mathpar}
       \inferrule*
       {
@@ -3214,7 +3061,7 @@ whitespace problem.
     and semantics.\\
     \\
     Let $\IterateLensOf{\DNFLens} \OfType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}$
-    be introduced through an application of \AtomLensRule{}.
+    be introduced through an application of \IterateAtomLensRule{}.
     From induction assumption, I know that there exists $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, such that
     $\SemanticsOf{\DNFLens}=\SemanticsOf{\Lens}$,
     \Regex=\ToRegex(\DNFRegex), and
@@ -3307,7 +3154,7 @@ whitespace problem.
     $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$, and $\DNFRegexAlt
     \StarOf{\Rewrite} \DNFRegexAlt'$.
   \item If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-    then there exists some $n\in\Nats$, $\Sequence_1,\ldots,\Sequence_n$,
+    then there exists some $n\in\NatsZero$, $\Sequence_1,\ldots,\Sequence_n$,
     $\SequenceAlt_1,\ldots\SequenceAlt_n$, $\sigma\in\PermutationSetOf{n}$, and
     $\SequenceLens_1;\ldots;\SequenceLens_n$ such that
     for all $i\in\RangeIncInc{1}{n}$, $\SequenceLens_i \OfRewritelessType
@@ -3316,7 +3163,7 @@ whitespace problem.
     \DNFOf{\Sequence_1;\ldots;\Sequence_n}$, and $\DNFRegexAlt =
     \DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$.
   \item If $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow
-    \SequenceAlt$, there exists some $n \in \Nats$,
+    \SequenceAlt$, there exists some $n \in \NatsZero$,
     $\Atom_1,\ldots,\Atom_n$, $\AtomAlt_1,\ldots,\AtomAlt_n$,
     $String_0,\ldots,\String_n$, $\StringAlt_0,\ldots,\StringAlt_n$,
     $\sigma\in\PermutationSetOf{n}$, and $\AtomLens_1,\ldots,\AtomLens_n$ such that
@@ -3338,7 +3185,7 @@ whitespace problem.
   \item
     Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$.  The
     only rule that introduces a typing of this form is
-    \RewriteDNFRegexLensRule{}.  Because of this, there
+    \DNFRewriteLensRule{}.  Because of this, there
     exists some $\DNFRegex'$, $\DNFRegexAlt'$ such that
     $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
     $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$, and $\DNFRegexAlt
@@ -3357,7 +3204,7 @@ whitespace problem.
   \item
     Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
     The only rule that introduces a typing of this form is \DNFLensRule{}.
-    Because of this there exists some $n\in\Nats$, $\Sequence_1,\ldots,\Sequence_n$,
+    Because of this there exists some $n\in\NatsZero$, $\Sequence_1,\ldots,\Sequence_n$,
     $\SequenceAlt_1,\ldots\SequenceAlt_n$, $\sigma\in\PermutationSetOf{n}$, and
     $\SequenceLens_1;\ldots;\SequenceLens_n$ such that
     for all $i\in\RangeIncInc{1}{n}$, $\SequenceLens_i \OfRewritelessType
@@ -3386,7 +3233,7 @@ whitespace problem.
   \item
     Let $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$.
     The only rule that introduces a typing of this form is \SequenceLensRule{}.
-    Because of this there exists some $n \in \Nats$,
+    Because of this there exists some $n \in \NatsZero$,
     $\Atom_1,\ldots,\Atom_n$, $\AtomAlt_1,\ldots,\AtomAlt_n$,
     $String_0,\ldots,\String_n$, $\StringAlt_0,\ldots,\StringAlt_n$,
     $\sigma\in\PermutationSetOf{n}$, and $\AtomLens_1,\ldots,\AtomLens_n$ such that
@@ -3414,7 +3261,7 @@ whitespace problem.
   \item
     Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$.
     The only rule that introduces a typing of this form is
-    \AtomLensRule{}.
+    \IterateAtomLensRule{}.
     Because of this, there exists some $\DNFLens$, $\DNFRegex$, $\DNFRegexAlt$, such that
     $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
     $\AtomLens = \IterateLensOf{\DNFLens}$, $\Atom = \StarOf{\DNFRegex}$, and
@@ -4537,7 +4384,7 @@ whitespace problem.
     (\String_2,\String_3)\in\SemanticsOf{\DNFLens_2}}$
 
   $\IterateLensOf{\DNFLens_1}$ and
-  $\IterateLensOf{\DNFLens_2}$ came from $\AtomLensRule$, so
+  $\IterateLensOf{\DNFLens_2}$ came from $\IterateAtomLensRule$, so
   $\UnambigItOf{\DNFRegex_1}$,
   $\UnambigItOf{\DNFRegex_2}$, and
   $\UnambigItOf{\DNFRegex_3}$.
