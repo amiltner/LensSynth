@@ -1,0 +1,46 @@
+module Quotient_helper = 
+
+let map_lens (R : regexp) (u : string where matches R u) =
+  const R u u
+
+let intersperse (sep : regexp) (Rs : regexp List.t) : regexp =
+  match Rs with
+  | [] -> []
+  | r :: [] -> [r]
+  | h :: t -> List.fold_left{regexp List.t}{regexp}
+                (fun (acc : regexp List.t) (R : regexp) -> append acc [sep; R])
+                [h] t
+
+let concat_regexps_sep (sep : regexp) (Rs : regexp List.t) : regexp =
+  match Rs with
+  | [] -> EPSILON
+  | r :: [] -> r
+  | h :: t -> List.fold_left{regexp}{regexp} 
+                (fun (acc : regexp) (R : regexp) -> acc . sep . R)
+                h t
+
+let perm_regexps_sep (sep : regexp) (rl : regexp List.t) : regexp List.t =
+  List.map{regexp List.t}{regexp} (concat_regexps_sep sep) (perms_regexps rl)
+
+let perm_sortable_sep (sep : regexp) (rl : regexp List.t) : bool =
+  let perms = perms_regexps rl in
+  List.for_all{regexp List.t} (fun (pi:regexp List.t) -> concatable (intersperse sep pi)) perms
+  && disjoint_regexps (List.map{regexp List.t}{regexp} concat_regexps_sep sep perms)
+
+let perm_sort_sep (sep : regexp) (rl : regexp List.t where perm_sortable_sep sep rl)
+: (lens in union_regexps (perm_regexps_sep sep rl) <-> concat_regexps_sep sep rl) =
+  let k : int = List.length{lens} rl in
+  let ls_perms : lens List.t =
+    List.map{int List.t}{lens}
+      (fun (perm : int List.t) ->
+         let perm_inv = List.invert_permutation perm in
+         lens_permute perm (List.permute{lens} perm_inv rl))
+      (List.permutations (List.length{lens} rl)) in
+  List.fold_left{lens}{lens}
+    (fun (acc:lens) (permi:lens) -> acc || permi)
+    (copy EMPTY) ls_perms
+
+let perm_sort_concat_sep (sep : regexp)
+  (ls : lens List.t where perm_sortable sep (stypes ls) && concatable (intersperse sep (vtypes ls)))
+  : (lens in union_regexps (perm_regexps sep (stypes ls)) <-> concat_regexps sep (vtypes ls))
+  = left_quot (canonizer_of_lens (perm_sort_concat sep (stypes ls))) (concat_lenses (intersperse sep ls)
