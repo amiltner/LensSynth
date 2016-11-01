@@ -21,7 +21,7 @@ REPETITION_COUNT = 2
 
 def find_tests(root):
     tests = []
-    for path, dirs, files in os.walk(root):
+    for path, dirs, files in os.walk(root,followlinks=True):
         files = [(f[0], f[1]) for f in [splitext(f) for f in files]]
         tests.extend([(path, f[0]) for f in files if f[1] == TEST_EXT])
     return tests

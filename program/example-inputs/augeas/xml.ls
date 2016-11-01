@@ -50,10 +50,18 @@ test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"v
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"endbrace\"=\"test\"}}";;
 test SECONDLEVEL_XML_DICT matches "{\"element\"{\"#attribute\"{\"attribute\"=\"value\"}}{\"element\"}{\"endbrace\"=\"test\"}}";;
 
+typedef THIRDLEVEL_XML_DICT =
+"{" "\""NAME"\"" (FULL_ATTRIBUTE_DICT|.) (((NONEMPTY_TEXT_DICT|.|(SECONDLEVEL_XML_DICT+))ENDBRACE_DICT)|.) "}";;
+
 typedef XML_SECONDLEVEL_ELEMENT = (XML_ELEMENT
 				  (TEXT | (XML_INNER_ELEMENT+))
+			          XML_END_ELEMENT) | XML_CONTENTLESS_ELEMENT;;
+
+typedef XML_THIRDLEVEL_ELEMENT = (XML_ELEMENT
+				  (TEXT | (XML_SECONDLEVEL_ELEMENT+))
 			          XML_END_ELEMENT) | XML_CONTENTLESS_ELEMENT;;
 
 
 map_inner = [XML_INNER_ELEMENT <=> INNER_XML_DICT {}]
 map_outer = [XML_SECONDLEVEL_ELEMENT <=> SECONDLEVEL_XML_DICT {}]
+map_third = [XML_THIRDLEVEL_ELEMENT <=> THIRDLEVEL_XML_DICT {}]

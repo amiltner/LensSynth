@@ -11,6 +11,9 @@ open Consts
 open Typing
 open Program_utilities
 open Boom_lang
+open Eval
+open Converter
+open Normalized_lang
 
 exception Arg_exception
 
@@ -20,6 +23,7 @@ type driver_mode =
   | Synth
   | Time
   | GeneratedExamples
+  | MaxSpecify
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -53,19 +57,22 @@ let args =
     , " Synthesize with randomly generated examples"
     )
   ; ( "-forceexpand"
-    , Arg.Unit (fun _ -> force_expand_regexps := false)
+    , Arg.Unit (fun _ -> force_expand_regexps := true)
     , " Synthesize with definitions forced to be expanded"
     )
   ; ( "-iterativedeepenstrategy"
     , Arg.Unit (fun _ -> use_iterative_deepen_strategy := true)
     , " Set use of iterative deepen strategy"
     )
+  ; ( "-max_to_specify"
+    , Arg.Unit (fun _ -> set_opt MaxSpecify)
+    , " Set to calculate the maximum number of examples to fully specify"
+    )
   ]
   |> Arg.align
 
 let expand_regexps (p:program) : program =
   let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
-    print_endline (boom_pp_regex (RegExBase "T"));
     begin match r with
     | RegExEmpty -> r
     | RegExBase _ -> r
@@ -160,6 +167,80 @@ let collect_example_number (p:program) : unit =
       ) [] in
   print_endline (string_of_int exs_required)
 
+let rec max_examples_required
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (l:lens)
+  : int =
+  let sum_list = List.fold_left ~f:(+) ~init:0 in
+  let rec examples_required_o_ex_dnf_regex (o_ex_dr:ordered_exampled_dnf_regex) : int =
+    let seq_list_list =
+      List.map
+        ~f:(fun l -> List.map ~f:fst l)
+        o_ex_dr
+    in
+    let examples_required_list_list =
+      List.map
+        ~f:(fun l -> List.map ~f:examples_required_o_ex_sequence l)
+        seq_list_list
+    in
+    let total_examples_list =
+      List.map
+        ~f:(fun l -> (List.length l - 1) + sum_list l)
+        examples_required_list_list
+    in
+    sum_list total_examples_list
+  and examples_required_o_ex_sequence (o_ex_sq:ordered_exampled_clause) : int =
+    let (o_ex_a_i_list_list,_,_) = o_ex_sq in
+    let atom_list_list =
+      List.map
+        ~f:(fun l -> List.map ~f:fst l)
+        o_ex_a_i_list_list
+    in
+    let examples_required_list_list =
+      List.map
+        ~f:(fun l -> List.map ~f:examples_required_o_ex_atom l)
+        atom_list_list
+    in
+    let total_examples_list =
+      List.map
+        ~f:(fun l -> (List.length l - 1) + sum_list l)
+        examples_required_list_list
+    in
+    sum_list total_examples_list
+  and examples_required_o_ex_atom (_:ordered_exampled_atom) : int =
+    1
+  in
+  let rec referenced_lenses (l:lens) : lens list =
+    begin match l with
+      | LensConst _ -> []
+      | LensConcat (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | LensSwap (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | LensUnion (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | LensCompose (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | LensIterate (l') -> (referenced_lenses l')
+      | LensIdentity _ -> []
+      | LensInverse l' -> (referenced_lenses l')
+      | LensVariable v ->
+        [LensContext.lookup_impl_exn lc v]
+      | LensPermute (_,ll) ->
+        List.concat_map ~f:referenced_lenses ll
+    end
+  in
+  let (r,_) = type_lens lc l in
+  let ex_r = Option.value_exn (regex_to_exampled_regex rc r []) in
+  let ex_dr = exampled_regex_to_exampled_dnf_regex rc lc ex_r in
+  let o_ex_dr = to_ordered_exampled_dnf_regex ex_dr in
+  let ref_lenses = referenced_lenses l in
+  let ref_lenses_exs = List.map ~f:(max_examples_required rc lc) ref_lenses in
+  (examples_required_o_ex_dnf_regex o_ex_dr) + (sum_list ref_lenses_exs)
+    
+let collect_max_example_number (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let max_exs_required = max_examples_required rc lc l in
+  print_endline (string_of_int max_exs_required)
+
 let print_outputs (p:program) : unit =
   print_endline "module Generated =";
   let (_,lc,p) = synthesize_and_load_program p in
@@ -186,7 +267,13 @@ let main () =
                                                      (Pp.pp_prog prog)*)
           | Time -> parse_file f |> expand_regexps_if_necessary |> collect_time
           | GeneratedExamples ->
-            parse_file f |> expand_regexps_if_necessary |> collect_example_number
+            parse_file f
+            |> expand_regexps_if_necessary
+            |> collect_example_number
+          | MaxSpecify ->
+            parse_file f
+            |> expand_regexps_if_necessary
+            |> collect_max_example_number
           | Default | Synth ->
             parse_file f |> expand_regexps_if_necessary |> print_outputs
         end

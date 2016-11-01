@@ -125,7 +125,7 @@ let rec exampled_regex_to_exampled_dnf_regex (rc:RegexContext.t) (lc:LensContext
         (EAVariable (rep_type,s,converter,ss,ill))
         ill
   end
-  
+
 let regex_to_exampled_dnf_regex
     (c:RegexContext.t)
     (lc:LensContext.t)

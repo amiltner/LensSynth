@@ -351,6 +351,44 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
   | _ -> None
   end
 
+let retrieve_userdefs (r:regex) : id list =
+  let rec retrieve_userdefs_internal (r:regex) : id list =
+    begin match r with
+      | RegExBase _ -> []
+      | RegExConcat (r1,r2) ->
+        (retrieve_userdefs_internal r1) @
+        (retrieve_userdefs_internal r2)
+      | RegExOr (r1,r2) ->
+        (retrieve_userdefs_internal r1) @
+        (retrieve_userdefs_internal r2)
+      | RegExStar r' -> retrieve_userdefs_internal r'
+      | RegExVariable u -> [u]
+      | RegExEmpty -> []
+    end
+  in
+  List.dedup (retrieve_userdefs_internal r)
+
+let requires_userdef_expansions (r1:regex) (r2:regex) : bool =
+  let r1_userdefs = retrieve_userdefs r1 in
+  let r2_userdefs = retrieve_userdefs r2 in
+  let r1_not_r2 =
+    set_minus_lose_order
+      comparison_compare
+      r1_userdefs
+      r2_userdefs
+  in
+  let r2_not_r1 =
+    set_minus_lose_order
+      comparison_compare
+      r1_userdefs
+      r2_userdefs
+  in
+  begin match (r1_not_r2,r2_not_r1) with
+    | ([],[]) -> true
+    | _ -> false
+  end
+  
+
 let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
 (expansions_preformed:int)
                             : (queue_element * float) list =
@@ -407,7 +445,35 @@ let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:re
     all_immediate_expansions)
   (*List.dedup
   (((List.map ~f:(fun le -> (le,r2)) left_expansions)
-  @ (List.map ~f:(fun re -> (r1,re)) right_expansions)))*)
+    @ (List.map ~f:(fun re -> (r1,re)) right_expansions)))*)
+
+let search_expand_userdefs
+    (_:RegexContext.t)
+    (_:LensContext.t)
+    (r1:regex)
+    (r2:regex)
+    (_:int)
+  : (queue_element * float) list =
+  let r1_userdefs = retrieve_userdefs r1 in
+  let r2_userdefs = retrieve_userdefs r2 in
+  let elements_r1_missing =
+    set_minus_lose_order
+      comparison_compare
+      r1_userdefs
+      r2_userdefs
+  in
+  if elements_r1_missing = [] then
+    (*let elements_r2_missing = 
+      set_minus_lose_order
+        comparison_compare
+        r2_userdefs
+        r1_userdefs
+    in
+    let missing_count = List.length elements_r2_missing in*)
+    []
+  else
+    []
+    
 
 let retrieve_transformation_queue_elements
         (max_size:int)
@@ -416,7 +482,11 @@ let retrieve_transformation_queue_elements
         (r1:regex)
         (r2:regex)
         (expansions_preformed:int)
-        : (queue_element * float) list =
+  : (queue_element * float) list =
+  if (requires_userdef_expansions r1 r2) then
+    (*(search_expand_userdefs rc lc r1 r2 expansions_preformed)*)
+    (expand_once max_size rc lc r1 r2 expansions_preformed)
+  else 
     (expand_once max_size rc lc r1 r2 expansions_preformed)
   (*let max_size = max (size r1) (size r2) in
   let splits = List.map ~f:(fun m -> (m,n-m)) (range 0 n) in

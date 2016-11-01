@@ -13,7 +13,7 @@ import time
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
 BASE_FLAGS = ["-iterativedeepenstrategy"]
-TIMEOUT_TIME = 8
+TIMEOUT_TIME = 60
 GENERATE_EXAMPLES_TIMEOUT_TIME = 60
 
 REPETITION_COUNT = 2
@@ -38,8 +38,8 @@ def gather_datum(prog, path, base, additional_flags, timeout):
     process_output = EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout)
     return (process_output.stdout,process_output.stderr)
 
-def gather_data(prog, path, base):
-    current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[6:]}
+def gather_data(rootlength, prog, path, base):
+    current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[rootlength:]}
     run_data = []
     timeout = False
     error = False
@@ -104,28 +104,25 @@ def gather_data(prog, path, base):
         expanded_run_data_transpose = transpose(expanded_run_data)
 	expanded_computation_time_col = [float(x) for x in expanded_run_data_transpose[0]]
 	current_data["ForceExpandTime"]="{:.5f}".format(sum(expanded_computation_time_col)/len(expanded_computation_time_col))
-    gen_exs_expanded_run_data = []
+    max_ex_run_data = []
     timeout = False
     error = False
-    for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-forceexpand','-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
-	if datum == "":
-            if err == "":
-		timeout = True
-            else:
-                print("error:"+err+"end")
-                error = True
-	    break
-	else:
-		gen_exs_expanded_run_data.append(datum.split(","))
-    if error:
-        current_data["ForceExpandExamplesRequired"]="Error"
-    elif timeout:
-	current_data["ForceExpandExamplesRequired"]="Timeout"
+    (datum,err) = gather_datum(prog, path, base,['-max_to_specify'],TIMEOUT_TIME)
+    if datum == "":
+        if err == "":
+	    timeout = True
+        else:
+            print(err)
+            print("there was an error")
+            error = True
     else:
-        gen_exs_expanded_run_data_transpose = transpose(gen_exs_expanded_run_data)
-	gen_exs_expanded_col = [float(x) for x in gen_exs_expanded_run_data_transpose[0]]
-	current_data["ForceExpandExamplesRequired"]="{:.1f}".format(sum(gen_exs_expanded_col)/len(gen_exs_expanded_col))
+	max_ex_run_data=int(datum)
+    if error:
+        current_data["MaxExampleCount"]="Error"
+    elif timeout:
+	current_data["MaxExampleCount"]="Timeout"
+    else:
+	current_data["MaxExampleCount"]=max_ex_run_data
     return current_data
 
 def print_data(data):
@@ -155,13 +152,14 @@ def main(args):
     if len(args) == 3:
         prog = args[1]
         path = args[2]
+        rootlength = len(path)
         data = []
         if not os.path.exists(prog):
             print_usage(args)
         elif os.path.exists(path) and os.path.isdir(path):
             for path, base in find_tests(path):
-		print(join(path, base + TEST_EXT).replace("_","-")[6:])
-		current_data = gather_data(prog, path, base)
+		print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
+		current_data = gather_data(rootlength,prog, path, base)
                 data.append(current_data)
 	    print_data(data)
         else:
