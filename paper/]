@@ -1409,7 +1409,7 @@ DNF regular expression.  We formalize this correspondence with the theorem
 below.
 
 \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}\leavevmode\\
-  \label{thm:dnfrs}
+  \label{thm:soundness-dnf-lenses}
   $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
 \end{restatable}
 
@@ -4990,9 +4990,19 @@ whitespace problem.
   \end{mathpar}
 \end{definition}
 
+\begin{theorem}
+  \label{thm:equived-confluence}
+  If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+  then for $s_1,s_2\in\Set$, where
+  $s_1\equiv_{\rightarrow}s_2$, and either $\Property(s_1,s_1)$ or
+  $\Property(s_2,s_2)$, then there exists some $s_1'$, $s_2'$ such that $s_1
+  \StarOf{\rightarrow} s_1'$ and $s_2 \StarOf{\rightarrow} s_2'$, and
+  $\Property(s_1',s_2')$.
+\end{theorem}
+
 \begin{definition}[Parallel Rewriting Without Reordering]\leavevmode
   \begin{mathpar}
-    \inferrule[\AtomUnrollstarLeftRule{}]
+    \inferrule[\UnrollRewriteRule{}]
     {
     }
     {
@@ -5000,17 +5010,19 @@ whitespace problem.
       \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
       {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}
     }
-    
-    \inferrule[\AtomUnrollstarRightRule{}]
+
+    \inferrule[\QuotientRewriteRuleOf{n}]
     {
+      n\in\Nats_{\geq1}
     }
     {
       \StarOf{\DNFRegex}\ParallelRewriteAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
-      {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}
+      \ConcatDNFOf
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+      {\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
     }
 
-    \inferrule[\AtomStructuralRewriteRule{}]
+    \inferrule[\StarIntroRewriteRule{}]
     {
       \DNFRegex \ParallelRewrite \DNFRegex'
     }
@@ -5018,7 +5030,7 @@ whitespace problem.
       \StarOf{\DNFRegex} \ParallelRewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
     }
 
-    \inferrule[\ParallelDNFStructuralRewriteRule{}]
+    \inferrule[\DNFIntroRewriteRule{}]
     {
       \DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
       \forall i. \Sequence_i =
@@ -5043,7 +5055,7 @@ whitespace problem.
 
 \begin{definition}[Parallel Rewriting With Reordering]\leavevmode
   \begin{mathpar}
-    \inferrule[\AtomUnrollstarLeftRule{}]
+    \inferrule[\UnrollRewriteRule{}]
     {
     }
     {
@@ -5052,16 +5064,18 @@ whitespace problem.
       {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}
     }
 
-    \inferrule[\AtomUnrollstarRightRule{n}]
+    \inferrule[\QuotientRewriteRuleOf{n}]
     {
+      n\in\Nats_{\geq1}
     }
     {
       \StarOf{\DNFRegex}\ParallelRewriteSwapAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
-      {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}
+      \ConcatDNFOf
+      {(\RepeatDNFOf{0}{\DNFRegex}\OrDNF\ldots\OrDNF\RepeatDNFOf{n-1}{\DNFRegex})}
+      {\DNFOf{\SequenceOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex})}}}}
     }
 
-    \inferrule[\AtomStructuralRewriteRule{}]
+    \inferrule[\StarIntroRewriteRule{}]
     {
       \DNFRegex \ParallelRewriteSwap \DNFRegex'
     }
@@ -5079,7 +5093,7 @@ whitespace problem.
       \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}
     }
 
-    \inferrule[\ParallelDNFStructuralRewriteRule{}]
+    \inferrule[\DNFIntroRewriteRule{}]
     {
       \DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
       \forall i. \Sequence_i =
@@ -5130,11 +5144,49 @@ whitespace problem.
   \]
 \end{proof}
 
+\begin{lemma}[$\ParallelRewriteSwap$ Maintained Under Iteration]
+  \label{lem:parallel-rewrite-swap-iteration}
+  Let $\DNFRegex \ParallelRewriteSwap \DNFRegexAlt$, then
+  $\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \ParallelRewrite
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.
+\end{lemma}
+\begin{proof}
+  Consider the derivation
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \DNFRegex \ParallelRewrite \DNFRegexAlt
+      }
+      {
+        \StarOf{\DNFRegex} \ParallelRewriteAtom
+        \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
+      }
+    }
+    {
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \ParallelRewrite
+      \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}
+    }
+  \]
+\end{proof}
+
 \begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$]
   \label{lem:parallel-rewrite-concatenation}
   Let $\DNFRegex_1 \ParallelRewrite \DNFRegexAlt_1$ and $\DNFRegex_2
   \ParallelRewrite \DNFRegexAlt_2$ then
   $\DNFRegex_1 \ConcatDNF \DNFRegex_2 \ParallelRewrite
+  \DNFRegexAlt_1 \ConcatDNF \DNFRegexAlt_2$.
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+\begin{lemma}[$\ParallelRewriteSwap$ Maintained Under $\ConcatDNF$]
+  \label{lem:parallel-rewrite-swap-concatenation}
+  Let $\DNFRegex_1 \ParallelRewriteSwap \DNFRegexAlt_1$ and $\DNFRegex_2
+  \ParallelRewriteSwap \DNFRegexAlt_2$ then
+  $\DNFRegex_1 \ConcatDNF \DNFRegex_2 \ParallelRewriteSwap
   \DNFRegexAlt_1 \ConcatDNF \DNFRegexAlt_2$.
 \end{lemma}
 \begin{proof}
@@ -5150,9 +5202,28 @@ whitespace problem.
 \begin{proof}
 \end{proof}
 
+\begin{lemma}[$\ParallelRewriteSwap$ Maintained Under $\OrDNF$]
+  \label{lem:parallel-rewrite-swap-or}
+  Let $\DNFRegex_1 \ParallelRewriteSwap \DNFRegexAlt_1$ and $\DNFRegex_2
+  \ParallelRewriteSwap \DNFRegexAlt_2$ then
+  $\DNFRegex_1 \OrDNF \DNFRegex_2 \ParallelRewriteSwap
+  \DNFRegexAlt_1 \OrDNF \DNFRegexAlt_2$.
+\end{lemma}
+\begin{proof}
+\end{proof}
+
 \begin{lemma}[$\StarOf{\ParallelRewrite}$ Maintained Under Iteration]
   \label{lem:parallel-rewrite-iteration}
   Let $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegexAlt$, then
+  $\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \StarOf{\ParallelRewrite}
+  \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+\begin{lemma}[$\StarOf{\ParallelRewriteSwap}$ Maintained Under Iteration]
+  \label{lem:parallel-rewrite-swap-iteration}
+  Let $\DNFRegex \StarOf{\ParallelRewriteSwap} \DNFRegexAlt$, then
   $\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}} \StarOf{\ParallelRewrite}
   \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$.
 \end{lemma}
@@ -5169,11 +5240,31 @@ whitespace problem.
 \begin{proof}
 \end{proof}
 
+\begin{lemma}[$\StarOf{\ParallelRewriteSwap}$ Maintained Under $\ConcatDNF$]
+  \label{lem:parallel-rewrite-swap-concatenation}
+  Let $\DNFRegex_1 \StarOf{\ParallelRewriteSwap} \DNFRegexAlt_1$ and $\DNFRegex_2
+  \StarOf{\ParallelRewriteSwap} \DNFRegexAlt_2$ then
+  $\DNFRegex_1 \ConcatDNF \DNFRegex_2 \StarOf{\ParallelRewriteSwap}
+  \DNFRegexAlt_1 \ConcatDNF \DNFRegexAlt_2$.
+\end{lemma}
+\begin{proof}
+\end{proof}
+
 \begin{lemma}[$\StarOf{\ParallelRewrite}$ Maintained Under $\OrDNF$]
   \label{lem:parallel-rewrite-or}
   Let $\DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegexAlt_1$ and $\DNFRegex_2
   \StarOf{\ParallelRewrite} \DNFRegexAlt_2$ then
   $\DNFRegex_1 \OrDNF \DNFRegex_2 \StarOf{\ParallelRewrite}
+  \DNFRegexAlt_1 \OrDNF \DNFRegexAlt_2$.
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+\begin{lemma}[$\StarOf{\ParallelRewriteSwap}$ Maintained Under $\OrDNF$]
+  \label{lem:parallel-rewrite-swap-or}
+  Let $\DNFRegex_1 \StarOf{\ParallelRewriteSwap} \DNFRegexAlt_1$ and $\DNFRegex_2
+  \StarOf{\ParallelRewriteSwap} \DNFRegexAlt_2$ then
+  $\DNFRegex_1 \OrDNF \DNFRegex_2 \StarOf{\ParallelRewriteSwap}
   \DNFRegexAlt_1 \OrDNF \DNFRegexAlt_2$.
 \end{lemma}
 \begin{proof}
@@ -5195,55 +5286,22 @@ whitespace problem.
   \DefinitionalEquiv \RegexAlt$.
 \end{proof}
 
-\begin{lemma}[Equivalence of Adjacent Swapping Permutation of \OrRegexType{}]
-  \label{lem:adj-swap-or}
-  Let $\Regex_1 \Or \ldots \Or \Regex_n$.  Let $\sigma_i$ be an adjacent
-  swapping permutation.  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv
-  \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$.
-\end{lemma}
-\begin{proof}
-  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv (\Regex_1 \Or \ldots \Or
-  \Regex_{i-1}) \Or (\Regex_{i} \Or \Regex_{i+1}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n)$ by repeated application of associativity.
-  
-  $\Regex_i \Or \Regex_{i+1} = \Regex_{i+1} \Or \Regex_{i}$ by \OrRegexType
-  commutativity, so by \OrRegexType{} structural equality,
-  $(\Regex_1 \Or \ldots \Or
-  \Regex_{i-1}) \Or (\Regex_{i} \Or \Regex_{i+1}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n) \DefinitionalEquiv
-  (\Regex_1 \Or \ldots \Or
-  \Regex_{i-1}) \Or (\Regex_{i+1} \Or \Regex_{i}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n)$
-  
-  $(\Regex_1 \Or \ldots \Or
-  \Regex_{i-1}) \Or (\Regex_{i+1} \Or \Regex_{i}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n) \DefinitionalEquiv
-  \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$ by repeated
-  application of associativity.
-  
-  So, by the transitivity of equational theories,
-  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv
-  \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$.
-\end{proof}
-
-\begin{lemma}[Expressibility of $\ParallelRewriteSwap$ in $\DefinitionalEquiv$
-  Up To Preimage]
-  \label{lem:express-swap-in-equiv}
+\begin{lemma}[Expressibility of $\ParallelRewriteSwap$ in $\DefinitionalEquiv$]
   \leavevmode
   \begin{enumerate}
   \item If $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$, then
     $\Regex \DefinitionalEquiv \RegexAlt$.
   \item If $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$ and
-    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ then
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ then $\Regex
+    \DefinitionalEquiv \RegexAlt$.
   \end{enumerate}
 \end{lemma}
 \begin{proof}By mutual induction on the derivation of $\ParallelRewriteSwap$ and
   $\ParallelRewriteSwapAtom$.
-  \begin{case}[\AtomUnrollstarLeftRule{}]
+  \begin{case}[\UnrollRewriteRule{}]
     Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
     $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
-    \AtomUnrollstarLeftRule{}.
+    \UnrollRewriteRule{}.
     This means that $\Atom = \StarOf{\DNFRegex}$ and
     $\ToDNFRegexOf{\RegexAlt} = \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
     {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}$.
@@ -5260,41 +5318,39 @@ whitespace problem.
     then from
     Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
     (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$.
-
-    So, through an application of UnrollstarLeftRule{},
+  
     $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
     \EmptyString \Or
     (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$, as desired.
   \end{case}
 
-  \begin{case}[\AtomUnrollstarRightRule{}]
+  \begin{case}[\QuotientRewriteRuleOf{n}]
     Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
     $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ from
-    \AtomUnrollstarRightRule{}.
+    \QuotientRewriteRuleOf{n}.
     This means that $\Atom = \StarOf{\DNFRegex}$ and
-    $\ToDNFRegexOf{\RegexAlt} = \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
-    {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}$.
+    $\ToDNFRegexOf{\RegexAlt} = \ConcatDNFOf{\DNFRegex^{<n}}
+    {\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}$.
 
     Let $\Regex' = \ToRegexOf{\DNFRegex}$.
     As $\ToDNFRegexOf{\StarOf{\Regex'}} =
     \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
     Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
     \DefinitionalEquiv \Regex$.
-    Similarly, as $\ToDNFRegexOf{(\EmptyString \Or
-      (\StarOf{\Regex'}\Concat\Regex'))} =
-    \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
-    {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}$,
+    Similarly, as $\ToDNFRegexOf{(\Regex'^{<n} \Concat
+      \StarOf{(\Regex'^n)})} =
+    \ConcatDNFOf{\DNFRegex^{<n}}
+    {\DNFOf{\SequenceOf{\StarOf{(\DNFRegex^n)}})}}$,
     then from
-    Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
-    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$.
+    Lemma~\ref{lem:preimage-equiv}, $\Regex'^{<n} \Concat
+      \StarOf{(\Regex'^n)} \DefinitionalEquiv \RegexAlt$.
   
-    So, through an application of UnrollstarRightRule{},
     $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
-    \EmptyString \Or
-    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$, as desired.
+    \Regex'^{<n} \Concat \StarOf{(\Regex'^n)} \DefinitionalEquiv \RegexAlt$,
+    as desired.
   \end{case}
   
-  \begin{case}[\AtomStructuralRewriteRule{}]
+  \begin{case}[\StarIntroRewriteRule{}]
     Let $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$, and
     $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$
     This means that $\Atom = \StarOf{\DNFRegex}$ and
@@ -5320,211 +5376,12 @@ whitespace problem.
   \end{case}
 
   \begin{case}[\DNFReorderRule{}]
-    Let $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$,
-    and the last step of the proof is an application of $\DNFReorderRule$.
-    Let $\ToDNFRegexOf{\Regex} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.  Then,
-    for some $\sigma\in\PermutationSetOf{n}$,
-    $\ToDNFRegexOf{\RegexAlt} =
-    \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}$.
-
-    $\ToRegexOf{\ToDNFRegexOf{\Regex}} =
-    \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}$ and
-    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} =
-    \ToRegexOf{\Sequence_{\sigma(1)}} \Or \ldots \Or
-    \ToRegexOf{\Sequence_{\sigma(n)}}$.
-
-    $\sigma$ can then be broken down into a number of adjacent swapping
-    permutations, $\sigma_{i_1} \Compose \ldots \Compose \sigma_{i_m} = \sigma$
-
-    By Lemma~\ref{lem:adj-swap-or}, each $\sigma_{i_j}$ can be applied to a
-    sequence of \OrRegexType{}s.
-
-    Consider the derivation
-    \[
-      \inferrule*
-      {
-        \inferrule*[vdots=1.5em]
-        {
-          \inferrule*[vdots=1.5em]
-          {
-            \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
-            \DefinitionalEquiv
-            \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
-          }
-          {
-          }
-        }
-        {
-          \ToRegexOf{\Sequence_{\sigma_{i_m}(1)}} \Or \ldots \Or
-          \ToRegexOf{\Sequence_{\sigma_{i_m}(n)}}
-          \DefinitionalEquiv
-          \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
-        }
-      }
-      {
-        \ToRegexOf{\Sequence_{(\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m})(1)}}
-        \Or \ldots \Or
-        \ToRegexOf{\Sequence_{(\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m})(n)}}
-        \DefinitionalEquiv
-        \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
-      }
-    \]
-
-    So, by Lemma~\ref{lem:preimage-equiv},
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$ and
-    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \DefinitionalEquiv \RegexAlt$.
-    Furthermore,
-    $\ToRegexOf{\ToDNFRegexOf{\Regex}} \DefinitionalEquiv
-    \ToRegexOf{\ToDNFRegexOf{\RegexAlt}}$.
-    So by the transitivity of an equational theory,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
   \end{case}
 
   \begin{case}[\IdentityRewriteRule{}]
-    Let $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$
-    by an application of \IdentityRewriteRule{}.
-
-    That means $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$.
-    
-    So, by Lemma~\ref{lem:preimage-equiv},
-    That means that
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}
-    \DefinitionalEquiv \RegexAlt$
   \end{case}
 
-  \begin{case}[\ParallelDNFStructuralRewriteRule{}]
-    Let $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$
-    by an application of \ParallelDNFStructuralRewriteRule{}.
-
-    \[
-      \inferrule*
-      {
-        \ToDNFRegexOf{\Regex} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
-        \forall i. \Sequence_i =
-        \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}\\
-        \forall i,j. \Atom_{i,j} \ParallelRewriteSwapAtom \DNFRegex_{i,j}\\
-        \forall i. \DNFRegex_i = \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegex_{i,1}
-        \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i} \ConcatDNF
-        \DNFOf{\SequenceOf{\String_{i,n_i}}}
-      }
-      {
-        \Regex \ParallelRewriteSwap \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
-      }
-    \]
-    
-    $\ToDNFRegexOf{\RegexAlt} = \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n$.
-
-    $\Atom_{i,j} \ParallelRewriteSwapAtom \DNFRegex_{i,j}$,
-    $\ToDNFRegexOf{\ToRegexOf{\AtomToDNFOf{\Atom_{i,j}}}} =
-    \AtomToDNFOf{\Atom_{i,j}}$, and
-    $\ToDNFRegexOf{\ToRegexOf{\DNFRegex_{i,j}}} = \DNFRegex_{i,j}$, so by IH,
-    $\ToRegexOf{\AtomToDNFOf{\Atom_{i,j}}} \DefinitionalEquiv
-    \ToRegexOf{\DNFRegex_{i,j}}$.
-
-    Consider the regular expressions
-    $\Regex_i =
-    \String_{i,0} \Concat \ToRegexOf{\AtomToDNFOf{\Atom_{i,1}}}
-    \Concat \ldots \Concat
-    \ToRegexOf{\AtomToDNFOf{\Atom_{i,n_i}}} \Concat \String_{i,n_i}$.
-
-    Consider the regular expressions
-    $\RegexAlt_i =
-    \String_{i,0} \Concat \ToRegexOf{\DNFRegex_{i,j}}
-    \Concat \ldots \Concat
-    \ToRegexOf{\DNFRegex_{i,n_i}} \Concat \String_{i,n_i}$.
-
-    By structural equality of $\ConcatRegexType$,
-    $\Regex_i \DefinitionalEquiv \RegexAlt_i$.
-
-    Consider the regular expression
-    $\Regex' = \Regex_1 \OrDNF \ldots \OrDNF \Regex_n$ and the regular
-    expression
-    $\RegexAlt' = \RegexAlt_1 \Or \ldots \Or \RegexAlt_n$.
-
-    By structural equality of $\OrRegexType$,
-    $\Regex' \DefinitionalEquiv \RegexAlt'$
-
-    $\ToDNFRegexOf{\Regex_i} =
-    \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \AtomToDNFOf{\Atom_{i,1}}
-    \ConcatDNF \ldots \ConcatDNF
-    \AtomToDNFOf{\Atom_{i,n_i}} \ConcatDNF \DNFOf{\SequenceOf{\String_{i,n_i}}}
-    =
-    \DNFOf{\SequenceOf{\String_{i,0};\Atom_{i,1}
-        ;\ldots;\Atom_{i,n_i};\String_{i,n_i}}}
-    = \DNFOf{\Sequence_i}$
-
-    $\ToDNFRegexOf{\Regex'} =
-    \ToDNFRegexOf{\Regex_1} \OrDNF \ldots \OrDNF \ToDNFRegexOf{\Regex_n} =
-    \DNFOf{\Sequence_1} \OrDNF \ldots \OrDNF \DNFOf{\Sequence_n} =
-    \DNFOf{\Sequence_1 ; \ldots ; \Sequence_n}$.
-    This means, by Lemma~\ref{lem:preimage-equiv}, that
-    $\Regex \DefinitionalEquiv \Regex'$
-
-    $\ToDNFRegexOf{\RegexAlt_i} =
-    \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegex_{i,1}
-    \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i} \ConcatDNF
-    \DNFOf{\SequenceOf{\String_{i,n_i}}} =
-    \DNFRegex_i$.
-
-    $\ToDNFRegexOf{\RegexAlt'} =
-    \ToDNFRegexOf{\RegexAlt_1} \OrDNF \ldots \OrDNF \ToDNFRegexOf{\RegexAlt_n} =
-    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n$.
-    This means, by Lemma~\ref{lem:preimage-equiv}, that
-    $\RegexAlt' \DefinitionalEquiv \RegexAlt$
-    
-    So, $\Regex \DefinitionalEquiv \Regex' \DefinitionalEquiv \RegexAlt'
-    \DefinitionalEquiv \RegexAlt$, so by transitivity of equational theories,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
-  \end{case}
-\end{proof}
-
-\begin{lemma}[Expressibility of $\EquivalenceOf{\ParallelRewriteSwap}$ in
-  $\DefinitionalEquiv$]
-  \label{lem:express-equiv-swap-in-equiv}
-  If $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-  \ToDNFRegexOf{\RegexAlt}$, then
-  $\Regex \DefinitionalEquiv \RegexAlt$.
-\end{lemma}
-\begin{proof}
-  By induction on the typing derivation of
-  $\EquivalenceOf{\ParallelRewriteSwap}$
-  \begin{case}[\ReflexivityRule{}]
-    Let $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{\RegexAlt}$, and the last step of the derivation is an
-    application of \ReflexivityRule{}.
-
-    This means $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$.  That means
-    $\ToRegexOf{\ToDNFRegexOf{\Regex}} = \ToRegexOf{\ToDNFRegexOf{\RegexAlt}}$.
-    By Lemma~\ref{lem:preimage-equiv},
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$.
-    By Lemma~\ref{lem:preimage-equiv},
-    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \DefinitionalEquiv = \RegexAlt$.
-    By the transitivity of equational theories,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
-  \end{case}
-
-  \begin{case}[\BaseRule{}]
-    Let $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{\RegexAlt}$, and the last step of the derivation is an
-    application of \BaseRule{}.
-
-    This means that $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap
-    \ToDNFRegexOf{\RegexAlt}$.
-
-    By Lemma~\ref{lem:express-swap-in-equiv},
-    $\Regex \DefinitionalEquiv \RegexAlt$.
-  \end{case}
-
-  \begin{case}[\SymmetryRule{}]
-    Let $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{\RegexAlt}$, and the last step of the derivation is an
-    application of \BaseRule{}.
-
-    This means that $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap
-    \ToDNFRegexOf{\RegexAlt}$.
-
-    By Lemma~\ref{lem:express-swap-in-equiv},
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+  \begin{case}[\DNFIntroRewriteRule{}]
   \end{case}
 \end{proof}
 
@@ -5598,21 +5455,14 @@ whitespace problem.
     Let $\DNFRegexAlt = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
     Let $\SequenceAlt_i =
     \SequenceOf{\StringAlt_{i,0};\AtomAlt_{i,1};\ldots;\AtomAlt_{i,m_i};\StringAlt_{i,m_i}}$.
-    
-    Let $k_i =
-    \begin{cases*}
-      n_i & if $i \leq n$\\
-      m_i & otherwise
-    \end{cases*}$
-    
-    Let $\Sequence_i'' =
+    Let $\Sequence_{i,j}'' =
     \begin{cases*}
       \Sequence_i & if $i \leq n$\\
       \SequenceAlt_{i-n} & otherwise
     \end{cases*}$.
     Let $\DNFRegex'' = \DNFRegex \OrDNF \DNFRegexAlt =
     \DNFOf{\Sequence_1'';\ldots;\Sequence_{n+m}''}$.
-    Let $\Atom_{i,j}'' =
+    Let $\Atom_{i,j,k}'' =
     \begin{cases*}
       \Atom_{i,j} & if $i \leq n$\\
       \AtomAlt_{i-n,j} & otherwise
@@ -5639,17 +5489,17 @@ whitespace problem.
     \begin{cases*}
       \DNFRegex_i & if $i \leq n$\\
       \DNFOf{\SequenceOf{\StringAlt_{i-n,0}}} \ConcatDNF \AtomAlt_{i-n,1};\ldots;
-      \ConcatDNF \AtomAlt_{i-n,m_i} \ConcatDNF \StringAlt_{i-n,m_i} & otherwise
+      \ConcatDNF \AtomAlt_{i-n,n_i} \ConcatDNF \StringAlt_{i-n,n_i} & otherwise
     \end{cases*}$
 
     For $i > n$, $\DNFRegex_i'' = \DNFOf{\SequenceOf{\StringAlt_{i-n,0}}}
     \ConcatDNF \AtomAlt_{i-n,1};\ldots;
-    \ConcatDNF \AtomAlt_{i-n,k_i} \ConcatDNF \StringAlt_{i-n,k_i} =
+    \ConcatDNF \AtomAlt_{i-n,n_i} \ConcatDNF \StringAlt_{i-n,n_i} =
     \DNFOf{\SequenceAlt_i}$ through application of $\ConcatDNF$ on many
     singleton DNF regular expressions.
 
-    $\DNFRegex_{n+1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}'' =
-    \DNFOf{\SequenceAlt_1} \OrDNF \ldots \DNFOf{\SequenceAlt_m} =
+    $\DNFRegex_{n+1}'' \OrDNF \ldots \OrDNF DNFRegex_{n+m}'' =
+    DNFOf{\SequenceAlt_1} \OrDNF \ldots \DNFOf{\SequenceAlt_m} =
     \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$ through repeated application
     of $\OrDNF$ to singleton DNFs.
 
@@ -5665,13 +5515,13 @@ whitespace problem.
     \[
       \inferrule*
       {
-        \DNFRegex'' = \DNFOf{\Sequence_1'';\ldots;\Sequence_{n+m}''}\\
+        \DNFRegex'' = \DNFOf{\Sequence_1'';\ldots;\Sequence_n''}\\
         \forall i. \Sequence_i'' =
-        \SequenceOf{\String_{i,0}'';\Atom_{i,1}'';\ldots;\Atom_{i,k_i}'';\String_{i,k_i}''}\\
+        \SequenceOf{\String_{i,0}'';\Atom_{i,1}'';\ldots;\Atom_{i,n_i}'';\String_{i,n_i}''}\\
         \forall i,j. \Atom_{i,j}'' \ParallelRewriteSwapAtom \DNFRegex_{i,j}''\\
         \forall i. \DNFRegex_i'' = \DNFOf{\SequenceOf{\String_{i,0}''}} \ConcatDNF \DNFRegex_{i,1}''
         \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i}'' \ConcatDNF
-        \DNFOf{\SequenceOf{\String_{i,k_i}''}}
+        \DNFOf{\SequenceOf{\String_{i,n_i}''}}
       }
       {
         \DNFRegex'' \ParallelRewriteSwap
@@ -5754,7 +5604,7 @@ whitespace problem.
   \OrDNF \DNFRegexAlt$
 \end{lemma}
 \begin{proof}
-  Proceeds as Lemma~\ref{lem:prop-eq-swap-or-left}, but on the right.
+  Proceeds as Lemma~\ref{lem:prop-eq-swap-left}, but on the right.
 \end{proof}
 
 \begin{lemma}[Propagation of $\EquivalenceOf{\ParallelRewriteSwap{}}$ through
@@ -5846,168 +5696,78 @@ whitespace problem.
     Let $\DNFRegexAlt = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
     Let $\SequenceAlt_i =
     \SequenceOf{\StringAlt_{i,0};\AtomAlt_{i,1};\ldots;\AtomAlt_{i,m_i};\StringAlt_{i,m_i}}$.
-    Let $\Sequence_{i,j}'' = \Sequence_i \ConcatSequence \Sequence_j$
-    Let $\DNFRegex'' = \DNFRegex \ConcatDNF \DNFRegexAlt =
+    Let $\Sequence_{i,j}'' = \Sequence_i \ConcatSequence \SequenceAlt_j$.
+    Let $\DNFRegex'' = \DNFRegex \OrDNF \DNFRegexAlt =
     \DNFOf{\Sequence_{1,1}'';\ldots;\Sequence_{n,m}''}$.
     Let $\Atom_{i,j,k}'' =
     \begin{cases*}
-      \Atom_{i,j,k} & if $k \leq n_i$\\
-      \AtomAlt_{i,j,k-n_i} & otherwise
+      \Atom_{i,k} & if $i \leq n$\\
+      \AtomAlt_{j,j} & otherwise
     \end{cases*}$
-    Let $\String_{i,j,k}'' =
+    Let $\String_{i,j}'' =
     \begin{cases*}
-      \String_{i,k} & if $i < n_i$\\
-      \String_{i,n_i} \Concat \StringAlt_{j,0} & if $i = n_i$\\
-      \StringAlt_{j,k-n_i} & otherwise
+      \String_{i,j} & if $i \leq n$\\
+      \StringAlt_{i-n,j} & otherwise
     \end{cases*}$
 
-    Let $\DNFRegex_{i,j,k}'' =
+    Let $\DNFRegex_{i,j}'' =
     \begin{cases*}
-      \DNFRegex_{i,k} & if $i \leq n_i$\\
-      \AtomToDNFOf{\AtomAlt_{i,j,k-n_i}} & otherwise
+      \DNFRegex_{i,j} & if $i \leq n$\\
+      \AtomToDNFOf{\AtomAlt_{i-n,j}} & otherwise
     \end{cases*}$
     
-    If $k \leq n_i$, by assumption $\Atom_{i,j,k}'' = \Atom_{i,j} \ParallelRewriteSwapAtom
-    \DNFRegex_{i,j,k} = \DNFRegex_{i,j,k}''$.
-    If $k > n_i$, by \AtomStructuralRewriteRule{},
-    $\Atom_{i,j,k}'' = \AtomAlt_{j,k-n_i} \ParallelRewriteSwapAtom
-    \AtomToDNFOf{\AtomAlt_{j,k-n_i}} = \DNFRegex_{i,j,k}''$.
+    If $i \leq n$, by assumption $\Atom_{i,j}'' = \Atom_{i,j} \ParallelRewriteSwapAtom
+    \DNFRegex_{i,j} = \DNFRegex_{i,j}''$.
+    If $i > n$, by \AtomStructuralRewriteRule{},
+    $\Atom_{i,j}'' = \AtomAlt_{i-n,j} \ParallelRewriteSwapAtom
+    \AtomToDNFOf{\AtomAlt_{i-n,j}} = \DNFRegex_{i,j}''$.
     
-    Let $\DNFRegex_{i,j}'' = \DNFRegex_i \ConcatDNF
-    \DNFOf{\SequenceOf{\StringAlt_{i-n,0}}} \ConcatDNF \AtomAlt_{i-n,1};\ldots;
-    \ConcatDNF \AtomAlt_{i-n,n_i} \ConcatDNF \StringAlt_{i-n,n_i}$
-    
-    Through repeated application of $\ConcatDNF$ on singletons,
-    $\DNFRegex_{i,j}'' = \DNFRegex_i \ConcatDNF \DNFOf{\SequenceAlt_j}$.
+    Let $\DNFRegex_i'' =
+    \begin{cases*}
+      \DNFRegex_i & if $i \leq n$\\
+      \DNFOf{\SequenceOf{\StringAlt_{i-n,0}}} \ConcatDNF \AtomAlt_{i-n,1};\ldots;
+      \ConcatDNF \AtomAlt_{i-n,n_i} \ConcatDNF \StringAlt_{i-n,n_i} & otherwise
+    \end{cases*}$
 
-    This means $\DNFRegex_{0,0} \OrDNF \ldots \OrDNF \DNFRegex_{n,m} =
-    (\DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n) \ConcatDNF
-    \DNFRegexAlt = \DNFRegex' \ConcatDNF \DNFRegexAlt$.
+    For $i > n$, $\DNFRegex_i'' = \DNFOf{\SequenceOf{\StringAlt_{i-n,0}}}
+    \ConcatDNF \AtomAlt_{i-n,1};\ldots;
+    \ConcatDNF \AtomAlt_{i-n,n_i} \ConcatDNF \StringAlt_{i-n,n_i} =
+    \DNFOf{\SequenceAlt_i}$ through application of $\ConcatDNF$ on many
+    singleton DNF regular expressions.
+
+    $\DNFRegex_{n+1}'' \OrDNF \ldots \OrDNF DNFRegex_{n+m}'' =
+    DNFOf{\SequenceAlt_1} \OrDNF \ldots \DNFOf{\SequenceAlt_m} =
+    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$ through repeated application
+    of $\OrDNF$ to singleton DNFs.
+
+    As $\DNFRegex_1'' \OrDNF \ldots \OrDNF \DNFRegex_n''
+    = \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+    = \DNFRegex'$,
+    and $\DNFRegex_{n+1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}''
+    = \DNFRegexAlt$, we get
+    $\DNFRegex_1'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}'' = \DNFRegex' \OrDNF
+    \DNFRegexAlt$
 
     Consider the derivation
     \[
       \inferrule*
       {
-        \DNFRegex'' = \DNFOf{\Sequence_{1,1}'';\ldots;\Sequence_{n,m}''}\\
-        \forall i,j. \Sequence_{i,j}'' =
-        \SequenceOf{\String_{i,j,0}'';\Atom_{i,j,1}'';\ldots;\Atom_{i,j,n_i+m_j}'';\String_{i,j,n_i+m_j}''}\\
-        \forall i,j,k. \Atom_{i,j,k}'' \ParallelRewriteSwapAtom \DNFRegex_{i,j,k}''\\
-        \forall i,j. \DNFRegex_{i,j}'' = \DNFOf{\SequenceOf{\String_{i,j,0}''}} \ConcatDNF \DNFRegex_{i,j,1}''
-        \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,j,n_i+m_i}'' \ConcatDNF
-        \DNFOf{\SequenceOf{\String_{i,j,n_i+m_i}''}}
+        \DNFRegex'' = \DNFOf{\Sequence_1'';\ldots;\Sequence_n''}\\
+        \forall i. \Sequence_i'' =
+        \SequenceOf{\String_{i,0}'';\Atom_{i,1}'';\ldots;\Atom_{i,n_i}'';\String_{i,n_i}''}\\
+        \forall i,j. \Atom_{i,j}'' \ParallelRewriteSwapAtom \DNFRegex_{i,j}''\\
+        \forall i. \DNFRegex_i'' = \DNFOf{\SequenceOf{\String_{i,0}''}} \ConcatDNF \DNFRegex_{i,1}''
+        \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i}'' \ConcatDNF
+        \DNFOf{\SequenceOf{\String_{i,n_i}''}}
       }
       {
         \DNFRegex'' \ParallelRewriteSwap
-        \DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}''
+        \DNFRegex_1'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}''
       }
     \]
     as desired.
-  \end{case}
-\end{proof}
-
-\begin{lemma}[Propagation of $\ParallelRewriteSwap{}$ through $\ConcatDNF{}$ on
-  the right]
-  If $\DNFRegexAlt \ParallelRewriteSwap \DNFRegexAlt'$, then
-  $\DNFRegex \ConcatDNF \DNFRegexAlt \ParallelRewriteSwap
-  \DNFRegex \ConcatDNF \DNFRegexAlt'$
-\end{lemma}
-\begin{proof}
-  Proceeds as Lemma~\ref{lem:prop_parallel_swap_or_left}, but on the right.
-\end{proof}
-
-\begin{lemma}[Propagation of $\EquivalenceOf{\ParallelRewriteSwap{}}$ through
-  $\ConcatDNF{}$ on the left]
-  \label{lem:prop-eq-swap-concat-left}
-  If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$, then
-  $\DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'
-  \ConcatDNF \DNFRegexAlt$
-\end{lemma}
-\begin{proof}
-  By induction on the last step of the derivation of
-  $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$.
-  \begin{case}[\ReflexivityRule{}]
-    If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$ through an
-    application of \ReflexivityRule{}, then $\DNFRegex' = \DNFRegex$.
-    So, through reflexivity, $\DNFRegex \ConcatDNF \DNFRegexAlt
-    \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex \ConcatDNF \DNFRegexAlt$
-  \end{case}
-  \begin{case}[\BaseRule{}]
-    If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$ through an
-    application of \ReflexivityRule{}, then
-    $\DNFRegex' \ParallelRewriteSwap \DNFRegex$.
-    From Lemma~\ref{lem:prop_parallel_swap_left}
-    $\DNFRegex \ConcatDNF \DNFRegexAlt
-    \ParallelRewriteSwap \DNFRegex' \ConcatDNF \DNFRegexAlt$, so
-    $\DNFRegex \ConcatDNF \DNFRegexAlt
-    \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex' \ConcatDNF \DNFRegexAlt$.
-  \end{case}
-  \begin{case}[\TransitivityRule{}]
-    If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$ through an
-    application of \TransitivityRule{}, then there exists a $\DNFRegex''$ such
-    that
-    $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex''$ and
-    $\DNFRegex'' \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$.
-    By IH, $\DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-    \DNFRegex'' \ConcatDNF \DNFRegexAlt$ and
-    $\DNFRegex'' \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-    \DNFRegex' \ConcatDNF \DNFRegexAlt$.
     
-    This gives us the derivation
-    \[
-      \inferrule*
-      {
-        \DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-        \DNFRegex'' \ConcatDNF \DNFRegexAlt\\
-        \DNFRegex'' \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-        \DNFRegex' \ConcatDNF \DNFRegexAlt
-      }
-      {
-        \DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-        \DNFRegex' \ConcatDNF \DNFRegexAlt
-      }
-    \]
   \end{case}
-\end{proof}
-
-\begin{lemma}[Propagation of $\EquivalenceOf{\ParallelRewriteSwap{}}$ through
-  $\ConcatDNF{}$ on the right]
-  \label{lem:prop-eq-swap-concat-right}
-  If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$, then
-  $\DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'
-  \ConcatDNF \DNFRegexAlt$
-\end{lemma}
-\begin{proof}
-  Proceeds as Lemma~\ref{lem:prop-eq-swap-concat-left}, but on the right.
-\end{proof}
-
-\begin{lemma}[Propagation of $\EquivalenceOf{\ParallelRewriteSwap{}}$ through
-  $\ConcatDNF{}$]
-  \label{lem:prop-eq-swap-concat}
-  If $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$ and
-  $\DNFRegexAlt \EquivalenceOf{ParallelRewriteSwap} \DNFRegexAlt'$, then
-  $\DNFRegex \ConcatDNF \DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap}
-  \DNFRegex' \ConcatDNF \DNFRegexAlt'$.
-\end{lemma}
-\begin{proof}
-  By Lemma~\ref{lem:prop-eq-swap-concat-left}, $\DNFRegex \ConcatDNF \DNFRegexAlt
-  \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex' \ConcatDNF \DNFRegexAlt$.
-  By Lemma~\ref{lem:prop-eq-swap-concat-right}, $\DNFRegex' \ConcatDNF \DNFRegexAlt
-  \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex' \ConcatDNF \DNFRegexAlt'$.
-  Consider the derivation
-  \[
-    \inferrule*
-    {
-      \DNFRegex \OrDNF \DNFRegexAlt
-      \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex' \OrDNF \DNFRegexAlt\\
-      \DNFRegex' \OrDNF \DNFRegexAlt
-      \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex' \OrDNF \DNFRegexAlt'
-    }
-    {
-      \DNFRegex \OrDNF \DNFRegexAlt
-      \EquivalenceOf{\ParallelRewriteSwap}
-      \DNFRegex' \OrDNF \DNFRegexAlt'
-    }
-  \]
 \end{proof}
 
 \begin{lemma}[Propagation of $\EquivalenceOf{\ParallelRewriteSwap{}}$ through
@@ -6130,16 +5890,15 @@ whitespace problem.
   \end{case}
 \end{proof}
 
-\begin{lemma}[Expressibility of $\DefinitionalEquiv$ in
-  $\EquivalenceOf{\ParallelRewriteSwap}$]
-  \label{lem:express-equiv-in-equiv-swap}
-  If $\Regex \DefinitionalEquiv \RegexAlt$, then
-  $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-  \ToDNFRegexOf{\RegexAlt}$.
-\end{lemma}
+\begin{theorem}[Equivalence of $\EquivalenceOf{\ParallelRewriteSwap}$ and
+  $\DefinitionalEquiv$]
+  \label{thm:defequiv-equiv-parallelswapequiv}
+  $\Regex \DefinitionalEquiv \RegexAlt$ if, and only if $\ToDNFRegexOf{\Regex}
+  \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\RegexAlt}$
+\end{theorem}
 \begin{proof}
-  Assume $\Regex \DefinitionalEquiv \RegexAlt$.
-  Prove by induction on the deduction of $\DefinitionalEquiv$
+  For the forward direction, assume $\Regex \DefinitionalEquiv \RegexAlt$.
+  Prove by cases on the deduction of $\DefinitionalEquiv$.
   \begin{case}[\EqualityRule{}]
     Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
     deduction is an application of \EqualityRule{}.  That means that $\RegexAlt
@@ -6437,7 +6196,7 @@ whitespace problem.
 
   \begin{case}[Structural \ConcatRegexType{} Equality]
     Let $\Regex \DefinitionalEquiv \RegexAlt$, through structural equality of
-    \ConcatRegexType{}.
+    \OrRegexType{}.
     $\Regex = \Regex_1 \Concat \Regex_2$, and
     $\RegexAlt = \RegexAlt_1 \Concat \RegexAlt_2$,
     $\Regex_1 \DefinitionalEquiv \RegexAlt_1$, and
@@ -6481,260 +6240,21 @@ whitespace problem.
   \end{case}
 
   \begin{case}[Transitivity of Equational Theory]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$ through the transitivity of an
-    equational theory.  This means there exists a $\Regex'$ such that $\Regex
-    \DefinitionalEquiv \Regex'$ and $\Regex' \DefinitionalEquiv \RegexAlt$.
-    
-    By induction assumption,
-    $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{\Regex'}$ and
-    $\ToDNFRegexOf{\Regex'} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{\RegexAlt}$.
-    
-    Consider the derivation
-    \[
-      \inferrule*
-      {
-        \ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-        \ToDNFRegexOf{\Regex'}\\
-        \ToDNFRegexOf{\Regex'} \EquivalenceOf{\ParallelRewriteSwap}
-        \ToDNFRegexOf{\RegexAlt}
-      }
-      {
-        \ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-        \ToDNFRegexOf{\RegexAlt}
-      }
-    \]
   \end{case}
 \end{proof}
 
-\begin{theorem}[Equivalence of $\EquivalenceOf{\ParallelRewriteSwap}$ and
-  $\DefinitionalEquiv$]
-  \label{thm:defequiv-equiv-parallelswapequiv}
-  $\Regex \DefinitionalEquiv \RegexAlt$ if, and only if $\ToDNFRegexOf{\Regex}
-  \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\RegexAlt}$
-\end{theorem}
-\begin{proof}
-  The forward direction is proven by Lemma~\ref{lem:express-equiv-in-equiv-swap}.
-  The reverse direction is proven by Lemma~\ref{lem:express-equiv-swap-in-equiv}
-\end{proof}
-
-\begin{lemma}[Swap's Unimportance For Identity]
-  \label{lem:swap-unimportance-identity}
-  \leavevmode
-  \begin{enumerate}
-  \item If $\DNFRegex$ is strongly unambiguous and
-    $\DNFRegex \ParallelRewriteSwap \DNFRegex_1$ then there exists a
-    $\DNFRegex_2$ such that $\DNFRegex \ParallelRewrite \DNFRegex_2$
-    and there exists a lens
-    $\Lens \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$
-    such that
-    $\SemanticsOf{\Lens} = \SetOf{(\String,\String)
-      \SuchThat \String \in \LanguageOf{\DNFRegex}}$
-  \item If $\Atom$ is strongly unambiguous and
-    $\Atom \ParallelRewriteSwapAtom \DNFRegex_1$ then there exists a
-    $\DNFRegex_2$ such that $\Atom \ParallelRewriteAtom \DNFRegex_2$
-    and there exists a lens
-    $\Lens \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$
-    such that
-    $\SemanticsOf{\Lens} = \SetOf{(\String,\String)
-      \SuchThat \String \in \LanguageOf{\Atom}}$
-  \end{enumerate}
+\begin{lemma}
+  \label{lem:parallel-rewrite-equivalence-in-dnf-lenses}
+  If $\DNFRegex \StarOf{\ParallelRewriteSwap} \DNFRegex'$, and $\DNFRegexAlt
+  \StarOf{\ParallelRewriteSwap} \DNFRegexAlt'$, and there exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, then there exists
+  a rewriteless DNF lens
+  $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow \DNFRegexAlt''$ where
+  $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex''$, $\DNFRegexAlt
+  \StarOf{\ParallelRewrite} \DNFRegexAlt''$, and
+  $\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$.
 \end{lemma}
 \begin{proof}
-  By mutual induction on the derivation of $\ParallelRewriteSwap$.
-  \begin{case}[\AtomUnrollstarLeftRule{}]
-    Let $\Atom \ParallelRewriteSwapAtom \DNFRegex_1$, and the last step of the
-    derivation is an application of \AtomUnrollstarRightRule{}.
-    That means $\Atom = \StarOf{\DNFRegex}$ and
-    $\DNFRegex_1 = \DNFOf{\SequenceOf{\EmptyString}} \OrDNF
-    (\DNFRegex \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegex}})$.
-    
-    Consider an application of $\ParallelRewriteAtom$'s
-    \AtomUnrollstarRightRule{}.
-    $\Atom \ParallelRewrite \DNFRegex_1$.
-    By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
-    a DNF lens
-    $\DNFLens \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_1$ and
-    $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String) \SuchThat \String \in
-      \LanguageOf{\Atom}}$.
-  \end{case}
-  
-  \begin{case}[AtomUnrollstarRightRule{}]
-    Let $\Atom \ParallelRewriteSwapAtom \DNFRegex_1$, and the last step of the
-    derivation is an application of \AtomUnrollstarLeftRule{}.
-    That means $\Atom = \StarOf{\DNFRegex}$ and
-    $\DNFRegex_1 = \AtomToDNFOf{\DNFRegex_1'}$, where 
-    
-    Consider an application of $\ParallelRewriteAtom$'s
-    \AtomUnrollstarRightRule{}.
-    $\Atom \ParallelRewrite \DNFRegex_1$.
-    By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
-    a DNF lens
-    $\DNFLens \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_1$ and
-    $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String) \SuchThat \String \in
-      \LanguageOf{\Atom}}$.
-  \end{case}
-
-  \begin{case}[\AtomStructuralRewriteRule{}]
-    Let $\Atom \ParallelRewriteSwapAtom \DNFRegex_1$, and the last step of the
-    derivation is an application of \AtomStructuralRewriteRule{}.
-    That means $\Atom = \StarOf{\DNFRegex}$ and
-    $\DNFRegex_1 = \AtomToDNFOf{\StarOf{\DNFRegex_1'}}$, and
-    $\DNFRegex \ParallelRewriteSwapAtom \DNFRegex_1'$.
-
-    By IH, there exists $\DNFRegex_2'$ such that
-    $\DNFRegex \ParallelRewrite \DNFRegex_2'$, and there exists a
-    rewriteless DNF lens
-    $\DNFLens \OfRewritelessType \DNFRegex_1' \Leftrightarrow \DNFRegex_2'$.
-
-    By \AtomStructuralRewriteRule{},
-    $\Atom \ParallelRewriteAtom \AtomToDNFOf{\StarOf{\DNFRegex_2'}}$.
-    By Lemma~\ref{lem:typ_sem_it},
-    $\AtomToDNFLensOf{\IterateLensOf{\DNFLens}} \OfRewritelessType
-    \AtomToDNFOf{\StarOf{\DNFRegex_1}} \Leftrightarrow
-    \AtomToDNFOf{\StarOf{\DNFRegex_2}}$, with
-    $\SemanticsOf{\AtomToDNFLensOf{\IterateLensOf{\DNFLens}}}
-    = \SetOf{(\String_1\ldots\String_n,\StringAlt_1\ldots\StringAlt_n)
-      \SuchThat (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}}
-    = \SetOf{(\String_1\ldots\String_n,\String_1\ldots\String_n)
-      \SuchThat (\String_i,\String_i) \in \LanguageOf{\DNFRegex}}
-    = \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\Atom})}$
-  \end{case}
-
-  \begin{case}[\ParallelDNFStructuralRewriteRule{}]
-    Let $\DNFRegex \ParallelRewriteSwap \DNFRegex'$, and the last step of the
-    derivation is an application of \ParallelDNFStructuralRewriteRule{}.
-
-    \[
-      {
-        \DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
-        \forall i. \Sequence_i =
-        \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}\\
-        \forall i,j. \Atom_{i,j} \ParallelRewriteSwapAtom \DNFRegex_{i,j}\\
-        \forall i. \DNFRegex_i = \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegex_{i,1}
-        \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i} \ConcatDNF
-        \DNFOf{\SequenceOf{\String_{i,n_i}}}
-      }
-      {
-        \DNFRegex \ParallelRewriteSwap \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
-      }
-    \]
-    and $\DNFRegex' = \DNFRegex_1 \OrDNF \OrDNF \ldots \OrDNF \DNFRegex_n$.
-
-    There exists lenses
-    By IH, there exist $\DNFRegexAlt_{i,j}$ and $\DNFLens_{i,j}$, such that
-    $\Atom_{i,j} \ParallelRewrite \DNFRegexAlt_{i,j}$,
-    $\DNFLens_{i,j} \OfRewritelessType
-    \DNFRegex_{i,j} \Leftrightarrow \DNFRegexAlt_{i,j}$,
-    and $\SemanticsOf{\DNFLens_{i,j}} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\Atom_{i,j}}}$.
-
-    Define $\DNFRegexAlt_i =
-    \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegexAlt_{i,1}
-    \ConcatDNF \ldots \ConcatDNF
-    \DNFRegexAlt_{i,n_i} \ConcatDNF \DNFOf{\SequenceOf{\String_{i,n_i}}}$.
-
-    Define $\DNFRegexAlt = \DNFRegexAlt_0 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$
-    
-    By repeated application of Lemma~\ref{lem:typ_sem_concat}, there exists a
-    lens
-    $\DNFLens_i =
-    (\DNFLensOf{(\SequenceLensOf{(\String_{i,0},\String_{i,0})},\Identity)},\Identity)
-    \ConcatDNFLens \DNFLens_{i,1}
-    \ConcatDNFLens \ldots \ConcatDNFLens
-    \DNFLens_{i,n_i} \ConcatDNFLens
-    (\DNFLensOf{(\SequenceLensOf{(\String_{i,n_i},\String_{i,n_i})},\Identity)},\Identity)
-    \OfRewritelessType
-    \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF
-    \DNFRegex_{i,1} \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i}
-    \ConcatDNF \DNFOf{\SequenceOf{\String_{i,n_i}}} \Leftrightarrow
-    \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF
-    \DNFRegexAlt_{i,1} \ConcatDNF \ldots \ConcatDNF \DNFRegexAlt_{i,n_i}
-    \ConcatDNF \DNFOf{\SequenceOf{\String_{i,n_i}}}$
-    
-    By pushing around the definitions of $\ConcatDNF$, this becomes
-    $\DNFLens_i \OfRewritelessType
-    \DNFRegex_i
-    \Leftrightarrow
-    \DNFRegexAlt_i$ and
-    $\SemanticsOf{\DNFLens_i} = \SetOf{(\String,\String) \SuchThat
-      \String \in \LanguageOf{\Sequence_i}}$.
-
-    By repeated applications of Lemma~\ref{lem:typ_sem_or}, there exists a lens
-    $\DNFLens =
-    \DNFLens_0 \OrDNFLens \ldots \OrDNFLens \DNFLens_n 
-    \OfRewritelessType
-    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
-    \Leftrightarrow
-    \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$.
-    
-    By pushing around the definitions of $\OrDNF$, this becomes
-    $\DNFLens \OfRewritelessType
-    \DNFRegex' \Leftrightarrow \DNFRegexAlt$, and
-    $\SemanticsOf{\DNFLens} =
-    \SetOf{(\String,\String) \SuchThat \String\in\LanguageOf{\DNFRegex}}$
-
-    Furthermore,
-    \[
-      {
-        \DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
-        \forall i. \Sequence_i =
-        \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}\\
-        \forall i,j. \Atom_{i,j} \ParallelRewrite \DNFRegexAlt_{i,j}\\
-        \forall i. \DNFRegexAlt_i = \DNFOf{\SequenceOf{\String_{i,0}}}
-        \ConcatDNF \DNFRegexAlt_{i,1}
-        \ConcatDNF \ldots \ConcatDNF \DNFRegexAlt_{i,n_i} \ConcatDNF
-        \DNFOf{\SequenceOf{\String_{i,n_i}}}
-      }
-      {
-        \DNFRegex \ParallelRewrite \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n
-      }
-    \]
-  \end{case}
-  
-  \begin{case}[\IdentityRewriteRule{}]
-    Let $\DNFRegex \ParallelRewriteSwap \DNFRegex_1$, and the last step of the
-    derivation is an application of \IdentityRewriteRule{}.
-
-    This means $\DNFRegex \ParallelRewriteSwap \DNFRegex$
-
-    Consider the application of $\ParallelRewrite{}$'s $\IdentityRewriteRule$,
-    $\DNFRegex \ParallelRewrite \DNFRegex$.
-
-    By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
-    a DNF lens
-    $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegex$ and
-    $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String) \SuchThat \String \in
-      \LanguageOf{\DNFRegex}}$.
-  \end{case}
-
-  \begin{case}[\DNFReorderRule{}]
-    Let $\DNFRegex \ParallelRewriteSwap \DNFRegex_1$, and the last step of the
-    derivation is an application of \DNFReorderRule{}.
-
-    Let $\DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
-    This means that there exists a $\sigma$ such that
-    $\DNFRegex_1 = \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}$.
-
-    Consider $\DNFRegex \ParallelRewrite \DNFRegex$.
-    By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
-    sequence lenses $\SequenceLens_i$ such that $\SequenceLens_i
-    \OfRewritelessType \Sequence_i \Leftrightarrow \Sequence_i$ and
-    $\SemanticsOf{\SequenceLens_i} = \SetOf{(\String,\String) \SuchThat \String
-      \in \LanguageOf{\Sequence_i}}$
-
-    Consider $(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)
-    \OfRewritelessType \DNFOf{\Sequence_1;\ldots;\Sequence_n}
-    \Leftrightarrow \DNFOf{\Sequence_{\sigma(1)};\ldots;\Sequence_{\sigma(n)}}$,
-    which is typed as desired.
-    $\SemanticsOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)} =
-    \SetOf{(\String,\StringAlt) \SuchThat \exists i. (\String,\StringAlt) \in
-      \SemanticsOf{\SequenceLens_i}} =
-    \SetOf{(\String,\String) \SuchThat \exists i. \String \in
-      \LanguageOf{\Sequence_i}} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex}}$
-  \end{case}
 \end{proof}
 
 \begin{definition}
@@ -6771,10 +6291,10 @@ whitespace problem.
 \begin{proof}
   By mutual induction on the derivation of $\ParallelRewrite$ and
   $\ParallelRewriteAtom$
-  \begin{case}[\AtomUnrollstarLeftRule{}]
+  \begin{case}[\UnrollRewriteRule{}]
     Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$, and
     $\Atom\ParallelRewriteAtom\DNFRegex$ through an application of
-    \AtomUnrollstarLeftRule{}.  By inversion, there exists a derivation of
+    \UnrollRewriteRule{}.  By inversion, there exists a derivation of
     \[
       \inferrule*
       {
@@ -6791,12 +6311,12 @@ whitespace problem.
     Where $\IterateLensOf{\DNFLens} = \AtomLens$, $\StarOf{\DNFRegex'} = \Atom$,
     and $\StarOf{\DNFRegexAlt'} = \AtomAlt$.
 
-    As \AtomUnrollstarLeftRule{} was applied,
+    As \UnrollRewriteRule{} was applied,
     $\DNFRegex =
     \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
     {(\ConcatDNFOf{\DNFRegex'}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}})}$.
 
-    Consider applying \AtomUnrollstarLeftRule{} to $\StarOf{\DNFRegexAlt'}$.
+    Consider applying \UnrollRewriteRule{} to $\StarOf{\DNFRegexAlt'}$.
     $\StarOf{\DNFRegexAlt'}\ParallelRewriteAtom
     \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
     {(\ConcatDNFOf{\DNFRegexAlt'}{\DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt'}}}})}$
@@ -6904,16 +6424,16 @@ whitespace problem.
     \]
   \end{case}
 
-  \begin{case}[\AtomUnrollstarRightRule{}]
+  \begin{case}[\QuotientRewriteRuleOf{n}]
     Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$, and
     $\Atom\ParallelRewriteAtom\DNFRegex$ through an application of
-    \AtomUnrollstarRightRule{}.
+    \QuotientRewriteRuleOf{n}.
   \end{case}
 
-  \begin{case}[\AtomStructuralRewriteRule{}]
+  \begin{case}[\StarIntroRewriteRule{}]
     Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$, and
     $\Atom\ParallelRewriteAtom\DNFRegex$ through an application of
-    \AtomStructuralRewriteRule{}.  By inversion, there exists a derivation of
+    \StarIntroRewriteRule{}.  By inversion, there exists a derivation of
   
     \[
       \inferrule*
@@ -6931,7 +6451,7 @@ whitespace problem.
     Where $\IterateLensOf{\DNFLens} = \AtomLens$, $\StarOf{\DNFRegex'} = \Atom$,
     and $\StarOf{\DNFRegexAlt'} = \AtomAlt$.
 
-    As \AtomStructuralRewriteRule{} was applied,
+    As \UnrollRewriteRule{} was applied,
     $\DNFRegex' \ParallelRewrite \DNFRegex''$, and
     $\DNFRegex = \DNFOf{\SequenceOf{\StarOf{\DNFRegex''}}}$.
 
@@ -6999,16 +6519,45 @@ whitespace problem.
     \DNFReorderRule{}.
   \end{case}
 
-  \begin{case}[\ParallelDNFStructuralRewriteRule{}]
+  \begin{case}[\DNFIntroRewriteRule{}]
     Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
     $\DNFRegex\ParallelRewrite\DNFRegex'$ through an application of
-    \ParallelDNFStructuralRewriteRule{}.
+    \DNFIntroRewriteRule{}.
   \end{case}
 
   \begin{case}[\IdentityRewriteRule{}]
     Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
     $\DNFRegex\ParallelRewrite\DNFRegex'$ through an application of
     \IdentityRewriteRule{}.
+  \end{case}
+\end{proof}
+
+\begin{lemma}
+  \label{lem:copyable_expansions_left_swap}\leavevmode
+  \begin{enumerate}
+  \item Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+    \DNFRegexAlt$ and $\DNFRegex \ParallelRewriteSwap \DNFRegex'$.  There exists some
+    $\DNFRegexAlt'$, $\DNFLens'$ such that $\DNFRegexAlt \ParallelRewriteSwap
+    \DNFRegexAlt'$,
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\DNFLens'}$.
+  \item Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$ and
+    $\Atom \ParallelRewriteSwapAtom \DNFRegex$.  There exists some $\DNFRegexAlt$,
+    $\DNFLens$, such that $\AtomAlt \ParallelRewriteSwapAtom \DNFRegexAlt$,
+    $\DNFLens' \OfRewritelessType \DNFRegex
+    \Leftrightarrow \DNFRegexAlt$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\AtomLens}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the derivation of $\ParallelRewriteSwap$ and
+  $\ParallelRewriteSwapAtom$.  All cases except \DNFReorderRule{} proceed
+  exactly as in Lemma~\ref{lem:copyable_expansions_left_swapless}
+  \begin{case}[\DNFReorderRule{}]
+    Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
+    $\DNFRegex\ParallelRewriteSwap\DNFRegex'$ through an application of
+    \DNFReorderRule{}.
   \end{case}
 \end{proof}
 
@@ -7067,6 +6616,28 @@ whitespace problem.
 \end{proof}
 
 \begin{lemma}
+  \label{lem:copyable_expansions_right_swap}\leavevmode
+  \begin{enumerate}
+  \item Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+    \DNFRegexAlt$ and $\DNFRegexAlt \ParallelRewriteSwap \DNFRegexAlt'$.  There exists some
+    $\DNFRegex'$, $\DNFLens'$ such that $\DNFRegex \ParallelRewriteSwap
+    \DNFRegex'$,
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\DNFLens'}$.
+  \item Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$ and
+    $\AtomAlt \ParallelRewriteSwapAtom \DNFRegexAlt$.  There exists some $\DNFRegex$,
+    $\DNFLens$, such that $\Atom \ParallelRewriteSwapAtom \DNFRegex$,
+    $\DNFLens' \OfRewritelessType \DNFRegex
+    \Leftrightarrow \DNFRegexAlt$, and $\SemanticsOf{\DNFLens} =
+    \SemanticsOf{\AtomLens}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  This can be proven symmetrically to Lemma~\ref{lem:copyable_expansions_left_swap}.
+\end{proof}
+
+\begin{lemma}
   \label{lem:copyable_expansions_right_swapless_star}
   Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
   \DNFRegexAlt$ and $\DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegexAlt'$.
@@ -7114,18 +6685,18 @@ whitespace problem.
   By mutual induction on the derivation of $\ParallelRewrite$ and
   $\ParallelRewriteAtom$.  We will split into cases by the last step taken in
   each derivation.
-  \begin{case}[\AtomUnrollstarLeftRule{},\AtomUnrollstarLeftRule{}]
+  \begin{case}[\UnrollRewriteRule{},\UnrollRewriteRule{}]
     Let $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$.
     Let $\Atom = \StarOf{\DNFRegex}$ and $\StarOf{\DNFRegexAlt}
     \ParallelRewriteAtom
     \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
     \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}})$
     through an application of
-    \AtomUnrollstarLeftRule{}.
+    \UnrollRewriteRule{}.
     Let $\AtomAlt = \StarOf{\DNFRegexAlt}$ and $\StarOf{\DNFRegexAlt}
     \ParallelRewriteAtom \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegexAlt
     \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}})$ through an application of
-    \AtomUnrollstarLeftRule{}.
+    \UnrollRewriteRule{}.
     
     \begin{enumerate}
     \item Consider using \IdentityRewriteRule{}
@@ -7176,26 +6747,26 @@ whitespace problem.
       
     \end{enumerate}
   \end{case}
-  \begin{case}[\AtomUnrollstarLeftRule{},\AtomUnrollstarRightRule{}]
+  \begin{case}[\UnrollRewriteRule{},\QuotientRewriteRuleOf{n}]
     Let $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$.
-    Let $\Atom = \StarOf{\DNFRegex}$ and $\StarOf{\DNFRegexAlt}
-    \ParallelRewriteAtom
-    \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
+    Let $\Atom = \StarOf{\DNFRegex}$ and $\StarOf{\DNFRegex}
+    \ParallelRewriteAtom \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
     \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}})$
     through an application of
-    \AtomUnrollstarLeftRule{}.
+    \UnrollRewriteRule{}.
     Let $\AtomAlt = \StarOf{\DNFRegexAlt}$ and $\StarOf{\DNFRegexAlt}
-    \ParallelRewriteAtom \DNFOf{\SequenceOf{\EmptyString}} \OrDNF
-    (\DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}} \ConcatDNF \DNFRegexAlt)$
-    through an application of \AtomUnrollstarRightRule{}.
+    \ParallelRewriteAtom (\RepeatDNFOf{0}{\DNFRegexAlt'} \OrDNF \ldots \OrDNF
+    \RepeatDNFOf{n-1}{\DNFRegexAlt'})
+    \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}}$ through
+    an application of \QuotientRewriteRuleOf{n}.
 
     \begin{enumerate}
       \item yoyoyo
     \end{enumerate}
     
-    \begin{subcase}[\AtomUnrollstarLeftRule{}]
+    \begin{subcase}[\QuotientRewriteRuleOf{n}]
       Let $\AtomAlt \ParallelRewriteAtom \DNFRegexAlt$ through an application of
-      \AtomUnrollstarLeftRule{}.  This means that
+      \UnrollRewriteRule{}.  This means that
       \[
         \DNFRegexAlt = \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegexAlt'
         \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt'}}})
@@ -7227,10 +6798,265 @@ whitespace problem.
       which is the desired semantics.
     \end{subcase}
   
+    \begin{subcase}[\QuotientRewriteRuleOf{n}]
+      Let $\AtomAlt \ParallelRewriteAtom \DNFRegexAlt$ through an application of
+      \QuotientRewriteRuleOf{n}.  This means that
+      \[
+        \DNFRegexAlt = (\RepeatDNFOf{0}{\DNFRegexAlt'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{n-1}{\DNFRegexAlt'})
+        \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}}
+      \]
 
-    \begin{subcase}[\AtomStructuralRewriteRule{}]
+      From Lemma~\ref{lem:iterate-lens-unroll}, the lens
+      $\DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNFLens
+      (\DNFLens \ConcatDNFLens \IterateLensOf{\DNFLens}) \OfRewritelessType
+      \EmptyString \OrDNF (\DNFRegex' \ConcatDNFLens
+      \StarOf{\DNFRegex'})
+      \Leftrightarrow \EmptyString \OrDNF (\DNFRegexAlt' \ConcatDNFLens
+      \StarOf{\DNFRegexAlt'})$ has the same semantics as
+      $\IterateLensOf{\DNFLens}$
+
+      From Lemma~\ref{lem:iterate-lens-quotient}, the lens
+      $(\RepeatDNFLensOf{0}{\DNFLens}
+      \ConcatDNFLens \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OrDNFLens
+      \ldots \OrDNFLens
+      (\RepeatDNFLensOf{n-1}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OfRewritelessType
+      (\RepeatDNFOf{0}{\DNFRegex'} \ConcatDNF
+      \StarOf{\RepeatDNFOf{n}{(\DNFRegex')}}) \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^n)}) \Leftrightarrow
+      (\DNFRegexAlt'^0 \ConcatDNF \StarOf{(\DNFRegexAlt^n)}) \OrDNF \ldots \OrDNF
+      (\DNFRegexAlt^{n-1} \ConcatDNF \StarOf{(\DNFRegexAlt^n)})$ has the same
+      semantics as $\IterateLensOf{\DNFLens}$.
+
+      Because of this and Lemma~\ref{lem:dnf-lens-concat-identity-left},
+      the lens $\DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}}
+      \OrDNFLens (\RepeatDNFLensOf{1}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OrDNFLens
+      \ldots \OrDNFLens
+      (\RepeatDNFLensOf{n-1}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OrDNFLens
+      (\RepeatDNFLensOf{n}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}})
+      \OfRewritelessType
+      \EmptyString \OrDNF (\RepeatDNFOf{1}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}) \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^n)}) \OrDNF
+      (\DNFRegex^{n} \ConcatDNF \StarOf{(\DNFRegex^n)})
+      \Leftrightarrow
+      \EmptyString \OrDNF (\RepeatDNFOf{1}{\DNFRegexAlt'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}) \OrDNF \ldots
+      \OrDNF (\DNFRegexAlt^{n-1} \ConcatDNF \StarOf{(\DNFRegexAlt^n)})
+      \OrDNF (\DNFRegexAlt^{n} \ConcatDNF \StarOf{(\DNFRegexAlt^n)})$, and has
+      the same semantics as $\IterateLensOf{\DNFLens}$.
+
+      From Lemma~\ref{lem:or-dnf-commutativity}, there exists some DNF Lens
+      $\DNFLens'$ such that $\DNFLens' \OfRewritelessType
+      (\RepeatDNFOf{1}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'}})) \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^{n-1})}) \OrDNF
+      (\DNFRegex^{n} \ConcatDNF \StarOf{(\DNFRegex^{n})})
+      \Leftrightarrow
+      (\RepeatDNFOf{n}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}) \OrDNF
+      (\RepeatDNFOf{1}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'})})
+      \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^n)})$ with the same
+      semantics as $(\RepeatDNFLensOf{1}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OrDNFLens
+      \ldots \OrDNFLens
+      (\RepeatDNFLensOf{n-1}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}}) \OrDNFLens
+      (\RepeatDNFLensOf{n}{\DNFLens} \ConcatDNFLens
+      \IterateLensOf{\RepeatDNFLensOf{n}{\DNFLens}})$
+
+      Consider the lens
+      $\DNFLensOf{\SequenceLensOf{(\EmptyString, \EmptyString)}} \OrDNFLens
+      \DNFLens'
+      \OfRewritelessType \DNFOf{\SequenceOf{\EmptyString}} \OrDNF 
+      (\RepeatDNFOf{1}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'}})) \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^{n-1})}) \OrDNF
+      (\DNFRegex^{n} \ConcatDNF \StarOf{(\DNFRegex^{n})}) \Leftrightarrow
+      \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\RepeatDNFOf{n}{\DNFRegex'}
+      \ConcatDNFLens \StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}) \OrDNF
+      (\RepeatDNFOf{1}{\DNFRegex'} \ConcatDNFLens
+      \StarOf{(\RepeatDNFOf{n}{\DNFRegex'})})
+      \OrDNF \ldots \OrDNF
+      (\DNFRegex^{n-1} \ConcatDNF \StarOf{(\DNFRegex^n)})$.  This has the same
+      semantics as $\DNFLens$.
+
+      
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \DNFOf{\SequenceOf{\EmptyString}} \ParallelRewrite
+          \DNFOf{\SequenceOf{\EmptyString}}
+        }
+      \]
+
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \DNFRegex' \ParallelRewrite \DNFRegex'
+        }
+      \]
+
+      \[
+        \inferrule*
+        {
+          \inferrule*
+          {
+          }
+          {
+            \StarOf{\DNFRegex'} \ParallelRewriteAtom
+            (\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+            \RepeatDNFOf{n-1}{\DNFRegex'})
+            \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}}
+          }
+        }
+        {
+          \AtomToDNFOf{\StarOf{\DNFRegex'}} \ParallelRewrite
+          (\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+          \RepeatDNFOf{n-1}{\DNFRegex'})
+          \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}}        }
+      \]
+
+      From repeated application of
+      Lemma~\ref{lem:parallel-rewrite-concatenation}, and
+      Lemma~\ref{lem:parallel-rewrite-or},
+      \[
+        \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
+        \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}) \ParallelRewrite
+        \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
+        \ConcatDNF ((\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{n-1}{\DNFRegex'})
+        \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}}))
+      \]
+      From application of Lemma~\ref{lem:dnf-or-concat-dist-left} and
+      Lemma~\ref{lem:dnf-or-concat-dist-right},
+      \[
+        \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\DNFRegex'
+        \ConcatDNF \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}) \ParallelRewrite
+        \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\RepeatDNFOf{1}{\DNFRegex'}\ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}}) \OrDNF \ldots
+        \OrDNF
+        (\RepeatDNFOf{n}{\DNFRegex'} \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}})
+      \]
+      
+      From Lemma~\ref{lem:dnf-or-concat-dist-left},
+      \[
+        \DNFRegexAlt = (\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+        \StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})})
+        \OrDNF
+        \ldots
+        \OrDNF
+        (\RepeatDNFOf{n-1}{\DNFRegexAlt'}
+        \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+      \]
+
+      \[
+        \inferrule*
+        {
+          \inferrule*
+          {
+          }
+          {
+            \RepeatDNFOf{n}{\DNFRegexAlt'} \ParallelRewriteAtom
+            \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\RepeatDNFOf{n}{\DNFRegexAlt'}
+            \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+          }
+        }
+        {
+          \AtomToDNFOf{\RepeatDNFOf{n}{\DNFRegexAlt'}} \ParallelRewrite
+          \DNFOf{\SequenceOf{\EmptyString}} \OrDNF (\RepeatDNFOf{n}{\DNFRegexAlt'}
+          \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+        }
+      \]
+
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \AtomToDNFOf{\RepeatDNFOf{n}{\DNFRegexAlt'}} \ParallelRewrite
+          \AtomToDNFOf{\RepeatDNFOf{n}{\DNFRegexAlt'}}
+        }
+      \]
+
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \RepeatDNFOf{i}{\DNFRegexAlt'} \ParallelRewrite
+          \RepeatDNFOf{i}{\DNFRegexAlt'}
+        }
+      \]
+      
+      From repeated application of
+      Lemma~\ref{lem:parallel-rewrite-concatenation}, and
+      Lemma~\ref{lem:parallel-rewrite-or},
+      \[
+        (\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+        \OrDNF
+        \ldots
+        \OrDNF
+        (\RepeatDNFOf{n-1}{\DNFRegex'}
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}}) \ParallelRewrite
+        (\RepeatDNFOf{0}{\DNFRegexAlt'}
+        \ConcatDNF (\DNFOf{\SequenceOf{\EmptyString}} \OrDNF
+        (\RepeatDNFOf{n}{\DNFRegexAlt'} \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})))
+        \OrDNF
+        \ldots
+        \OrDNF
+        (\RepeatDNFOf{n-1}{\DNFRegexAlt'}
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+      \]
+      From Lemma~\ref{lem:dnf-or-concat-dist-left} and
+      Lemma~\ref{lem:dnf-concat-identity-left},
+      $\RepeatDNFOf{0}{\DNFRegexAlt'} = \DNFOf{\SequenceOf{\EmptyString}}$, and
+      $\RepeatDNFOf{n}{\DNFRegexAlt'} = \DNFRegexAlt' \ConcatDNF
+      \RepeatDNFOf{n-1}{\DNFRegexAlt'}$,
+      \[
+        (\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+        \OrDNF
+        \ldots
+        \OrDNF
+        (\RepeatDNFOf{n-1}{\DNFRegexAlt'}
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}}) \ParallelRewrite
+        \DNFOf{\SequenceOf{\EmptyString}} \OrDNF
+        (\RepeatDNFOf{n}{\DNFRegexAlt'} \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}}) \OrDNF
+        (\RepeatDNFOf{1}{\DNFRegexAlt'}
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+        \OrDNF
+        \ldots
+        \OrDNF
+        (\RepeatDNFOf{n-1}{\DNFRegexAlt'}
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegexAlt'})}})
+      \]
+
+      TODO: clean up HEAVILY, but all statements needed ARE proven
+    \end{subcase}
+
+    \begin{subcase}[\StarIntroRewriteRule{}]
       Let $\StarOf{\DNFRegexAlt'} \ParallelRewriteAtom \DNFRegexAlt$ through an application of
-      \AtomStructuralRewriteRule{}.  This means that there eixsts some
+      \StarIntroRewriteRule{}.  This means that there eixsts some
       $\DNFRegexAlt''$ such that $\DNFRegexAlt =
       \AtomToDNFOf{\StarOf{\DNFRegexAlt''}}$, and
       \[
@@ -7310,16 +7136,228 @@ whitespace problem.
     \end{subcase}
   \end{case}
   
-  \begin{case}[\AtomStructuralRewriteRule{}]
+  \begin{case}[\QuotientRewriteRuleOf{n}]
     Let $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$, and
     $\Atom\ParallelRewriteAtom\DNFRegex$, and $\AtomAlt\ParallelRewriteAtom\DNFRegexAlt$
-    through an application of \AtomStructuralRewriteRule{}.
+    through an application of \QuotientRewriteRuleOf{n}.  This means that
+    \[
+      \DNFRegex = (\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{n-1}{\DNFRegex'})
+        \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}}
+    \]
+    By inversion, there exists $\DNFRegex'$, $\DNFRegexAlt'$, and $\DNFLens$
+    such that
+    \begin{gather*}
+      \Atom = \StarOf{\DNFRegex'}\\
+      \AtomAlt = \StarOf{\DNFRegexAlt'}\\
+      \AtomLens = \IterateLensOf{\DNFLens}\\
+      \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'
+    \end{gather*}
+    We split up by cases
+    on the final step in the derivation for $\AtomAlt \ParallelRewriteAtom \DNFRegexAlt$.
+
+    \begin{subcase}[\UnrollRewriteRule{}]
+      Because of Lemma~\ref{lem:closure-inversion}, this has already been
+      handled.
+    \end{subcase}
+    \begin{subcase}[\QuotientRewriteRuleOf{m}]
+      Let $\AtomAlt \ParallelRewriteAtom \DNFRegexAlt$ through an application of
+      \QuotientRewriteRuleOf{m}.  This means that
+      \[
+        \DNFRegexAlt = (\RepeatDNFOf{0}{\DNFRegexAlt'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{m-1}{\DNFRegexAlt'})
+        \ConcatDNF \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{\DNFRegexAlt'})}}
+      \]
+
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \StarOf{\RepeatDNFOf{n}{\DNFRegex'}} \ParallelRewrite 
+          (\RepeatDNFOf{0}{(\RepeatDNFOf{n}{\DNFRegex'})}
+          \OrDNF \ldots
+          \OrDNF \RepeatDNFOf{m-1}{(\RepeatDNFOf{n}{\DNFRegex'})})
+          \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{(\RepeatDNFOf{n}{\DNFRegex'})})}}
+        }
+      \]
+
+      So, through repeated application of
+      Lemma~\ref{lem:parallel-rewrite-concatenation}, and
+      Lemma~\ref{lem:parallel-rewrite-or},
+      if $\DNFRegex'' = (\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{n-1}{\DNFRegex'})
+        \ConcatDNF
+        ((\RepeatDNFOf{0}{(\RepeatDNFOf{n}{\DNFRegex'})}
+        \OrDNF \ldots
+        \OrDNF \RepeatDNFOf{m-1}{(\RepeatDNFOf{n}{\DNFRegex'})})
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{(\RepeatDNFOf{n}{\DNFRegex'})})}})$,
+        then
+      \[
+        (\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+        \RepeatDNFOf{n-1}{\DNFRegex'})
+        \ConcatDNF
+        \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{\DNFRegex'})}} \ParallelRewrite
+        \DNFRegex''
+      \]
+
+      From application of Lemma~\ref{lem:dnf-or-concat-dist-left} and
+      Lemma~\ref{lem:dnf-or-concat-dist-right},
+
+      \[
+        \begin{array}{c}
+          \DNFRegex'' =\\
+          ((\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+          \RepeatDNFOf{n-1}{\DNFRegex'}) \ConcatDNF \RepeatDNFOf{0}{(\RepeatDNFOf{n}{\DNFRegex'})} \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{(\RepeatDNFOf{n}{\DNFRegex'})})}})
+          \OrDNF \ldots
+          \OrDNF ((\RepeatDNFOf{0}{\DNFRegex'} \OrDNF \ldots \OrDNF
+          \RepeatDNFOf{n-1}{\DNFRegex'}) \ConcatDNF \RepeatDNFOf{m-1}{(\RepeatDNFOf{n}{\DNFRegex'})} \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{(\RepeatDNFOf{n}{\DNFRegex'})})}})
+        \end{array}
+      \]
+
+      Which, from an application of Lemma~\ref{lem:dnf-or-concat-dist-left}, and
+      through combining powers, means
+      \[
+        \begin{array}{rcl}
+          \DNFRegex'' & =\\
+          (\RepeatDNFOf{n\times 0 + 0}{\DNFRegex'} \ConcatDNF
+          \AtomToDNFOf{\StarOf{\RepeatDNFOf{n\times m}{\DNFRegex'}}}) & \OrDNF
+          \ldots \OrDNF &
+          (\RepeatDNFOf{n\times 0 + n-1}{\DNFRegex'}
+                          \ConcatDNF
+                          \AtomToDNFOf{\StarOf{\RepeatDNFOf{n\times m}{\DNFRegex'}}})
+          \OrDNF \\
+          \ldots
+          \OrDNF ((\RepeatDNFOf{n\times (m-1) + 0}{\DNFRegex'} \ConcatDNF
+          \AtomToDNFOf{\StarOf{\RepeatDNFOf{n\times m}{\DNFRegex'}}})
+                                                               & \OrDNF \ldots
+                                                              \OrDNF &
+          (\RepeatDNFOf{n\times (m-1) + n-1}{\DNFRegex')})) \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{(\RepeatDNFOf{n}{\DNFRegex'})})}})
+        \end{array}
+      \]
+      which is merely a reordering of the $\OrDNF$s in
+      \[
+        (\RepeatDNFOf{0}{\DNFRegex'} \ConcatDNF
+        \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegex'})}) \OrDNF \ldots \OrDNF
+        (\RepeatDNFOf{n\times m - 1}{\DNFRegex'} \ConcatDNF
+        \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegex'})})
+      \]
+
+
+      
+      
+      Because of
+
+      \[
+        \inferrule*
+        {
+        }
+        {
+          \StarOf{\RepeatDNFOf{m}{\DNFRegexAlt'}} \ParallelRewrite 
+          (\RepeatDNFOf{0}{(\RepeatDNFOf{m}{\DNFRegexAlt'})}
+          \OrDNF \ldots
+          \OrDNF \RepeatDNFOf{n-1}{(\RepeatDNFOf{m}{\DNFRegexAlt'})})
+          \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{n}{(\RepeatDNFOf{m}{\DNFRegexAlt'})})}}
+        }
+      \]
+
+      and a similar chain of reasoning, we have
+      $(\RepeatDNFOf{0}{\DNFRegexAlt'} \OrDNF \ldots \OrDNF
+          \RepeatDNFOf{m-1}{\DNFRegexAlt'})
+          \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m}{\DNFRegexAlt'})}} =
+          \DNFRegexAlt''$ if
+      \[
+        \begin{array}{rcl}
+          \DNFRegexAlt'' & =\\
+          (\RepeatDNFOf{m\times 0 + 0}{\DNFRegexAlt'} \ConcatDNF
+          \AtomToDNFOf{\StarOf{\RepeatDNFOf{m\times n}{\DNFRegexAlt'}}}) & \OrDNF
+          \ldots \OrDNF &
+          (\RepeatDNFOf{m\times 0 + m-1}{\DNFRegexAlt'}
+                          \ConcatDNF
+                          \AtomToDNFOf{\StarOf{\RepeatDNFOf{m\times n}{\DNFRegexAlt'}}})
+          \OrDNF \\
+          \ldots
+          \OrDNF ((\RepeatDNFOf{m\times (n-1) + 0}{\DNFRegexAlt'} \ConcatDNF
+          \AtomToDNFOf{\StarOf{\RepeatDNFOf{m\times n}{\DNFRegexAlt'}}})
+          
+                                                               & \OrDNF \ldots
+                                                              \OrDNF &
+          (\RepeatDNFOf{m\times (n-1) + n-1}{\DNFRegexAlt')})) \ConcatDNF
+          \AtomToDNFOf{\StarOf{(\RepeatDNFOf{m\times n}{\DNFRegexAlt'})}})
+        \end{array}
+      \]
+      which is merely a reordering of the $\OrDNF$s in
+      \[
+        (\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+        \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt'})}) \OrDNF \ldots \OrDNF
+        (\RepeatDNFOf{n\times m - 1}{\DNFRegexAlt'} \ConcatDNF
+        \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt'})})
+      \]
+
+      From Lemma~\ref{lem:iterate-lens-quotient}, the lens
+      \[
+        \begin{array}{c}
+          (\RepeatDNFLensOf{0}{\DNFLens}
+          \ConcatDNFLens \IterateLensOf{\RepeatDNFLensOf{n\times m}{\DNFLens}})
+          \OrDNFLens \ldots \OrDNFLens
+          (\RepeatDNFLensOf{n\times m-1}{\DNFLens} \ConcatDNFLens
+          \IterateLensOf{\RepeatDNFLensOf{n \times m}{\DNFLens}})
+          \OfRewritelessType\\
+          (\RepeatDNFOf{0}{\DNFRegex'} \ConcatDNF
+          \StarOf{\RepeatDNFOf{n\times m}{(\DNFRegex')}}) \OrDNF \ldots \OrDNF
+          (\RepeatDNFOf{n\times m-1}{\DNFRegex'} \ConcatDNF
+          \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegex'})}) \Leftrightarrow
+          (\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+          \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt'})}) \OrDNF \ldots \OrDNF
+          (\RepeatDNFOf{n\times m-1}{\DNFRegexAlt'} \ConcatDNF
+          \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt})})
+        \end{array}
+      \]
+      has the same
+      semantics as $\IterateLensOf{\DNFLens}$.
+
+      Because $\DNFRegex''$ is just a reordering of
+      $(\RepeatDNFOf{0}{\DNFRegex'} \ConcatDNF
+      \StarOf{\RepeatDNFOf{n\times m}{(\DNFRegex')}}) \OrDNF \ldots \OrDNF
+      (\RepeatDNFOf{n\times m-1}{\DNFRegex'} \ConcatDNF
+      \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegex'})})$,
+      and because $\DNFRegexAlt''$ is just a reordering of
+      $(\RepeatDNFOf{0}{\DNFRegexAlt'} \ConcatDNF
+      \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt'})}) \OrDNF \ldots \OrDNF
+      (\RepeatDNFOf{n\times m - 1}{\DNFRegexAlt'} \ConcatDNF
+      \StarOf{(\RepeatDNFOf{n\times m}{\DNFRegexAlt'})})$
+      from Lemma~\ref{lem:or-dnf-reordering-left} and
+      Lemma~\ref{lem:or-dnf-reordering-right},
+      there exists a DNF lens
+      $\DNFLens'$ such that $\DNFLens' \OfRewritelessType \DNFRegex''
+      \Leftrightarrow \DNFRegexAlt''$, and
+      $\SemanticsOf{\DNFLens'} =
+      \SemanticsOf{(\RepeatDNFLensOf{0}{\DNFLens}
+        \ConcatDNFLens \IterateLensOf{\RepeatDNFLensOf{n\times m}{\DNFLens}})
+        \OrDNFLens \ldots \OrDNFLens
+        (\RepeatDNFLensOf{n\times m-1}{\DNFLens} \ConcatDNFLens
+        \IterateLensOf{\RepeatDNFLensOf{n \times m}{\DNFLens}})} =
+      \SemanticsOf{\IterateLensOf{\DNFLens}}$
+    \end{subcase}
   \end{case}
 
-  \begin{case}[\ParallelDNFStructuralRewriteRule{}]
+  \begin{case}[\StarIntroRewriteRule{}]
+    Let $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$, and
+    $\Atom\ParallelRewriteAtom\DNFRegex$, and $\AtomAlt\ParallelRewriteAtom\DNFRegexAlt$
+    through an application of \StarIntroRewriteRule{}.
+  \end{case}
+
+  \begin{case}[\DNFIntroRewriteRule{}]
     Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
     $\DNFRegex\ParallelRewrite\DNFRegex'$, and $\DNFRegexAlt\ParallelRewrite\DNFRegexAlt'$
-    through an application of \ParallelDNFStructuralRewriteRule{}.
+    through an application of \DNFIntroRewriteRule{}.
   \end{case}
   
   \begin{case}[\IdentityRewriteRule{}]
@@ -7335,7 +7373,7 @@ whitespace problem.
   $\IsConfluentWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\Lens}}$.
 \end{theorem}
 \begin{proof}
-  Let $\DNFRegex \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt$.
+  Let $\DNFRegex \DNFLensHasSemanticsOf{Lens} \DNFRegexAlt$.
   This means there exists some $\DNFLens \OfRewritelessType \DNFRegex
   \Leftrightarrow \DNFRegexAlt$ such that $\SemanticsOf{\DNFLens} =
   \SemanticsOf{\Lens}$.
@@ -7351,11 +7389,81 @@ whitespace problem.
   \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt''$.
 \end{proof}
 
+\begin{theorem}[Confluence of Parallel Rewriting With Reordering]
+  \label{thm:parallel_confluence_swap}
+  \begin{enumerate}\leavevmode
+  \item For all lenses $\Lens$,
+    $\IsConfluentWithPropertyOf{\ParallelRewriteSwap}{\DNFLensHasSemanticsOf{\Lens}}$.
+  \item If $\AtomLens \OfType \Atom \Leftrightarrow \AtomAlt$, $\Atom
+    \ParallelRewriteSwapAtom \DNFRegex$, and $\AtomAlt \ParallelRewriteSwapAtom \DNFRegexAlt$, then
+    there exists some $\DNFRegex'$, $\DNFRegexAlt'$ such that $\DNFRegex
+    \ParallelRewriteSwap \DNFRegex'$ and $\DNFRegexAlt \ParallelRewriteSwap \DNFRegexAlt'$.
+  \end{enumerate}
+\end{theorem}
+\begin{proof}
+  By mutual induction on the derivation of $\ParallelRewriteSwap$ and $\ParallelRewriteSwapAtom$ for
+  the right DNF Regex of the relation
+  \begin{case}[\UnrollRewriteRule{}]
+    All cases are handled in the same way as in
+    Lemma~\ref{thm:parallel_confluence_noswap}.
+  \end{case}
+  
+  \begin{case}[\QuotientRewriteRuleOf{n}]
+    All cases are handled in the same way as in
+    Lemma~\ref{thm:parallel_confluence_noswap}.
+  \end{case}
+  
+  \begin{case}[\StarIntroRewriteRule{}]
+    All cases are handled in the same way as in
+    Lemma~\ref{thm:parallel_confluence_noswap}.
+  \end{case}
+  
+  \begin{case}[\DNFIntroRewriteRule{}]
+    Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
+    $\DNFRegex\ParallelRewriteSwap\DNFRegex'$, and $\DNFRegexAlt\ParallelRewriteSwap\DNFRegexAlt'$
+    through an application of \DNFIntroRewriteRule{}.
+    All cases for how $\DNFRegex \ParallelRewriteSwap \DNFRegex'$,
+    except \DNFReorderRule{} are handled in
+    Lemma~\ref{thm:parallel_confluence_noswap}.
+  \end{case}
+  
+  \begin{case}[\IdentityRewriteRule{}]
+    Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
+    $\DNFRegex\ParallelRewriteSwap\DNFRegex'$, and $\DNFRegexAlt\ParallelRewriteSwap\DNFRegexAlt'$
+    through an application of \IdentityRewriteRule{}.
+    All cases for how $\DNFRegex \ParallelRewriteSwap \DNFRegex'$,
+    except \DNFReorderRule{} are handled in
+    Lemma~\ref{thm:parallel_confluence_noswap}.
+  \end{case}
+  
+  \begin{case}[\DNFReorderRule{}]
+    Let $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, and
+    $\DNFRegex\ParallelRewriteSwap\DNFRegex'$, and $\DNFRegexAlt\ParallelRewriteSwap\DNFRegexAlt'$
+    through an application of \DNFReorderRule{}.
+  \end{case}
+\end{proof}
+
 \begin{theorem}
   \label{thm:parallel-star-equivalence}
   If $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$, then $\DNFRegex
   \StarOf{\Rewrite} \DNFRegex'$
 \end{theorem}
+
+\begin{corollary}
+  \label{cor:rewrite-equivalence-in-dnf-lenses}
+  If $\DNFRegex \StarOf{\ParallelRewriteSwap} \DNFRegex'$, and $\DNFRegexAlt
+  \StarOf{\ParallelRewriteSwap} \DNFRegexAlt'$, and there exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, then there exists
+  a rewriteless DNF lens
+  $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow \DNFRegexAlt''$ where
+  $\DNFRegex \StarOf{\Rewrite} \DNFRegex''$, $\DNFRegexAlt \StarOf{\Rewrite}
+  \DNFRegexAlt''$, and
+  $\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$.
+\end{corollary}
+\begin{proof}
+  From Theorem~\ref{thm:parallel-star-equivalence} applied to
+  Lemma~\ref{lem:parallel-rewrite-equivalence-in-dnf-lenses}.
+\end{proof}
 
 \begin{corollary}[$\StarOf{\Rewrite}$ Maintained Under Iteration]
   \label{cor:rewrite-maintained-iteration}
@@ -7442,179 +7550,34 @@ whitespace problem.
 \end{proof}
 
 \begin{lemma}
-  \label{lem:parallelswapequiv-has-identity-lens}
-  Let $\DNFRegex$ be strongly unambiguous, and
-  let $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$.
-  There exists $\DNFLens$, $\DNFRegex'$, $\DNFRegexAlt'$ such that
-  $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$,
-  $\DNFRegexAlt' \StarOf{\Rewrite} \DNFRegexAlt'$,
-  $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
-  and $\SemanticsOf{\DNFLens} =
-  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex}}$.
-\end{lemma}
-\begin{proof}
-  Proof by induction on the typing of $\EquivalenceOf{\ParallelRewriteSwap}$
-  \begin{case}[\ReflexivityRule]
-    Let $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$ through an
-    application of \ReflexivityRule{}.
-    That means $\DNFRegexAlt = \DNFRegex$.
-
-    Consider $\DNFRegex \StarOf{\Rewrite} \DNFRegex$, and
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegex$ through applications
-    of \ReflexivityRule{}.
-
-    Then, by Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there
-    exists a lens $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
-    \DNFRegex$ such that $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String)
-      \SuchThat \String \in \LanguageOf{\DNFRegex}}$
-  \end{case}
-
-  \begin{case}[\BaseRule]
-    Let $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$ through an
-    application of \BaseRule{}.
-    That means $\DNFRegex \ParallelRewriteSwap \DNFRegexAlt$.
-
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegexAlt$ through an application
-    of \ReflexivityRule{}.
-    
-    By Lemma~\ref{lem:swap-unimportance-identity}, there exists a DNF regular
-    expression, $\DNFRegex'$, and a DNF lens $\DNFLens$,
-    such that $\DNFRegex \Rewrite \DNFRegex'$,
-    $\DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt$,
-    and $\SemanticsOf{\DNFLens} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex}}$.
-    Through an application of \BaseRule{},
-    $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$.
-    From Theorem~\ref{thm:parallel-star-equivalence},
-    $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$, as desired.
-  \end{case}
-
-  \begin{case}[\SymmetryRule]
-    Let $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$ through an
-    application of \SymmetryRule{}.
-    That means $\DNFRegexAlt \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex$.
-
-    By IH, there exists DNF regular expressions $\DNFRegexAlt'$, $\DNFRegex'$,
-    and a DNF lens $\DNFLens$ such that
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegexAlt'$,
-    $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$,
-    $\DNFLens \OfRewritelessType \DNFRegexAlt' \Leftrightarrow \DNFRegex'$,
-    and $\SemanticsOf{\DNFRegexAlt'} = \SetOf{(\String,\String) \SuchThat
-      \String \in \LanguageOf{\DNFRegexAlt}}$.
-
-    Because $\EquivalenceOf{\ParallelRewriteSwap}$ is equivalent to
-    $\DefinitionalEquiv$, $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$
-
-    By Lemma~\ref{lem:closure-inversion}, there exists
-    $\DNFLens' \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
-    and $\SemanticsOf{\DNFLens'} = \SetOf{(\String,\String) \SuchThat
-      \String \in \LanguageOf{\DNFRegex}}$, as desired.
-  \end{case}
-
-  \begin{case}[\TransitivityRule{}]
-    Let $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$ through an
-    application of \TransitivityRule{}.
-    That means there exists $\DNFRegex'$ such that
-    $\DNFRegex \EquivalenceOf{\ParallelRewriteSwap} \DNFRegex'$ and
-    $\DNFRegex' \EquivalenceOf{\ParallelRewriteSwap} \DNFRegexAlt$.
-
-    By IH, there exists DNF regular expressions $\DNFRegex_1$, $\DNFRegex_2$,
-    and a DNF lens $\DNFLens_1$ such that
-    $\DNFRegex \StarOf{\Rewrite} \DNFRegex_1$,
-    $\DNFRegex' \StarOf{\Rewrite} \DNFRegex_2$,
-    and $\DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$.
-
-    By IH, there exists DNF regular expressions $\DNFRegex_3$, $\DNFRegex_4$,
-    and a DNF lens $\DNFLens_2$ such that
-    $\DNFRegex' \StarOf{\Rewrite} \DNFRegex_3$,
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegex_4$,
-    and $\DNFLens_2 \OfRewritelessType \DNFRegex_3 \Leftrightarrow \DNFRegex_4$.
-
-    By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists a
-    lens $\DNFLens_{\Identity_1} \OfRewritelessType
-    \DNFRegex' \Leftrightarrow \DNFRegex'$, where
-    $\SemanticsOf{\DNFLens_{\Identity_1}} = \SetOf{(\String,\String) \SuchThat
-      \String \in \LanguageOf{\DNFRegex'}}$.
-    
-    Because $\SatisfiesIdentitySemantics{\DNFRegex'}{\DNFRegex'}$, and
-    by Corollary~\ref{cor:rewrite-confluence}, there exists $\DNFRegex_5$ and
-    $\DNFRegex_6$, such that
-    $\DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_5$,
-    $\DNFRegex_3 \StarOf{\Rewrite} \DNFRegex_6$, and
-    $\SatisfiesIdentitySemantics{\DNFRegex_5}{\DNFRegex_6}$.
-    That means there exists
-    $\DNFLens_{\Identity_2} \OfRewritelessType
-    \DNFRegex_5 \Leftrightarrow \DNFRegex_6$, where
-    $\SemanticsOf{\DNFLens_{\Identity_2}} = \SetOf{(\String,\String) \SuchThat
-      \String \in \LanguageOf{\DNFRegex'}}$.
-
-    By Corollary~\ref{cor:copyable_expansions_right_serialized_star},
-    as $\DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_5$, and
-    $\DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$.
-    Because $\DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_5$, there exists a
-    DNF lens $\DNFLens_3$, and DNF regular expression $\DNFRegex_7$ such that
-    $\DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_7$, $\DNFLens_3 \OfRewritelessType
-    \DNFRegex_7 \Leftrightarrow \DNFRegex_5$, and
-    $\SemanticsOf{\DNFLens_3} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex}}$.
-
-    By Corollary~\ref{cor:copyable_expansions_left_serialized_star},
-    as $\DNFRegex_3 \StarOf{\Rewrite} \DNFRegex_6$, and
-    $\DNFLens_2 \OfRewritelessType \DNFRegex_3 \Leftrightarrow \DNFRegex_4$.
-    Because $\DNFRegex_3 \StarOf{\Rewrite} \DNFRegex_6$, there exists a
-    DNF lens $\DNFLens_4$, and DNF regular expression $\DNFRegex_8$ such that
-    $\DNFRegex_4 \StarOf{\Rewrite} \DNFRegex_8$, $\DNFLens_4 \OfRewritelessType
-    \DNFRegex_6 \Leftrightarrow \DNFRegex_8$, and
-    $\SemanticsOf{\DNFLens_3} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex'}}$.
-
-    So there are lenses
-    $\DNFLens_3 \OfRewritelessType \DNFRegex_7 \Leftrightarrow \DNFRegex_5$,
-    $\DNFLens_{\Identity_2} \OfRewritelessType \DNFRegex_5 \Leftrightarrow \DNFRegex_6$, and
-    $\DNFLens_4 \OfRewritelessType \DNFRegex_6 \Leftrightarrow \DNFRegex_8$, so
-    by Lemma~\ref{lem:composition-completeness}, there exists a lens
-    $\DNFLens_5 \OfRewritelessType \DNFRegex_7 \Leftrightarrow \DNFRegex_8$.
-    Because all of these have the semantics of the identity lens on DNF regular
-    expressions with the same language,
-    $\SemanticsOf{\DNFLens_5} =
-    \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex}}$.
-
-    Furthermore, $\DNFRegex \StarOf{\Rewrite} \DNFRegex_1$ and
-    $\DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_7$, so
-    $\DNFRegex \StarOf{\Rewrite} \DNFRegex_7$.
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegex_4$ and
-    $\DNFRegex_4 \StarOf{\Rewrite} \DNFRegex_8$, so
-    $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegex_8$, as desired.
-  \end{case}
-\end{proof}
-
-\begin{lemma}
   \label{lem:identity-definitional-equivalence}
   Let $\Regex \DefinitionalEquiv \RegexAlt$, and let $\Regex$ be strongly
   unambiguous.  There exists $\DNFLens$, $\DNFRegex$, $\DNFRegexAlt$ such that
   $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-  $\ToDNFRegexOf{\Regex} \StarOf{\Rewrite} \DNFRegex$,
-  $\ToDNFRegexOf{\RegexAlt} \StarOf{\Rewrite} \DNFRegexAlt$, and
+  $\ToDNFRegexOf{\Regex} \StarOf{\ParallelRewrite} \DNFRegex$,
+  $\ToDNFRegexOf{\RegexAlt} \StarOf{\ParallelRewrite} \DNFRegexAlt$, and
   $\SemanticsOf{\DNFLens} =
   \SetOf{(\String,\String) \SuchThat \String\in\LanguageOf{\Regex}}$
 \end{lemma}
 \begin{proof}
-  From Lemma~\ref{thm:defequiv-equiv-parallelswapequiv}, as 
-  $\Regex \DefinitionalEquiv \RegexAlt$,
-  $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
-  \ToDNFRegexOf{\RegexAlt}$.
-  Because $\Regex$ is strongly unambiguous, by
-  Lemma~\ref{lem:retaining-unambiguity}, $\ToDNFRegexOf{\Regex}$ is strongly
-  unambiguous.
-  Because of this, from Lemma~\ref{lem:parallelswapequiv-has-identity-lens},
-  there exists $\DNFRegex$, $\DNFRegexAlt$, and $\DNFLens$ such that
-  $\ToDNFRegexOf{\Regex} \StarOf{\Rewrite} \DNFRegex$,
-  $\ToDNFRegexOf{\RegexAlt} \StarOf{\Rewrite} \DNFRegexAlt$, and
-  $\SemanticsOf{\DNFLens} =
-  \SetOf{(\String,\String) \SuchThat
-    \String\in\LanguageOf{ToDNFRegexOf{\Regex}}}$.
-  From Theorem~\ref{thm:dnfrs}, $\LanguageOf{\ToDNFRegexOf{\Regex}} =
-  \LanguageOf{\Regex}$, as desired.
+  From Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists a
+  DNF Lens $\DNFLens \OfRewritelessType \ToDNFRegexOf{\Regex} \Leftrightarrow
+  \ToDNFRegexOf{\Regex}$ such that $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\Regex}}$.
+  By Theorem~\ref{thm:defequiv-equiv-parallelswapequiv}, $\ToDNFRegexOf{\Regex}
+  \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\RegexAlt}$.  By
+  Theorem~\ref{thm:equived-confluence}, There exists some $\DNFRegex$,
+  $\DNFRegexAlt$, $\DNFLens'$ such that $\DNFLens' \OfRewritelessType
+  \DNFRegex \Leftrightarrow \DNFRegexAlt$ where
+  $\ToDNFRegexOf{\Regex} \StarOf{\ParallelRewriteSwap} \DNFRegex$,
+  $\ToDNFRegexOf{\RegexAlt} \StarOf{\ParallelRewriteSwap} \DNFRegexAlt$
+  and $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens}$.
+  By Corollary~\ref{cor:rewrite-equivalence-in-dnf-lenses}, there exists
+  some $\DNFRegex'$, $\DNFRegexAlt'$, $\DNFLens''$ such that $\DNFLens''
+  \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$ where
+  $\ToDNFRegexOf{\Regex} \StarOf{\Rewrite} \DNFRegex'$ and
+  $\ToDNFRegexOf{\RegexAlt} \StarOf{\Rewrite} \DNFRegexAlt'$, and
+  $\SemanticsOf{\DNFLens''} = \SemanticsOf{\DNFLens}$.
 \end{proof}
 
 \begin{lemma}
