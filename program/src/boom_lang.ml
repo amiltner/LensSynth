@@ -32,6 +32,7 @@ let statement_of_decl (d:declaration) : boom_statement list =
       List.map
         ~f:(fun (lex,rex) -> BoomStmtTestLens (LensVariable n, lex, rex))
         exs
+    | _ -> failwith "Unclear how to implement" (* Quotient cases *)
   end
 
 let retrieve_inverses_of_lens_variables_exn (p:program) : id list =

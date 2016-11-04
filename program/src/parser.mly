@@ -13,6 +13,9 @@ open Lang
 %token ABSTRACT   (* abstract *)
 %token TEST       (* test *)
 %token MATCHES    (* matches *)
+%token PERM       (* permutation *)
+%token SEP        (* separator *)
+%token QUOTIENT   (* quotient *)
 
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
@@ -32,6 +35,7 @@ open Lang
 %token LBRACKET   (* [ *)
 %token RBRACKET   (* ] *)
 %token SEMI       (* ; *)
+%token ARROW      (* -> *)
 %token EOF
 
 %start <Lang.program> program
@@ -53,6 +57,16 @@ decl:
     { DeclTestString (r,s) }
   | TEST n=LID exs=examples SEMI SEMI
     { DeclTestLens (n,exs) }
+  | QUOTIENT d=quotient_defn
+    { DeclQuotientRegexCreation d }
+  | QUOTIENT s=quotient_specification
+    { DeclQuotientSynthesizeLens s }
+
+quotient_defn:
+  | TYPEDEF u=UID EQ r=quotient_regex SEMI SEMI
+    { (u, r, true) }
+  | ABSTRACT u=UID EQ r=quotient_regex SEMI SEMI
+    { (u, r, false) }
 
 defn:
   | TYPEDEF u=UID EQ r=regex SEMI SEMI
@@ -64,27 +78,65 @@ specification:
   |  n=LID EQ LBRACKET r1=regex LEFTRIGHTFATARR r2=regex es=examples RBRACKET
     { (n,r1,r2,es) }
 
+quotient_specification:
+  | n=LID EQ LBRACKET q1=quotient_regex LEFTRIGHTFATARR q2=quotient_regex es=examples RBRACKET
+    { (n, q1, q2, es) }
+
 (***** Regexes {{{ *****)
 
 regex:
-  | r=regex_l0 { r }
+  | r=base_regex_l0 {r}
 
-regex_l0:
-  | r1=regex_l1 PIPE r2=regex_l0 { RegExOr (r1,r2) }
-  | r=regex_l1 { r }
+quotient_regex_list:
+  | LBRACKET RBRACKET { [] }
+  | LBRACKET l=quotient_regex_list_internal RBRACKET { l }
 
-regex_l1:
-  | r1=regex_l2 r2=regex_l1 { RegExConcat (r1,r2) }
-  | r=regex_l2 { r }
+quotient_regex_list_internal:
+  | r=quotient_regex { [r] }
+  | r=quotient_regex SEMI l=quotient_regex_list_internal { r :: l }
 
-regex_l2:
-  | r=regex_l2 STAR { RegExStar r }
-  | r=regex_l2 PLUS { RegExConcat(r, RegExStar r) }
-  | r=regex_l3 { r }
+quotient_regex:
+  | r=quotient_regex_l0 {r}
 
-regex_l3:
+quotient_regex_l0:
+  | r1=quotient_regex_l1 PIPE r2=quotient_regex_l0 { QuotientRegExOr (r1, r2) }
+  | r=quotient_regex_l1 { r }
+
+quotient_regex_l1:
+  | r1=quotient_regex_l2 r2=quotient_regex_l1 { QuotientRegExConcat (r1, r2) }
+  | r=quotient_regex_l2 { r }
+
+quotient_regex_l2:
+  | r = quotient_regex_l2 STAR { QuotientRegExStar r }
+  | r = quotient_regex_l2 PLUS { QuotientRegExConcat(r, QuotientRegExStar r) }
+  | r = quotient_regex_l3 { r }
+
+quotient_regex_l3:
+  | PERM l=quotient_regex_list SEP LPAREN s=base_regex RPAREN { QuotientRegExPermute (l, s) }
+  | s = base { QuotientRegExBase s }
+  | LBRACKET r=base_regex ARROW s=base RBRACKET { QuotientRegExMap (r, s) }
+  | LPAREN r=quotient_regex_l0 RPAREN { r }
+  | u = UID { QuotientRegExVariable u }
+
+base_regex:
+  | r=base_regex_l0 { r }
+
+base_regex_l0:
+  | r1=base_regex_l1 PIPE r2=base_regex_l0 { RegExOr (r1,r2) }
+  | r=base_regex_l1 { r }
+
+base_regex_l1:
+  | r1=base_regex_l2 r2=base_regex_l1 { RegExConcat (r1,r2) }
+  | r=base_regex_l2 { r }
+
+base_regex_l2:
+  | r=base_regex_l2 STAR { RegExStar r }
+  | r=base_regex_l2 PLUS { RegExConcat(r, RegExStar r) }
+  | r=base_regex_l3 { r }
+
+base_regex_l3:
   | s=base { RegExBase s }
-  | LPAREN r=regex_l0 RPAREN { r }
+  | LPAREN r=base_regex_l0 RPAREN { r }
   | u=UID { RegExVariable u }
 
 

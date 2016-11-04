@@ -4,8 +4,6 @@ open String_utilities
 open Permutation
 
 
-
-
 (**** General {{{ *****)
 
 exception Internal_error of string
@@ -134,10 +132,26 @@ let rec lens_to_string (l:lens) : string =
 (***** }}} *****)
 
 
+(***** Quotient Regex {{{ *****)
+
+type quotient_regex =
+  | QuotientRegExEmpty
+  | QuotientRegExBase of string
+  | QuotientRegExConcat of quotient_regex * quotient_regex
+  | QuotientRegExOr of quotient_regex * quotient_regex
+  | QuotientRegExStar of quotient_regex
+  | QuotientRegExVariable of string
+  | QuotientRegExPermute of quotient_regex list * regex
+  | QuotientRegExMap of regex * string
+
+(***** }}} ******)
+
 
 (**** Language {{{ *****)
 
 type examples = (string * string) list
+
+type quotient_specification = (string * quotient_regex * quotient_regex * examples)
 
 type specification = (string * regex * regex * (string * string) list)
 
@@ -147,6 +161,9 @@ type declaration =
   | DeclSynthesizeLens of specification
   | DeclLensCreation of id * regex * regex * lens
   | DeclTestLens of id * examples
+  | DeclQuotientRegexCreation of (id * quotient_regex * bool)
+  | DeclQuotientSynthesizeLens of quotient_specification
+  | DeclQuotientLensCreation of id * quotient_regex * quotient_regex * lens
 
 type program = declaration list
 

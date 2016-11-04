@@ -3,8 +3,8 @@ open Regexcontext
 open Lenscontext
 open Lang
 open Eval
-open Quotient_regex
 open Qre_context
+open Quotient_regex
 open Normalized_lang
 open Typing
 open Permutation
@@ -176,6 +176,7 @@ let rec get_elems_and_seps e n =
   | x, 0 -> ([x], [])
   | _ -> failwith "Failure to typecheck"
 
+
 let rec quotient_lens_canonize_internal rc qc ql er it : string =
   match (ql, er) with
   | QuotientRegExBase s, _ -> s
@@ -234,5 +235,3 @@ let quotient_lens_canonize rc qc q s =
     | None -> failwith "bad input to lens"
     | Some exampled_sr -> quotient_lens_canonize_internal rc qc q exampled_sr [0]
   end
-
-

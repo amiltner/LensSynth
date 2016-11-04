@@ -2,16 +2,6 @@ open Lang
 open Permutation
 open Core.Std
 
-type quotient_regex =
-  | QuotientRegExEmpty
-  | QuotientRegExBase of string
-  | QuotientRegExConcat of quotient_regex * quotient_regex
-  | QuotientRegExOr of quotient_regex * quotient_regex
-  | QuotientRegExStar of quotient_regex
-  | QuotientRegExVariable of string
-  | QuotientRegExPermute of quotient_regex list * regex
-  | QuotientRegExMap of regex * string
-
 (* Convert an ordinary regex into a quotient regex *)
 let rec promote_regex r =
   match r with

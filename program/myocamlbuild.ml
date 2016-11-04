@@ -46,6 +46,7 @@ let _ =
       flag ["ocaml" ; "compile"] (A "-annot") ;
       flag ["ocaml" ; "compile"] (A "-g") ;
       flag ["ocaml" ; "compile"; "native" ] (S [(A "-inline"); (A "20")]) ;
+      flag ["ocaml" ; "parser"; "menhir" ] (S [A "--explain"]);
 
       (* for alphaCaml *)
       rule "alphaCaml: mla -> ml & mli"
