@@ -625,7 +625,7 @@ then that regular expression is \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$.
 
 A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
-\String$, $\Regex = \emptyset$, or the following conditions are held:
+\String$, $\LanguageOf{\Regex} = SetOf{}$, or the following conditions are held:
 \begin{enumerate}
 \item If $\Regex = \Regex_1 \Concat \Regex_2$ then $\Regex_1 \UnambigConcat
   \Regex_2$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
@@ -1566,10 +1566,13 @@ closure of $\Rewrite$.
   \begin{mathpar}
     \inferrule[\AtomLensRule{}]
     {
-      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
+      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
+      \UnambigItOf{\DNFRegex}\\
+      \UnambigItOf{\DNFRegexAlt}
     }
     {
-      \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+      \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+      \Leftrightarrow \StarOf{\DNFRegexAlt}
     }
 
     \inferrule[\SequenceLensRule{}]
@@ -1579,7 +1582,7 @@ closure of $\Rewrite$.
       \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
       \sigma \in \PermutationSetOf{n}\\
       \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
-      \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
+      \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
     }
     {
       (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
@@ -2150,7 +2153,7 @@ The column \textbf{Examples Required} in Figure~\ref{fig:evaluation-data}
 provides the number of randomly generated examples it takes, on average, to
 synthesize the correct lens on our test suite.  
 
-As we see in Figure~\ref{fig:examples-required-table}, examples are not
+As we see in Figure~\ref{fig:evaluation-data}, examples are not
 incredibly
 important for synthesizing bijective lenses.
 Because bijective lenses have very few well typed programs, compared to the
@@ -2161,19 +2164,24 @@ In particular, the address problem requires more examples, because it must make
 choices of where information goes, like which name is the a person's first name,
 and which is their last.
 
-However, this column does not tell the whole story.  A large reason why these require
-so few examples is that we unintentionally ordered the $\OrRegexType$s in the
-regular expressions in similar ways on regular expressions that map to each
-other.  Because the synthesis algorithm chooses the simplest permutation when
-there are multiple possible, it will choose the one that is most similar in
-order to the order of the regular expressions.
+However, this column does not tell the whole story.
+The column \textbf{Max Exs Reqd} in Figure~\ref{fig:evaluation-data}
+provides the maximum number of examples required.
+This column represents the number of examples that are required if the
+synthesis engine always guessed the incorrect permutation, when multiple
+permutations satisfy the type and examples.
+This column shows that, while in practice few examples are required,
+when complicated permutations are needed, more examples are required.
 
-The column \textbf{RO Examples Required} (TODO) in Figure~\ref{fig:evaluation-data}
-provides how many randomized examples were required, when the order of
-$\OrRegexType$s are randomly permuted.  This column shows that, while sometimes few
-examples are required, in instances where the ordering of $\OrRegexType$ is very
-different between the regular expressions being mapped, many examples can be
-required to synthesize the correct lens.
+The test programs require
+so few examples, when adversarial synthesis of permutations could necessitate so
+many examples, because we unintentionally ordered the $\OrRegexType$s in many of
+the test programs regular expressions.
+We represented subparts of similar data formats in a consistent ordering,
+requiring fewer examples.  We expect that most programmers do the same.
+Maintaining similar subparts in similar orderings makes the types much easier to
+read, make it easier for checking that the languages are in bijection with each
+other.
 
 \subsection{Importance of User Defined Data Types}
 
@@ -4806,22 +4814,305 @@ whitespace problem.
 
 \begin{lemma}[Closure of Rewriteless DNF Lenses Under Inversion]
   \label{lem:closure-inversion}
-  If $\DNFRegex \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then there
-  exists a lens $\InverseOf{\DNFRegex} \OfRewritelessType \DNFRegexAlt
-  \Leftrightarrow \DNFRegex$ such that $\SemanticsOf{\InverseOf{\DNFRegex}} =
-  \SetOf{(\StringAlt,\String) \SuchThat (\String,\StringAlt) \in \SemanticsOf{\DNFRegex}}$
+  \leavevmode
+  \begin{enumerate}
+  \item If
+    $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    then there exists a dnf lens
+    $\InverseOf{\DNFLens} \OfRewritelessType
+    \DNFRegexAlt \Leftrightarrow \DNFRegex$
+    such that
+    $\SemanticsOf{\InverseOf{\DNFRegex}} =
+    \SetOf{(\StringAlt,\String) \SuchThat (\String,\StringAlt) \in
+      \SemanticsOf{\DNFLens}}$
+  \item If
+    $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$,
+    then there exists a sequence lens
+    $\InverseOf{\SequenceLens} \OfRewritelessType
+    \SequenceAlt \Leftrightarrow \Sequence$ such that
+    $\SemanticsOf{\InverseOf{\SequenceLens}} =
+    \SetOf{(\StringAlt,\String) \SuchThat (\String,\StringAlt) \in
+      \SemanticsOf{\SequenceLens}}$
+  \item If
+    $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$,
+    then there exists an atom lens
+    $\InverseOf{\AtomLens} \OfRewritelessType
+    \AtomAlt \Leftrightarrow \Atom$ such that
+    $\SemanticsOf{\InverseOf{\AtomLens}} =
+    \SetOf{(\StringAlt,\String) \SuchThat (\String,\StringAlt) \in
+      \SemanticsOf{\AtomLens}}$
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the typing derivation of $\DNFLens$, $\SequenceLens$,
+  and $\AtomLens$.
+
+  \begin{case}[\DNFLensRule{}]
+    \[
+      \inferrule*
+      {
+        \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+        \ldots\\
+        \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+        \sigma \in \PermutationSetOf{n}\\
+        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+      }
+      {
+        (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType
+        \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+        \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+      }
+    \]
+
+    By IH, there exists
+    $\InverseOf{\SequenceLens_i} \OfRewritelessType
+    \SequenceAlt_i \Leftrightarrow \Sequence_i$ where
+    $\SemanticsOf{\InverseOf{\SequenceLens_i}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\SequenceLens_i}}$.
+
+    Consider the typing
+    \[
+      \inferrule*
+      {
+        \InverseOf{\SequenceLens_{\sigma(1)}} \OfRewritelessType
+        \SequenceAlt_{\sigma(1)} \Leftrightarrow \Sequence_{\sigma(1)}\\
+        \ldots\\
+        \InverseOf{\SequenceLens_{\InverseOf{\sigma(n)}}} \OfRewritelessType
+        \SequenceAlt_{\sigma(n)} \Leftrightarrow \Sequence_{\sigma(n)}\\\\
+        \InverseOf{\sigma} \in \PermutationSetOf{n}\\
+        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+      }
+      {
+        (\DNFLensOf{\InverseOf{\SequenceLens_{\sigma(1)}}
+          \DNFLensSep\ldots\DNFLensSep
+          \InverseOf{\SequenceLens_{\sigma(n)}}},\InverseOf{\sigma}) \OfRewritelessType
+        \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+        \Leftrightarrow
+        \DNFOf{\Sequence_{\InverseOf{\sigma}(\sigma(1))}\DNFSep\ldots\DNFSep\Sequence_{\InverseOf{\sigma}(\sigma(n)})}
+      }
+    \]
+
+    So $(\DNFLensOf{\InverseOf{\SequenceLens_{\sigma(1)}}
+      \DNFLensSep\ldots\DNFLensSep
+      \InverseOf{\SequenceLens_{\sigma(n)}}},\InverseOf{\sigma}) \OfRewritelessType
+    \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+    \Leftrightarrow
+    \DNFOf{\Sequence_{1}\DNFSep\ldots\DNFSep\Sequence_{n})}$, or in other words
+    $(\DNFLensOf{\SequenceLens_{\sigma(1)}
+      \DNFLensSep\ldots\DNFLensSep
+      \SequenceLens_{\sigma(n)}},\InverseOf{\sigma}) \OfRewritelessType
+    \DNFRegexAlt
+    \Leftrightarrow
+    \DNFRegex$, as desired.
+    
+    $\SemanticsOf{(\DNFLensOf{\InverseOf{\SequenceLens_{\sigma(1)}}
+        \DNFLensSep\ldots\DNFLensSep
+        \InverseOf{\SequenceLens_{\sigma(n)}}},\InverseOf{\sigma})} =
+    \SetOf{(\String,\StringAlt) \SuchThat \exists i.
+      (\String,\StringAlt) \in \SemanticsOf{\InverseOf{\SequenceLens_{\sigma(i)}}}} =
+    \SetOf{(\StringAlt,\String) \SuchThat \exists i.
+      (\String,\StringAlt) \in \SemanticsOf{\SequenceLens_i}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\DNFLens}}$, as desired.
+  \end{case}
+
+  \begin{case}[\SequenceLensRule{}]
+    \[
+      \inferrule*
+      {
+        \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+        \ldots\\
+        \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
+        \sigma \in \PermutationSetOf{n}\\
+        \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+        \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
+      }
+      {
+        (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType
+        \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
+        \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+      }
+    \]
+
+    By IH, there exists
+    $\InverseOf{\AtomLens_i} \OfRewritelessType
+    \AtomAlt_i \Leftrightarrow \Atom_i$ where
+    $\SemanticsOf{\InverseOf{\AtomLens_i}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\AtomLens_i}}$.
+
+    Consider the typing
+    \[
+      \inferrule*
+      {
+        \InverseOf{\AtomLens_{\sigma(1)}} \OfRewritelessType
+        \AtomAlt_{\sigma(1)} \Leftrightarrow \Atom_{\sigma(n)}\\
+        \ldots\\
+        \InverseOf{\AtomLens_{\sigma(n)}} \OfRewritelessType
+        \AtomAlt_{\sigma(n)} \Leftrightarrow \Atom_{\sigma(n)}\\
+        \InverseOf{\sigma} \in \PermutationSetOf{n}\\
+        \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_n\SequenceSep\StringAlt_n}
+        \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+      }
+      {
+        (\SequenceLensOf{(\StringAlt_0,\String_0)\SequenceLensSep\Atom_1\SequenceLensSep\ldots\SequenceLensSep\Atom_n\SequenceLensSep(\StringAlt_n,\String_n)},\sigma) \OfRewritelessType
+        \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+        \Leftrightarrow
+        \SequenceOf{\String_0\SequenceSep\Atom_{\InverseOf{\sigma}(\sigma(1))}\SequenceSep\ldots\SequenceSep\Atom_{\InverseOf{\sigma}(\sigma(n))}\SequenceSep\String_n}
+      }
+    \]
+
+    So $(\SequenceLensOf{(\StringAlt_0,\String_0);
+      \InverseOf{\AtomLens_{\sigma(1)}}
+      \SequenceLensSep\ldots\SequenceLensSep
+      \InverseOf{\AtomLens_{\sigma(n)}};
+      (\StringAlt_n,\String_n)},\InverseOf{\sigma}) \OfRewritelessType
+    \SequenceOf{\StringAlt_0;\SequenceAlt_{\sigma(1)}
+      \SequenceSep\ldots\SequenceSep
+      \SequenceAlt_{\sigma(n)};\StringAlt_n}
+    \Leftrightarrow
+    \SequenceOf{\String_0;\Sequence_{1}\DNFSep\ldots\DNFSep\Sequence_{n})}$, or in other words
+    $(\SequenceLensOf{(\StringAlt_0,\String_0);
+      \InverseOf{\AtomLens_{\sigma(1)}}
+      \SequenceLensSep\ldots\SequenceLensSep
+      \InverseOf{\AtomLens_{\sigma(n)}};
+      (\StringAlt_n,\String_n)},\InverseOf{\sigma}) \OfRewritelessType
+    \SequenceAlt
+    \Leftrightarrow
+    \Sequence$, as desired.
+    
+    $\SemanticsOf{(\SequenceLensOf{(\StringAlt_0,\String_0);
+      \InverseOf{\AtomLens_{\sigma(1)}}
+      \SequenceLensSep\ldots\SequenceLensSep
+      \InverseOf{\AtomLens_{\sigma(n)}};
+      (\StringAlt_n,\String_n)},\InverseOf{\sigma})} =
+    \SetOf{(\StringAlt_0\String_1'\ldots\String_n'\StringAlt_n,
+      \String_0\StringAlt_{\InverseOf{\sigma}(1)}'\ldots\StringAlt_{\InverseOf{\sigma(n)}}'\String_n)
+      \SuchThat \forall i.
+      (\String_i',\StringAlt_i') \in \SemanticsOf{\InverseOf{\AtomLens_{\sigma(i)}}}} =
+    \SetOf{(\StringAlt_0\StringAlt_{\sigma(1)}'\ldots\StringAlt_{\sigma(n)}'\StringAlt_n,
+      \String_0\String_1'\ldots\String_n'\String_n) \SuchThat \forall i.
+      (\String',\StringAlt') \in \SemanticsOf{\AtomLens_i}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\SequenceLens}}$, as desired.
+  \end{case}
+
+  \begin{case}[\AtomLensRule{}]
+    \[
+      \inferrule*
+      {
+        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt
+        \UnambigItOf{\DNFRegex}\\
+        \UnambigItOf{\DNFRegexAlt}
+      }
+      {
+        \IterateLensOf{\DNFLens} \OfRewritelessType
+        \StarOf{\DNFRegex} \Leftrightarrow \StarOf{\DNFRegexAlt}
+      }
+    \]
+
+    By IH, there exists
+    $\InverseOf{\DNFLens} \OfRewritelessType
+    \DNFRegexAlt \Leftrightarrow \DNFRegex$ where
+    $\SemanticsOf{\InverseOf{\DNFLens}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\DNFLens}}$.
+
+    Consider the typing
+    \[
+      \inferrule*
+      {
+        \InverseOf{\DNFLens} \OfRewritelessType \DNFRegexAlt \Leftrightarrow \DNFRegex
+        \UnambigItOf{\DNFRegexAlt}\\
+        \UnambigItOf{\DNFRegex}
+      }
+      {
+        \IterateLensOf{\InverseOf{\DNFLens}} \OfRewritelessType
+        \StarOf{\DNFRegexAlt} \Leftrightarrow \StarOf{\DNFRegex}
+      }
+    \]
+
+    So
+    $\IterateLensOf{\InverseOf{\DNFLens}} \OfRewritelessType
+    \StarOf{\DNFRegexAlt}
+    \Leftrightarrow
+    \StarOf{\DNFRegex}$, or in other words
+    $(\IterateLensOf{\InverseOf{\DNFLens}}) \OfRewritelessType
+    AtomAlt
+    \Leftrightarrow
+    Atom$
+    as desired.
+    
+    $\SemanticsOf{\IterateLensOf{\InverseOf{\DNFLens}}} =
+    \SetOf{(\String_0\ldots\String_n,
+      \StringAlt_0\ldots\StringAlt_n)
+      \SuchThat \forall i.
+      (\String_i,\StringAlt_i) \in \SemanticsOf{\InverseOf{\DNFLens}}} =
+    \SetOf{(\StringAlt_0\ldots\StringAlt_n,\String_0\ldots\String_n)
+      \SuchThat \forall i.
+      (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}} =
+    \SetOf{(\StringAlt,\String) \SuchThat
+      (\String,\StringAlt) \in \SemanticsOf{\SequenceLens}}$, as desired.
+  \end{case}
+\end{proof}
+
+\begin{lemma}[$\DefinitionalEquiv$ is finer than $\equiv$]
+  \label{lem:defequiv-finer-equiv}
+  If $\Regex \DefinitionalEquiv \RegexAlt$, then $\Regex \equiv \RegexAlt$
 \end{lemma}
 \begin{proof}
 \end{proof}
 
 \begin{lemma}
-  Let $\Regex \DefinitionalEquiv \RegexAlt$.  If $\Regex$ is strongly
-  unambiguous, then $\RegexAlt$ is strongly unambiguous.
+  Let $\Regex \DefinitionalEquiv \RegexAlt$.
+  If $\Regex$ is strongly unambiguous, then $\RegexAlt$ is strongly unambiguous.
 \end{lemma}
 \begin{proof}
-  By induction on the derivation of equivalence of $\Regex$ and $\RegexAlt$.
-  \begin{case}[\ConcatAssocRule{}]
+  If $\LanguageOf{\Regex} = \SetOf{}$, then $\LanguageOf{\RegexAlt} = \SetOf{}$,
+  by Lemma~\ref{lem:defequiv-finer-equiv}.
+
+  For the case where $\LanguageOf{\Regex} \neq \SetOf{}$, we proceed by
+  induction on the derivation of equivalence of $\Regex$ and $\RegexAlt$.
+  \begin{case}[\ConcatAssocRule{} left to right]
     Let the last step of the derivation be \ConcatAssocRule{}.
+    $\RegexConcat{(\RegexConcat{\Regex_1}{\Regex_2})}{\Regex_3}
+    \DefinitionalEquiv
+    \RegexConcat{\Regex_1}{(\RegexConcat{\Regex_2}{\Regex_3})}$
+
+    Because \Regex is strongly unambiguous.
+    $\Regex_1 \UnambigConcat \Regex_2$ and
+    $(\Regex_1 \Concat \Regex_2) \UnambigConcat \Regex_3$
+
+    Let $\String_2,\StringAlt_2 \in \Regex_2$, let $\String_3,\StringAlt_3
+    \in \Regex_3$, and let
+    $\String_2 \Concat \String_3 = \StringAlt_2 \Concat \StringAlt_3$.
+    Consider $\String_1$ in $\Regex_1$ which exists as
+    $\LanguageOf{\Regex} \neq \SetOf{}$.
+    $(\String_1 \Concat \String_2) \Concat \String_3 =
+    (\String_1 \Concat \StringAlt_2) \Concat \StringAlt_3$, so
+    $\String_3 = \StringAlt_3$ and
+    $\String_1 \Concat \String_2 = \String_1 \Concat \StringAlt_2$,
+    so $\String_2 = \StringAlt_2$.
+
+    Let $\String_2 \Concat \String_3 \in \Regex_2 \Concat \Regex_3$,
+    $\StringAlt_2 \Concat \StringAlt_3 \in \Regex_2 \Concat \Regex_3$,
+    $\String_1,\StringAlt_1 \in \Regex_1$,
+    and let $\String_1 \Concat (\String_2 \Concat \String_3) = 
+    \StringAlt_1 \Concat (\StringAlt_2 \Concat \StringAlt_3)$.
+    This means $(\String_1 \Concat \String_2) \Concat \String_3 =
+    (\StringAlt_1 \Concat \StringAlt_2) \Concat \StringAlt_3)$.
+    
+    So by assumption, $\String_3 = \StringAlt_3$, and
+    $\String_1 \Concat \String_2 = \StringAlt_1 \Concat \StringAlt_2$.
+    So by assumption, $\String_1 = \StringAlt_1$ and $\String_2 = \StringAlt_2$.
+    So, $\String_2 \Concat \String_3 = \StringAlt_2 \Concat \StringAlt_3$,
+    and $\String_1 = \StringAlt_1$.
+  \end{case}
+
+  \begin{case}[\OrAssociativityRule{}]
   \end{case}
 \end{proof}
 
