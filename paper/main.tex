@@ -1757,64 +1757,65 @@ We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
 \end{figure}
 The schematic diagram in 
 Figure~\ref{fig:synth-lens-schematic} shows an overview of the synthesis
-algorithm.  The algorithm takes in a pair of
+algorithm.  The algorithm, \PCF{SynthLens}, takes in a pair of
 regular expressions, and examples, and uses $\ToDNFRegex$ to convert the
 regular expressions into DNF regular expressions.
-This pair of two DNF regular expressions are then input into SynthDNFLens, which
-takes a pair of DNF regular expressions, and a set of input and output
-examples, and synthesizes a DNF lens, satisfying the typing and example
-constraints.
-
+Then, \PCF{SynthDNFLens} is called on these DNF regular expressions to create a
+DNF lens.
+This DNF lens is then converted into a lens, and finally beautified for
+readability.
 
 \begin{algorithm}
   \caption{\PCF{SynthLens}}
   \begin{algorithmic}[1]
-    \Function{SynthDNFLens}{$\mathit{Q},\mathit{exs}$}
-    \State $(\mathit{q},\mathit{Q'}) \gets \Call{Pop}{Q}$
+    \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\mathit{exs}$}
+    \State $\mathit{Q} \gets \Call{SingletonQueue}{(\DNFRegex,\DNFRegexAlt),0}$
+    \While{$\mathit{true}$}
+    \State $(\mathit{q},\mathit{Q}) \gets \Call{Pop}{Q}$
     \State $((\DNFRegex,\DNFRegexAlt),\mathit{ExpCount}) \gets \mathit{q}$
     \State $\DNFLens \gets
     \Call{SynthRewritelessDNFLens}{\DNFRegex,\DNFRegexAlt,\mathit{exs}}$
-    \If{$\DNFLens = \mathit{null}$}
+    \If{$\DNFLens \neq \mathit{null}$}
+    \State \textbf{return} $\DNFLens$
+    \Else
     \State $\mathit{rxs} \gets \Call{ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
     \State $\mathit{qs} \gets \Call{Map}{\lambda x.(x,\mathit{ExpCount}+1),\mathit{rxs}}$
-    \State $\mathit{Q''} \gets \Call{EnqueueMany}{\mathit{qs},\mathit{Q'}}$
-    \State \textbf{return} $\Call{SynthDNFLens}{\mathit{Q''},\mathit{exs}}$
-    \Else
-    \State \textbf{return} $\DNFLens$
+    \State $\mathit{Q} \gets \Call{EnqueueMany}{\mathit{qs},\mathit{Q'}}$
     \EndIf
+    \EndWhile
     \EndFunction
     \Statex
     \Function{SynthLens}{$\Regex,\RegexAlt,\mathit{exs}$}
     \State $(\DNFRegex,\DNFRegexAlt) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
-    \State $\mathit{Q} \gets \Call{SingletonQueue}{(\DNFRegex,\DNFRegexAlt),0}$
-    \State $\DNFLens \gets \Call{SynthDNFLens}{\mathit{Q},\mathit{exs}}$
+    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\mathit{exs}}$
     \State $\Lens \gets \Call{ToLens}{\DNFLens}$
     \State \textbf{return} $\Call{Beautify}{\Lens}$
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
 
-In \PCF{SynthDNFLens}, a priority queue of typing constraints is created, and the
-two input DNF regular expressions are enqueued.  The priority queue is designed
+In \PCF{SynthDNFLens}, a singleton priority queue is created, consisting of the
+two input DNF regular expressions and the number of expansions preformed $(0)$.
+This priority queue is designed
 such that lower priority typing constraints either have undergone a large number
 of rewrites, or have typing constraints that are very difference in appearance
-from each other.  Next, SynthDNFLens pops the
-highest priority typing constraints, and inputs them to SynthRewritelessDNFLens.
-SynthRewritelessDNFLens attempts to synthesize a lens of the typing and example
-constraints, with no applications of
-\RewriteDNFRegexLensRule{}.  If SynthRewritelessDNFLens returns a DNF Lens,
-then the process is
-terminated, and that DNF Lens is returned by SynthDNFLens.  If
-SynthRewritelessDNFLens does not
-return a DNF Lens, then rewrites are applied to the input regular expressions,
-and the rewritten regular expressions are enqueued.  After all elements have
-been enqueued, the highest
-priority typing constraints are again popped, and the process continues.
-
-After a DNF lens has been found by SynthDNFLens, the algorithm converts the DNF lens
-into a lens.  Next the algorithm applies transformations to make the lens more human
-readable, which is then returned to the user.
+from each other.
+Next a loop is begun which pops the highest priority element from the queue.
+This element is a tuple consisting of the DNF regular expressions, and a tracker
+of how many expansions have been preformed.
+\PCF{SynthRewritelessDNFLens} is then called on the DNF regular expressions and
+the examples.
+If a DNF lens is not found, it is returned.
+If no lens is found, a single rewrite is applied to either the left or the right
+DNF regular expression in \PCF{ExpandOnce}.  In other words, if $\DNFRegex$ and
+$\DNFRegexAlt$ are the DNF regular expressions,
+$\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
+\SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
+\Union
+\SetOf{(\DNFRegex,\DNFRegexAlt') \SuchThat \DNFRegexAlt \Rewrite \DNFRegexAlt'}$.
+All the DNF regular expressions returned by this are enqueued, with the
+information that an extra expansion has been preformed, and the loop continues.
 
 \subsection{Priority Queue}
 We say that the lower the priority value, the higher the priority.
