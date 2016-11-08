@@ -40,8 +40,11 @@
 \usepackage[normalem]{ulem}
 \usepackage{relsize}
 \usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
 
-\usetikzlibrary{matrix}
+\usetikzlibrary{matrix,shapes,arrows,positioning}
 
 %%%% Hyperlinks – must come late!
 \usepackage[pdftex,%
@@ -640,10 +643,9 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
 \begin{figure}
   \centering
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-    \Regex{} & $\equiv$ & \Regex{} & \EqualityRule{}  \\
     \RegexOr{\Regex}{\emptyset} & $\equiv$ & \Regex{} & \OrIdentityRule{} \\
-    $\RegexConcat{\Regex}{\emptyset}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleRightRule{} \\
-    $\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{} \\
+    $\RegexConcat{\Regex}{\emptyset}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
+    $\RegexConcat{\emptyset}{\Regex}$ & $\equiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\equiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
     \RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\equiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
     \RegexOr{\Regex{}}{\RegexAlt{}} & $\equiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
@@ -666,10 +668,9 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
 \begin{figure}
   \centering
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-    \Regex{} & $\DefinitionalEquiv$ & \Regex{} & \EqualityRule{}  \\
     \RegexOr{\Regex}{\emptyset} & $\DefinitionalEquiv$ & \Regex{} & \OrIdentityRule{} \\
-    $\RegexConcat{\Regex}{\emptyset}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionRuleRightRule{} \\
-    $\RegexConcat{\emptyset}{\Regex}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionRuleLeftRule{} \\
+    $\RegexConcat{\Regex}{\emptyset}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
+    $\RegexConcat{\emptyset}{\Regex}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\DefinitionalEquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
     \RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\DefinitionalEquiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
     \RegexOr{\Regex{}}{\RegexAlt{}} & $\DefinitionalEquiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
@@ -1721,10 +1722,38 @@ We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
 \subsection{Synthesis Overview}
 \begin{figure}
   \includegraphics[scale=.5]{synth-lens-schematic.png}
-  \label{fig:synth-lens-schematic}
-  \caption{Schematic Diagram for Lens Synthesis\afm{TODO: not right angles are
-      wrong angles, TODO: SynthDNFLens, TODO: priority queue only inside
-      SynthDNFLens, TODO: make it Tikz probably too UGH}}
+  \begin{tikzpicture}[]
+    \draw
+    node at (0,0) [name=examples] {\scriptsize $\mathit{examples}$}
+    node [name=input, right=.5cm of examples]{\scriptsize $(\Regex,\RegexAlt)$}
+    node [draw, rectangle, name=todnfregex, right=.75cm of input] {$\ToDNFRegex$}
+    node [draw, rectangle, name=emptyqueue, right=1cm of todnfregex] {\CF{Queue.Empty}}
+    node [draw, rectangle, name=enqueue, below=.5cm of todnfregex]{\CF{Enqueue}}
+    node [draw, rectangle, name=pop, below=1cm of enqueue] {\CF{Queue.Pop}}
+    node [draw, rectangle, name=synthrewritelessdnf, below=4cm of examples] {\CF{SynthRewritelessDNF}}
+    node [draw, rectangle, name=beautify, below=2cm of synthrewritelessdnf] {\CF{Beautify}}
+    node [name=output, below=.5cm of beautify] {\scriptsize $\Lens$}
+    node [draw, rectangle, name=rewrite, right=1.5cm of synthrewritelessdnf] {\CF{ApplyRewrites}}
+    node [draw, rectangle, name=enqueuemany, above=.5cm of rewrite] {\CF{EnqueMany}}
+    ;
+
+    \draw[->] (input) -> (todnfregex);
+    \draw[->] (todnfregex) -> (enqueue) node[midway,left] {\scriptsize $(\DNFRegex,\DNFRegexAlt)$};
+    \draw[->] (emptyqueue) -> (enqueue);
+    \draw[->] (enqueue) -> (pop) node[near end, left] {\scriptsize $Q$};
+    \draw[->] (examples) -> (synthrewritelessdnf);
+    \draw[->] (pop) -> (synthrewritelessdnf) node[midway,above=.3cm] {\scriptsize $(\DNFRegex,\DNFRegexAlt)$};
+    \draw[->] (synthrewritelessdnf) -> (beautify) node[near end, right] {\scriptsize $\Lens$};
+    \draw[->] (beautify) -> (output);
+    \draw[->] (synthrewritelessdnf) -> (rewrite) node[midway,above] {\scriptsize $\mathit{None}$};
+    \draw[->] (rewrite) -> (enqueuemany) node[midway,right] {\scriptsize $[(\DNFRegex_i,\DNFRegexAlt_i)]$};
+    \draw[->] (pop) -> (enqueuemany) node[midway,right] {\scriptsize $Q$};
+    \draw[-] (enqueuemany) -> (pop);
+  \end{tikzpicture}
+
+    
+    \label{fig:synth-lens-schematic}
+  \caption{Schematic Diagram for Lens Synthesis\afm{Schematic Diagram vs Code?}}
 \end{figure}
 The schematic diagram in 
 Figure~\ref{fig:synth-lens-schematic} shows an overview of the synthesis
@@ -1736,7 +1765,37 @@ takes a pair of DNF regular expressions, and a set of input and output
 examples, and synthesizes a DNF lens, satisfying the typing and example
 constraints.
 
-In SynthDNFLens, a priority queue of typing constraints is created, and the
+
+\begin{algorithm}
+  \caption{\PCF{SynthLens}}
+  \begin{algorithmic}[1]
+    \Function{SynthDNFLens}{$\mathit{Q},\mathit{exs}$}
+    \State $(\mathit{q},\mathit{Q'}) \gets \Call{Pop}{Q}$
+    \State $((\DNFRegex,\DNFRegexAlt),\mathit{ExpCount}) \gets \mathit{q}$
+    \State $\DNFLens \gets
+    \Call{SynthRewritelessDNFLens}{\DNFRegex,\DNFRegexAlt,\mathit{exs}}$
+    \If{$\DNFLens = \mathit{null}$}
+    \State $\mathit{rxs} \gets \Call{ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
+    \State $\mathit{qs} \gets \Call{Map}{\lambda x.(x,\mathit{ExpCount}+1),\mathit{rxs}}$
+    \State $\mathit{Q''} \gets \Call{EnqueueMany}{\mathit{qs},\mathit{Q'}}$
+    \State \textbf{return} $\Call{SynthDNFLens}{\mathit{Q''},\mathit{exs}}$
+    \Else
+    \State \textbf{return} $\DNFLens$
+    \EndIf
+    \EndFunction
+    \Statex
+    \Function{SynthLens}{$\Regex,\RegexAlt,\mathit{exs}$}
+    \State $(\DNFRegex,\DNFRegexAlt) \gets
+    (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
+    \State $\mathit{Q} \gets \Call{SingletonQueue}{(\DNFRegex,\DNFRegexAlt),0}$
+    \State $\DNFLens \gets \Call{SynthDNFLens}{\mathit{Q},\mathit{exs}}$
+    \State $\Lens \gets \Call{ToLens}{\DNFLens}$
+    \State \textbf{return} $\Call{Beautify}{\Lens}$
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+In \PCF{SynthDNFLens}, a priority queue of typing constraints is created, and the
 two input DNF regular expressions are enqueued.  The priority queue is designed
 such that lower priority typing constraints either have undergone a large number
 of rewrites, or have typing constraints that are very difference in appearance
@@ -2427,6 +2486,28 @@ whitespace problem.
   \end{tabular}
 \end{proof}
 
+\begin{lemma}[Equivalence of $\Atom$ and $\AtomToDNFOf{\Atom}$]
+  \label{lem:atomtodnfeq}
+  $\LanguageOf{\Atom} = \LanguageOf{\AtomToDNFOf{\Atom}}$
+\end{lemma}
+\begin{proof}
+  $\LanguageOf{\AtomToDNFOf{\Atom}} =
+  \LanguageOf{\DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}}$
+
+  $\LanguageOf{\DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}} =
+  \SetOf{\String \SuchThat \String \in
+    \LanguageOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}}$.
+
+  $\LanguageOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}} =
+  \SetOf{\EmptyString\Concat\String\Concat\EmptyString \SuchThat \String \in
+    \LanguageOf{\Atom}} = \SetOf{\String \SuchThat \String \in
+    \LanguageOf{\Atom}} = \LanguageOf{\Atom}$.
+
+  This means $\LanguageOf{\DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}}
+  = \SetOf{\String \SuchThat \String \in \LanguageOf{\Atom}} =
+  \LanguageOf{\Atom}$.
+\end{proof}
+
 \begin{lemma}[Equivalence of \OrDNF{} and \Or{}]
   \label{lem:odnfeq}
   If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
@@ -2631,7 +2712,7 @@ whitespace problem.
 \begin{lemma}
   \label{lem:unambig-concat-equiv}
   Let $\Language_1,\ldots,\Language_n,\Language_1',\ldots,\Language_m'$ be
-  languages. $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n}$,
+  nonempty languages. $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n}$,
   $\SequenceUnambigConcatOf{\Language_1';\ldots;\Language_m'}$, and
   $\SetOf{\String_1\Concat\ldots\Concat\String_n \SuchThat \String_i \in
     \Language_i} \UnambigConcat
@@ -2640,6 +2721,162 @@ whitespace problem.
   $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n;\Language_1';\ldots;\Language_n'}$
 \end{lemma}
 \begin{proof}
+  \begin{case}[$\Rightarrow$]
+    Let $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n}$,
+    $\SequenceUnambigConcatOf{\Language_1';\ldots;\Language_m'}$, and
+    $\SetOf{\String_1\Concat\ldots;\String_n \SuchThat \String_i \in
+      \Language_i} \UnambigConcat
+    \SetOf{\String_1\Concat\ldots\Concat\String_m \SuchThat \String_i \in
+      \Language_i'}$
+    Let $\String_i,\StringAlt_i\in\Language_i$,
+    $\String_i',\StringAlt_i'\in\Language_i'$.
+    Let
+    $\String_1\Concat\ldots\Concat\String_n\Concat\String_1'\Concat\ldots\Concat\String_m'
+    =
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\StringAlt_1'\Concat\ldots\Concat\StringAlt_m'$.
+    Because $\SetOf{\String_1\Concat\ldots;\String_n \SuchThat \String_i \in
+      \Language_i} \UnambigConcat
+    \SetOf{\String_1\Concat\ldots\Concat\String_m \SuchThat \String_i \in
+      \Language_i'}$, we know
+    $\String_1\Concat\ldots\Concat\String_n =
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_n$ and
+    $\String_1'\Concat\ldots\Concat\String_m' =
+    \StringAlt_1'\Concat\ldots\Concat\StringAlt_m'$.
+    Because $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n}$,
+    $\String_i = \StringAlt_i$.
+    Because $\SequenceUnambigConcatOf{\Language_1';\ldots;\Language_n'}$,
+    $\String_i' = \StringAlt_i'$.
+    So
+    $\SequenceUnambigConcatOf{\Language_1;\ldots;\Language_n;\Language_1';\ldots;\Language_n'}$
+  \end{case}
+  
+  \begin{case}[$\Leftarrow$]
+    Let $\String,\StringAlt\in
+    \SetOf{\String_1\Concat\ldots\Concat\String_n \SuchThat \String_i \in
+      \Language_i}$.
+    Let $\String',\StringAlt'\in
+    \SetOf{\String_1\Concat\ldots\Concat\String_m \SuchThat \String_i \in
+      \Language_i'}$.
+    Let $\String\Concat\String' = \StringAlt\Concat\StringAlt'$.
+    $\String=\String_1\Concat\ldots\Concat\String_n$ where
+    $\String_i \in \Language_i$,
+    $\StringAlt=\StringAlt_1\Concat\ldots\Concat\StringAlt_n$ where
+    $\StringAlt_i \in \Language_i$,
+    $\String'=\String_1'\Concat\ldots\Concat\String_m'$ where
+    $\String_i' \in \Language_i'$, and
+    $\StringAlt'=\StringAlt_1'\Concat\ldots\Concat\StringAlt_m'$ where
+    $\StringAlt_i' \in \Language_i'$.
+    $\String\Concat\String'=\String_1\Concat\ldots\Concat\String_n
+    \Concat\String_1'\Concat\ldots\Concat\String_m'$ and
+    $\StringAlt\Concat\StringAlt'=\String_1\Concat\ldots\Concat\String_n
+    \Concat\String_1'\Concat\ldots\Concat\String_m'$.
+    
+    By assumption $\String_i=\StringAlt_i$ and $\String_i'=\StringAlt_i'$.
+    This means $\String=\StringAlt$ and $\String'=\StringAlt'$.
+
+    Let $\String_i,\StringAlt_i\in\Language_i$, and let
+    $\String_1\Concat\ldots\Concat\String_n =
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_n$.
+    Consider some strings $\String_i'\in\Language_i'$.
+    $\String_1\Concat\ldots\Concat\String_n\Concat
+    \String_1'\Concat\ldots\Concat\String_n' =
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat
+    \String_1'\Concat\ldots\Concat\String_n'$.
+    
+    By assumption, $\String_i=\StringAlt_i$, as desired.
+  \end{case}
+\end{proof}
+
+\begin{lemma}
+  \label{lem:unambig-concat-union-equiv}
+  Let $\Language_1,\ldots,\Language_n,\Language_1',\ldots,\Language_m'$ be
+  languages.
+  Let $\Language_{i,j} =
+  \SetOf{\String \Concat \StringAlt \SuchThat \String\in\Language_i \BooleanAnd
+    \StringAlt\in\Language_j'}$.
+  Let $A = \BigUnion_{i\in\RangeIncInc{1}{n}}\Language_i \neq \SetOf{}$.
+  Let $B = \BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i' \neq \SetOf{}$.
+  $i \neq j \BooleanImplies \Language_i \Intersect \Language_j = \SetOf{}$
+  $i \neq j \BooleanImplies \Language_i' \Intersect \Language_j' = \SetOf{}$
+  and
+  $\UnambigConcatOf{A}{B}$
+  if, and only if
+  $(i_1,j_1) \neq (i_2,j_2) \BooleanImplies \Language_{i_1,j_1}'' \Intersect
+  \Language_{i_2,j_2}'' = \SetOf{}$ and for all $i\in\RangeIncInc{1}{n}$,
+  $j\in\RangeIncInc{1}{m}$, we have
+  $\UnambigConcatOf{\Language_i}{\Language_j'}$.
+\end{lemma}
+\begin{proof}
+  \begin{case}[$\Rightarrow$]
+    Let $i \neq j \BooleanImplies \Language_i \neq \Language_j$
+    $i \neq j \BooleanImplies \Language_i' \neq \Language_j'$
+    and
+    $\UnambigConcatOf{A}{B}$
+
+    We shall prove $(i_1,j_1) \neq (i_2,j_2) \BooleanImplies
+    \Language_{i_1,j_1}''
+    \Intersect
+    \Language_{i_2,j_2}'' = \SetOf{}$ by contrapositive.
+    Let $\String \in \Language_{i_1,j_1}''
+    \Intersect
+    \Language_{i_2,j_2}''$.  This means that $\String =
+    \String_{i_1}\Concat\String_{j_1}$ for some
+    $\String_{i_1}\in\Language_{i_1}$ and some
+    $\String_{j_1}\in\Language_{j_1}$, and that
+    $\String =\String_{i_2}\Concat\String_{j_2}$ for some
+    $\String_{i_2}\in\Language_{i_2}$ and some
+    $\String_{j_2}\in\Language_{j_2}$.
+
+    Because 
+    $\UnambigConcatOf{A}{B}$
+    $\String_{i_1} = \String_{i_2}$ and $\String_{j_1} = \String_{j_2}$.
+    Because each of $A$ and $B$ are pairwise disjoint, this means
+    $i_1 = i_2$ and $j_1 = j_2$.
+
+    Let $\String_i,\StringAlt_i \in \Language_i$.
+    Let $\String_j,\StringAlt_j \in \Language_j'$.
+    Let $\String_i \Concat \String_j = \StringAlt_i \Concat \StringAlt_j$
+    By definition, $\String_i,\StringAlt_i\in A$ and
+    $\String_j,\StringAlt_j\in B$.
+    By assumption, 
+    $\UnambigConcatOf{A}{B}$, so $\String_i = \StringAlt_i$ and $\String_j =
+    \StringAlt_j$.
+  \end{case}
+
+  \begin{case}[$\Leftarrow$]
+    Let
+    $(i_1,j_1) \neq (i_2,j_2) \BooleanImplies \Language_{i_1,j_1}'' \Intersect
+    \Language_{i_2,j_2}'' = \SetOf{}$ and for all $i\in\RangeIncInc{1}{n}$,
+    $j\in\RangeIncInc{1}{m}$, we have
+    $\UnambigConcatOf{\Language_i}{\Language_j'}$.
+
+    We prove $i \neq j \BooleanImplies \Language_i \Intersect \Language_j =
+    \SetOf{}$ by contrapositive.
+    Let $\Language_i \Intersect \Language_j \neq \SetOf{}$.
+    Let $\String \in \Language_i \Intersect \Language_j$
+    Let $\StringAlt \in B$.
+    $\StringAlt \in \Language_k'$ for some $k \in \RangeIncInc{1}{m}$.
+    $\String \Concat \StringAlt \in \Language_{i,k}''$ and
+    $\String \Concat \StringAlt \in \Language_{j,k}''$.
+    By assumption $(i,k) = (j,k)$, so $i = j$.
+    
+    We prove $i \neq j \BooleanImplies \Language_i' \Intersect \Language_j' =
+    \SetOf{}$ in the same way.
+    
+    Let $\String_1,\String_2 \in A$, $\StringAlt_1,\StringAlt_2 \in B$, and
+    $\String_1 \Concat \StringAlt_1 = \String_2 \Concat \StringAlt_2$.
+    $\String_1 \in \Language_i$ for some $i$, and $\String_2 \in \Language_j$
+    for some $j$, $\StringAlt_1 \in \Language_k'$ for some $k$, and
+    $\StringAlt_2 \in \Language_l'$ for some $l$.
+    This means $\String_1 \Concat \StringAlt_1 \in \Language_{i,k}''$,
+    $\String_2 \Concat \StringAlt_2 \in \Language_{j,l}''$.
+    Because $\String_1 \Concat \StringAlt_1 = \String_2 \Concat \StringAlt_2$,
+    $(i,k) = (j,l)$.
+    So as $\String_1 \in \Language_i, \String_2 \in \Language_i$,
+    $\StringAlt_1 \in \Language_k, \StringAlt_2 \in \Language_k'$,
+    and $\UnambigConcatOf{\Language_i}{\Language_k'}$, $\String_1 = \String_2$
+    and $\StringAlt_2 = \StringAlt_2$.
+  \end{case}
 \end{proof}
 
 \begin{lemma}
@@ -2652,11 +2889,57 @@ whitespace problem.
   (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i') = \emptyset$,
   for all $i,j\in\RangeIncInc{1}{n}$, $i \neq j \BooleanImplies Language_i \Intersect
   \Language_j = \emptyset$, and for all $i,j\in\RangeIncInc{1}{m}$, $i \neq j
-  \BooleanImplies \Language_i \Intersect \Language_j = \emptyset$ if, and only
-  if for all $i,j\in\RangeIncInc{1}{n+m}$, $i \neq j \BooleanImplies \Language_i
-  \Intersect \Language_j = \emptyset$.
+  \BooleanImplies \Language_i' \Intersect \Language_j' = \emptyset$ if, and only
+  if for all $i,j\in\RangeIncInc{1}{n+m}$, $i \neq j \BooleanImplies \Language_i''
+  \Intersect \Language_j'' = \emptyset$.
 \end{lemma}
 \begin{proof}
+  \begin{case}[$\Rightarrow$]
+    Let $\Language_i'',\Language_j''\in C$, where $i \neq j$.
+    If $\Language_i''\in A$ and $\Language_j''\in A$, then, by pigeonhole
+    principle, there exists an $i', j'$ where $i' \neq j'$ such that
+    $\Language_i'' = \Language_{i'}$ and $\Language_j''=\Language_{j'}$.
+    By assumption, $\Language_{i'} \Intersect \Language_{j'} = \SetOf{}$, so
+    $|Language_i'' \Intersect \Language_j'' = \SetOf{}$.
+    
+    Similarly for if $\Language_i''\in B$ and $\Language_j'' \in B$.
+    
+    If $\Language_i''\in A$, and $\Language_j'' \in B$.
+    $(\BigUnion_{i\in\RangeIncInc{1}{n}}\Language_i) \Intersect
+    (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i') = \emptyset$.
+    By application of distributivity
+    $\BigUnion_{(k,l)\in\RangeIncInc{1}{n}\Cross\RangeIncInc{1}{m}}
+    \Language_k'' \Intersect \Language_l'' = \SetOf{}$.
+    This means that for all
+    $(k,l)\in\RangeIncInc{1}{n}\Cross\RangeIncInc{1}{m}$,
+    $\Language_k \Intersect \Language_l' = \SetOf{}$.
+    In particular, $\Language_i'' \Intersect \Language_j'' = \SetOf{}$.
+  \end{case}
+
+  \begin{case}[$\Leftarrow$]
+    Let $i,j\in\RangeIncInc{1}{n}$ and $i \neq j$.
+    By pigeonhole principle, there exists some $i',j'$ where $i' \neq j'$
+    such that
+    $\Language_i = \Language_{i'}''$ and $\Language_j = \Language_{j'}''$.
+    By assumption, $\Language_{i'}'' \Intersect \Language_{j'}'' = \SetOf{}$,
+    so $\Language_i \Intersect \Language_j = \SetOf{}$.
+
+    Similarly for $i,j\in\RangeIncInc{1}{m}$.
+
+    Assume there exists some $\String \in
+    (\BigUnion_{i\in\RangeIncInc{1}{n}}\Language_i) \Intersect
+    (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i')$.
+    Then $\String\in\Language_i$ for some $i\in\RangeIncInc{1}{n}$, and
+    $\String\in\Language_j'$ for some $j\in\RangeIncInc{1}{m}$.
+    There exists some $i',j'$ where $i' \neq j'$ in $\RangeIncInc{1}{n+m}$
+    such that $\Language_i = \Language_{i'}''$ and
+    $\Language_j = \Language_{j'}''$.  But, by assumption,
+    $\Language_{i'}'' \Intersect \Language_{j'}''$, so we have a contraction.
+    So there is no $\String \in (\BigUnion_{i\in\RangeIncInc{1}{n}}\Language_i)
+    \Intersect (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i')$, so
+    $(\BigUnion_{i\in\RangeIncInc{1}{n}}\Language_i) \Intersect
+    (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i') = \SetOf{}$.
+  \end{case}
 \end{proof}
 
 
@@ -3169,11 +3452,112 @@ whitespace problem.
 
 \begin{lemma}[Rewrites Respecting Language]
   \label{lem:rrl}
-  If $\DNFRegex\Rewrite\DNFRegexAlt$, then $\LanguageOf{\DNFRegex}=\LanguageOf{\DNFRegexAlt}$
+  \leavevmode
+  \begin{itemize}
+  \item If $\Atom\RewriteAtom\DNFRegex$, then $\LanguageOf{\Atom} = \LanguageOf{\DNFRegex}$
+  \item If $\DNFRegex\Rewrite\DNFRegexAlt$, then $\LanguageOf{\DNFRegex}=\LanguageOf{\DNFRegexAlt}$
+  \end{itemize}
 \end{lemma}
 \begin{proof}
-  Each of the rewrite rules are merely an application of one direction of one of
-  the regular expression star equivalences.
+  By mutual induction on the derivation of $\Rewrite$ and $\RewriteAtom$
+  \begin{case}[\AtomUnrollstarLeftRule{}]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        \StarOf{\DNFRegex}\RewriteAtom
+        \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}})}
+      }
+    \]
+
+    Let $\ToRegexOf{\DNFRegex} = \Regex$.
+
+    $\StarOf{\Regex} \equiv \EmptyString \Or (\Regex \Concat
+    \StarOf{\Regex})$, by Lemma~\ref{lem:defequiv-finer-equiv}.
+    By Theorem~\ref{thm:dnfrs},
+    $\LanguageOf{\ToDNFRegexOf{\StarOf{\Regex}}} =
+    \LanguageOf{\ToDNFRegexOf{(\EmptyString \Or (\Regex \Concat
+        \StarOf{\Regex}))}}$.
+    So $\LanguageOf{\AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex})}}} =
+    \LanguageOf{\ToDNFRegexOf{(\EmptyString \Or (\Regex \Concat
+        \StarOf{\Regex}))}}$.
+    So by Lemma~\ref{lem:atomtodnfeq}, and application of $\ToDNFRegex$,
+    $\LanguageOf{\StarOf{\DNFRegex}} =
+    \LanguageOf{\DNFOf{\SequenceOf{\EmptyString}} \OrDNF
+      \DNFRegex \ConcatDNF \AtomToDNFOf{(\StarOf{\DNFRegex})}}$, as desired.
+  \end{case}
+  
+  \begin{case}[\AtomUnrollstarRightRule{}]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        \StarOf{\DNFRegex}\RewriteAtom
+        \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\AtomToDNFOf{\StarOf{\DNFRegex}}}{\DNFRegex})}
+      }
+    \]
+
+    Let $\ToRegexOf{\DNFRegex} = \Regex$.
+
+    $\StarOf{\Regex} \equiv \EmptyString \Or (\Regex \Concat
+    \StarOf{\Regex})$, by Lemma~\ref{lem:defequiv-finer-equiv}.
+    By Theorem~\ref{thm:dnfrs},
+    $\LanguageOf{\ToDNFRegexOf{\StarOf{\Regex}}} =
+    \LanguageOf{\ToDNFRegexOf{(\EmptyString \Or (\StarOf{\Regex} \Concat
+        \Regex))}}$.
+    So $\LanguageOf{\AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex})}}} =
+    \LanguageOf{\ToDNFRegexOf{(\EmptyString \Or (\StarOf{\Regex} \Concat
+        \Regex))}}$.
+    So by Lemma~\ref{lem:atomtodnfeq}, and application of $\ToDNFRegex$,
+    $\LanguageOf{\StarOf{\DNFRegex}} =
+    \LanguageOf{\DNFOf{\SequenceOf{\EmptyString}} \OrDNF
+      \AtomToDNFOf{(\StarOf{\DNFRegex})} \ConcatDNF \DNFRegex}$, as desired.
+  \end{case}
+
+  \begin{case}[\AtomStructuralRewriteRule{}]
+    \[
+      \inferrule*
+      {
+        \DNFRegex \Rewrite \DNFRegexAlt
+      }
+      {
+        \StarOf{\DNFRegex} \RewriteAtom \AtomToDNFOf{\StarOf{\DNFRegexAlt}}
+      }
+    \]
+
+    $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$,
+    so $\LanguageOf{\StarOf{\DNFRegex}} = \LanguageOf{\StarOf{\DNFRegexAlt}}$.
+    Through application of Lemma~\ref{lem:atomtodnfeq},
+    $\LanguageOf{\StarOf{\DNFRegex}} =
+    \LanguageOf{\AtomToDNFOf{\StarOf{\DNFRegexAlt}}}$.
+  \end{case}
+
+  \begin{case}[\DNFStructuralRewriteRule]
+    \[
+      \inferrule*
+      {
+        \Atom_j \RewriteAtom \DNFRegex
+      }
+      {
+        \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+        \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
+        \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
+        \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
+        \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
+        \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+        \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+        \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+      }
+    \]
+
+    As $\LanguageOf{\AtomToDNFOf{\Atom_j}} = \LanguageOf{\DNFRegex}$, by IH and
+    Lemma~\ref{lem:atomtodnfeq}, and because the left side is the same as the
+    right, except with $\AtomToDNFOf{\Atom_j}$ replacing $\DNFRegex$, the two
+  languages are the same.
+
+  \end{case}
 \end{proof}
 
 \begin{lemma}[Soundness of DNF, Sequence, and Atom Lenses]\leavevmode
@@ -3494,6 +3878,58 @@ whitespace problem.
   \DNFRegex_1 \OrDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$
 \end{lemma}
 \begin{proof}
+  Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$,
+  $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$, and
+  $\DNFRegex_3 = \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+  \[
+    \begin{array}{rcl}
+      (\DNFRegex_1 \OrDNF \DNFRegex_2) \OrDNF \DNFRegex_3
+      & = & \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1};
+            \Sequence_{2,1};\ldots;\Sequence_{2,n_2}} \OrDNF \DNFRegex_3\\
+      & = & \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1};
+            \Sequence_{2,1};\ldots;\Sequence_{2,n_2};
+            \Sequence_{3,1};\ldots;\Sequence_{3,n_3}}\\
+      & = & \DNFRegex_1 \OrDNF
+            \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2};
+            \Sequence_{3,1};\ldots;\Sequence_{3,n_3}}\\
+      & = & \DNFRegex_1 \OrDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)
+    \end{array}
+  \]
+\end{proof}
+
+\begin{lemma}
+  \label{lem:sequence-concat-assoc}
+  $(\Sequence_1 \ConcatSequence \Sequence_2) \ConcatSequence \Sequence_3 =
+  \Sequence_1 \ConcatSequence (\Sequence_2 \ConcatSequence \Sequence_3)$
+\end{lemma}
+  Let $\Sequence_1 =
+  \SequenceOf{\String_{1,0};\Atom_{1,1};\ldots;\Atom_{1,n_1};\String_{1,n_1}}$,
+  $\Sequence_2 =
+  \SequenceOf{\String_{2,1};\Atom_{2,1};\ldots;\Atom_{2,n_2};\String_{2,n_2}}$,
+  and $\Sequence_3 =
+  \SequenceOf{\String_{3,1};\Atom_{3,1};\ldots;\Atom_{3,n_3};\String_{3,n_3}}$.
+  \[
+    \begin{array}{rcl}
+      (\Sequence_1 \ConcatSequence \Sequence_2) \ConcatSequence \Sequence_3
+      & = & \SequenceOf{\String_{1,1};\Atom_{1,1};\ldots;\Atom_{1,n_1};
+            \String_{1,n_1}\Concat\String_{2,1};
+            \Atom_{2,1};\ldots;\Atom_{2,n_2};\String_{2,n_2}}
+            \ConcatSequence \Sequence_3\\
+      & = & \SequenceOf{\String_{1,1};\Atom_{1,1};\ldots;\Atom_{1,n_1};
+            \String_{1,n_1}\Concat\String_{2,0};
+            \Atom_{2,1};\ldots;\Atom_{2,n_2};
+            \String_{2,n_2}\Concat\String_{3,0};
+            \Atom_{3,1};\ldots;\Atom_{3,n_3};\String_{3,n_3}}\\
+      & = & \Sequence_1 \ConcatSequence
+            \SequenceOf{\String_{2,0};
+            \Atom_{2,1};\ldots;\Atom_{2,n_2};
+            \String_{2,n_2}\Concat\String_{3,0};
+            \Atom_{3,1};\ldots;\Atom_{3,n_3};\String_{3,n_3}}\\
+      & = & \Sequence_1 \ConcatSequence (\Sequence_2 \ConcatSequence \Sequence_3)
+    \end{array}
+  \]
+\begin{proof}
+  
 \end{proof}
 
 \begin{lemma}
@@ -3502,14 +3938,30 @@ whitespace problem.
   \DNFRegex_1 \ConcatDNF (\DNFRegex_2 \ConcatDNF \DNFRegex_3)$
 \end{lemma}
 \begin{proof}
-\end{proof}
-
-\begin{lemma}
-  \label{lem:dnf-or-concat-dist-left}
-  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3) =
-  (\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$
-\end{lemma}
-\begin{proof}
+  Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$,
+  $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$, and
+  $\DNFRegex_3 = \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+  \[
+    \begin{array}{ccc}
+      (\DNFRegex_1 \ConcatDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3
+      & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{2,1};
+            \ldots;\ldots;\Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2}}\\
+      & = &
+            \DNFOf{(\Sequence_{1,1}\ConcatSequence\Sequence_{2,1})\ConcatSequence\Sequence_{3,1};
+            \ldots;\ldots;\ldots
+            (\Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2})\ConcatSequence\Sequence_{3,n_3}}\\
+      & = &
+            \DNFOf{\Sequence_{1,1}\ConcatSequence(\Sequence_{2,1}\ConcatSequence\Sequence_{3,1});
+            \ldots;\ldots;\ldots
+            \Sequence_{1,n_1}\ConcatSequence(\Sequence_{2,n_2}\ConcatSequence\Sequence_{3,n_3})}\\
+      & = &
+            \DNFRegex_1 \ConcatSequence
+            \DNFOf{\Sequence_{2,1}\ConcatSequence\Sequence_{3,1};
+            \ldots;\ldots;\Sequence_{2,n_2}\ConcatSequence\Sequence_{3,n_3}}\\
+      & = &
+            \DNFRegex_1 \ConcatDNF (\DNFRegex_2 \ConcatDNF \DNFRegex_3)
+    \end{array}
+  \]
 \end{proof}
 
 \begin{lemma}
@@ -3518,6 +3970,31 @@ whitespace problem.
   (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF (\DNFRegex_2 \ConcatDNF \DNFRegex_3)$
 \end{lemma}
 \begin{proof}
+  Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$,
+  $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$, and
+  $\DNFRegex_3 = \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+  \[
+    \begin{array}{ccc}
+      (\DNFRegex_1 \OrDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3
+      & = & \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1};
+            \Sequence_{2,1};\ldots;\Sequence_{2,n_2}}\\
+      & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{3,1};
+            \ldots;
+            \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3};
+            \Sequence_{2,1}\ConcatSequence\Sequence_{3,1};
+            \ldots;
+            \Sequence_{2,n_2}\ConcatSequence\Sequence_{3,n_3}}\\
+      & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{3,1};
+            \ldots;
+            \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}
+            \OrDNF
+            \DNFOf{\Sequence_{2,1}\ConcatSequence\Sequence_{3,1};
+            \ldots;
+            \Sequence_{2,n_2}\ConcatSequence\Sequence_{3,n_3}}\\
+      & = & (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF
+            (\DNFRegex_2 \ConcatDNF \DNFRegex_3)
+    \end{array}
+  \]
 \end{proof}
 
 \begin{lemma}
@@ -3525,6 +4002,7 @@ whitespace problem.
   $\DNFOf{} \OrDNF \DNFRegex_1 = \DNFRegex_1$
 \end{lemma}
 \begin{proof}
+  By inspection.
 \end{proof}
 
 \begin{lemma}
@@ -3532,6 +4010,7 @@ whitespace problem.
   $\DNFRegex_1 \OrDNF \DNFOf{} = \DNFRegex_1$
 \end{lemma}
 \begin{proof}
+  By inspection.
 \end{proof}
 
 \begin{lemma}
@@ -3539,6 +4018,20 @@ whitespace problem.
   $\DNFOf{\SequenceOf{\EmptyString}} \ConcatDNF \DNFRegex = \DNFRegex$
 \end{lemma}
 \begin{proof}
+  By inspection,
+  $\SequenceOf{\EmptyString} \ConcatSequence \Sequence = \Sequence$.
+
+  Let $\DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
+
+  \[
+    \begin{array}{ccc}
+      \DNFOf{\SequenceOf{\EmptyString}} \ConcatDNF \DNFRegex
+      & = & \DNFOf{\SequenceOf{\EmptyString}\ConcatSequence\Sequence_1;
+            \ldots;\SequenceOf{\EmptyString}\ConcatSequence\Sequence_n}\\
+      & = & \DNFOf{\Sequence_1;\ldots;\Sequence_n}\\
+      & = & \DNFRegex
+    \end{array}
+  \]
 \end{proof}
 
 \begin{lemma}
@@ -3546,6 +4039,23 @@ whitespace problem.
   $\DNFRegex \ConcatDNF \DNFOf{\SequenceOf{\EmptyString}} = \DNFRegex$
 \end{lemma}
 \begin{proof}
+  Done similarly to Lemma~\ref{lem:dnf-concat-identity-left}.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:dnf-concat-projection-left}
+  $\DNFOf{} \ConcatDNF \DNFRegex = \DNFOf{}$
+\end{lemma}
+\begin{proof}
+  By inspection.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:dnf-concat-projection-right}
+  $\DNFRegex \ConcatDNF \DNFOf{} = \DNFOf{}$
+\end{lemma}
+\begin{proof}
+  By inspection.
 \end{proof}
 
 \begin{lemma}
@@ -5064,6 +5574,249 @@ whitespace problem.
   If $\Regex \DefinitionalEquiv \RegexAlt$, then $\Regex \equiv \RegexAlt$
 \end{lemma}
 \begin{proof}
+  By induction on the derivation of $\DefinitionalEquiv$
+  
+  \begin{case}[\OrIdentityRule{}]
+    Through the use of $\equiv$'s \OrIdentityRule{}.
+  \end{case}
+  
+  \begin{case}[\EmptyProjectionRightRule{}]
+    Through the use of $\equiv$'s \EmptyProjectionRightRule{}.
+  \end{case}
+  
+  \begin{case}[\EmptyProjectionLeftRule{}]
+    Through the use of $\equiv$'s \EmptyProjectionLeftRule{}.
+  \end{case}
+  
+  \begin{case}[\ConcatAssocRule{}]
+    Through the use of $\equiv$'s \ConcatAssocRule{}.
+  \end{case}
+  
+  \begin{case}[\OrAssociativityRule{}]
+    Through the use of $\equiv$'s \OrAssociativityRule{}.
+  \end{case}
+
+  \begin{case}[\OrCommutativityRule{}]
+    Through the use of $\equiv$'s \OrCommutativityRule{}.
+  \end{case}
+
+  \begin{case}[\DistributivityLeftRule{}]
+    Through the use of $\equiv$'s \DistributivityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\DistributivityRightRule{}]
+    Through the use of $\equiv$'s \DistributivityRightRule{}.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityLeftRule{}]
+    Through the use of $\equiv$'s \ConcatIdentityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityRightRule{}]
+    Through the use of $\equiv$'s \ConcatIdentityRightRule{}.
+  \end{case}
+
+  \begin{case}[\UnrollstarLeftRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$ through an application of
+    \UnrollstarLeftRule{}.
+
+    So, without loss of generality, from symmetry, we can say
+    $\Regex = \StarOf{\Regex'}$ and
+    $\RegexAlt = \EmptyString \Or (\Regex' \Concat \StarOf{\Regex'})$.
+
+    Consider the derivations
+    \[
+      \inferrule*
+      {
+        \inferrule*
+        {
+        }
+        {
+          \Regex' \equiv \Regex' \Concat \EmptyString
+        }
+      }
+      {
+        \StarOf{\Regex'} \equiv \StarOf{(\Regex' \Concat \EmptyString)}
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+      }
+      {
+        \StarOf{\Regex' \Concat \EmptyString}
+        \equiv
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{(\EmptyString \Concat \Regex')} \Concat \EmptyString)
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+        \inferrule*
+        {
+        }
+        {
+          \Regex' \Concat
+          \StarOf{(\EmptyString \Concat \Regex')}
+          \Concat \EmptyString
+          \equiv
+          \Regex' \Concat
+          \StarOf{(\EmptyString \Concat \Regex')}
+        }
+      }
+      {
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{(\EmptyString \Concat \Regex')}
+        \Concat \EmptyString)
+        \equiv
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{(\EmptyString \Concat \Regex')})
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+          \Regex' \Concat \EmptyString
+          \equiv
+          \Regex'
+        }
+      }
+      {
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{(\EmptyString \Concat \Regex')})
+        \equiv
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{\Regex'})
+      }
+    \]
+
+    Through repeated application of equational theory transitivity,
+    $\Regex \equiv \RegexAlt$.
+  \end{case}
+
+  \begin{case}[\UnrollstarRightRule{}]
+    Let $\Regex \DefinitionalEquiv \RegexAlt$ through an application of
+    \UnrollstarLeftRule{}.
+
+    So, without loss of generality, from symmetry, we can say
+    $\Regex = \StarOf{\Regex'}$ and
+    $\RegexAlt = \EmptyString \Or (\StarOf{\Regex'} \Concat \Regex')$.
+
+    Consider the derivations
+    \[
+      \inferrule*
+      {
+        \inferrule*
+        {
+        }
+        {
+          \Regex' \equiv \EmptyString \Concat \Regex'
+        }
+      }
+      {
+        \StarOf{\Regex'} \equiv \StarOf{(\EmptyString \Concat \Regex')}
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+      }
+      {
+        \StarOf{\EmptyString \Concat \Regex'}
+        \equiv
+        \EmptyString \Or
+        (\EmptyString \Concat
+        \StarOf{(\Regex' \Concat \EmptyString)} \Concat \Regex')
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+        \inferrule*
+        {
+        }
+        {
+          \EmptyString \Concat
+          \StarOf{(\Regex' \Concat \EmptyString)}
+          \Concat \Regex'
+          \equiv
+          \StarOf{(\Regex' \Concat \EmptyString)}
+          \Concat \Regex'
+        }
+      }
+      {
+        \EmptyString \Or
+        (\EmptyString \Concat
+        \StarOf{(\Regex' \Concat \EmptyString)}
+        \Concat \Regex')
+        \equiv
+        \EmptyString \Or
+        (\Regex'
+        \StarOf{(\Regex' \Concat \EmptyString)})
+      }
+    \]
+
+    \[
+      \inferrule*
+      {
+        \inferrule*[vdots=1.5em]
+        {
+        }
+        {
+          \Regex' \Concat \EmptyString
+          \equiv
+          \Regex'
+        }
+      }
+      {
+        \EmptyString \Or
+        (\StarOf{(\Regex' \Concat \EmptyString)} \Concat \Regex')
+        \equiv
+        \EmptyString \Or
+        (\Regex' \Concat
+        \StarOf{\Regex'})
+      }
+    \]
+
+    Through repeated application of equational theory transitivity,
+    $\Regex \equiv \RegexAlt$.
+  \end{case}
+\end{proof}
+
+\begin{lemma}
+  \label{lem:strong_unambig_or}
+  If $\Regex \Or \RegexAlt$ be strongly unambiguous, then
+  $\LanguageOf{\Regex} \Intersect \LanguageOf{\RegexAlt} = \SetOf{}$,
+  and both $\Regex$ and $\RegexAlt$ are strongly unambiguous.
+\end{lemma}
+\begin{proof}
+  If $\Regex \Or \RegexAlt$ is strongly unambiguous, then either
+  $\LanguageOf{\Regex \Or \RegexAlt} = \SetOf{}$, or
+  $\LanguageOf{\Regex} \Intersect \LanguageOf{\RegexAlt} = \SetOf{}$, and
+  $\Regex$ and $\RegexAlt$ are both strongly unambiguous.
+
+  If the latter, then we are done.
+
+  If the former, then both $\LanguageOf{\Regex} = \SetOf{}$ and
+  $\LanguageOf{\RegexAlt} = \SetOf{}$.
+  This means they are both strongly unambiguous.  Furthermore,
+  $\SetOf{} \Intersect \SetOf{} = \SetOf{}$, so
+  $\LanguageOf{\Regex} \Intersect \LanguageOf{\RegexAlt} = \SetOf{}$.
 \end{proof}
 
 \begin{lemma}
@@ -5076,8 +5829,41 @@ whitespace problem.
 
   For the case where $\LanguageOf{\Regex} \neq \SetOf{}$, we proceed by
   induction on the derivation of equivalence of $\Regex$ and $\RegexAlt$.
+  \begin{case}[\OrIdentityRule{} left to right]
+    Let the last step of the derivation be \OrIdentityRule{} left to right.
+    $\Regex \DefinitionalEquiv \Regex \Or \emptyset$.
+
+    $\emptyset$ is strongly unambiguous, as its language is empty.
+    $\Regex$ is strongly unambiguous by assumption
+    $\LanguageOf{\Regex} \Intersect \LanguageOf{\emptyset} =
+    \LanguageOf{\Regex} \Intersect \SetOf{} = \emptyset$, so $\RegexAlt$ is
+    strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\OrIdentityRule{} right to left]
+    Let the last step of the derivation be \OrIdentityRule{} right to left.
+    $\RegexAlt \Or \emptyset \DefinitionalEquiv \RegexAlt$.
+
+    If $\LanguageOf{\RegexAlt \Or \emptyset} = SetOf{}$ then
+    $\LanguageOf{\RegexAlt} = \SetOf{}$, so $\RegexAlt$ is strongly unambiguous.
+
+    Otherwise $\RegexAlt$ is strongly unambiguous, which is what is desired.
+  \end{case}
+
+  \begin{case}[\EmptyProjectionRightRule both directions]
+    Let the last step of the derivation be \EmptyProjectionRightRule{}.
+    The language of both sides is $\SetOf{}$, by
+    Lemma~\ref{lem:defequiv-finer-equiv}.
+  \end{case}
+
+  \begin{case}[\EmptyProjectionLeftRule both directions]
+    Let the last step of the derivation be \EmptyProjectionLeftRule{}.
+    The language of both sides is $\SetOf{}$, by
+    Lemma~\ref{lem:defequiv-finer-equiv}.
+  \end{case}
+  
   \begin{case}[\ConcatAssocRule{} left to right]
-    Let the last step of the derivation be \ConcatAssocRule{}.
+    Let the last step of the derivation be \ConcatAssocRule{} left to right.
     $\RegexConcat{(\RegexConcat{\Regex_1}{\Regex_2})}{\Regex_3}
     \DefinitionalEquiv
     \RegexConcat{\Regex_1}{(\RegexConcat{\Regex_2}{\Regex_3})}$
@@ -5112,7 +5898,248 @@ whitespace problem.
     and $\String_1 = \StringAlt_1$.
   \end{case}
 
-  \begin{case}[\OrAssociativityRule{}]
+  \begin{case}[\ConcatAssocRule{} right to left]
+    Very similarly to left to right.
+  \end{case}
+
+  \begin{case}[\OrAssociativityRule{} left to right]
+    $\Regex_1 \Or (\Regex_2 \Or \Regex_3) \DefinitionalEquiv
+    (\Regex_1 \Or \Regex_2) \Or \Regex_3$.
+
+    $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2 \Or \Regex_3} =
+    \SetOf{}$.
+    This means that $\LanguageOf{\Regex_1} \Intersect
+    (LanguageOf{\Regex_2} \Union \LanguageOf{\Regex_3}) = \SetOf{}$, so through
+    distributivity, $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2}
+    \Union \LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$.
+    This means $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2} =
+    \SetOf{}$ and
+    $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$.
+
+    If $\LanguageOf{\Regex_2 \Or \Regex_3} = \SetOf{}$, then the language of
+    each is empty, so they are each strongly unambiguous.
+    This means $\Regex_1 \Or \Regex_2$ is strongly unambiguous.
+
+    Furthermore, $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_3} \Union
+    \LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$ as each
+    of the intersections is empty.  So the whole thing is unambiguous.
+  \end{case}
+
+  \begin{case}[\OrAssociativityRule{} right to left]
+    Done very similarly to the left to right case.
+  \end{case}
+
+  \begin{case}[\OrCommutativityRule{}]
+    $\Regex_1 \Or \Regex_2 \DefinitionalEquiv \Regex_2 \Or \Regex_1$
+    So if the languages are empty, then they are both empty.
+
+    Otherwise, $\Regex_1$ is strongly unambiguous, and $\Regex_2$ is strongly
+    unambiguous, and $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2} =
+    \SetOf{}$.
+
+    So $\LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_1} = \SetOf{}$, and
+    so $\Regex_2 \Or \Regex_1$ is strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\DistributivityLeftRule{} left to right]
+    $\Regex_1 \Concat (\Regex_2 \Or \Regex_3) \DefinitionalEquiv
+    (\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)$.
+
+    If $\LanguageOf{\Regex_1 \Concat (\Regex_2 \Or \Regex_3)} = \SetOf{}$, then
+    $(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3) = \SetOf{}$,
+    and we are done.
+
+    If the language is nonempty, so too are the languages of each side, so
+    $\Regex_1$ is nonempty, and $\Regex_2 \Or \Regex_3$ is nonempty,
+    and $\Regex_1$ is strongly unambiguous, and $\Regex_2 \Or \Regex_3$ is
+    strongly unambiguous.
+
+    $\Regex_2 \Or \Regex_3$ being strongly unambiguous implies $\Regex_2$ is
+    strongly unambiguous, $\Regex_3$ is strongly unambiguous, and
+    $\LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$, by
+    Lemma~\ref{lem:strong_unambig_or}.
+
+    Let $\String_1,\StringAlt_1 \in \LanguageOf{\Regex_1}$,
+    $\String_2,\StringAlt_2 \in \LanguageOf{\Regex_2}$,
+    $\String_1\Concat\String_2 = \StringAlt_1\Concat\StringAlt_2$.
+    $\String$.  Then $\StringAlt_1 \in \LanguageOf{\Regex_1 \Or \Regex_2}$, and
+    $\StringAlt_2 \in \LanguageOf{\Regex_1 \Or \Regex_2}$.
+    By assumption of strong unambiguity, where the languages are not empty,
+    $\String_1  = \String_2$ anc $\StringAlt_1 = \StringAlt_2$.
+
+    Similarly for $\String_1,\StringAlt_1 \in \LanguageOf{\Regex_1}$,
+    $\String_3,\StringAlt_3 \in \LanguageOf{\Regex_3}$.
+
+    Assume there exists some $\String \in \LanguageOf{\Regex_1 \Concat \Regex_2}
+    \Intersect
+    \LanguageOf{\Regex_1 \Concat \Regex_3}$.
+    This means $\String = \String_1 \Concat \String_2$, for
+    $\String_1\in\LanguageOf{\Regex_1}$ and $\String_2\in\LanguageOf{\Regex_2}$,
+    uniquely.
+    It means $\String = \StringAlt_1 \Concat \StringAlt_2$, for
+    $\StringAlt_1\in\LanguageOf{\Regex_1}$ and
+    $\StringAlt_2\in\LanguageOf{\Regex_2}$.
+    From assumption, as
+    $\String \in \LanguageOf{\Regex_1 \Concat (\Regex_2 \Or \Regex_3)}$,
+    $\String_1 = \StringAlt_1$ and $\String_2 = \StringAlt_3$.
+    Contradiction, as
+    $\LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$.
+    So there is no string in the intersection, or in other words
+    $\LanguageOf{\Regex_1 \Concat \Regex_2}
+    \Intersect
+    \LanguageOf{\Regex_1 \Concat \Regex_3} = \SetOf{}$
+
+    As such, $(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)$ is
+    strongly unambiguous
+  \end{case}
+
+  \begin{case}[\DistributivityLeftRule{} right to left]
+    $(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)
+    \DefinitionalEquiv \Regex_1 \Concat (\Regex_2 \Or \Regex_3)$.
+
+    If $\LanguageOf{\Regex_1} = \SetOf{}$, then the language of the entire
+    $\Regex$ is empty, and we are done.  Otherwise assume
+    $\LanguageOf{\Regex_1} \neq \SetOf{}$.
+
+    From assumption $\Regex_1 \Concat \Regex_2$ is strongly unambiguous,
+    $\Regex_1 \Concat \Regex_3$ is strongly unambiguous,
+    and $\LanguageOf{\Regex_1 \Concat \Regex_2} \Intersect
+    \LanguageOf{\Regex_1 \Concat \Regex_3} = \SetOf{}$.
+    
+    Assume there exists some
+    $\String \in \LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_3}$.
+    Let $\String_1 \in \LanguageOf{\Regex_1}$.
+    This makes
+    $\String_1\Concat\String \in \LanguageOf{\Regex_1 \Concat \Regex_2}
+    \Intersect \LanguageOf{\Regex_1 \Concat \Regex_3}$.  This is a
+    contradiction, so
+    $\LanguageOf{\Regex_2} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$.
+
+    Let $\String_1,\StringAlt_1 \in \LanguageOf{\Regex_1}$.
+    Let $\String,\StringAlt \in \LanguageOf{\Regex_2 \Or \Regex_3}$.
+    Let $\String_1 \Concat \String = \StringAlt_1 \Concat \StringAlt$.
+    Assume $\String \in \LanguageOf{\Regex_2}$.  Then $\StringAlt \in
+    \LanguageOf{\Regex_2}$, as otherwise $\Regex$ is not strongly unambiguous.
+    So as $\String_1 \Concat \String \in \LanguageOf{\Regex_1 \Concat
+      \Regex_2}$,
+    and $\StringAlt_1 \Concat \StringAlt \in \LanguageOf{\Regex_1 \Concat
+      \Regex_2}$, by assumption, $\String_1 = \StringAlt_1$, and $\String =
+    \StringAlt$.
+    If $\String \not\in \LanguageOf{\Regex_2}$, then $\String \in
+    \LanguageOf{\Regex_3}$, and the same argument applies.
+  \end{case}
+
+  \begin{case}[\DistributivityRightRule{} both directions]
+    Proceeds the same as \DistributivityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityLeftRule{} left to right]
+    $\EmptyString \Concat \Regex' \DefinitionalEquiv \Regex'$
+
+    If they have empty languages, we are done.
+
+    If nonempty, then $\Regex'$ is strongly unambiguous, and we are done.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityLeftRule{} right to left]
+    $\Regex' \DefinitionalEquiv \EmptyString \Concat \Regex'$
+
+    Both $\Regex'$ and $\EmptyString$ are strongly unambiguous, by assumption
+    and definition, respectively.
+
+    Furthermore, let $\String_1,\StringAlt_1 \in \LanguageOf{\EmptyString}$, and
+    $\String_2,\StringAlt_2 \in \LanguageOf{\Regex'}$, and $\String_1 \Concat
+    \String_2 = \StringAlt_1 \Concat \StringAlt_2$
+    $\String_1 = \StringAlt_1 = \EmptyString$, so $\String_1 = \StringAlt_2$,
+    which makes $\String_2 = \StringAlt_2$.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityRightRule{} both directions]
+    Very similar to \ConcatIdentityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\UnrollstarLeftRule{} left to right]
+    $\StarOf{\Regex'} \DefinitionalEquiv \EmptyString \Or (\Regex' \Concat
+    \StarOf{\Regex'})$
+
+    Let $\String \in \LanguageOf{\EmptyString} \Intersect \LanguageOf{\Regex'
+      \Concat \StarOf{\Regex'}}$.
+    So $\String = \EmptyString$.
+    So $\EmptyString \in \LanguageOf{\Regex'}$.
+    Contradiction, as if $\EmptyString$ in $\LanguageOf{\Regex'}$, then
+    if $\String_1\Concat\String_n = \StringAlt_1\Concat\StringAlt_m$, $n$ no
+    longer must equal $m$, as arbitrarily many $\EmptyString$s can be input.
+
+    $\EmptyString$ is strongly unambiguous.
+
+    If $\LanguageOf{\Regex'} = \emptyset$, then
+    $\Regex' \Concat \StarOf{\Regex'}$ also has an empty language, and is
+    strongly unambiguous.
+
+    If the language is nonempty, $\Regex'$ is strongly unambiguous.
+
+    Let $\String_1,\String_2 \in
+    \LanguageOf{\Regex'}$, $\StringAlt_1,\StringAlt_2 \in
+    \LanguageOf{\StarOf{\Regex'}}$.  Let $\String_1\Concat\StringAlt_1 =
+    \StringAlt_2\Concat\StringAlt_2$.
+    $\StringAlt_1 = \StringAlt_{1,1}\Concat\ldots\Concat\StringAlt_{1,n}$ and
+    $\StringAlt_2 = \StringAlt_{2,1}\Concat\ldots\Concat\StringAlt_{1,m}$, where
+    $\StringAlt_{1,i},\StringAlt_{2,i}\in\LanguageOf{\StarOf{\Regex'}}$.
+    Consider
+    $\String_1\Concat\StringAlt_{1,1}\Concat\ldots\Concat\StringAlt_{1,n}$
+    and
+    $\String_2\Concat\StringAlt_{2,1}\Concat\ldots\Concat\StringAlt_{2,m}$.
+    As $\Regex'$ is unambiguously iterable, $n+1=m+1$, and
+    $\String_1 = \String_2$ and $\StringAlt_{1,i} = \StringAlt_{2,i}$.
+    This means that $\StringAlt_1 = \StringAlt_2$.
+    So $Regex'$ is unambiguously concatenable with $\StarOf{\Regex'}$.
+  \end{case}
+
+  \begin{case}[\UnrollstarLeftRule{} right to left]
+    $\EmptyString \Or (\Regex' \Concat \StarOf{\Regex'}) \DefinitionalEquiv
+    \StarOf{\Regex'}$
+
+    If $\LanguageOf{\Regex'} = \SetOf{}$, then it is vacuously unambiguously
+    concatenable, and $\Regex'$ is strongly unambiguous, so $\StarOf{\Regex'}$
+    is strongly unambiguous.
+
+    Let $\LanguageOf{\Regex'}$ not be empty.
+
+    Let $\String_1\Concat\ldots\Concat\String_n =
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_m$, and
+    $\String_i,\StringAlt_i\in\LanguageOf{\Regex'}$.  We want to show that $n=m$
+    and $\String_i=\StringAlt_i$.
+    This can be done by induction on $n$.
+
+    If $n=0$, then $m=0$, as otherwise $m>0$, which would imply that
+    $\EmptyString\in\LanguageOf{\Regex'}$, making $\Regex$ not strongly
+    unambiguous.
+
+    If $n\neq 0$, then by the unambiguous concatenability of $\Regex'$ and
+    $\StarOf{\Regex'}$, $\String_1 = \StringAlt_1$, and
+    $\String_2\Concat\ldots\Concat\String_n =
+    \StringAlt_2\Concat\ldots\Concat\StringAlt_n$, and the IH applies.
+  \end{case}
+
+  \begin{case}[\UnrollstarRightRule{} both directions]
+    Done similarly to \UnrollstarLeftRule{}.
+  \end{case}
+
+  \begin{case}[All structural cases]
+    As $\DefinitionalEquiv$ is finer than $\equiv$, the subparts will have
+    the same languages.  If the language of $\Regex$ is empty, then we are done,
+    otherwise, each subpart will be strongly unambiguous, by the induction
+    hypothesis.  As the top
+    level unambiguity condition is based on the language, and the languages of
+    the subparts are equal, the top level unambiguity condition will be
+    satisfied.
+  \end{case}
+
+  \begin{case}[Transitivity of Equational Theory]
+    If $\Regex \DefinitionalEquiv \Regex'$ and $\Regex \DefinitionalEquiv
+    \RegexAlt$, then by IH,
+    $\Regex'$ is strongly unambiguous, and by IH again, $\RegexAlt$ is strongly
+    unambiguous.
   \end{case}
 \end{proof}
 
@@ -5132,25 +6159,384 @@ whitespace problem.
 \end{definition}
 
 \begin{lemma}
+  \label{lem:pre-uniqueness-of-empty-in-dnf}
+  If $\ToDNFRegexOf{\Regex} = \DNFOf{}$, and $\Regex \equiv \RegexAlt$, then
+  $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$.
+\end{lemma}
+\begin{proof}
+  By induction on the proof of equivalence
+
+  \begin{case}[Structural Equality Rule]
+    Then $\RegexAlt = \Regex$, so
+    $\ToDNFRegexOf{\RegexAlt} = \ToDNFRegexOf{\Regex} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\OrIdentityRule{} left to right]
+    $\Regex \equiv \RegexOr{\Regex}{\emptyset}$.
+    $\ToDNFRegexOf{(\Regex \Or \emptyset)} =
+    \ToDNFRegexOf{\Regex} \OrDNF \ToDNFRegexOf{\emptyset} =
+    \DNFOf{} \OrDNF \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\OrIdentityRule{} right to left]
+    $\RegexAlt \equiv \RegexOr{\RegexAlt}{\emptyset}$.
+    $\ToDNFRegexOf{(\RegexOr{\RegexAlt}{\emptyset})} = \DNFOf{}$. So by
+    definition,
+    $\ToDNFRegexOf{\RegexAlt} \OrDNF \ToDNFRegexOf{\emptyset} = \DNFOf{}$.
+    Again by definition,
+    $\ToDNFRegexOf{\RegexAlt} \OrDNF \DNFOf{} = \DNFOf{}$.
+    So by Lemma~\ref{lem:dnf-or-identity-right},
+    $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$
+  \end{case}
+
+  \begin{case}[\EmptyProjectionRightRule{} left to right]
+    $\RegexAlt = \emptyset$ so $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$
+  \end{case}
+
+  \begin{case}[\EmptyProjectionRightRule{} right to left]
+    $\RegexAlt = \Regex \Concat \emptyset$, so $\ToDNFRegexOf{\RegexAlt} =
+    \ToDNFRegexOf{\Regex} \ConcatDNF \ToDNFRegexOf{\emptyset} =
+    \ToDNFRegexOf{\Regex} \ConcatDNF \DNFOf{}$, so by
+    Lemma~\ref{lem:dnf-concat-projection-left},
+    $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\EmptyProjectionLeftRule{} both directions]
+    Done similarly to \EmptyProjectionRightRule{}.
+  \end{case}
+
+  \begin{case}[\ConcatAssocRule{} left to right]
+    $(\Regex_1 \Concat \Regex_2) \Concat \Regex_3 \equiv
+    \Regex_1 \Concat (\Regex_2 \Concat \Regex_3)$.
+    Throguh definitions, and Lemma~\ref{lem:sequence-concat-assoc},
+    $\DNFOf{} = \ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Concat \Regex_3)} =
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \ConcatDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \ConcatDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Concat \Regex_3))}$
+  \end{case}
+
+  \begin{case}[\ConcatAssocRule{} right to left]
+    Analogously to left to right
+  \end{case}
+
+  \begin{case}[\OrAssociativityRule{} left to right]
+    $(\Regex_1 \Or \Regex_2) \Or \Regex_3 \equiv
+    \Regex_1 \Or (\Regex_2 \Or \Regex_3)$.
+    Through definitions, and Lemma~\ref{lem:sequence-or-assoc},
+    $\DNFOf{} = \ToDNFRegexOf{((\Regex_1 \Or \Regex_2) \Or \Regex_3)} =
+    (\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{\Regex_1} \OrDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
+    \ToDNFRegexOf{\Regex_3}) =
+    \ToDNFRegexOf{(\Regex_1 \Or (\Regex_2 \Or \Regex_3))}$
+  \end{case}
+
+  \begin{case}[\OrAssociativityRule{} right to left]
+    Analogously to left to right
+  \end{case}
+
+  \begin{case}[\OrCommutativityRule{}]
+    $\Regex_1 \Or \Regex_2 \equiv \Regex_1 \Or \Regex_2$.
+    $\DNFOf{} = \ToDNFRegexOf{(\Regex_1 \Or \Regex_2)} =
+    \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}$.
+    By the definition of $\OrDNF$, $\ToDNFRegexOf{\Regex_1} = \DNFOf{}$, and
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+    $\ToDNFRegexOf{(\Regex_2 \Or \Regex_1)} =
+    \ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_1} =
+    \DNFOf{} \OrDNF \DNFOf{} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\DistributivityLeftRule{} left to right]
+    $\RegexConcat{\Regex_1}{(\RegexOr{\Regex_2}{\Regex_3})} \equiv
+    \RegexOr{(\RegexConcat{\Regex_1}{\Regex_2})}{(\RegexConcat{\Regex_1}{\Regex_3})}$
+
+    $\ToDNFRegexOf{\Regex_1 \Concat (\Regex_2 \Or \Regex_3)} =
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF
+    (\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3}) = \DNFOf{}$.
+    By the definition of $\ConcatDNF$, this means $\ToDNFRegexOf{\Regex_1} =
+    \DNFOf{}$, or $\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3} =
+    \DNFOf{}$.
+
+    If $\ToDNFRegexOf{\Regex_1} = \DNFOf{}$, then by
+    Lemma~\ref{lem:dnf-concat-projection-left},
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$ and
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$,
+    so $\ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat
+      \Regex_3)} = 
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$.
+
+    If $\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$,
+    then by definition of $\OrDNF$, $\ToDNFRegexOf{\Regex_2} = \DNFOf{}$ and
+    $\ToDNFRegexOf{\Regex_3} = \DNFOf{}$.
+    By Lemma~\ref{lem:dnf-concat-projection-right},
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$ and
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$,
+    so $\ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat
+      \Regex_3)} = 
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\DistributivityLeftRule{} right to left]
+    $\RegexOr{(\RegexConcat{\Regex_1}{\Regex_2})}{(\RegexConcat{\Regex_1}{\Regex_3})} \equiv
+    \RegexConcat{\Regex_1}{(\RegexOr{\Regex_2}{\Regex_3})}$
+
+    $\ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3))} =
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
+    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3}) = \DNFOf{}$.
+    By the definition of $\OrDNF$, this means
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$,
+    and
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3} = \DNFOf{}$.
+
+    As $\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+
+    If $\ToDNFRegexOf{\Regex_1} = \DNFOf{}$, then by
+    Lemma~\ref{lem:dnf-concat-projection-left},
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
+    \ToDNFRegexOf{\Regex_3}) = \DNFOf{}$, so
+    $\RegexConcat{\Regex_1}{(\RegexOr{\Regex_2}{\Regex_3})} = \DNFOf{}$.
+
+    If $\ToDNFRegexOf{\Regex_1} \neq \DNFOf{}$, then
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{}$ and $\ToDNFRegexOf{\Regex_3} =
+    \DNFOf{}$.
+    This means $\ToDNFRegexOf{\Regex_2} \OrDNF \ToDNFRegexOf{\Regex_3} =
+    \DNFOf{}$.
+    So, by Lemma~\ref{lem:dnf-concat-projection-left},
+    $\ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
+    \ToDNFRegexOf{\Regex_3}) = \DNFOf{}$, so
+    $\ToDNFRegexOf{(\RegexConcat{\Regex_1}{(\RegexOr{\Regex_2}{\Regex_3})})}$.
+  \end{case}
+
+  \begin{case}[\DistributivityRightRule{} both directions]
+    Proceeds analogously to \DistributivityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityLeftRule{} left to right]
+    $\RegexConcat{\EmptyString{}}{\RegexAlt} \equiv \RegexAlt$.
+    By assumption, $\ToDNFRegexOf{(\RegexConcat{\EmptyString{}}{\RegexAlt})} = \DNFOf{}$
+    This means $\ToDNFRegexOf{\EmptyString} \ConcatDNF \ToDNFRegexOf{\RegexAlt}
+    = \DNFOf{}$.
+    By Lemma~\ref{lem:dnf-concat-identity-left}, $\ToDNFRegexOf{\EmptyString}
+    \ConcatDNF \ToDNFRegexOf{\RegexAlt} = \ToDNFRegexOf{\RegexAlt}$, so
+    $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityLeftRule{} right to left]
+    $\Regex \equiv \RegexConcat{\EmptyString{}}{\Regex}$.
+    By assumption, $\ToDNFRegexOf{\Regex} = \DNFOf{}$.
+    By Lemma~\ref{lem:dnf-concat-identity-left},
+    $\ToDNFRegexOf{(\RegexConcat{\EmptyString{}}{\Regex})} =
+    \ToDNFRegexOf{\Regex}$, so $\ToDNFRegexOf{\Regex} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[\ConcatIdentityRightRule{} both dierections]
+    Done analogously to \ConcatIdentityLeftRule{}.
+  \end{case}
+
+  \begin{case}[\SumstarRule{}, \ProductstarRule{}, \StarstarRule{},
+    \DicyclicityRule{}, Structural \StarRegexType{} Equality]
+    In all of these cases, the regular expression on the left is of the form
+    $\StarOf{\Regex'}$, for some $\Regex'$.  $\EmptyString \in \StarOf{\Regex'}$
+    for all $\Regex'$.  However, $\LanguageOf{\DNFOf{}} = \SetOf{}$, and by
+    Theorem~\ref{thm:dnfrs}, $\LanguageOf{\ToDNFRegexOf{\Regex}} =
+    \LanguageOf{\Regex}$.  This means that $\ToDNFRegexOf{\StarOf{\Regex'}} \neq
+    \DNFOf{}$, for all $\Regex'$, so these rules do not apply.
+  \end{case}
+
+  \begin{case}[Structural \OrRegexType{} Equality]
+    \[
+      \inferrule*
+      {
+        \Regex_1 \equiv \RegexAlt_1\\
+        \Regex_2 \equiv \RegexAlt_2
+      }
+      {
+        \Regex_1 \Or \Regex_2 \equiv \RegexAlt_1 \Or \RegexAlt_2
+      }
+    \]
+
+    $\ToDNFRegexOf{(\Regex_1 \Or \Regex_2)} =
+    \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+    By the definition of $\OrDNF$, $\ToDNFRegexOf{\Regex_1} = \DNFOf{}$ and
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+    So, by induction, $\ToDNFRegexOf{\RegexAlt_1} = \DNFOf{}$ and
+    $\ToDNFRegexOf{\RegexAlt_2} = \DNFOf{}$.
+    So $\ToDNFRegexOf{\RegexAlt_1} \OrDNF \ToDNFRegexOf{\RegexAlt_2} =
+    \ToDNFRegexOf{(\RegexAlt_1 \Or \RegexAlt_2)} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[Structural \ConcatRegexType{} Equality]
+    \[
+      \inferrule*
+      {
+        \Regex_1 \equiv \RegexAlt_1\\
+        \Regex_2 \equiv \RegexAlt_2
+      }
+      {
+        \Regex_1 \Concat \Regex_2 \equiv \RegexAlt_1 \Concat \RegexAlt_2
+      }
+    \]
+
+    $\ToDNFRegexOf{(\Regex_1 \Concat \Regex_2)} =
+    \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+    By the definition of $\ConcatDNF$, $\ToDNFRegexOf{\Regex_1} = \DNFOf{}$ or
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{}$.
+    So, by induction, $\ToDNFRegexOf{\RegexAlt_1} = \DNFOf{}$ or
+    $\ToDNFRegexOf{\RegexAlt_2} = \DNFOf{}$.
+    So $\ToDNFRegexOf{\RegexAlt_1} \ConcatDNF \ToDNFRegexOf{\RegexAlt_2} =
+    \ToDNFRegexOf{(\RegexAlt_1 \Concat \RegexAlt_2)} = \DNFOf{}$.
+  \end{case}
+
+  \begin{case}[Transitivity of Equational Theories]
+    \[
+      \inferrule*
+      {
+        \Regex \equiv \Regex'\\
+        \Regex' \equiv \RegexAlt
+      }
+      {
+        \Regex \equiv \RegexAlt
+      }
+    \]
+  \end{case}
+
+  By IH, $\ToDNFRegexOf{\Regex'} = \DNFOf{}$.
+  So, by IH, $\ToDNFRegexOf{\RegexAlt} = \DNFOf{}$.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:uniqueness-of-empty-in-dnf}
+  If $\LanguageOf{\Regex} = \SetOf{}$, then $\ToDNFRegexOf{\Regex} = \DNFOf{}$
+\end{lemma}
+\begin{proof}
+  $\LanguageOf{\emptyset} = SetOf{}$.
+  We know $\LanguageOf{\Regex} = \SetOf{}$, so $\Regex \equiv \emptyset$.
+  $\ToDNFRegexOf{emptyset} = DNFOf{}$.
+  So, by Lemma~\ref{lem:pre-uniqueness-of-empty-in-dnf},
+  $\ToDNFRegexOf{\Regex} = \DNFOf{}$.
+\end{proof}
+
+\begin{lemma}
   \label{lem:retaining-unambiguity}
   If $\Regex$ is strongly unambiguous as a regular expression, then
   $\ToDNFRegexOf{\Regex}$ is strongly unambiguous as a DNF regular expression.
 \end{lemma}
 \begin{proof}
-  By induction on the structure of the Regex
+  We proceed by induction.
   \begin{case}[\BaseRegexType{}]
+    $\ToDNFRegexOf{\String} = \DNFOf{\SequenceOf{\String}}$, which is strongly
+    unambiguous.
   \end{case}
 
   \begin{case}[\EmptyRegexType{}]
+    $\ToDNFRegexOf{\emptyset} = \DNFOf{}$, which is strongly unambiguous.
   \end{case}
 
   \begin{case}[\StarRegexType{}]
+    Let $\Regex = \ToDNFRegexOf{(\StarOf{\Regex'})}$ be strongly unambiguous.
+    $\ToDNFRegexOf{(\StarOf{\Regex'})} =
+    \AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex'})}}$
+    By IH, $\ToDNFRegexOf{\Regex'}$ is strongly unambiguous.
+    Furthermore, $\LanguageOf{\Regex'} = \LanguageOf{\ToDNFRegexOf{\Regex'}}$ is
+    unambiguously iterable, so $\StarOf{(\ToDNFRegexOf{\Regex'})}$ is strongly
+    unambiguous.  This means that
+    $\AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex'})}}$ is strongly unambiguous.
   \end{case}
 
   \begin{case}[\ConcatRegexType{}]
+    Let $\Regex = \Regex_1 \Concat \Regex_2$ be strongly unambiguous.
+
+    If $\LanguageOf{\Regex} = \SetOf{}$, by
+    Lemma~\ref{lem:uniqueness-of-empty-in-dnf}, $\ToDNFRegexOf{\Regex} =
+    \DNFOf{}$, which is strongly unambiguous.
+
+    Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
+    Let $\ToDNFRegexOf{\Regex_2} = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+    If $\LanguageOf{\Regex} \neq \SetOf{}$, this means that
+    $\LanguageOf{\ToDNFRegexOf{\Regex_1}} \neq \SetOf{}$, and
+    $\LanguageOf{\ToDNFRegexOf{\Regex_2}} \neq \SetOf{}$.
+    This means that $\Sequence_i$ is nonempty, and so is $\SequenceAlt_i$, for
+    all $i$.
+    Furthermore, as $\Regex$ is strongly unambiguous, and $\LanguageOf{\Regex}
+    \neq \SetOf{}$, $\Regex_1$ and $\Regex_2$ are strongly unambiguous,
+    which means so too are $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+    $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$, and so too are
+    $\Sequence_i$ and $\SequenceAlt_i$.
+
+    As $\UnambigConcatOf{\ToDNFRegexOf{\Regex_1}}{\ToDNFRegexOf{\Regex_2}}$,
+    $i \neq j \BooleanImplies \Sequence_i \Intersect \Sequence_j = \emptyset$, and
+    $i \neq j \BooleanImplies \SequenceAlt_i \Intersect \SequenceAlt_j = \emptyset$
+    I know from Lemma~\ref{lem:unambig-concat-union-equiv},
+    $(i_1,j_1) \neq (i_2,j_2) \BooleanImplies \LanguageOf{\Sequence_{i_1} \ConcatDNF
+    \Sequence_{j_1}} \Intersect
+    \LanguageOf{\Sequence_{i_2} \ConcatDNF
+    \Sequence_{j_2}} = \SetOf{}$.
+    and $\LanguageOf{\Sequence_i} \UnambigConcat \LanguageOf{\SequenceAlt_j}$.
+
+    Let $\Sequence_i =
+    \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}$ and
+    $\SequenceAlt_i =
+    \SequenceOf{\StringAlt_{i,0};\AtomAlt_{i,1};\ldots;\AtomAlt_{i,n_i};\StringAlt_{i,n_i}}$.
+    $\SequenceUnambigConcatOf{\String_{i,0},\Atom_{i,1},\ldots,\Atom_{i,n_i},\String_{i,n_i}}$
+    $\SequenceUnambigConcatOf{\StringAlt_{i,0},\AtomAlt_{i,1},\ldots,\AtomAlt_{i,n_i},\StringAlt_{i,n_i}}$
+    Furthermore, $\Sequence_i$ and $\SequenceAlt_i$ have nonempty languages.
+    By Lemma~\ref{lem:unambig-concat-equiv},
+    $\SequenceUnambigConcatOf{\String_{i,0},\Atom_{i,1},\ldots,\Atom_{i,n_i},
+      \String_{i,n_i}\Concat\StringAlt_{j,0},
+      \AtomAlt_{j,1},\ldots,\AtomAlt_{j,n_j},\StringAlt_{j,n_j}}$
+    
+    As $\Sequence_i$ and $\SequenceAlt_i$ are strongly unambiguous, we know
+    $\Atom_{i,j}$ and $\AtomAlt_{i,j}$ are strongly unambiguous.
+    So, as $\SequenceUnambigConcatOf{\String_{i,0},\Atom_{i,1},\ldots,\Atom_{i,n_i},
+      \String_{i,n_i}\Concat\StringAlt_{j,0},
+      \AtomAlt_{j,1},\ldots,\AtomAlt_{j,n_j},\StringAlt_{j,n_j}}$,
+    $\Sequence_i \ConcatDNF \SequenceAlt_j$ is strongly unambiguous.
+
+    Furthermore, as 
+    $\Sequence_i \ConcatDNF \SequenceAlt_j$ is strongly unambiguous and
+    $(i_1,j_1) \neq (i_2,j_2) \BooleanImplies \LanguageOf{\Sequence_{i_1} \ConcatDNF
+    \Sequence_{j_1}} \Intersect
+    \LanguageOf{\Sequence_{i_2} \ConcatDNF
+      \Sequence_{j_2}} = \SetOf{}$, then
+    $\DNFOf{\Sequence_1 \ConcatDNF \SequenceAlt_1 ;\ldots;
+    \Sequence_n \ConcatDNF \SequenceAlt_m}$.
   \end{case}
 
   \begin{case}[\OrRegexType{}]
+    Let $\Regex = \Regex_1 \Or \Regex_2$ be strongly unambiguous.
+
+    If $\LanguageOf{\Regex} = \SetOf{}$, by
+    Lemma~\ref{lem:uniqueness-of-empty-in-dnf}, $\ToDNFRegexOf{\Regex} =
+    \DNFOf{}$, which is strongly unambiguous.
+
+    Otherwise, $\Regex_1$ and $\Regex_2$ are strongly unambiguous,
+    and $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2} = \SetOf{}$.
+    This means $\ToDNFRegexOf{\Regex_1}$ and $\ToDNFRegexOf{\Regex_2}$ are also
+    strongly unambiguous, by IH.
+
+    Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
+    Let $\ToDNFRegexOf{\Regex_2} =
+    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$.
+    Let $\Sequence_i' = \begin{cases*}
+      \Sequence_i & if $i \leq n$\\
+      \SequenceAlt_{i-n} & otherwise
+    \end{cases*}$.
+    As $\ToDNFRegexOf{\Regex_1}$ and $\ToDNFRegexOf{\Regex_2}$ are strongly
+    unambiguous, $i \neq j \BooleanImplies \LanguageOf{\Sequence_i} \Intersect
+    \LanguageOf{\Sequence_j} = \SetOf{}$ and
+    $i \neq j \BooleanImplies \LanguageOf{\SequenceAlt_i} \Intersect
+    \LanguageOf{\SequenceAlt_j} = \SetOf{}$.
+    Furthermore, as $\BigUnion_{i\in\RangeIncInc{1}{n}}\LanguageOf{\Sequence_i}
+    \Intersect \BigUnion_{j\in\RangeIncInc{1}{m}}\LanguageOf{\Sequence_j}$,
+    from Lemma~\ref{lem:unambig-union-equiv}, $i \neq j \BooleanImplies
+    \LanguageOf{\Sequence_i'} \Intersect \LanguageOf{\Sequence_j'} = \SetOf{}$,
+    and as each $\Sequence_i$ and $\SequenceAlt_i$ is strongly unambiguous,
+    $\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}$ is strongly
+    unambiguous.
   \end{case}
 \end{proof}
 
@@ -5470,20 +6856,156 @@ whitespace problem.
 \begin{proof}
 \end{proof}
 
+\begin{lemma}[Equivalence of $\ToRegex \Compose \ToDNFRegex$]
+  \label{lem:there-and-back-equiv}
+  $(\ToRegex \Compose \ToDNFRegex) \Regex \DefinitionalEquiv \Regex$
+\end{lemma}
+\begin{proof}
+  By induction on the structure of $\Regex$
+  \begin{case}[\BaseRegexType{}]
+    $(\ToRegex \Compose \ToDNFRegex)\String =
+    \ToRegexOf{\DNFOf{\SequenceOf{\String}}} = \emptyset \Or \String$
+    $\emptyset \Or \String \DefinitionalEquiv \String$.
+  \end{case}
+
+  \begin{case}[\EmptyRegexType{}]
+    $(\ToRegex \Compose \ToDNFRegex)\emptyset =
+    \ToRegexOf{\DNFOf{}} = \emptyset$
+    $\emptyset \DefinitionalEquiv \emptyset$.
+  \end{case}
+
+  \begin{case}[\StarRegexType{}]
+    $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} =
+    \ToRegexOf{\DNFOf{\SequenceOf{\EmptyString;\StarOf{(\ToDNFRegexOf{\Regex'})};\EmptyString}}}
+    = \emptyset \Or (\EmptyString \Concat \StarOf{((\ToRegex \Compose \ToDNFRegex)\Regex')}
+    \Concat \EmptyString)$
+    Then, through application of equational theory transitivity,
+    \OrIdentityRule{}, \ConcatIdentityLeftRule{}, and \ConcatIdentityRightRule{},
+    We get $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \DefinitionalEquiv
+    \StarOf{((\ToRegex \Compose \ToDNFRegex)\Regex')}$.
+    By application of the IH, and transitivity, we get
+    $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \DefinitionalEquiv
+    \StarOf{\Regex'}$
+  \end{case}
+
+  \begin{case}[\ConcatRegexType{}]
+    Let $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Concat \Regex_2) =
+    \ToRegexOf{(\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2})}$.
+    Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{\SequenceAlt_1;\ldots;\Sequence_m}$.
+
+    $\Regex_1 \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_1) =
+    (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
+    (\ToRegexOf{\Sequence_n})\ldots))) \DefinitionalEquiv
+    \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}$
+    and
+    $\Regex_2 \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_2) =
+    (\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    \ToRegexOf{\SequenceAlt_1} \Or \ldots \Or \ToRegexOf{\SequenceAlt_m}$.
+
+    So by structural \ConcatRegexType{} identity, and transitivity,
+    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    (\ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n})
+    \Concat
+    (\ToRegexOf{\SequenceAlt_1} \Or \ldots \Or \ToRegexOf{\SequenceAlt_m})$.
+
+    Through repeated application of \DistributivityLeftRule{} and
+    \DistributivityRightRule{},
+    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    (\ToRegexOf{\Sequence_1}\Concat\ToRegexOf{\SequenceAlt_1} \Or \ldots \Or
+    \ToRegexOf{\Sequence_n}\Concat\ToRegexOf{\SequenceAlt_m})$.
+
+    Now, I want to show $\ToRegexOf{\Sequence_i} \Concat \ToRegexOf{\SequenceAlt_j}
+    \DefinitionalEquiv \ToRegexOf{(\Sequence_i \ConcatDNF \SequenceAlt_j)}$.
+    Let $\Sequence_i =
+    \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}$,
+    and $\SequenceAlt_j =
+    \SequenceOf{\StringAlt_{j,0};\AtomAlt_{j,1};\ldots;\Atom_{j,m_j};\String_{j,n_j}}$.
+    $\ToRegexOf{(\Sequence_i \ConcatDNF \Sequence_j)} =
+    \ToRegexOf{\SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;
+        \Atom_{i,n_i};\String_{i,n_i}\Concat\StringAlt_{j,0};\AtomAlt_{j,1};
+        \ldots;\Atom_{j,m_j};\String_{j,n_j}}} =
+    \String_{i,0} \Concat (\Atom_{i,1} \Concat (\ldots \Concat \String_{i,n_i}
+    \Concat \StringAlt_{j,0} \Concat (\AtomAlt_{j,1} \Concat (\ldots \Concat
+    (\Atom_{j,n_j} \Concat \String_{j,n_j})\ldots))\ldots))$
+    So through repeated application of \ConcatAssocRule{},
+    $\ToRegexOf{(\Sequence_i \ConcatDNF \Sequence_j)} \DefinitionalEquiv
+    (\String_{i,0} \Concat (\Atom_{i,1} \Concat (\ldots \Concat (\Atom_{i,n_i}
+    \Concat \String_{i,n_i})\ldots))) \Concat (\StringAlt_{j,0} \Concat
+    (\AtomAlt_{j,1} \Concat (\ldots \Concat (\AtomAlt_{j,n_j} \Concat
+    \String_{j,n_j})\ldots)))$.
+
+    Because of this 
+    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    \ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots \Or
+    \ToRegexOf{(\Sequence_n\ConcatDNF\SequenceAlt_n)}$.
+    Through repeated application of \OrAssociativityRule{}, and \OrIdentityRule{},
+    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    \emptyset \Or (\ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots
+    (\ToRegexOf{(\Sequence_n\ConcatDNF\SequenceAlt_m)})\ldots)$.
+    Furthermore, $\emptyset \Or (\ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots
+    (\ToRegexOf{(\Sequence_n\ConcatDNF\SequenceAlt_m)})\ldots) =
+    \ToRegexOf{\DNFOf{\Sequence_1\ConcatSequence\SequenceAlt_1;\ldots;
+        \Sequence_n\Concat\SequenceAlt_m}} =
+    (\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Concat \Regex_2)$ as desired.
+  \end{case}
+
+  \begin{case}[\OrRegexType{}]
+    Let $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
+    \ToRegexOf{(\ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2})}$.
+    Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+    $\ToDNFRegexOf{\Regex_2} = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+    So
+    $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
+    \ToRegexOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n;
+        \SequenceAlt_1;\ldots;\SequenceAlt_m}} =
+    \emptyset \Or (\ToRegexOf{\Sequence_1} \Or (
+    \ldots \Or (\ToRegexOf{\SequenceAlt_m})\ldots))$.
+    Through applying associativity a lot, and \OrIdentityRule{} once, I get
+    $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
+    (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
+    (\ToRegexOf{\Sequence_n})\ldots)))
+    \Or
+    (\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
+    (\ToRegexOf{\SequenceAlt_m})\ldots)))$.
+
+    $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
+    (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
+    (\ToRegexOf{\Sequence_n})\ldots))) =
+    (\ToRegex \Compose \ToDNFRegex)\Regex_1$
+    and $(\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) =
+    (\ToRegex \Compose \ToDNFRegex)\Regex_2$, so by IH
+    $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
+    (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
+    (\ToRegexOf{\Sequence_n})\ldots))) \DefinitionalEquiv
+    \Regex_1$
+    and $(\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    \Regex_2$.
+
+    Through an application of structural \OrRegexType{} equality,
+    $(\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
+    (\ToRegexOf{\Sequence_n})\ldots)))
+    \Or
+    (\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    \Regex_1 \Or \Regex_2$, as desired.
+  \end{case}
+\end{proof}
+
 \begin{lemma}[Equivalence of Preimage of $\ToDNFRegex$]
   \label{lem:preimage-equiv}
   If $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$, then $\Regex
   \DefinitionalEquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
-  $\Regex \DefinitionalEquiv \ToRegex \ToDNFRegexOf{\Regex}$ merely
-  through application of distributivity wherever possible to fully distribute,
-  and using the associativity rules to always associate to the right.
-
-  For the same reason, $\RegexAlt \DefinitionalEquiv
-  \ToRegex \ToDNFRegexOf{\RegexAlt}$  As $\ToDNFRegexOf{\RegexAlt} =
-  \ToDNFRegexOf{\Regex}$, from transitivity of $\DefinitionalEquiv$, $\Regex
-  \DefinitionalEquiv \RegexAlt$.
+  $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$, so $(\ToRegex \Compose
+  \ToDNFRegex) \Regex = (\ToRegex \Compose \ToDNFRegex) \RegexAlt$.
+  By Lemma~\ref{lem:there-and-back-equiv},
+  $\Regex \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex) \RegexAlt
+  \DefinitionalEquiv \RegexAlt$
 \end{proof}
 
 \begin{lemma}[Equivalence of Adjacent Swapping Permutation of \OrRegexType{}]
@@ -6431,9 +7953,10 @@ whitespace problem.
 \begin{proof}
   Assume $\Regex \DefinitionalEquiv \RegexAlt$.
   Prove by induction on the deduction of $\DefinitionalEquiv$
-  \begin{case}[\EqualityRule{}]
+  \begin{case}[Structural Equality Rule]
     Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
-    deduction is an application of \EqualityRule{}.  That means that $\RegexAlt
+    deduction is an application of structural equality rule.
+    That means that $\RegexAlt
     = \Regex$.  Through reflexivity, $\ToDNFRegexOf{\Regex}
     \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\Regex} =
     \ToDNFRegexOf{\RegexAlt}$.
@@ -6451,9 +7974,9 @@ whitespace problem.
     \ToDNFRegexOf{\Regex \Or \emptyset}$
   \end{case}
   
-  \begin{case}[\EmptyProjectionRuleRightRule{}]
+  \begin{case}[\EmptyProjectionRightRule{}]
     Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
-    deduction is an application of \EmptyProjectionRuleRightRule{}.  Without
+    deduction is an application of \EmptyProjectionRightRule{}.  Without
     loss of generality, from symmetry, $\Regex = \Regex' \Concat \emptyset$, and
     $\RegexAlt = \emptyset$.
 
@@ -6464,9 +7987,9 @@ whitespace problem.
     \ToDNFRegexOf{\RegexAlt}$.
   \end{case}
   
-  \begin{case}[\EmptyProjectionRuleLeftRule{}]
+  \begin{case}[\EmptyProjectionLeftRule{}]
     Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
-    deduction is an application of \EmptyProjectionRuleRightRule{}.  Without
+    deduction is an application of \EmptyProjectionRightRule{}.  Without
     loss of generality, from symmetry, $\Regex = \emptyset \Concat \Regex'$, and
     $\RegexAlt = \emptyset$.
 
@@ -6592,17 +8115,63 @@ whitespace problem.
     $\Regex = \Regex_1 \Concat (\Regex_2 \Or \Regex_3)$, and
     $\RegexAlt = (\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)$.
 
-    $\ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Or \Regex_3))} =
-    \ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
-    \ToDNFRegexOf{\Regex_3}) =
-    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}) \OrDNF
-    (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3}) =
-    \ToDNFRegexOf{(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)}$.
-    
-    Through reflexivity, $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{(\Regex_1 \Concat
-      (\Regex_2 \Or \Regex_3))} \EquivalenceOf{\ParallelRewriteSwap}
-    \ToDNFRegexOf{(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)}
-    = \ToDNFRegexOf{\RegexAlt}$
+    Let $\ToDNFRegexOf{\Regex_1} =
+    \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$.
+    Let $\ToDNFRegexOf{\Regex_2} =
+    \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$.
+    Let $\ToDNFRegexOf{\Regex_3} =
+    \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+
+    \[
+      \begin{array}{ccc}
+        \ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Or \Regex_3))}
+        & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF (\ToDNFRegexOf{\Regex_2} \OrDNF
+              \ToDNFRegexOf{\Regex_3})\\
+        & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF
+              \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2};
+              \Sequence_{3,1};\ldots;\Sequence_{3,n_3}}\\
+        & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{2,1};
+              \ldots;\Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3};\ldots;
+              \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+              \ldots;\Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}
+      \end{array}
+    \]
+
+    \[
+      \begin{array}{ccc}
+        \ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3))}
+        & = & (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2})
+              \OrDNF
+              (\ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_3})\\
+        & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{2,1};
+              \ldots;\ldots;
+              \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2}} \OrDNF
+              \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{3,1};
+              \ldots;\ldots;
+              \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}\\
+        & = & \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{2,1};
+              \ldots;\ldots;
+              \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+              \Sequence_{1,1}\ConcatSequence\Sequence_{3,1};
+              \ldots;\ldots;
+              \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}
+      \end{array}
+    \]
+
+    So $\ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Or \Regex_3))}$
+    is different from $\ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1
+      \Concat \Regex_3))}$ only by the difference in the ordering of the
+    sequences.
+
+    Through using DNFReorderRule{},
+    $\ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Or
+      \Regex_3))} \ParallelRewriteSwap
+    \ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1
+      \Concat \Regex_3))}$, so through the base rule,
+    $\ToDNFRegexOf{(\Regex_1 \Concat (\Regex_2 \Or
+      \Regex_3))} \EquivalenceOf{\ParallelRewriteSwap}
+    \ToDNFRegexOf{((\Regex_1 \Concat \Regex_2) \Or (\Regex_1
+      \Concat \Regex_3))}$.
   \end{case}
 
   \begin{case}[\DistributivityRightRule{}]
