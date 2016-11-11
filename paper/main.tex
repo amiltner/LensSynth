@@ -1,7 +1,8 @@
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
 
-\documentclass[numbers]{sigplanconf}
+\documentclass[numbers,10pt,preprint]{sigplanconf}
+
 \listfiles
 
 % The following \documentclass options may be useful:
@@ -10,6 +11,9 @@
 % 10pt          To set in 10-point type instead of 9-point.
 % 11pt          To set in 11-point type instead of 9-point.
 % authoryear    To obtain author/year citation style instead of numeric.
+
+\let\proof\relax
+\let\endproof\relax
 
 \usepackage{amsmath}
 \usepackage[table]{xcolor}
@@ -43,6 +47,7 @@
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
+\usepackage{graphicx}
 
 \usetikzlibrary{matrix,shapes,arrows,positioning}
 
@@ -102,7 +107,7 @@
                                   % short abstracts)
 
 \titlebanner{DRAFT---do not distribute}        % These are ignored unless
-\preprintfooter{to appear in POPL '16}   % 'preprint' option specified.
+%\preprintfooter{to appear in POPL '16}   % 'preprint' option specified.
 
 \title{Synthesizing Bijective Lenses
 \ifanon\vspace*{-2cm}\fi
@@ -164,7 +169,7 @@
   Unfortunately, the rich structure of regular expressions
   makes lens synthesis more complicated than previous work on other
   forms of type-directed synthesis.  Specifically, finding a term to
-  bi-directionally map between regular expressions $A$ and $B$ requires
+  bi-di
   first finding equivalent regular expressions $A'$ and $B'$ that are
   more algorithmically tractable.
   We show how to manage this search by defining a new language of
@@ -174,12 +179,11 @@
   We then show
   how to search the reduced space for well-typed lenses that are consistent
   with the given examples.  We demonstrate the effectiveness of our algorithm
-  by evaluating it on a benchmark suite containing 27 \afm{TODO: automatically
-    calculate this from CSV} examples
+  by evaluating it on a benchmark suite containing 27 examples
   comprising microbenchmarks, Flash Fill
   examples, and Augeas transformations of Linux configuration files.
   We show we are able to infer lenses for all examples in the
-  benchmark suite in an average of 0.134 seconds \afm{TODO: automatically calculate this from CSV}. 
+  benchmark suite in an average of 0.134 seconds. 
   % end abstract
 \end{abstract}
 
@@ -547,7 +551,7 @@ paper makes the following contributions:
 % begin background
 \section{Background}
 
-\subsubsection{Languages and Alphabets}
+\paragraph*{Languages and Alphabets}
 
 An \textit{alphabet}, written \Alphabet{}, is a finite set.
 A \textit{character} is an element of an alphabet.
@@ -582,7 +586,7 @@ that language is \textit{unambiguously iterable},
 written $\UnambigItOf{\Language}$.
 
 
-\subsubsection{Regular Expressions}
+\paragraph*{Regular Expressions}
 
 The syntax for the regular expressions we use is given below.
 
@@ -596,8 +600,6 @@ The syntax for the regular expressions we use is given below.
            & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & \OrRegexType{} \\
 \end{tabular}
 
-$\Regex^n$ can be used for shorthand for $n$ instances of $\Regex$ concatenated
-with each other.
 These regular expressions are used to inductively define languages.
 \[
   \begin{array}{lcl}
@@ -628,7 +630,7 @@ then that regular expression is \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$.
 
 A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
-\String$, $\LanguageOf{\Regex} = SetOf{}$, or the following conditions are held:
+\String$, $\LanguageOf{\Regex} = \SetOf{}$, or the following conditions are held:
 \begin{enumerate}
 \item If $\Regex = \Regex_1 \Concat \Regex_2$ then $\Regex_1 \UnambigConcat
   \Regex_2$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
@@ -667,6 +669,7 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
 % fig:definitional-equivalence-rules
 \begin{figure}
   \centering
+  \resizebox{\columnwidth}{!}{%
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
     \RegexOr{\Regex}{\emptyset} & $\DefinitionalEquiv$ & \Regex{} & \OrIdentityRule{} \\
     $\RegexConcat{\Regex}{\emptyset}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
@@ -680,7 +683,7 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
     \RegexConcat{\Regex{}}{\EmptyString{}} & $\DefinitionalEquiv$ & \Regex{} & \ConcatIdentityRightRule{} \\
     \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
     \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
-  \end{tabular}
+  \end{tabular}}
   \caption{Definitional Regular Expression Equivalences}
   \label{fig:definitional-equivalence-rules}
 \end{figure}
@@ -768,67 +771,11 @@ how many times the already defined repetition occurs.
 
 The definitional equivalence rules are the largest subset of the regular
 expression equivalence rules we could
-find that still is confluent and repeatable.  There may be larger equivalence rules,
+find that still is confluent and can be mirrored.  There may be larger equivalence rules,
 but this set was able to handle the equivalences that showed up in practice, as
 shown in Section~\ref{evaluation}.
 
 \section{Bijective Lenses}
-
-% fig:lens-syntax
-\begin{figure}
-  \centering
-  \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
-    % REGEX
-    (Lenses)& \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
-            & & & \GBar{} $\IterateLensOf{\Lens}$ & Iterate \\
-            & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
-            & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
-            & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
-            & & & \GBar{} $\ComposeLensOf{\Lens_1}{\Lens_2}$ & Compose\\
-            & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
-  \end{tabular}
-  \caption{Lens Syntax}
-  \label{fig:lens-syntax}
-\end{figure}
-
-% fig:lens-semantics
-\begin{figure}
-  \[
-    \begin{array}{rcl}
-      \SemanticsOf{const(\String_1,\String_2)} &=& \SetOf{(\String_1,\String_2)}\\
-
-      \SemanticsOf{\IterateLensOf{\Lens}} &=& \SetOf{(\String_1\Concat\ldots\Concat\String_n,
-                                              \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-                                              (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}\\
-
-      \SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}} &=&
-                                                        \SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat\\
-                                               & & \hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                   (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}\\
-
-      \SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}} &=&
-                                                      \SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat\\
-                                               & & \hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                   (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}\\
-
-      \SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}} &=&
-                                                    \SetOf{(\String,\StringAlt)
-                                                    \SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
-                                                    \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}\\
-
-      \SemanticsOf{\ComposeLensOf{\Lens_1}{\Lens_2}} &=&
-                                                         \SetOf{(\String_1,\String_3)\SuchThat\exists\String_2\\
-                                               & & \hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                   (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}\\
-
-      \SemanticsOf{\IdentityLensOf{\Regex}} &=& \SetOf{(\String,\String)
-                                                \SuchThat \String\in
-                                                \LanguageOf{\Regex}}
-    \end{array}
-  \]
-  \caption{Lens Semantics}
-  \label{fig:lens-semantics}
-\end{figure}
 
 % fig:lens-semantics
 \begin{figure}
@@ -920,11 +867,57 @@ shown in Section~\ref{evaluation}.
 All bijections between languages are lenses.  We define Bijective Lenses to be
 bijections created from the Boomerang lens combinators, mapping between
 languages of regular expressions.
-The syntax for these bijective lenses is provided in Figure~\ref{fig:lens-syntax}.
-The semantics for these lenses are defined in
-Figure~\ref{fig:lens-semantics}.  If $(\String_1,\String_2) \in
+The syntax for these bijective lenses is provided below.
+\resizebox{\columnwidth}{!}{%
+  \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+    % REGEX
+    (Lenses)& \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
+            & & & \GBar{} $\IterateLensOf{\Lens}$ & Iterate \\
+            & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
+            & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
+            & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
+            & & & \GBar{} $\ComposeLensOf{\Lens_1}{\Lens_2}$ & Compose\\
+            & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
+  \end{tabular}}
+
+The lenses also have denotational semantics, where $\SemanticsOf{\Lens}
+\subseteq \StringType \Cross \StringType$.  If $(\String_1,\String_2) \in
 \SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
 $\String_2$.
+
+\resizebox{\columnwidth}{!}{%
+  \begin{tabular}{rcl}
+    $\SemanticsOf{const(\String_1,\String_2)}$ &=& $\SetOf{(\String_1,\String_2)}$\\
+    
+    $\SemanticsOf{\IterateLensOf{\Lens}}$ &=& $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
+                                            \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+                                            (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
+    
+    $\SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                      $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat$\\
+                                             & & $\hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                    $\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat$\\
+                                             & & $\hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                  $\SetOf{(\String,\StringAlt)
+                                                  \SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
+                                                  \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\ComposeLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                       $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2$\\
+                                             & & $\hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\IdentityLensOf{\Regex}}$ &=& $\SetOf{(\String,\String)
+                                              \SuchThat \String\in
+                                              \LanguageOf{\Regex}}$
+  \end{tabular}
+}
 
 The simplest lens in the combinator language is the the constant lens between
 strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
@@ -1145,29 +1138,34 @@ would get mapped to each other.  Within that side, \CF{Name} would map to
 \begin{figure}
   \label{fig:lens-synth-ex}
   \centering
-  \CF{Bib' <=> DNFEndUnroll}
+  \SmallCF{Bib' <=> DNFEndUnroll}
   \begin{tikzpicture}
-    \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
+    \matrix (m)
+    [matrix of nodes,
+    row sep=1em,
+    column sep=4em,
+    minimum width=2em]
     {
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{BibSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{EndSequence2} \\
     };
     \path[<->]
     (m-1-1) edge node [left] {} (m-2-1);
     \path[<->]
-    (m-1-3) edge node [right] {\CF{lsequence}} (m-2-3);
+    (m-1-3) edge node [right] {\SmallCF{lsequence}} (m-2-3);
   \end{tikzpicture}
 
-  \CF{lsequence : BibSequence2 <=> EndSequence2}
+  \SmallCF{lsequence : BibSequence2 <=> EndSequence2}
+  
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
-      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
-      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{} & \CF{""}
-      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
+      \SmallCF{"author=\{"} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{BibStar*}\Concat{} & \SmallCF{"\},"}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{EndStar*}\Concat{} & \SmallCF{""}\\
     };
     \path[<->]
     (m-1-2) edge node [right] {} (m-2-6);
@@ -1176,19 +1174,19 @@ would get mapped to each other.  Within that side, \CF{Name} would map to
     \path[<->]
     (m-1-6) edge node [left] {} (m-2-4);
     \path[<->]
-    (m-1-8) edge node [right] {\CF{lstar}} (m-2-8);
+    (m-1-8) edge node [right] {\SmallCF{lstar}} (m-2-8);
   \end{tikzpicture}
 
-  \CF{lstar : BibStar <=> EndStar}
+  \SmallCF{lstar : BibStar <=> EndStar}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
-      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
-      \CF{""}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{}
-      & \CF{""}\\
+      \SmallCF{" and "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} &
+      \SmallCF{""}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Name}\Concat{}
+      & \SmallCF{""}\\
     };
     \path[<->]
     (m-1-2) edge node [right] {} (m-2-6);
@@ -1221,34 +1219,6 @@ that satisfies the type and the examples, shown in Figure~\ref{fig:lens-synth-ex
 
 \section{DNF Regular Expressions}
 
-% fig:dnf-regex-syntax
-\begin{figure}
-  \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
-
-    % DNF_REGEX
-    (Atoms)& \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
-    (Sequences)& \Sequence{},\SequenceAlt{} & \GEq{} &
-                                                       $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ & \MultiConcatSequenceType{} \\
-    (DNF Regexes)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & \MultiOrDNFRegexType{} \\
-  \end{tabular}
-  \caption{DNF Regex Syntax} 
-  \label{fig:dnf-regex-syntax}
-\end{figure}
-
-% fig:dnf-regex-semantics
-\begin{figure}
-  \begin{tabular}{R@{}L}
-    \LanguageOf{\StarOf{\DNFRegex}} = &
-                                        \{\String_1\Concat\ldots\Concat\String_n \SuchThat n\in\Nats \wedge \String_i\in\LanguageOf{\DNFRegex}\}\\
-    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= &
-                                                                                                                        \{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}\\
-    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
-                                                                       \{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{ for some $i\in\RangeIncInc{1}{n}$}\}
-  \end{tabular}
-  \caption{DNF Regex Semantics}
-  \label{fig:dnf-regex-semantics}
-\end{figure}
-
 Regular expressions are put into a normalized form to eliminate the
 need to traverse all equivalences of regular expressions.
 This normal form is called called ``disjunctive normal form'' or
@@ -1257,10 +1227,31 @@ A DNF regular expression is, intuitively, a regular expression with
 all terms fully distributed, and with associativity information removed.
 Distributing terms and removing associativity information creates a mutually
 recursive data structure, consisting of the types of
-DNF regular expressions, sequences, and atoms.  The syntax of DNF regular
-expressions, sequences, and atoms are given in
-Figure~\ref{fig:dnf-regex-syntax}, and their semantics are given in
-Figure~\ref{fig:dnf-regex-semantics}.
+DNF regular expressions, sequences, and atoms.
+The syntax of DNF regular
+expressions, sequences, and atoms are given below.\\
+\resizebox{\columnwidth}{!}{%
+  \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+    
+    % DNF_REGEX
+    (Atoms)& \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
+    (Sequences)& \Sequence{},\SequenceAlt{} & \GEq{} &
+                                                       $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ & \MultiConcatSequenceType{} \\
+    (DNF Regexes)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & \MultiOrDNFRegexType{} \\
+  \end{tabular}
+}
+
+Like regular expressions, DNF regular expressions can be used to inductively
+define languages.\\
+\resizebox{\columnwidth}{!}{
+  \begin{tabular}{R@{}L}
+    \LanguageOf{\StarOf{\DNFRegex}} = &
+                                        \{\String_1\Concat\ldots\Concat\String_n \SuchThat n\in\Nats \wedge \String_i\in\LanguageOf{\DNFRegex}\}\\
+    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= &
+                                                                                                                        \{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}\\
+    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
+                                                                       \{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{ for some $i\in\RangeIncInc{1}{n}$}\}
+  \end{tabular}}
 
 A DNF regular expression is a list of sequences.
 We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
@@ -1315,7 +1306,7 @@ implies $\String_i'=\StringAlt_i'$ for all $i$.  A DNF regular expression is sai
 to be \textit{unambiguously iterable} written $\UnambigItOf{\DNFRegex}$ if
 $\UnambigItOf{\LanguageOf{\DNFRegex}}$.
 
-\subsection{Expressivity of DNF Regular Expressions}
+\paragraph*{Expressivity of DNF Regular Expressions}
 
 % fig:dnf-regex-functions
 \begin{figure}
@@ -1323,8 +1314,6 @@ $\UnambigItOf{\LanguageOf{\DNFRegex}}$.
   $\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=$\\
   \hspace*{2ex}$[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
   \\
-  \afm{What about using bigodot\_\{[1,n]\}bigodot\_\{[1,m]\ldots\}, or would that be
-    not understood}
   \ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
   $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
   \[
@@ -1355,21 +1344,15 @@ This process requires some auxiliary definitions
 which are defined in Figure~\ref{fig:dnf-regex-functions}.
 From these functions, we can define \ToDNFRegex{}, a function which converts a regular expression into
 an equivalent DNF regular expression.
-
-\begin{definition}
-  \leavevmode
-  \[
-    \begin{array}{rcl}
-      \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
-      \ToDNFRegexOf{\emptyset} & = & \DNFOf{}\\
-      \ToDNFRegexOf{(\StarOf{\Regex})} & = & \AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex})}}\\
-      \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}\\
-      \ToDNFRegexOf{(\RegexOr{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}\\
-    \end{array}
-  \]
-\end{definition}
-\afm{$\ToDNFRegex$ is usually postfix or infix, depending on use, but we're
-  kinda using it as a function, is this ok?}
+\[
+  \begin{array}{rcl}
+    \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
+    \ToDNFRegexOf{\emptyset} & = & \DNFOf{}\\
+    \ToDNFRegexOf{(\StarOf{\Regex})} & = & \AtomToDNFOf{\StarOf{(\ToDNFRegexOf{\Regex})}}\\
+    \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}\\
+    \ToDNFRegexOf{(\RegexOr{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \OrDNF \ToDNFRegexOf{\Regex_2}\\
+  \end{array}
+\]
 
 Intuitively, the definition of $\ToDNFRegex$ states that the DNF regular
 expression with no sequences
@@ -1389,32 +1372,32 @@ in the following theorem.
 
 Furthermore, we can prove that DNF regular expressions are sound with respect to
 regular expressions,
-and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.
-
-\begin{definition}\leavevmode\\
-  $\ToRegexOf{\StarOf{\DNFRegex}} = \StarOf{\ToRegexOf{\DNFRegex}}$\\
-  $\ToRegexOf{\SequenceOf{\String_0}} = \String_0$\\
-  $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
-    \SequenceSep\Atom_n\SequenceSep\String_n}} =
-  \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.\\
+\resizebox{\columnwidth}{!}{
+  \begin{tabular}{r@{\ }c@{\ }l}
+    $\ToRegexOf{(\StarOf{\DNFRegex})}$ & = & $\StarOf{(\ToRegexOf{\DNFRegex})}$\\
+    $\ToRegexOf{\SequenceOf{\String_0}}$ & = & $\String_0$\\
+    $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+    \SequenceSep\Atom_n\SequenceSep\String_n}} $ & = & $
+    \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
     \ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}}}
-  \Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
-  $\ToRegexOf{\DNFOf{}}=\emptyset$\\
-  $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}=
-  (\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
-  \,\Or\, (\ToRegexOf{\Sequence_n})$
-\end{definition}
+    \Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
+    $\ToRegexOf{\DNFOf{}} $ & = & $\emptyset$\\
+    $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}} $ & = &
+    $(\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
+    \,\Or\, (\ToRegexOf{\Sequence_n})$
+  \end{tabular}}
 
 This function provides a way to find a regular expression which corresponds to a given
 DNF regular expression.  We formalize this correspondence with the theorem
 below.
 
-\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}\leavevmode\\
+\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
   \label{thm:dnfrs}
   $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
 \end{restatable}
 
-\subsection{DNF Regular Expression Rewrites}
+\paragraph*{DNF Regular Expression Rewrites}
 
 In our synthesis algorithm we need to allow for a rewrite system on DNF regular
 expressions to search through the equivalences.
@@ -1519,44 +1502,8 @@ closure of $\Rewrite$.
 
 \section{DNF Lenses}
 
-% fig:dnf-lens-syntax
-\begin{figure}
-  \centering
-  \begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
-    % REGEX
-    (Atom Lenses) &\AtomLens{} & \GEq{} & $\IterateLensOf{\DNFLens}$ & Iterate\\
-    (Sequence Lenses) &\SequenceLens{} & \GEq{} &
-                                                  $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)}$, &\\
-                  & & & $\sigma \in S_n)$ & Sequence\SubN{}\\
-    (DNF Lenses)& \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ & DNF\SubN{}\\
-  \end{tabular}
-  \caption{DNF Lens Syntax}
-  \label{fig:dnf-lens-syntax}
-\end{figure}
-
 % fig:dnf-lens-semantics
 \begin{figure}
-  Semantics of Atom Lenses:\\
-  $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
-  \hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
-    \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-    n\in\Nats\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
-  \\
-  Semantics of Sequence Lenses:\\
-  $\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
-      \AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n
-      \SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}=$\\
-  \hspace*{3em}$\SetOf{
-    (\String_0\String_1'\ldots\String_n'\String_n,
-    \StringAlt_0\StringAlt_{\Permutation(1)}'\ldots
-    \StringAlt_{\Permutation(n)}'\StringAlt_n)\SuchThat
-    (\String_i',\StringAlt_i')\in\SemanticsOf{\AtomLens_i}}$\\
-  \\
-  Semantics of DNF Lenses:\\
-  $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
-      \SequenceLens_n},\Permutation)}=$\\
-  \hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
-    (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
   \caption{DNF Lens Semantics}
   \label{fig:dnf-lens-semantics}
 \end{figure}
@@ -1622,11 +1569,37 @@ closure of $\Rewrite$.
 \end{figure}
 
 Armed with these rewrites, we can define a language for lenses on DNF regular
-expressions, called ``Disjunctive Normal Form'' or ``DNF'' lenses.
-Figure~\ref{fig:dnf-lens-syntax} defines the syntax of DNF lenses, and
-Figure~\ref{fig:dnf-lens-semantics} defines the semantics.  DNF lenses are
-defined via 3 mutually recursive data structures, DNF lenses, sequence lenses,
-and atom lenses.
+expressions, called ``Disjunctive Normal Form'' or ``DNF'' lenses.  The syntax
+for DNF lenses is given below\\
+\resizebox{\columnwidth}{!}{
+  \begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
+    % REGEX
+    (Atom Lenses) &\AtomLens{} & \GEq{} & $\IterateLensOf{\DNFLens}$ & Iterate\\
+    (Sequence Lenses) &\SequenceLens{} & \GEq{} &
+                                                  $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)}$, &\\
+                  & & & $\sigma \in S_n)$ & Sequence\SubN{}\\
+    (DNF Lenses)& \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ & DNF\SubN{}\\
+  \end{tabular}}
+
+
+DNF lenses are defined via 3 mutually recursive data structures, DNF lenses, sequence lenses,
+and atom lenses.  Like lenses, DNF Lenses have denotational semantics to express bijective mappings.\\
+  $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
+  \hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
+    \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+    n\in\Nats\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
+  $\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
+      \AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n
+      \SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}=$\\
+  \hspace*{3em}$\SetOf{
+    (\String_0\String_1'\ldots\String_n'\String_n,
+    \StringAlt_0\StringAlt_{\Permutation(1)}'\ldots
+    \StringAlt_{\Permutation(n)}'\StringAlt_n)\SuchThat
+    (\String_i',\StringAlt_i')\in\SemanticsOf{\AtomLens_i}}$\\
+  $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
+      \SequenceLens_n},\Permutation)}=$\\
+  \hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
+    (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
 
 A DNF lens is a list of sequence lenses.
 We use the balanced delimiters of
@@ -1683,8 +1656,7 @@ These DNF lenses only express bijections that are already expressible in the lan
   then there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ such that
   $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
   $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$, and
-  $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.\afm{worth having a specific
-    syntax for dnf lens semantics vs normal lens semantics for clarity?}
+  $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
 Furthermore, these DNF lenses can express everything
@@ -1719,96 +1691,62 @@ correct permutations for each rule application, must be found.
 \label{implementation}
 We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
 
-\subsection{Synthesis Overview}
-\begin{figure}
-  \includegraphics[scale=.5]{synth-lens-schematic.png}
-  \begin{tikzpicture}[]
-    \draw
-    node at (0,0) [name=examples] {\scriptsize $\mathit{examples}$}
-    node [name=input, right=.5cm of examples]{\scriptsize $(\Regex,\RegexAlt)$}
-    node [draw, rectangle, name=todnfregex, right=.75cm of input] {$\ToDNFRegex$}
-    node [draw, rectangle, name=emptyqueue, right=1cm of todnfregex] {\CF{Queue.Empty}}
-    node [draw, rectangle, name=enqueue, below=.5cm of todnfregex]{\CF{Enqueue}}
-    node [draw, rectangle, name=pop, below=1cm of enqueue] {\CF{Queue.Pop}}
-    node [draw, rectangle, name=synthrewritelessdnf, below=4cm of examples] {\CF{SynthRewritelessDNF}}
-    node [draw, rectangle, name=beautify, below=2cm of synthrewritelessdnf] {\CF{Beautify}}
-    node [name=output, below=.5cm of beautify] {\scriptsize $\Lens$}
-    node [draw, rectangle, name=rewrite, right=1.5cm of synthrewritelessdnf] {\CF{ApplyRewrites}}
-    node [draw, rectangle, name=enqueuemany, above=.5cm of rewrite] {\CF{EnqueMany}}
-    ;
-
-    \draw[->] (input) -> (todnfregex);
-    \draw[->] (todnfregex) -> (enqueue) node[midway,left] {\scriptsize $(\DNFRegex,\DNFRegexAlt)$};
-    \draw[->] (emptyqueue) -> (enqueue);
-    \draw[->] (enqueue) -> (pop) node[near end, left] {\scriptsize $Q$};
-    \draw[->] (examples) -> (synthrewritelessdnf);
-    \draw[->] (pop) -> (synthrewritelessdnf) node[midway,above=.3cm] {\scriptsize $(\DNFRegex,\DNFRegexAlt)$};
-    \draw[->] (synthrewritelessdnf) -> (beautify) node[near end, right] {\scriptsize $\Lens$};
-    \draw[->] (beautify) -> (output);
-    \draw[->] (synthrewritelessdnf) -> (rewrite) node[midway,above] {\scriptsize $\mathit{None}$};
-    \draw[->] (rewrite) -> (enqueuemany) node[midway,right] {\scriptsize $[(\DNFRegex_i,\DNFRegexAlt_i)]$};
-    \draw[->] (pop) -> (enqueuemany) node[midway,right] {\scriptsize $Q$};
-    \draw[-] (enqueuemany) -> (pop);
-  \end{tikzpicture}
-
-    
-    \label{fig:synth-lens-schematic}
-  \caption{Schematic Diagram for Lens Synthesis\afm{Schematic Diagram vs Code?}}
-\end{figure}
-The schematic diagram in 
-Figure~\ref{fig:synth-lens-schematic} shows an overview of the synthesis
-algorithm.  The algorithm, \PCF{SynthLens}, takes in a pair of
-regular expressions, and examples, and uses $\ToDNFRegex$ to convert the
+\paragraph*{Synthesis Overview}
+Algorithm~\ref{alg:synthlens} shows an overview of the synthesis
+algorithm.  The algorithm, \SynthLens{}, takes in a pair of
+regular expressions ($\Regex$ and $\RegexAlt$), and examples ($\Examples$),
+and uses $\ToDNFRegex$ to convert the
 regular expressions into DNF regular expressions.
-Then, \PCF{SynthDNFLens} is called on these DNF regular expressions to create a
+Then, \SynthDNFLens{} is called on these DNF regular expressions to create a
 DNF lens.
-This DNF lens is then converted into a lens, and finally beautified for
-readability.
+This DNF lens is then converted into a lens with \ToLens{}, and finally beautified for
+readability with \Beautify{}.
 
 \begin{algorithm}
-  \caption{\PCF{SynthLens}}
+  \caption{\SynthLens}
+  \label{alg:synthlens}
   \begin{algorithmic}[1]
-    \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\mathit{exs}$}
-    \State $\mathit{Q} \gets \Call{SingletonQueue}{(\DNFRegex,\DNFRegexAlt),0}$
-    \While{$\mathit{true}$}
-    \State $(\mathit{q},\mathit{Q}) \gets \Call{Pop}{Q}$
-    \State $((\DNFRegex,\DNFRegexAlt),\mathit{ExpCount}) \gets \mathit{q}$
+    \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
+    \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
+    \While{$\True$}
+    \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}$
+    \State $((\DNFRegex,\DNFRegexAlt),\ExpCount) \gets \QueueElement$
     \State $\DNFLens \gets
-    \Call{SynthRewritelessDNFLens}{\DNFRegex,\DNFRegexAlt,\mathit{exs}}$
-    \If{$\DNFLens \neq \mathit{null}$}
-    \State \textbf{return} $\DNFLens$
+    \Call{\SynthRWLDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
+    \If{$\DNFLens \neq \Null$}
+    \State $\ReturnVal{\DNFLens}$
     \Else
-    \State $\mathit{rxs} \gets \Call{ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
-    \State $\mathit{qs} \gets \Call{Map}{\lambda x.(x,\mathit{ExpCount}+1),\mathit{rxs}}$
-    \State $\mathit{Q} \gets \Call{EnqueueMany}{\mathit{qs},\mathit{Q'}}$
+    \State $\DNFRegexs \gets \Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
+    \State $\QueueElements \gets \Call{\Map}{\lambda x.(x,\ExpCount+1),\DNFRegexs}$
+    \State $\Queue \gets \Call{\EnqueueMany}{\QueueElements,\Queue}$
     \EndIf
     \EndWhile
     \EndFunction
     \Statex
-    \Function{SynthLens}{$\Regex,\RegexAlt,\mathit{exs}$}
+    \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
     \State $(\DNFRegex,\DNFRegexAlt) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
-    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\mathit{exs}}$
+    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
     \State $\Lens \gets \Call{ToLens}{\DNFLens}$
-    \State \textbf{return} $\Call{Beautify}{\Lens}$
+    \State $\ReturnVal{\Call{Beautify}{\Lens}}$
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
 
-In \PCF{SynthDNFLens}, a singleton priority queue is created, consisting of the
+In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
 two input DNF regular expressions and the number of expansions preformed $(0)$.
 This priority queue is designed
 such that lower priority typing constraints either have undergone a large number
 of rewrites, or have typing constraints that are very difference in appearance
 from each other.
-Next a loop is begun which pops the highest priority element from the queue.
+Next a loop begins which pops the highest priority element from the queue.
 This element is a tuple consisting of the DNF regular expressions, and a tracker
-of how many expansions have been preformed.
-\PCF{SynthRewritelessDNFLens} is then called on the DNF regular expressions and
-the examples.
-If a DNF lens is not found, it is returned.
+of how many expansions have been preformed ($\ExpCount$).
+\SynthRWLDNFLens is then called on the DNF regular expressions and
+the examples, to search for a rewriteless DNF lens.
+If a rewriteless DNF lens is found, it is returned.
 If no lens is found, a single rewrite is applied to either the left or the right
-DNF regular expression in \PCF{ExpandOnce}.  In other words, if $\DNFRegex$ and
+DNF regular expression in \ExpandOnce.  In other words, if $\DNFRegex$ and
 $\DNFRegexAlt$ are the DNF regular expressions,
 $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
 \SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
@@ -1817,7 +1755,7 @@ $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
 All the DNF regular expressions returned by this are enqueued, with the
 information that an extra expansion has been preformed, and the loop continues.
 
-\subsection{Priority Queue}
+\paragraph*{Priority Queue}
 We say that the lower the priority value, the higher the priority.
 The priority value of an element is based on two factors.  The first factor is
 the number of expansions that have been performed.  If more expansions have been
@@ -1857,24 +1795,20 @@ vector space.
 DNF regular expressions with variables can map into this vector space with a function that
 counts the number of user defined data types present at a given level.
 This function, $\GetDist{}$ formalizes the mapping from DNF regular expressions
-into $\VectorSpace$.
+into $\VectorSpace$.\\
+\begin{tabular}{@{}L@{}L@{}}
+  \GetDist(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) &
+                                                     =\GetDist(\Sequence_1)+\ldots+\GetDist(\Sequence_n)\\
+  \GetDist(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}) &
+                                                                      =\GetDist(\Atom_1)+\ldots+\GetDist(\Atom_n)\\
+  \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
+  \GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
+\end{tabular}
+The linear map $\phi$ is used to increment the number of nested stars, and is
+defined by $\phi(a*(\RegexVariable,n)) = a*(\RegexVariable,n+1)$
 
-\begin{definition}\leavevmode\\
-  \label{def:getdist}
-  \begin{tabular}{@{}L@{}L@{}}
-    \GetDist(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) &
-                                                       =\GetDist(\Sequence_1)+\ldots+\GetDist(\Sequence_n)\\
-    \GetDist(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}) &
-                                                                        =\GetDist(\Atom_1)+\ldots+\GetDist(\Atom_n)\\
-    \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
-    \GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
-  \end{tabular}
-
-  where $\phi$ is the linear map sending $1*(\RegexVariable,n)$ to
-  $1*(\RegexVariable,n+1)$
-\end{definition}
-
-If $\LOneNorm$ computes the Manhattan distance on $\VectorSpace$,
+If $\LOneNorm$ computes the Manhattan distance on $\VectorSpace$ the
+distribution distance
 $\Distance_{dist}(\DNFRegex,\DNFRegexAlt)=
 \LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$.  This
 distance calculates how different the distribution of user defined regular
@@ -1884,18 +1818,17 @@ expressions be synthesized.  This metric makes regular expressions with
 similar distributions of user defined regular expressions be popped earlier.
 
 The priority of a pair of DNF regular expressions, $(\DNFRegex{},\DNFRegexAlt{})$,
-is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*\mathit{ExpansionCount}$, where
-$\mathit{ExpansionCount}$ is the total number of expansions preformed.
+is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*\ExpCount$, where
+$\ExpCount$ is the total number of expansions preformed.
 Keeping track of expansion count is important as it allows for lower priority
 expansions to be eventually popped, instead of getting stuck doing incorrect,
 increasingly deep expansions whose DNF regular expressions have a low distance.
-\afm{should i do an example, or is that going into too much detail?}
 Experimentally, 8 is a good value for how much weight the expansion
 count should get in the priority.  It allows for not getting stuck in a local
 minima in the search space, while still allowing for the distance to choose the
 correct expansion the majority of the time.
 
-\subsection{SynthRewritelessDNF}
+\paragraph*{\SynthRWLDNFLens}
 
 While performing type directed synthesis on DNF regular expressions, both
 synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
@@ -1933,14 +1866,14 @@ can retrieve a lens between the original DNF regular expressions.
 \begin{figure}
   \label{fig:lens-synth-ordering-ex}
   \centering
-  \CF{Bib' <=> DNFEndUnroll}
+  \SmallCF{Bib' <=> DNFEndUnroll}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
     {
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{BibSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
-      \CF{""} & $\Or$ & \CF{EndSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{BibSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{BibSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{EndSequence2} \\
+      \SmallCF{""} & $\Or$ & \SmallCF{EndSequence2} \\
     };
     \path[<->]
     (m-1-1) edge node [left] {} (m-2-1);
@@ -1951,27 +1884,27 @@ can retrieve a lens between the original DNF regular expressions.
     \path[<->]
     (m-1-3) edge node [right] {} (m-2-3);
     \path[<->]
-    (m-2-3) edge node [right] {\CF{lsequence}} (m-3-3);
+    (m-2-3) edge node [right] {\SmallCF{lsequence}} (m-3-3);
     \path[<->]
     (m-3-3) edge node [right] {} (m-4-3);
   \end{tikzpicture}
 
-  \CF{lsequence : BibSequence2 <=> EndSequence2}
+  \SmallCF{lsequence : BibSequence2 <=> EndSequence2}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
-      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
-      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
-      \CF{"author=\{"} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} & \CF{""}
-      & \Concat{}\CF{BibStar*}\Concat{} & \CF{"\},"}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Name}\Concat{} & \CF{" "} & \Concat{}\CF{Names}\Concat{} & \CF{""}
-      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{} & \CF{""}
-      & \Concat{}\CF{EndStar*}\Concat{} & \CF{""}\\
+      \SmallCF{"author=\{"} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{BibStar*}\Concat{} & \SmallCF{"\},"}\\
+      \SmallCF{"author=\{"} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{BibStar*}\Concat{} & \SmallCF{"\},"}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{EndStar*}\Concat{} & \SmallCF{""}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""}
+      & \Concat{}\SmallCF{EndStar*}\Concat{} & \SmallCF{""}\\
     };
     \path[<->]
     (m-1-2) edge node [right] {} (m-2-4);
@@ -1988,7 +1921,7 @@ can retrieve a lens between the original DNF regular expressions.
     \path[<->]
     (m-2-6) edge node [left] {} (m-3-6);
     \path[<->]
-    (m-2-8) edge node [right] {\CF{lstar}} (m-3-8);
+    (m-2-8) edge node [right] {\SmallCF{lstar}} (m-3-8);
     \path[<->]
     (m-3-2) edge node [right] {} (m-4-2);
     \path[<->]
@@ -1999,22 +1932,22 @@ can retrieve a lens between the original DNF regular expressions.
     (m-3-8) edge node [right] {} (m-4-8);
   \end{tikzpicture}
 
-  \CF{lstar : BibStar <=> EndStar}
+  \SmallCF{lstar : BibStar <=> EndStar}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=-.75em]
     {
-      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
-      \CF{""}\\
-      \CF{" and "} & \Concat{}\CF{Name}\Concat{} & \CF{", "} &
-      \Concat{}\CF{Name}\Concat{} & \CF{""} & \Concat{}\CF{Names}\Concat{} &
-      \CF{""}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Name}\Concat{} & \CF{" "} & \Concat{}\CF{Names}\Concat{}
-      & \CF{""}\\
-      \CF{"\%A "} & \Concat{}\CF{Name}\Concat{} & \CF{""} &
-      \Concat{}\CF{Names}\Concat{} & \CF{" "} & \Concat{}\CF{Name}\Concat{}
-      & \CF{""}\\
+      \SmallCF{" and "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} &
+      \SmallCF{""}\\
+      \SmallCF{" and "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{", "} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} & \Concat{}\SmallCF{Names}\Concat{} &
+      \SmallCF{""}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Names}\Concat{}
+      & \SmallCF{""}\\
+      \SmallCF{"\%A "} & \Concat{}\SmallCF{Name}\Concat{} & \SmallCF{""} &
+      \Concat{}\SmallCF{Names}\Concat{} & \SmallCF{" "} & \Concat{}\SmallCF{Name}\Concat{}
+      & \SmallCF{""}\\
     };
     \path[<->]
     (m-1-2) edge node [right] {} (m-2-4);
@@ -2115,7 +2048,7 @@ The values presented are the arithmetic means of 10 test runs.
 The tests were run on a 2.5 GHz Intel Core i7 processor, with
 16 GB of 1600 MHz DDR3, running Mac OS X Yosemite.
 
-\subsection{Test Selection}
+\paragraph*{Test Selection}
 
 Our tests were modified from examples of string transformations found in Augeas,
 Boomerang, and FlashFill.
@@ -2157,7 +2090,7 @@ These intermediary lenses are then used in the synthesis algorithm for mapping
 the intermediary sub-expressions, to avoid repeating the same synthesis
 algorithm.
 
-\subsection{Speed of Synthesis}
+\paragraph*{Speed of Synthesis}
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
 test suite, with the column \textbf{ComputationTime} showing the runtime of the
 overall synthesis algorithm.
@@ -2199,7 +2132,7 @@ the regular expression, many expansions can be preformed, and because expansions
 must be preformed, it requires a large amount of search to find the correct
 expansions to synthesize a lens.
 
-\subsection{Importance of Examples}
+\paragraph*{Importance of Examples}
 
 We wanted to see how many examples were required to synthesize the correct
 bijective lens.
@@ -2243,7 +2176,7 @@ Maintaining similar subparts in similar orderings makes the types much easier to
 read, make it easier for checking that the languages are in bijection with each
 other.
 
-\subsection{Importance of User Defined Data Types}
+\paragraph*{Importance of User Defined Data Types}
 
 User defined data types are very critical to the algorithm and performance of
 the synthesis algorithm.  User defined data types help direct the search of
@@ -2267,7 +2200,7 @@ type, manually inputting them performs better in practice.  The
 procedure for automatically creating user defined data types creates far more
 data types, which then creates a more complicated search problem.
 
-\subsection{Impact of Incompleteness to Full Regular Expression Equivalence}
+\paragraph*{Impact of Incompleteness to Full Regular Expression Equivalence}
 We found that not being able to synthesize lenses where retyping used full
 regular expression equivalence was not a detriment to the algorithm at all.  The
 only regular expression equivalences that naturally occured were ones that we
@@ -2286,7 +2219,7 @@ equivalences of which are already accounted for in $\DefinitionalEquiv$.
 % end evaluation
 
 % begin discussion
-\subsection{Discussion}
+\paragraph*{Discussion}
 
 We found that in practice, requiring a user to put in more information for the
 synthesis of a string transformation creates a more reliable algorithm, which
@@ -2315,7 +2248,7 @@ more examples which fix where the program is wrong.
 
 % begin related-work
 \section{Related Work}
-\subsection{FlashFill}
+\paragraph*{FlashFill}
 FlashFill is another string transformation program.  FlashFill takes input and
 output examples as its only form of specification.  For FlashFill's primary use
 case, providing easy transformations of Excel data, input and output examples as
@@ -2342,7 +2275,7 @@ in allowing FlashFill
 to efficiently find many correct transformations very quickly.  However, in
 many complicated data formats, nested loops are inevitable. 
 
-\subsection{FlashExtract}
+\paragraph*{FlashExtract}
 FlashExtract is a program that takes an input of a string, and a partial
 labeling of substrings within that string, to try to label the rest of the
 substrings.  FlashExtract was able to label some amounts of the strings, but was
@@ -2384,7 +2317,7 @@ for this increased interaction, the program provides the capabilities of
 synthesizing very complicated transformations, and provides stronger guarantees
 about correctness on inputs dissimilar to those provided in the examples.
 
-\subsection{Future Work}
+\paragraph*{Future Work}
 Some of the issues seen in this work have already been noted.  For example, in the
 quotient lens paper, the issue of having to hack a place in the source string to
 move whitespace information from the view to the source was noted.  An extension
@@ -3197,7 +3130,6 @@ whitespace problem.
     $\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n};\Sep])$.
     Consider the following deduction\bcp{I find these deductions a bit heavy and
       hard to read, but I guess I can get used to them.  }
-    \afm{Anybody have suggestions for better deduction package?}
     \begin{mathpar}
 
       \inferrule*[left=\Derivation{}]
@@ -6651,15 +6583,93 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   By induction on $n$
 
   \begin{case}[$n=0$]
+    $\ToRegexOf{\DNFOf{}} = \emptyset$, which is strongly unambiguous.
+  \end{case}
+
+  \begin{case}[$n>0$]
+    $\ToRegexOf{\Sequence_1;\ldots;\Sequence_n} =
+    \ToRegexOf{\Sequence_1;\ldots;\Sequence_{n-1}} \Or \ToRegexOf{\Sequence_n}$.
+    By IH, $\ToRegexOf{\Sequence_1;\ldots;\Sequence_{n-1}}$ is strongly
+    unambiguous.
+    Furthermore, as $\DNFRegex$ is strongly unambiguous,
+    by Lemma~\ref{lem:unambig-union-equiv},
+    $\LanguageOf{\ToRegexOf{\Sequence_1;\ldots;\Sequence_{n-1}}} \Intersect
+    \ToRegexOf{\Sequence_n} = \emptyset$, so
+    $\ToRegexOf{\Sequence_n}$ is strongly unambiguous, so the entire thing is
+    strongly unambiguous.
+  \end{case}
+\end{proof}
+
+\begin{lemma}
+  \label{lem:unambig-seq}
+  If $\Sequence = \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$
+  is strongly unambiguous, and for all $i$, $\ToRegexOf{\Atom_i}$ is strongly
+  unambiguous, then $\ToRegexOf{\Sequence}$ is strongly unambiguous.
+\end{lemma}
+\begin{proof}
+  By induction on $n$
+
+  \begin{case}[$n=0$]
+    $\ToRegexOf{\SequenceOf{\String_0}} = \String_0$, which is strongly unambiguous.
+  \end{case}
+
+  \begin{case}[$n>0$]
+    $\ToRegexOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} =
+    \ToRegexOf{\String_0;\Atom_1;\ldots;\Atom_{n-1};\String_{n-1}}
+    \Concat \ToRegexOf{\Atom_n} \Concat \ToRegexOf{\String_n}$.
+    From $\ToRegexOf{\Atom_n}$ and $\ToRegexOf{\String_n}$,
+    we know $\UnambigConcatOf{\ToRegexOf{\Atom_n}}{\String_n}$ because
+    the second part will always be $\String_n$, so the first part must be the
+    same.
+    By IH, $\ToRegexOf{\Sequence_1;\ldots;\Sequence_{n-1}}$ is strongly
+    unambiguous.
+    Furthermore, as $\Sequence$ is strongly unambiguous,
+    by Lemma~\ref{lem:unambig-concat-equiv},
+    $\LanguageOf{\ToRegexOf{\String_0;\Atom_1;\ldots;\Atom_{n-1};\String_{n-1}}}
+    \UnambigConcat
+    (\ToRegexOf{\Atom_n} \Concat \ToRegexOf{\String_n})$, so
+    as each side is also is strongly unambiguous, the entire thing is
+    strongly unambiguous.
   \end{case}
 \end{proof}
 
 \begin{lemma}
   \label{lem:retaining-unambiguity-toregex}
-  If $\DNFRegex$ is strongly unambiguous as a DNF regular expression, then
-  $\ToRegexOf{\DNFRegex}$ is strongly unambiguous as a regular expression.
+  \begin{itemize}
+  \item 
+    If $\DNFRegex$ is strongly unambiguous as a DNF regular expression, then
+    $\ToRegexOf{\DNFRegex}$ is strongly unambiguous as a regular expression
+  \item
+    If $\Sequence$ is strongly unambiguous as a sequence, then
+    $\ToRegexOf{\Sequence}$ is strongly unambiguous as a sequence
+  \item
+    If $\Atom$ is strongly unambiguous as an atom, then
+    $\ToRegexOf{\Atom}$ is strongly unambiguous as an atom
+  \end{itemize}
 \end{lemma}
 \begin{proof}
+  \begin{case}[\MultiOrDNFRegexType{}]
+    Let $\DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
+    By IH, $\ToRegexOf{\Sequence_i}$ is strongly unambiguous.
+    By Lemma~\ref{lem:unambig-dnf}, $\ToRegexOf{\DNFRegex}$ is strongly
+    unambiguous.
+  \end{case}
+
+  \begin{case}[\MultiConcatSequenceType{}]
+    Let $\Sequence = \SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$.
+    By IH, $\ToRegexOf{\Atom_i}$ is strongly unambiguous.
+    By Lemma~\ref{lem:unambig-seq}, $\ToRegexOf{\Sequence}$ is strongly
+    unambiguous.
+  \end{case}
+
+  \begin{case}[StarAtomType]
+    Let $\Atom = \StarOf{\DNFRegex}$.
+    By IH, $\ToRegexOf{\DNFRegex}$ is strongly unambiguous.
+    As $\StarOf{\DNFRegex}$ is strongly unambiguous, $\UnambigItOf{\DNFRegex}$,
+    so $\UnambigItOf{\LanguageOf{\DNFRegex}}$, so
+    $\UnambigItOf{(\ToRegexOf{\DNFRegex})}$.
+    So $\StarOf{\DNFRegex}$ is strongly unambiguous.
+  \end{case}
 \end{proof}
 
 \begin{lemma}[Expressibility of Identity on Strongly Unambiguous DNF Regex,
@@ -6830,16 +6840,66 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \begin{lemma}
-  \label{lem:unambig-components-or-dnf}
-  If $\DNFRegex \Concat \DNFRegexAlt$ is strongly unambiguous, then
-  $\DNFRegex$ and $\DNFRegexAlt$ are both strongly unambiguous.
+  \label{lem:distribute-strongly-unambiguous-iff-factor}
+  If $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$ is strongly
+  unambiguous, then 
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$ is strongly unambiguous.
 \end{lemma}
 \begin{proof}
+  Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$.
+  Let $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$.
+  Let $\DNFRegex_3 = \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+
+  $\DNFRegex_2 \OrDNF \DNFRegex_3 =
+  \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2};
+    \Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3) =
+  \DNFOf{
+    \Sequence_{1,1} \ConcatSequence \Sequence_{2,1}; \ldots;
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,1}; \ldots;
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3}; \ldots;
+    \Sequence_{1,n_1} \ConcatSequence \Sequence_{2,1}; \ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,1}; \ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}$.
+  As this is strongly unambiguous, $\Sequence_{1,i} \ConcatSequence
+  \Sequence_{j,k}$ is strongly unambiguous for all $i,j,k$.
+  Furthermore, by strong unambiguity,
+  if $(i_1,j_1,k_1) \neq (i_2,j_2,k_2)$, then
+  $\Sequence_{1,i_1} \ConcatSequence \Sequence_{j_1,k_1} \Intersect
+  \Sequence_{1,i_2} \ConcatSequence \Sequence_{j_1,k_1}$.
+
   
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3) =
+  \DNFOf{
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,n_2};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,1};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3};
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}$
+  
+  From before, if $(i_1,j_1,k_1) \neq (i_2,j_2,k_2)$, then
+  $\Sequence_{1,i_1} \ConcatSequence \Sequence_{j_1,k_1} \Intersect
+  \Sequence_{1,i_2} \ConcatSequence \Sequence_{j_1,k_1} = \SetOf{}$.
+  Furthermore, each $\Sequence_{1,i} \ConcatSequence \Sequence_{j,k}$ is still
+  strongly unambiguous for all $i,j,k$, so
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$ is strongly unambiguous.
+
+  The same process can be repeated to show that assumping
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$ is strongly unambiguous, we can show
+  $\DNFRegex \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$ is strongly unambiguous.
 \end{proof}
 
 \begin{lemma}
-  \label{lem:id-expressible-on-distribute}
+  \label{lem:id-expressible-on-distribute-left}
   If $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$ is strongly
   unambiguous, then there exists a lens
   $\DNFLens \OfRewritelessType
@@ -6849,9 +6909,176 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$.
 \end{lemma}
 \begin{proof}
+  If $\LanguageOf{\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)} = \SetOf{}$,
+  then this is trivial, as
+  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3) =
+  \SetOf{}$.
+  
+  Assume the language is nonempty.
   Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n_1}}$.
   Let $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2}}$.
   Let $\DNFRegex_3 = \DNFOf{\Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+
+  $\DNFRegex_2 \OrDNF \DNFRegex_3 =
+  \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n_2};
+    \Sequence_{3,1};\ldots;\Sequence_{3,n_3}}$.
+  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3) =
+  \DNFOf{
+    \Sequence_{1,1} \ConcatSequence \Sequence_{2,1}; \ldots;
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,1}; \ldots;
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3}; \ldots;
+    \Sequence_{1,n_1} \ConcatSequence \Sequence_{2,1}; \ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,1}; \ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}$.
+  As this is strongly unambiguous, $\Sequence_{1,i} \ConcatSequence
+  \Sequence_{j,k}$ is strongly unambiguous for all $i,j,k$.
+  Furthermore, by strong unambiguity,
+  if $(i_1,j_1,k_1) \neq (i_2,j_2,k_2)$, then
+  $\Sequence_{1,i_1} \ConcatSequence \Sequence_{j_1,k_1} \Intersect
+  \Sequence_{1,i_2} \ConcatSequence \Sequence_{j_1,k_1}$
+  
+  $\DNFRegex_1 \ConcatDNF \DNFRegex_2 =
+  \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{2,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,n_2};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,1};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2}}$.
+
+  $\DNFRegex_1 \ConcatDNF \DNFRegex_3 =
+  \DNFOf{\Sequence_{1,1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3};
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}$.
+  
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3) =
+  \DNFOf{
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{2,n_2};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,1};\ldots;
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{2,n_2};
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,1}\ConcatSequence\Sequence_{3,n_3};\ldots
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,1};\ldots
+    \Sequence_{1,n_1}\ConcatSequence\Sequence_{3,n_3}}$
+  From before, if $(i_1,j_1,k_1) \neq (i_2,j_2,k_2)$, then
+  $\Sequence_{1,i_1} \ConcatSequence \Sequence_{j_1,k_1} \Intersect
+  \Sequence_{1,i_2} \ConcatSequence \Sequence_{j_1,k_1} = \SetOf{}$.
+
+  As $\Sequence_{1,i} \ConcatSequence \Sequence_{j,k}$ is strongly unambiguous,
+  there exists
+  $\SequenceLens_{i,j,k} \OfRewritelessType
+  \Sequence_{1,i} \ConcatSequence \Sequence_{j,k} \Leftrightarrow
+  \Sequence_{1,i} \ConcatSequence \Sequence_{j,k}$,
+  from Lemma~\ref{lem:strongly-unambiguous-identity-expressible}.
+
+  There exists a unique permutation $\sigma$ that sends
+  $\Sequence_{1,i} \ConcatSequence \Sequence_{j,k}$
+  in $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$
+  to $\Sequence_{1,i} \ConcatSequence \Sequence_{j,k}$ in
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$.  As a permutation is merely a bijective
+  between a finite number of elements.
+  Note, this permutation is not necessarily the identity permutation.
+  In particular, the sequence at position $n_1+1$, if such a sequence exists, in
+  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$ is
+  $\Sequence_{1,1} \ConcatSequence \Sequence_{3,1}$.
+  However, the sequence at position $n_1+1$, if such a sequence exists, in
+  $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$, is
+  $\Sequence_{1,2} \ConcatSequence \Sequence_{2,1}$.
+
+  Consider the derivation
+  \[
+    \inferrule*
+    {
+      \SequenceLens \OfRewritelessType
+      \Sequence_{1,i} \ConcatSequence \Sequence_{j,k}
+      \Leftrightarrow
+      \Sequence_{1,i} \ConcatSequence \Sequence_{j,k}\\
+      (i_1,j_1,k_1) \neq (i_2,j_2,k_2) \BooleanImplies
+      (\Sequence_{1,i_1} \ConcatSequence \Sequence_{j_1,k_1}) \Intersect
+      (\Sequence_{1,i_2} \ConcatSequence \Sequence_{j_2,k_2}) = \SetOf{}
+      \sigma \in \PermutationSetOf{n_1\Cross n_2\Cross n_3}
+    }
+    {
+      (\DNFLensOf{\SequenceLens_{1,2,1};\ldots;\SequenceLens_{1,2,n_2};
+        \SequenceLens_{1,3,1};\ldots;\SequenceLens_{1,3,n_3};\ldots;
+        \SequenceLens_{n_1,2,1};\ldots;\SequenceLens_{n_1,2,n_2};
+        \SequenceLens_{n_1,3,1};\ldots;\SequenceLens_{n_1,3,n_3}},\sigma)
+    }
+  \]
+
+  Furthermore, as each $\SequenceLens$ has the identity transformation, then as
+  $\sigma$ has no impact on semantics, the total DNF lens has the identity
+  transformation.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:id-expressible-on-factor-left}
+  If $(\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$ is strongly
+  unambiguous, then there exists a lens
+  $\DNFLens \OfRewritelessType
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)
+  \Leftrightarrow
+  \DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$.
+\end{lemma}
+\begin{proof}
+  By Lemma~\ref{lem:distribute-strongly-unambiguous-iff-factor},
+  $\DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$ is strongly
+  unambiguous.
+  So by Lemma~\ref{lem:id-expressible-on-distribute-left},
+  there exists an identity lens
+  $\DNFLens \OfRewritelessType
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)
+  \Leftrightarrow
+  \DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)$.
+  As rewriteless DNF lenses are closed under inversion, there exists a lens
+  $\InverseOf{\DNFLens} \OfRewritelessType
+  \DNFRegex_1 \ConcatDNF (\DNFRegex_2 \OrDNF \DNFRegex_3)
+  \Leftrightarrow
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_2) \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3)$.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:id-expressible-on-distribute-right}
+  If $(\DNFRegex_1 \OrDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3$ is strongly
+  unambiguous, then there exists a lens
+  $\DNFLens \OfRewritelessType
+  (\DNFRegex_1 \OrDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3
+  \Leftrightarrow
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF
+  (\DNFRegex_2 \ConcatDNF \DNFRegex_3)$.
+\end{lemma}
+\begin{proof}
+  By Lemma~\ref{lem:dnf-distribute-right}, $(\DNFRegex_1 \OrDNF \DNFRegex_2)
+  \ConcatDNF \DNFRegex_3 = (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF
+  (\DNFRegex_2 \ConcatDNF \DNFRegex_3)$, so by
+  Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there is an
+  identity lens between them.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:id-expressible-on-factor-right}
+  If $(\DNFRegex_1 \OrDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3$ is strongly
+  unambiguous, then there exists a lens
+  $\DNFLens \OfRewritelessType
+  (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF
+  (\DNFRegex_2 \ConcatDNF \DNFRegex_3)
+  \Leftrightarrow
+  (\DNFRegex_1 \OrDNF \DNFRegex_2) \ConcatDNF \DNFRegex_3$.
+\end{lemma}
+\begin{proof}
+  By Lemma~\ref{lem:dnf-distribute-right}, $(\DNFRegex_1 \OrDNF \DNFRegex_2)
+  \ConcatDNF \DNFRegex_3 = (\DNFRegex_1 \ConcatDNF \DNFRegex_3) \OrDNF
+  (\DNFRegex_2 \ConcatDNF \DNFRegex_3)$, so by
+  Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there is an
+  identity lens between them.
 \end{proof}
 
 \begin{definition}
@@ -7193,11 +7420,11 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     \StringAlt_{j,k-n_i} & if $i > n$
   \end{cases*}$
 
-  Define $n_{i,j}'' = n_i + m_j$.
+  Define $n_{i,j} = n_i + m_j$.
 
   Define $\Sequence_{i,j}'' =
   \SequenceOf{\String_{i,j,0}'';\Atom_{i,j,1}'';\ldots;
-    \Atom_{i,j,n_i''}'';\String_{i,j,n_i''}''}$.
+    \Atom_{i,j,n_{i,j}}'';\String_{i,j,n_{i,j}}''}$.
   By inspection,
   $\Sequence_{i,j}'' = \Sequence_i \ConcatSequence \Sequence_j$.
   
@@ -7208,40 +7435,62 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \begin{cases*}
     \DNFRegex_{i,k} & if $k \leq n_i$\\
     \DNFRegexAlt_{j,k-n_i} & if $i > n_i$
-  \end{cases*}$.  By inspection $\Atom_{i,j,k}'' \ParallelRewrite \DNFRegex_{i,j,k}''$.
+  \end{cases*}$.
+  By inspection $\Atom_{i,j,k}'' \ParallelRewrite \DNFRegex_{i,j,k}''$.
 
   Define $\DNFRegex_{i,j}''$ as
   $\DNFOf{\SequenceOf{\String_{i,j,0}''}} \ConcatDNF \DNFRegex_{i,j,1}''
   \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,j,n_{i,j}} \ConcatDNF
   \DNFOf{\SequenceOf{\String_{i,j,n_{i,j}}}}$.
-  By inspection, $\DNFRegex_{i,j}'' =
-  \begin{cases*}
-    \DNFRegex_i & if $i \leq n$\\
-    \DNFRegexAlt_{i-n} & if $i > n$
-  \end{cases*}$.
+  By inspection, $\DNFRegex_{i,j}'' = \DNFRegex_i \ConcatDNF \DNFRegex_j$
   This means that
-  $\DNFRegex_1'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}'' =
-  (\DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n \OrDNF
-  \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_m) =
-  \DNFRegex' \OrDNF \DNFRegexAlt'$.
+  $\DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{1,m}''
+  \OrDNF \ldots \OrDNF
+  \DNFRegex_{n,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}'' =
+  (\DNFRegex_1 \ConcatDNF \DNFRegexAlt_1) \OrDNF \ldots \OrDNF
+  (\DNFRegex_1 \ConcatDNF \DNFRegexAlt_m) \OrDNF \ldots \OrDNF
+  (\DNFRegex_n \ConcatDNF \DNFRegexAlt_1) \OrDNF \ldots \OrDNF
+  (\DNFRegex_n \ConcatDNF \DNFRegexAlt_m)$
+  By repeated application of Lemma~\ref{lem:id-expressible-on-factor-left}
+  and Lemma~\ref{lem:id-expressible-on-factor-right}, there
+  exists a DNF lens $\DNFLens \OfRewritelessType
+  \DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}'' \Leftrightarrow
+  (\DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n) \ConcatDNF
+  (\DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_m)$, so
+  $\DNFLens \OfRewritelessType
+  \DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}'' \Leftrightarrow
+  DNFRegex' \ConcatDNF DNFRegexAlt'$.
 
   Consider the derivation 
   \[
     \inferrule*
     {
-      \DNFRegex'' = \DNFOf{\Sequence_1'';\ldots;\Sequence_{n+m}''}\\
-      \forall i. \Sequence_i'' =
-      \SequenceOf{\String_{i,0}'';\Atom_{i,1}'';\ldots;\Atom_{i,n_i''}'';\String_{i,n_i''}''}\\
+      \DNFRegex'' = \DNFOf{\Sequence_{1,1}'';\ldots;\Sequence_{n,m}''}\\
+      \forall i,j. \Sequence_{i,j}'' =
+      \SequenceOf{\String_{i,j,0}'';\Atom_{i,j,1}'';\ldots;\Atom_{i,j,n_{i,j}}'';\String_{i,j,n_{i,j}}''}\\
       \forall i,j. \Atom_{i,j}'' \ParallelRewriteAtom \DNFRegex_{i,j}''\\
-      \forall i. \DNFRegex_i'' = \DNFOf{\SequenceOf{\String_{i,0}''}} \ConcatDNF \DNFRegex_{i,1}''
-      \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,n_i}'' \ConcatDNF
-      \DNFOf{\SequenceOf{\String_{i,n_i''}''}}
+      \forall i,j. \DNFRegex_{i,j}'' = \DNFOf{\SequenceOf{\String_{i,j,0}''}} \ConcatDNF \DNFRegex_{i,j,1}''
+      \ConcatDNF \ldots \ConcatDNF \DNFRegex_{i,j,n_{i,j}}'' \ConcatDNF
+      \DNFOf{\SequenceOf{\String_{i,j,n_{i,j}}''}}
     }
     {
       \DNFRegex'' \ParallelRewrite
-      \DNFRegex_1'' \OrDNF \ldots \OrDNF \DNFRegex_{n+m}''
+      \DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}''
     }
   \]
+
+  $\DNFRegex \ConcatDNF \DNFRegexAlt \ParallelRewrite
+  \DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}''$,
+  $\DNFRegex_{1,1}'' \OrDNF \ldots \OrDNF \DNFRegex_{n,m}''$
+  
+  If $\DNFRegex \ParallelRewrite \DNFRegex'$ and
+  $\DNFRegexAlt \ParallelRewrite \DNFRegexAlt'$, then
+  $\DNFRegex \ConcatDNF \DNFRegex \ParallelRewrite \DNFRegex''$ such that there
+  exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType
+  \DNFRegex \ConcatDNF \DNFRegexAlt \Leftrightarrow \DNFRegex''$, and
+  $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex''}}$.
 \end{proof}
 
 \begin{lemma}[$\ParallelRewrite$ Maintained Under $\OrDNF$]
