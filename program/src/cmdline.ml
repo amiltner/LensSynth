@@ -151,21 +151,28 @@ let collect_time (p:program) : unit =
   print_endline (Float.to_string time)
 
 let collect_example_number (p:program) : unit =
-  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
-  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
-  let exs_required = fold_until_completion
-      (fun acc ->
-         let l' = Option.value_exn
-             (gen_lens rc lc r1 r2 acc) in
-         if l' = l then
-           Right (List.length acc)
-         else
-           let leftex = gen_element_of_regex_language rc r1 in
-           let rightex = lens_putr rc lc l leftex in
-           let acc = (leftex,rightex)::acc in
-           Left acc
-      ) [] in
-  print_endline (string_of_int exs_required)
+  let current_total = ref 0 in
+  let cb = fun (rc,lc,r1,r2,exs) ->
+    let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+    let exs_required = fold_until_completion
+        (fun acc ->
+           let l' = Option.value_exn
+               (gen_lens rc lc r1 r2 acc) in
+           if l' = l then
+             Right (List.length acc)
+           else
+             let leftex = gen_element_of_regex_language rc r1 in
+             let rightex = lens_putr rc lc l leftex in
+             let acc = (leftex,rightex)::acc in
+             Left acc
+        ) [] in
+    current_total := !current_total + exs_required;
+  in
+  let _ = synthesize_and_load_program_with_callback
+    p
+    cb
+  in
+  print_endline (string_of_int !current_total)
 
 let rec max_examples_required
     (rc:RegexContext.t)

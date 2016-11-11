@@ -39,7 +39,7 @@ def gather_datum(prog, path, base, additional_flags, timeout):
     return (process_output.stdout,process_output.stderr)
 
 def gather_data(rootlength, prog, path, base):
-    current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[rootlength:]}
+    current_data = {"Test":join(path, base).replace("_","-")[rootlength:]}
     run_data = []
     timeout = False
     error = False
@@ -60,7 +60,10 @@ def gather_data(rootlength, prog, path, base):
     else:
         run_data_transpose = transpose(run_data)
 	computation_time_col = [float(x) for x in run_data_transpose[0]]
-	current_data["ComputationTime"]="{:.5f}".format(sum(computation_time_col)/len(computation_time_col))
+        ans = sum(computation_time_col)/len(computation_time_col)
+        ans = (int)(ans * 100)
+        ans = ans * 10
+	current_data["ComputationTime"]=ans if ans != 0 else "$<10$"
     generate_exs_run_data = []
     timeout = False
     error = False

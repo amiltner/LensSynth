@@ -6,6 +6,50 @@ open Eval
 open Gen
 open Lens_put
 
+type callback =
+  (RegexContext.t *
+   LensContext.t *
+   regex *
+   regex *
+   (string * string) list)
+    -> unit
+
+let run_declaration_with_callback
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (d:declaration)
+    (c:callback)
+  : RegexContext.t * LensContext.t * declaration =
+  begin match d with
+    | DeclRegexCreation (n,r,b) ->
+      (RegexContext.insert_exn rc n r (not b),lc,d)
+    | DeclTestString (r,s) ->
+      if fast_eval rc r s then
+        (rc,lc,d)
+      else
+        failwith (s ^ " does not match regex " ^ (regex_to_string r))
+    | DeclSynthesizeLens (n,r1,r2,exs) ->
+      let lo = gen_lens rc lc r1 r2 exs in
+      begin match lo with
+        | None -> failwith (n ^ " has no satisfying lens")
+        | Some l ->
+          c (rc,lc,r1,r2,exs);
+          (rc,LensContext.insert_exn lc n l r1 r2,DeclLensCreation(n,r1,r2,l))
+      end
+    | DeclLensCreation (n,r1,r2,l) ->
+      (rc,LensContext.insert_exn lc n l r1 r2,d)
+    | DeclTestLens (n,exs) ->
+      List.iter
+        ~f:(fun (lex,rex) ->
+            let ans = lens_putr rc lc (LensVariable n) lex in
+            if ans <> rex then
+              failwith ("expected:" ^ rex ^ "got:" ^ ans)
+            else
+              ())
+        exs;
+      (rc,lc,d)
+  end
+
 let run_declaration
     (rc:RegexContext.t)
     (lc:LensContext.t)
@@ -39,6 +83,20 @@ let run_declaration
         exs;
       (rc,lc,d)
   end
+
+let synthesize_and_load_program_with_callback
+    (p:program)
+    (c:callback)
+  : RegexContext.t * LensContext.t * program =
+  let (rc,lc,p) = List.fold_left
+      ~f:(fun (rc,lc,p) d ->
+          let (rc,lc,d) =
+            run_declaration_with_callback rc lc d c in
+          (rc,lc,d::p))
+      ~init:(RegexContext.empty, LensContext.empty, [])
+      p
+  in
+  (rc,lc,List.rev p)
 
 let synthesize_and_load_program
     (p:program)
