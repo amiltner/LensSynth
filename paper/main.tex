@@ -1,7 +1,7 @@
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
 
-\documentclass[numbers,10pt,preprint]{sigplanconf}
+\documentclass[numbers,10pt,preprint\ifanon ,nocopyrightspace\fi]{sigplanconf}
 
 \listfiles
 
@@ -244,7 +244,7 @@ high-value data sources.  General programming languages don't
 have bidirectional interpretations, and don't have type systems strong
 enough for invertibility guarantees. These guarantees are achieved through
 the use of domain-specific languages with strong type
-systems~\cite{Focal2005-long,boomerang,symmetric-lenses}.
+systems~\cite{Focal2005-long, boomerang, symmetric-lenses}.
 Unfortunately, such
 lens languages are currently quite non-standard.  The
 process of writing a lens is challenging, as a user must think
@@ -569,6 +569,7 @@ $\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
 At times, The $\Concat$ will be omitted, and $\String\StringAlt$ will be used in
 place of $\String\Concat\StringAlt$.
 
+\bcp{Why do we need unambiguity for languages (as opposed to REs)?}%
 If $\Language_1$ and $\Language_2$ are languages, such that
 for all strings $\String_1,\StringAlt_1 \in \Language_1$, and for all strings
 $\String_2,\StringAlt_2 \in \Language_2$, If $\String_1\Concat\String_2 =
@@ -662,7 +663,8 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
              & & $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$\\
              & & $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$
   \end{tabular}
-  \caption{Regular Expression Equivalences}
+  \caption{Regular Expression Equivalences\bcp{Suggest dropping this figure
+      in the short version}}
   \label{fig:regex-equivalence-rules}
 \end{figure}
 
@@ -772,8 +774,8 @@ how many times the already defined repetition occurs.
 The definitional equivalence rules are the largest subset of the regular
 expression equivalence rules we could
 find that still is confluent and can be mirrored.  There may be larger equivalence rules,
-but this set was able to handle the equivalences that showed up in practice, as
-shown in Section~\ref{evaluation}.
+but this set was able to handle the equivalences that showed up in  our
+experiments (see \S\ref{evaluation}).
 
 \section{Bijective Lenses}
 
@@ -1101,7 +1103,7 @@ each specification is a combination of how many equivalence rewrites have been
 applied,
 and how different the two regular expressions in the specification are.  This
 priority calculation is described in greater detail in
-Section~\ref{implementation}
+\S\ref{implementation}
 \CF{DNFEndUnroll} and \CF{DNFBib'} are very similar, in that they have the same
 number of instances of \CF{Name} and \CF{Names}.  However, \CF{DNFEndReplacement} is
 very different, with a different number of \CF{Name}, \CF{Names}, and a
@@ -1683,8 +1685,8 @@ and uses $\ToDNFRegex$ to convert the
 regular expressions into DNF regular expressions.
 Then, \SynthDNFLens{} is called on these DNF regular expressions to create a
 DNF lens.
-This DNF lens is then converted into a lens with \ToLens{}, and finally beautified for
-readability with \Beautify{}.
+This DNF lens is then converted into a lens with \ToLens{}, and finally
+tweaked for readability with \Beautify{}.
 
 \begin{algorithm}
   \caption{\SynthLens}
@@ -2034,17 +2036,18 @@ The tests were run on a 2.5 GHz Intel Core i7 processor, with
 
 \paragraph*{Test Selection}
 
-Our tests were modified from examples of string transformations found in Augeas,
+Our tests are adapted from examples of string transformations in Augeas,
 Boomerang, and FlashFill.
 
-Augeas uses combinators similar to Boomerang, but enables transformations of the
-data into a structured format, instead of merely a string format.  We mimicked
-these in our lens synthesis problems by making the output formats look like
-the a serialized version of the structure.  Furthermore, Augeas is able to
-handle all lenses,
-where the synthesis algorithm can only synthesize bijective ones.  By including
-more fields data format on the right, we were able to turn non-bijective lenses
-into bijective ones.
+Augeas uses combinators similar to Boomerang, but enables transformations
+from strings on the left to a structured tree format on the right, instead
+of strings on both sides.  We mimicked these as string lens synthesis
+problems by choosing string formats that look like a serialized version of
+the tree formats.  Augeas also supports a more general class of {\em
+  asymmetric lenses}~\cite{Focal2005-long}, whereas our synthesis algorithm
+works only with bijective lenses.  By including extra fields in the tree
+format on the right, we were able to turn non-bijective synthesis problems
+into bijective ones for purposes of the experiment.
 
 Just like Augeas, Boomerang has combinators that go beyond the basic lens
 combinators, including keyed data and quotienting.  Keyed data has little impact
@@ -2075,6 +2078,8 @@ the intermediary sub-expressions, to avoid repeating the same synthesis
 algorithm.
 
 \paragraph*{Speed of Synthesis}
+\bcp{This table is both pretty big and pretty impenetrable.  Can we find a
+  more perpicuous way to display this information?}%
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
 test suite, with the column \textbf{ComputationTime} showing the runtime of the
 overall synthesis algorithm.
