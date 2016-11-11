@@ -338,7 +338,7 @@ the user's specification for synthesizing a lens which converts between the
 Bibtex and EndNote formats.
 In this specification, the lens
 we wish to synthesize is \CF{BibEnd}.  It converts between 
-the formats \CF{Bib} and \CF{End}.
+the formats \CF{BibTex} and \CF{EndNote}.
 Such formats are defined using a standard syntax for regular expressions.
 Intermediate regular expressions are named to facilitate
 construction of complex formats.
@@ -996,12 +996,12 @@ regular expression types to create the lenses.
 \paragraph*{Step 1:  Inlining Definitions.}
 
 \begin{figure}
-  \Tree[.\textcolor{dkred}{\sout{\CF{Bib}}}
+  \Tree[.\textcolor{dkred}{\sout{\CF{BibTex}}}
   [.\textcolor{dkred}{\sout{\CF{BNames}}}
   \CF{Name}
   [.\CF{Names}
   \CF{Name} ]]]
-  \Tree[.\textcolor{dkred}{\sout{\CF{End}}}
+  \Tree[.\textcolor{dkred}{\sout{\CF{EndNote}}}
   [.\textcolor{dkred}{\sout{\CF{ENames}}}
   \CF{Name}
   [.\CF{Names}
@@ -1013,12 +1013,12 @@ regular expression types to create the lenses.
   \label{fig:expanded-defs}
 \end{figure}
 
-There is no lens that goes between \CF{Bib} and \CF{End}, so one of them must
+There is no lens that goes between \CF{BibTex} and \CF{EndNote}, so one of them must
 be expanded.
-Indeed, both of them must be expanded, as \CF{Bib} will never be able to be
+Indeed, both of them must be expanded, as \CF{BibTex} will never be able to be
 the source of any lens in this problem, nor will \CF{End} be able to be the
 target.
-This process can be generalized for the sub-expressions of \CF{Bib} and \CF{End},  
+This process can be generalized for the sub-expressions of \CF{BibTex} and \CF{EndNote},  
 If any user defined data type does not exist in the possible types of the
 other side, it must be expanded, shown in Figure~\ref{fig:expanded-defs}.  We do
 not inline all definitions, as doing so in more complicated data formats can
@@ -1026,31 +1026,14 @@ create huge regular expressions.
 
 \begin{figure}
 \begin{lstlisting}
-Bib':
+BibTex':
   "" 
   | ("author={" Name ", " Name Names
     (" and " (Name ", " Name Names))* "},")
 
-End':
+EndNote':
   ("%A " (Name Names " " Name) "\n")*
-\end{lstlisting}
-  \label{fig:examples-expanded}
-  \caption{
-    \CF{Bib} and \CF{End} with necessary name replacements performed.
-  }
-\end{figure}
-After completing these necessary expansions, the problem becomes synthesizing a
-lens between the regular expressions \CF{Bib'} and \CF{End'} shown in
-Figure~\ref{fig:examples-expanded}.
 
-\paragraph*{Step 2:  Traversing Equivalences.}
-
-A basic type-directed synthesis approach from here will quickly fail.
-\CF{Bib'} is of the form $\Regex_1\Or\Regex_2$, where \CF{End'} is of the form
-$\StarOf{\Regex'}$.
-
-\begin{figure}
-\begin{lstlisting}
 DNFBib':
   ""
   | "author={" Name ", " Name "" Names ""
@@ -1058,17 +1041,34 @@ DNFBib':
 
 DNFEnd':
   "" ("%A " Name "" Names " " Name "\n")* ""
+
+DNFEndUnroll:
+  ""
+  | "%A " Name "" Names " " Name "\n"
+    ("%A " Name "" Names " " Name "\n")* ""
+
+DNFEndReplacement:
+  ("%A " Name "" (" " Name)* " " Name "\n")* ""
 \end{lstlisting}
-  \label{fig:examples-expanded-normalized}
+  \label{fig:examples-expanded}
   \caption{
-    \CF{Bib'} and \CF{End'} put into a pseudo-normal form.
+    \CF{BibTex} and \CF{EndNotes} with various transformations performed.
   }
 \end{figure}
+After completing these necessary expansions, the problem becomes synthesizing a
+lens between the regular expressions \CF{BibTex'} and \CF{EndNote'} shown in
+Figure~\ref{fig:examples-expanded}.
+
+\paragraph*{Step 2:  Traversing Equivalences.}
+
+A basic type-directed synthesis approach from here will quickly fail.
+\CF{BibTex'} is of the form $\Regex_1\Or\Regex_2$, where \CF{EndNote'} is of the form
+$\StarOf{\Regex'}$.
 
 These issues can be handled by normalizing the regular expressions.
 We put them in a form that normalizes away the equivalences involving
 associativity, distributivity, and \EmptyString{}, shown in
-Figure~\ref{fig:examples-expanded-normalized}
+Figure~\ref{fig:examples-expanded}
 
 With those equivalences handled, one might think it is now possible to
 synthesize the lens.
@@ -1080,22 +1080,6 @@ synthesized.
 However, an $\OrLens$ lens requires an outer $\Or$ on both sides, and \CF{DNFEnd'} does
 not have any outer $\OrRegexType$.
 
-\begin{figure}
-\begin{lstlisting}
-DNFEndUnroll:
-  ""
-  | "%A " Name "" Names " " Name "\n"
-    ("%A " Name "" Names " " Name "\n")* ""
-
-DNFEndReplacement:
-  ("%A " Name "" (" " Name)* " " Name "\n")* ""
-\end{lstlisting}
-  \label{fig:examples-star-equivalenced}
-  \caption{
-    \CF{DNFEnd'} with some star equivalences performed.
-  }
-\end{figure}
-
 While, with normalization, certain equivalences have been handled, there are
 still many equivalences that haven't been handled.
 For example, the equivalences resulting from \StarRegexType{}s, like
@@ -1103,7 +1087,7 @@ $\StarOf{A}=\EmptyString \Or A\StarOf{A}$, have not been handled.
 The equivalences resulting from the definitions of user defined regular
 expressions have also not been handled. These can be applied to the star in
 \CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndReplacement}, shown in
-Figure~\ref{fig:examples-star-equivalenced}.
+Figure~\ref{fig:examples-expanded}.
 
 However, now a single problem of finding a lens between regular expression has
 become two problems!  Furthermore, trying to find the lenses between either of these
@@ -1138,7 +1122,7 @@ would get mapped to each other.  Within that side, \CF{Name} would map to
 \begin{figure}
   \label{fig:lens-synth-ex}
   \centering
-  \SmallCF{Bib' <=> DNFEndUnroll}
+  \SmallCF{DNFBib' <=> DNFEndUnroll}
   \begin{tikzpicture}
     \matrix (m)
     [matrix of nodes,
@@ -1866,7 +1850,7 @@ can retrieve a lens between the original DNF regular expressions.
 \begin{figure}
   \label{fig:lens-synth-ordering-ex}
   \centering
-  \SmallCF{Bib' <=> DNFEndUnroll}
+  \SmallCF{DNFBib' <=> DNFEndUnroll}
   \begin{tikzpicture}
     \matrix (m) [matrix of nodes, row sep=1em, column sep=4em, minimum width=2em]
     {
@@ -1971,7 +1955,7 @@ can retrieve a lens between the original DNF regular expressions.
   \caption{Synthesized Lens Mappings from Orderings}
 \end{figure}
 
-Consider the example of synthesizing a lens between \CF{Bib'} and
+Consider the example of synthesizing a lens between \CF{DNFBib'} and
 \CF{DNFEndUnroll}, shown in Figure~\ref{fig:lens-synth-ordering-ex}.
 The top layer (the original DNF regular expression subparts for BibTex) maps
 into the second layer through an ordering of its subparts.
@@ -7085,12 +7069,25 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   Let $\rightarrow$ and $\Property$ be two binary relations on a set $\Set$.
   We say that $\rightarrow$ is confluent with respect to
   $\Property$, written
-  $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, if, given $s_1,s_2\in\Set$,
-  where $\Property(s_1,s_2)$, if $s_1\rightarrow s_1'$ and
-  $s_2 \rightarrow s_2'$, then there exists $s_1''$ and $s_2''$ such that
-  $s_1'\rightarrow s_1''$, $s_2' \rightarrow s_2''$, and
-  $\Property(s_1'',s_2'')$.
+  $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, if, given $x_1,x_2\in\Set$,
+  where $\Property(x_1,x_2)$, if $x_1\rightarrow x_1'$ and
+  $x_2 \rightarrow x_2'$, then there exists $x_1''$ and $x_2''$ such that
+  $x_1'\rightarrow x_1''$, $x_2' \rightarrow x_2''$, and
+  $\Property(x_1'',x_2'')$.
 \end{definition}
+
+\begin{definition}
+  Let $\rightarrow$ and $\Property$ be two binary relations on a set $\Set$.
+  We say that $rightarrow$ mirrors $\Property$, written
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, if, given
+  $x_1,x_2\in\Set$,
+  where $\Property(x_1,x_2)$, if $x_1\rightarrow x_1'$ then there
+  exists some $x_2$ such that $x_2\rightarrow x_2'$ where
+  $\Property(x_1',x_2')$,
+  and if $x_2\rightarrow x_2'$, then there exists some $x_1'$ such that
+  $x_1\rightarrow x_1'$ where $\Property(x_1',x_2')$.
+\end{definition}
+
 
 \begin{definition}
   Let $\Property$ be a binary relation.  $\StarOf{\Property}$ is the binary
@@ -7122,11 +7119,392 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \end{mathpar}
 \end{definition}
 
-\begin{theorem}
+
+\begin{lemma}[Mirroring Preserved through Star left]
+  \label{lem:mirroring-star-left}
+  Let $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$.
+  If $\Property(x,y)$ and $x\StarOf{\rightarrow} x'$ then there
+  exists some $y'$ such that $y\StarOf{\rightarrow} y'$ where
+  $\Property(x',y')$
+\end{lemma}
+\begin{proof}
+  By induction on the derivation of $x \StarOf{\rightarrow} x'$.
+
+  \begin{case}[\ReflexivityRule{}]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        x \StarOf{\rightarrow} x
+      }
+    \]
+
+    Consider the derivation
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y \StarOf{\rightarrow} y
+      }
+    \]
+
+    and by assumption $\Property(x,y)$.
+  \end{case}
+
+  \begin{case}[\BaseRule{}]
+    \[
+      \inferrule*
+      {
+        x \rightarrow x'
+      }
+      {
+        x \StarOf{\rightarrow} x'
+      }
+    \]
+
+    As $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, $y \rightarrow y'$
+    where $\Property(x',y')$.
+    \[
+      \inferrule*
+      {
+        y \rightarrow y'
+      }
+      {
+        y \StarOf{\rightarrow} y'
+      }
+    \]
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        x \StarOf{\rightarrow} x''\\
+        x'' \StarOf{\rightarrow} x'
+      }
+      {
+        x \StarOf{\rightarrow} x'
+      }
+    \]
+
+    By IH, $y \StarOf{\rightarrow} y''$ where $\Property(x'',y'')$.
+    By IH, $y'' \StarOf{\rightarrow} y'$ where $\Property(x',y')$.
+    \[
+      \inferrule*
+      {
+        y \StarOf{\rightarrow} y''\\
+        y'' \StarOf{\rightarrow} y'
+      }
+      {
+        y \StarOf{\rightarrow} y'
+      }
+    \]
+  \end{case}
+\end{proof}
+
+\begin{lemma}[Mirroring Preserved through Star right]
+  \label{lem:mirroring-star-right}
+  Let $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$.
+  If $\Property(x,y)$ and $x\StarOf{\rightarrow} x'$ then there
+  exists some $y'$ such that $y\StarOf{\rightarrow} y'$ where
+  $\Property(x',y')$
+\end{lemma}
+\begin{proof}
+  Symmetrically to Lemma~\ref{lem:mirroring-star-left}.
+\end{proof}
+
+\begin{lemma}[Mirroring Preserved through Star]
+  \label{lem:mirroring-star}
+  If $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, then
+  $\IsMirroringWithPropertyOf{\StarOf{\rightarrow}}{\Property}$.
+\end{lemma}
+\begin{proof}
+  By application of Lemma~\ref{lem:mirroring-star-left} and
+  Lemma~\ref{lem:mirroring-star-right}.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:pre-starred-confluence-transitive-reflexive}
+  If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, and
+  $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+  then if $\Property(x,y)$, $x\StarOf{\rightarrow} x_1$, $y\rightarrow
+  x_1$, then there exists some $x_2$, $x_y$ such that
+  $x_1\rightarrow x_2$, $y_1\StarOf{\rightarrow} y_2$, and
+  $\Property(x_2,y_2)$.
+\end{lemma}
+\begin{proof}
+  By induction on the derivation of $x \StarOf{\rightarrow} x_1$.
+
+  \begin{case}[\ReflexivityRule]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        x \StarOf{\rightarrow} x
+      }
+    \]
+
+    By $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, there exists
+    some $x_1$ such that $x \rightarrow x_1$ and $\Property(x_1,y_1)$.
+    Furthermore,
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y_1 \StarOf{\Rewrite} y_1
+      }
+    \]
+    so we are done.
+  \end{case}
+
+  \begin{case}[\BaseRule{}]
+    \[
+      \inferrule*
+      {
+        x \rightarrow x_1
+      }
+      {
+        x \StarOf{\rightarrow} x_1
+      }
+    \]
+
+    As $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, there exists
+    $x_2$, $y_2$ such that $x_1 \rightarrow x_2$, $y_1 \rightarrow y_2$,
+    and $\Property(x_2,y_2)$.
+    Furthermore
+    \[
+      \inferrule*
+      {
+        y_1 \rightarrow y_2
+      }
+      {
+        y_1 \StarOf{\rightarrow} y_2
+      }
+    \]
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        x \StarOf{\rightarrow} x_1\\
+        x_1 \StarOf{\rightarrow} x_2
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_2
+      }
+    \]
+
+    By IH, there exists $x_3$, $y_2$ such that $x_1 \rightarrow x_3$, and
+    $y_1 \StarOf{\Rewrite} y_2$, and $\Property(x_3,y_2)$.
+
+    As $\StarOf{\Property}(a,b)$ if, and only if, $\Property(a,b)$,
+    $\Property(x_1,x_1)$.
+    So, by IH, as $\Property(x_1,x_1)$, $x_1 \StarOf{\rightarrow} x_2$, and
+    $x_1 \rightarrow x_3$, there exists $x_4,x_5$ such that $x_2 \rightarrow
+    x_4$, $x_3 \StarOf{\rightarrow} x_5$, and $\Property(x_4,x_5)$.
+
+    As $\Property(x_3,y_2)$, and $x_3 \StarOf{\Rewrite} x_5$, then by
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$ and
+    Lemma~\ref{lem:mirroring-star}, there exists $y_3$ such that
+    $y_2 \StarOf{\Rewrite} y_3$, and $\Property(x_5,y_3)$.
+    By \TransitivityRule{}, $y_1 \StarOf{\Rewrite} y_3$.
+    From before, $x_2 \rightarrow x_4$.
+    Because $\StarOf{\Property}(a,b)$ if, and only if $\Property(a,b)$,
+    as $\Property(x_4,x_5)$ and $\Property(x_5,y_3)$, we have
+    $\Property(x_4,y_3)$.
+  \end{case}
+\end{proof}
+
+\begin{lemma}
+  \label{lem:starred-confluence-transitive-reflexive}
+  If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, and
+  $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+  then if $\Property(x,y)$, $x \StarOf{\rightarrow} x_1$,
+  $y \StarOf{\rightarrow} x_1$, then there exists some $x_2$, $x_y$ such that
+  $x_1 \StarOf{\rightarrow} x_2$, $y_1\StarOf{\rightarrow} y_2$, and
+  $\Property(x_2,y_2)$.
+\end{lemma}
+\begin{proof}
+  By induction on the derivation of $y \StarOf{\rightarrow} y_1$.
+
+  \begin{case}[\ReflexivityRule]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y \StarOf{\rightarrow} y
+      }
+    \]
+
+    By $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+    and Lemma~\ref{lem:mirroring-star},
+    there exists
+    some $y_1$ such that $y \StarOf{\rightarrow} y_1$ and $\Property(x_1,y_1)$.
+    Furthermore,
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y_1 \StarOf{\Rewrite} y_1
+      }
+    \]
+    so we are done.
+  \end{case}
+
+  \begin{case}[\BaseRule{}]
+    \[
+      \inferrule*
+      {
+        y \rightarrow y_1
+      }
+      {
+        y \StarOf{\rightarrow} y_1
+      }
+    \]
+
+    As $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+    $y \rightarrow y_1$, $x \StarOf{\rightarrow} x_1$, and
+    $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+    by Lemma~\ref{lem:pre-starred-confluence-transitive-reflexive},
+    there exists
+    $x_2$, $y_2$ such that $x_1 \rightarrow x_2$, $y_1 \StarOf{\rightarrow} y_2$,
+    and $\Property(x_2,y_2)$.
+    Furthermore
+    \[
+      \inferrule*
+      {
+        x_1 \rightarrow x_2
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_2
+      }
+    \]
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        y \StarOf{\rightarrow} y_1\\
+        y_1 \StarOf{\rightarrow} y_2
+      }
+      {
+        y \StarOf{\rightarrow} y_2
+      }
+    \]
+
+    By IH, there exists $x_2$, $y_3$ such that $x_1 \StarOf{\rightarrow} x_2$, and
+    $y_1 \StarOf{\Rewrite} y_3$, and $\Property(x_2,y_3)$.
+
+    As $\StarOf{\Property}(a,b)$ if, and only if, $\Property(a,b)$,
+    $\Property(y_1,y_1)$.
+    So, by IH, as $\Property(y_1,y_1)$, $y_1 \StarOf{\rightarrow} y_3$, and
+    $y_1 \StarOf{\rightarrow} y_2$, there exists $y_4,y_5$ such that
+    $y_3 \StarOf{\rightarrow} y_4$,
+    $y_2 \StarOf{\rightarrow} y_5$, and $\Property(y_4,y_5)$.
+
+    As $\Property(x_2,y_3)$, and $y_3 \StarOf{\Rewrite} y_4$, then by
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$ and
+    Lemma~\ref{lem:mirroring-star}, there exists $x_3$ such that
+    $x_2 \StarOf{\Rewrite} x_3$, and $\Property(x_3,y_4)$.
+    By \TransitivityRule{}, $x_1 \StarOf{\Rewrite} x_3$.
+    From before, $y_2 \rightarrow y_5$.
+    Because $\StarOf{\Property}(a,b)$ if, and only if $\Property(a,b)$,
+    as $\Property(x_3,y_4)$ and $\Property(y_4,y_5)$, we have
+    $\Property(x_3,y_5)$.
+  \end{case}
+\end{proof}
+
+\begin{definition}
+  A property $\Propagator$ is a left propagator for $\Property$ with respect to
+  $\rightarrow$ if
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+  $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+  $\Propagator(x,y) \BooleanAnd \Property(y,z) \BooleanImplies \Property(x,z)$,
+  and $\StarOf{\Propagator}(x,y)$ if, and only if $\Propagator(x,y)$,
+\end{definition}
+
+\begin{definition}
+  A property $\Propagator$ is a right propagator for $\Property$ with respect to
+  $\rightarrow$
+  if $\StarOf{\Propagator}(x,y)$ if, and only if $\Propagator(x,y)$,
+  $\Property(x,y) \BooleanAnd \Propagator(y,z) \BooleanImplies \Property(x,z)$.
+\end{definition}
+
+\begin{lemma}
+  \label{lem:pre-starred-confluence}
+  Let $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$.
+  Let $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$.
+  Let $\Propagator_L$ be a left propagator for $\Property$ with respect to
+  $\rightarrow$.
+  Let $\Propagator_R$ be a right propagator for $\Property$ with respect to
+  $\rightarrow$.
+  If $\Property(x_1,x_2)$, $x_1\StarOf{\rightarrow} x_1'$, $x_2\rightarrow
+  x_2'$, then there exists some $x_1''$, $x_2''$ such that
+  $x_1'\rightarrow x_1''$, $x_2'\StarOf{\rightarrow} x_2''$, and
+  $\Property(x_1'',x_2'')$.
+\end{lemma}
+\begin{proof}
+  By induction on the derivation of $x_1 \StarOf{\rightarrow} x_1'$.
+
+  \begin{case}[\ReflexivityRule]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_1
+      }
+    \]
+
+    By $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, there exists
+    some $x_1'$ such that $x_1 \rightarrow x_1'$ and $\Property(x_1',x_2')$.
+    Furthermore,
+    \[
+      \inferrule*
+      {
+      }
+      {
+        x_2' \StarOf{\Rewrite} x_2'
+      }
+    \]
+    so we are done.
+  \end{case}
+
+  \begin{case}[\BaseRule]
+    \[
+      \inferrule*
+      {
+        x_1 \rightarrow x_1'
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_1'
+      }
+    \]
+
+    As $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, there exists
+    $x_1''$, $y_1''$ such that
+  \end{case}
+\end{proof}
+
+\begin{theorem}[Confluence Preserved Through Star]
   \label{thm:starred-confluence}
   If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$ then
   $\IsConfluentWithPropertyOf{\StarOf{\rightarrow}}{\Property}$.
 \end{theorem}
+\begin{proof}
+  TODO
+\end{proof}
 
 \begin{definition}
   Let $\Property$ be a binary relation.  $\EquivalenceOf{\Property}$ is the
@@ -7165,6 +7543,8 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     }
   \end{mathpar}
 \end{definition}
+
+
 
 \begin{definition}[Parallel Rewriting Without Reordering]\leavevmode
   \begin{mathpar}
@@ -7359,22 +7739,22 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \label{lem:parallel-rewrite-concatenation-to-identity}
   Let $\DNFRegex$ be strongly unambiguous.  Let $\DNFRegexAlt$ be strongly
   unambiguous.
-  If $\DNFRegex \ParallelRewrite \DNFRegex'$ and $\DNFRegexAlt
-  \ParallelRewrite \DNFRegexAlt'$, then
-  $\DNFRegex \ConcatDNF \DNFRegex \ParallelRewrite \DNFRegex''$ such that there
-  exists a rewriteless DNF lens
+  Let $\UnambigConcatOf{\LanguageOf{\DNFRegex}}{\LanguageOf{\DNFRegexAlt}}$.
+  If $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$,
+  $\DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegexAlt'$, and
+  $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''$
+  such that there exists a rewriteless DNF lens
   $\DNFLens \OfRewritelessType
-  \DNFRegex \ConcatDNF \DNFRegexAlt \Leftrightarrow \DNFRegex''$, and
+  \DNFRegex' \ConcatDNF \DNFRegexAlt' \Leftrightarrow \DNFRegex''$, and
   $\SemanticsOf{\DNFLens} =
-  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex''}}$.
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
 \end{lemma}
 \begin{proof}
-  By Lemma~\ref{lem:final-identity-can-be-ignored}, a derivation with the final
-  rule being an application of \IdentityRewriteRule{}, can be converted into a
-  derivation with the final rule being an application of
-  \ParallelDNFStructuralRewriteRule{}.  So we can assume that the final rule of
-  each is an application of \ParallelDNFStructuralRewriteRule{}.
+  Because $\UnambigConcatOf{\LanguageOf{\DNFRegex}}{\LanguageOf{\DNFRegexAlt}}$,
+  $\DNFRegex \ConcatDNF \DNFRegexAlt$ is strongly unambiguous.
 
+  By induction on the derivation of $\StarOf{\ParallelRewrite}$
   \[
     \inferrule*
     {
@@ -7490,7 +7870,9 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   $\DNFLens \OfRewritelessType
   \DNFRegex \ConcatDNF \DNFRegexAlt \Leftrightarrow \DNFRegex''$, and
   $\SemanticsOf{\DNFLens} =
-  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex''}}$.
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$,
+  as desired.
 \end{proof}
 
 \begin{lemma}[$\ParallelRewrite$ Maintained Under $\OrDNF$]
@@ -7687,28 +8069,6 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     $\AtomToDNFOf{\StarOf{\DNFRegex'}} \StarOf{\ParallelRewrite}
     \AtomToDNFOf{\StarOf{\DNFRegexAlt}}$.
   \end{case}
-\end{proof}
-
-\begin{lemma}[$\StarOf{\ParallelRewrite}$ Maintained Under $\ConcatDNF$]
-  \label{lem:star-parallel-rewrite-concatenation}
-  Let $\DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegexAlt_1$ and $\DNFRegex_2
-  \StarOf{\ParallelRewrite} \DNFRegexAlt_2$ then
-  $\DNFRegex_1 \ConcatDNF \DNFRegex_2 \StarOf{\ParallelRewrite}
-  \DNFRegexAlt_1 \ConcatDNF \DNFRegexAlt_2$.
-\end{lemma}
-\begin{proof}
-  TODO
-\end{proof}
-
-\begin{lemma}[$\StarOf{\ParallelRewrite}$ Maintained Under $\OrDNF$]
-  \label{lem:star-parallel-rewrite-or}
-  Let $\DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegexAlt_1$ and $\DNFRegex_2
-  \StarOf{\ParallelRewrite} \DNFRegexAlt_2$ then
-  $\DNFRegex_1 \OrDNF \DNFRegex_2 \StarOf{\ParallelRewrite}
-  \DNFRegexAlt_1 \OrDNF \DNFRegexAlt_2$.
-\end{lemma}
-\begin{proof}
-  TODO
 \end{proof}
 
 \begin{lemma}[Equivalence of $\ToRegex \Compose \ToDNFRegex$]
@@ -9797,6 +10157,242 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   Lemma~\ref{lem:copyable_expansions_left_swapless_star}.
 \end{proof}
 
+\begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$ up to
+  $\IdentityLens$ on the left]
+  \label{lem:star-parallel-rewrite-concatenation-to-identity-left}
+  Let $\DNFRegex$ be strongly unambiguous.  Let $\DNFRegexAlt$ be strongly
+  unambiguous.
+  Let $\UnambigConcatOf{\LanguageOf{\DNFRegex}}{\LanguageOf{\DNFRegexAlt}}$.
+  If $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$, then
+  $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''$ such that there
+  exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType
+  \DNFRegex' \ConcatDNF \DNFRegexAlt \Leftrightarrow \DNFRegex''$, and
+  $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+\end{lemma}
+\begin{proof}
+  As $\UnambigConcatOf{\LanguageOf{\DNFRegex}}{\LanguageOf{\DNFRegexAlt}}$,
+  $\DNFRegex \ConcatDNF \DNFRegexAlt$ is strongly unambiguous.
+
+  We proceed by induction on the derivation of $\StarOf{\ParallelRewrite}$.
+  
+  \begin{case}[\ReflexivityRule{}]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex$
+      }
+    \]
+
+    By reflexivity
+
+    \[
+      \inferrule*
+      {
+      }
+      {
+        \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite}
+        \DNFRegex \ConcatDNF \DNFRegexAlt
+      }
+    \]
+
+    Furthermore, as $\DNFRegex \ConcatDNF \DNFRegexAlt$ is strongly unambiguous,
+    there exists a lens
+    $\DNFLens \OfRewritelessType
+    \DNFRegex \ConcatDNF \DNFRegexAlt \Leftrightarrow
+    \DNFRegex \ConcatDNF \DNFRegexAlt$.
+  \end{case}
+
+  \begin{case}[\BaseRule{}]
+    \[
+      \inferrule*
+      {
+        \DNFRegex \ParallelRewrite \DNFRegex'
+      }
+      {
+        \DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'
+      }
+    \]
+
+    So $\DNFRegex \ParallelRewrite \DNFRegex'$, and by \IdentityRewriteRule{},
+    $\DNFRegexAlt \ParallelRewrite \DNFRegexAlt$.
+
+    So Lemma~\ref{lem:parallel-rewrite-concatenation-to-identity} says that
+    there exists $\DNFRegex''$ such that
+    \[
+      \inferrule*
+      {
+        \DNFRegex \ConcatDNF \DNFRegexAlt \ParallelRewrite \DNFRegex''
+      }
+      {
+        \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''
+      }
+    \]
+    where there exists a DNF lens
+    $\DNFLens \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt
+    \Leftrightarrow \DNFRegex''$ such that
+    $\SemanticsOf{\DNFLens} = \SetOf{(\String,\String) \SuchThat \String \in
+      \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        \DNFRegex \StarOf{\ParallelRewrite} \DNFRegex_1\\
+        \DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegex'
+      }
+      {
+        \DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'
+      }
+    \]
+
+    By IH, there exists $\DNFRegex_1''$ such that
+    $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex_1''$,
+    and there exists a DNF lens
+    $\DNFLens_1 \OfRewritelessType \DNFRegex_1 \ConcatDNF \DNFRegexAlt
+    \Leftrightarrow \DNFRegex_1''$, and
+    $\SemanticsOf{\DNFLens_1} =
+    \SetOf{(\String,\String) \SuchThat \String \in
+      \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+
+    By IH, there exists $\DNFRegex''$ such that
+    $\DNFRegex_1 \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''$,
+    and there exists a DNF lens
+    $\DNFLens \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt
+    \Leftrightarrow \DNFRegex''$, and
+    $\SemanticsOf{\DNFLens} =
+    \SetOf{(\String,\String) \SuchThat \String \in
+      \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+
+    By Lemma~\ref{lem:copyable_expansions_left_swapless_star}, as
+    $\DNFRegex_1 \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''$,
+    then there exists $\DNFRegex_1'$, $\DNFLens_1'$ such that
+    $\DNFRegex_1'' \StarOf{\ParallelRewrite} \DNFRegex_1'$, and
+    $\DNFLens_1' \OfRewritelessType
+    \DNFRegex'' \Leftrightarrow \DNFRegex'' \Leftrightarrow \DNFRegex_1'$, with
+    the same semantics as $\DNFLens_1$.
+
+    So $\DNFLens \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt
+    \Leftrightarrow \DNFRegex''$, and
+    $\DNFLens_1' \OfRewritelessType
+    \DNFRegex'' \Leftrightarrow \DNFRegex'' \Leftrightarrow \DNFRegex_1'$.
+    By Lemma~\ref{lem:composition-completeness}, there exists a DNF lens,
+    $\DNFLens' \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt
+    \Leftrightarrow \DNFRegex_1'$.  As both the lenses in the composition are
+    the identity lens, this lens is the identity lens, so
+    $\SemanticsOf{\DNFLens'} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$
+
+    Furthermore
+    \[
+      \inferrule*
+      {
+        \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex_1''\\
+        \DNFRegex_1'' \StarOf{\ParallelRewrite} \DNFRegex_1'
+      }
+      {
+        \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{ParallelRewrite} \DNFRegex_1'
+      }
+    \]
+  \end{case}
+\end{proof}
+
+
+\begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$ up to
+  $\IdentityLens$ on the right]
+  \label{lem:star-parallel-rewrite-concatenation-to-identity-right}
+  Let $\DNFRegex$ be strongly unambiguous.  Let $\DNFRegexAlt$ be strongly
+  unambiguous.
+  Let $\UnambigConcatOf{\LanguageOf{\DNFRegexAlt}}{\LanguageOf{\DNFRegex}}$.
+  If $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$, then
+  $\DNFRegexAlt \ConcatDNF \DNFRegex \StarOf{\ParallelRewrite} \DNFRegex''$ such that there
+  exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType
+  \DNFRegexAlt \ConcatDNF \DNFRegex' \Leftrightarrow \DNFRegex''$, and
+  $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+\end{lemma}
+\begin{proof}
+  This is done symmetrically to
+  Lemma~\ref{lem:star-parallel-rewrite-concatenation-to-identity-left}.
+\end{proof}
+
+
+\begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$ up to
+  $\IdentityLens$]
+  \label{lem:star-parallel-rewrite-concatenation-to-identity}
+  Let $\DNFRegex$ be strongly unambiguous.  Let $\DNFRegexAlt$ be strongly
+  unambiguous.
+  Let $\UnambigConcatOf{\LanguageOf{\DNFRegexAlt}}{\LanguageOf{\DNFRegex}}$.
+  Let $\DNFRegex \StarOf{\ParallelRewrite} \DNFRegex'$.
+  Let $\DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegexAlt'$.
+  Then $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex''$ such
+  that
+  there exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType
+  \DNFRegex' \ConcatDNF \DNFRegexAlt' \Leftrightarrow \DNFRegex''$, and
+  $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+\end{lemma}
+\begin{proof}
+  By Lemma~\ref{lem:star-parallel-rewrite-concatenation-to-identity-right},
+  there exists a DNF lens
+  $\DNFLens_1 \OfRewritelessType \DNFRegex \ConcatDNF \DNFRegexAlt'
+  \Leftrightarrow \DNFRegex_1$, such that
+  $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex_1$ and
+  $\SemanticsOf{\DNFLens_1} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+  
+  By Lemma~\ref{lem:star-parallel-rewrite-concatenation-to-identity-left},
+  there exists a DNF lens
+  $\DNFLens_2 \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt'
+  \Leftrightarrow \DNFRegex_2$, such that
+  $\DNFRegex \ConcatDNF \DNFRegexAlt' \StarOf{\ParallelRewrite} \DNFRegex_2$ and
+  $\SemanticsOf{\DNFLens_2} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
+  
+  By Lemma~\ref{lem:copyable_expansions_left_swapless_star},
+  as $\DNFRegex \ConcatDNF \DNFRegexAlt' \StarOf{\ParallelRewrite} \DNFRegex_2$,
+  there exists a DNF lens
+  $\DNFLens_1' \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegex_1'$
+  with $\SemanticsOf{\DNFLens_2} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$ and
+  $\DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegex_1'$
+
+  So $\DNFLens_2 \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt'
+  \Leftrightarrow \DNFRegex_2$, and
+  $\DNFLens_1' \OfRewritelessType
+  \DNFRegex_2 \Leftrightarrow \DNFRegex_1'$.
+  By Lemma~\ref{lem:composition-completeness}, there exists a DNF lens,
+  $\DNFLens' \OfRewritelessType \DNFRegex' \ConcatDNF \DNFRegexAlt'
+  \Leftrightarrow \DNFRegex_1'$.  As both the lenses in the composition are
+  the identity lens, this lens is the identity lens, so
+  $\SemanticsOf{\DNFLens'} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$
+  
+  Furthermore
+  \[
+    \inferrule*
+    {
+      \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegex_1\\
+      \DNFRegex_1 \StarOf{\ParallelRewrite} \DNFRegex_1'
+    }
+    {
+      \DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{ParallelRewrite} \DNFRegex_1'
+    }
+  \]
+\end{proof}
+
+
 \begin{lemma}[Pre-Confluence of Parallel Rewriting Without Reordering]
   \label{lem:pre-confluence}
   \begin{itemize}\leavevmode
@@ -11263,27 +11859,24 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \begin{corollary}[$\StarOf{\Rewrite}$ Maintained Under $\ConcatDNF$]
-  \label{cor:rewrite-maintained-concat}
-  If $\DNFRegex_1 \StarOf{\Rewrite} \DNFRegexAlt_1$, and $\DNFRegex_2
-  \StarOf{\Rewrite} \DNFRegexAlt_2$, then
-  $\DNFRegex_1 \ConcatDNF \DNFRegex_2 \StarOf{\Rewrite} \DNFRegexAlt_1
-  \ConcatDNF \DNFRegexAlt_2$.
+  \label{cor:star-rewrite-maintained-concat-to-identity}
+  Let $\DNFRegex$ be strongly unambiguous.  Let $\DNFRegexAlt$ be strongly
+  unambiguous.
+  Let $\UnambigConcatOf{\LanguageOf{\DNFRegexAlt}}{\LanguageOf{\DNFRegex}}$.
+  Let $\DNFRegex \StarOf{\Rewrite} \DNFRegex'$.
+  Let $\DNFRegexAlt \StarOf{\Rewrite} \DNFRegexAlt'$.
+  Then $\DNFRegex \ConcatDNF \DNFRegexAlt \StarOf{\Rewrite} \DNFRegex''$ such
+  that
+  there exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType
+  \DNFRegex' \ConcatDNF \DNFRegexAlt' \Leftrightarrow \DNFRegex''$, and
+  $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex \ConcatDNF \DNFRegexAlt}}$.
 \end{corollary}
 \begin{proof}
   From Theorem~\ref{thm:parallel-star-equivalence} applied to
-  Lemma~\ref{lem:star-parallel-rewrite-concatenation}.
-\end{proof}
-
-\begin{corollary}[$\StarOf{\Rewrite}$ Maintained Under $\OrDNF$]
-  \label{cor:rewrite-maintained-or}
-  If $\DNFRegex_1 \StarOf{\Rewrite} \DNFRegexAlt_1$, and $\DNFRegex_2
-  \StarOf{\Rewrite} \DNFRegexAlt_2$, then
-  $\DNFRegex_1 \OrDNF \DNFRegex_2 \StarOf{\Rewrite} \DNFRegexAlt_1
-  \OrDNF \DNFRegexAlt_2$.
-\end{corollary}
-\begin{proof}
-  From Theorem~\ref{thm:parallel-star-equivalence} applied to
-  Lemma~\ref{lem:star-parallel-rewrite-or}.
+  Lemma~\ref{lem:star-parallel-rewrite-concatenation-to-identity}.
 \end{proof}
 
 \begin{corollary}
@@ -11654,32 +12247,62 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \OfRewritelessType
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
-  By Corollary~\ref{cor:rewrite-maintained-concat},
-  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
-  \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
-  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
-  \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.  From this, we get
+  
+  By Corollary~\ref{cor:star-rewrite-maintained-concat-to-identity}, and
+  Lemma~\ref{lem:dnf-lens-inversion},
+  there exists a DNF regular expression, $\DNFRegex_L$, and a DNF lens,
+  $\DNFLens_L$, such that $\DNFLens_L \OfRewritelessType \DNFRegex_L
+  \Leftrightarrow \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$, where
+  $\SemanticsOf{\DNFLens_L} = \SetOf{(\String,\String) \SuchThat
+    \String \in
+    \LanguageOf{\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2})}}}$.
+  Furthermore, $\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2})}
+  \StarOf{\Rewrite} \DNFRegex_L$.
+  
+  By Corollary~\ref{cor:star-rewrite-maintained-concat-to-identity},
+  there exists a DNF regular expression, $\DNFRegex_R$, and a DNF lens,
+  $\DNFLens_R$, such that
+  $\DNFLens_R \OfRewritelessType \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
+  \Leftrightarrow \DNFRegex_R$, where
+  $\SemanticsOf{\DNFLens_R} = \SetOf{(\String,\String) \SuchThat
+    \String \in
+    \LanguageOf{\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2})}}}$
+  Furthermore, $\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2})}
+  \StarOf{\Rewrite} \DNFRegex_R$.
+
+  By Lemma~\ref{lem:composition-completeness}, as
+  $\DNFLens_L \OfRewritelessType \DNFRegex_L
+  \Leftrightarrow \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$,
+  $\ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2}
+  \OfRewritelessType
+  \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+  \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$, and
+  $\DNFLens_R \OfRewritelessType \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}
+  \Leftrightarrow \DNFRegex_R$
+  there exists a DNF Lens
+  $\DNFLens \OfRewritelessType \DNFRegex_L \Leftrightarrow \DNFRegex_R$, with
+  semantics of the composition of the three lenses.  Because the left and right
+  lenses are the identity lenses, $\SemanticsOf{\DNFLens} =
+  \SemanticsOf{\ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2}}$.
   
   \[
     \inferrule*
     {
-      \ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
-      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
-      \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}\\
-      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
-      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
-      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
-      \ConcatDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$
+      \DNFLens \OfRewritelessType \DNFRegex_L \Leftrightarrow \DNFRegex_R\\
+      \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} \StarOf{\Rewrite}
+      \DNFRegex_L\\
+      \ToDNFRegexOf{(\RegexConcat{\RegexAlt_1}{\RegexAlt_2})} \StarOf{\Rewrite}
+      \DNFRegex_R
     }
     {
-      \ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfType
-      \ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \Leftrightarrow
-      \ToDNFRegexOf{\RegexConcat{\RegexAlt_1}{\RegexAlt_2}}
+      \DNFLens \OfType
+      \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} \Leftrightarrow
+      \ToDNFRegexOf{(\RegexConcat{\RegexAlt_1}{\RegexAlt_2})}
     }
   \]
 
   By Lemma~\ref{lem:typ_sem_concat},
-  $\SemanticsOf{\ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2}} =
+  $\SemanticsOf{\DNFLens} = \SemanticsOf{\ConcatDNFLensOf{\DNFLens_1}{\DNFLens_2}} =
   \SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2) \SuchThat
     (\String_1,\StringAlt_1)\in\SemanticsOf{\DNFLens_1} \BooleanAnd
     (\String_2,\StringAlt_2)\in\SemanticsOf{\DNFLens_2}} =
@@ -11737,7 +12360,7 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \OfRewritelessType
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \OrDNFOf{\DNFRegexAlt_1}{\DNFRegexAlt_2}$.
-  By Corollary~\ref{cor:rewrite-maintained-or},
+  By Lemma~\ref{lem:propagation-of-star-rewrites-through-or},
   $\ToDNFRegexOf{\RegexOr{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
   \OrDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
   $\ToDNFRegexOf{\RegexOr{\RegexAlt_1}{\RegexAlt_2}} \StarOf{\Rewrite}
@@ -11820,29 +12443,70 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \OfRewritelessType
   \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
   \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$.
-  By Corollary~\ref{cor:rewrite-maintained-or},
-  $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
-  \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$ and
-  $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \StarOf{\Rewrite}
-  \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$.  From this, we get
   
+  By Corollary~\ref{cor:star-rewrite-maintained-concat-to-identity}, and
+  Lemma~\ref{lem:dnf-lens-inversion},
+  there exists a DNF regular expression, $\DNFRegex_L$, and a DNF lens,
+  $\DNFLens_L$, such that $\DNFLens_L \OfRewritelessType \DNFRegex_L
+  \Leftrightarrow \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$, where
+  $\SemanticsOf{\DNFLens_L} = \SetOf{(\String,\String) \SuchThat
+    \String \in
+    \LanguageOf{\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2})}}}$.
+  Furthermore, $\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2})}
+  \StarOf{\Rewrite} \DNFRegex_L$.
+  
+  By Corollary~\ref{cor:star-rewrite-maintained-concat-to-identity},
+  there exists a DNF regular expression, $\DNFRegex_R$, and a DNF lens,
+  $\DNFLens_R$, such that
+  $\DNFLens_R \OfRewritelessType \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}
+  \Leftrightarrow \DNFRegex_R$, where
+  $\SemanticsOf{\DNFLens_R} = \SetOf{(\String,\String) \SuchThat
+    \String \in
+    \LanguageOf{\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1})}}}$
+  Furthermore, $\ToDNFRegexOf{(\ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1})}
+  \StarOf{\Rewrite} \DNFRegex_R$.
+
+  By Lemma~\ref{lem:composition-completeness}, as
+  $\DNFLens_L \OfRewritelessType \DNFRegex_L
+  \Leftrightarrow \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$,
+  $\SwapDNFLensOf{\DNFLens_1}{\DNFLens_2}
+  \OfRewritelessType
+  \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
+  \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$, and
+  $\DNFLens_R \OfRewritelessType \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}
+  \Leftrightarrow \DNFRegex_R$
+  there exists a DNF Lens
+  $\DNFLens \OfRewritelessType \DNFRegex_L \Leftrightarrow \DNFRegex_R$, with
+  semantics of the composition of the three lenses.  Because the left and right
+  lenses are the identity lenses, $\SemanticsOf{\DNFLens} =
+  \SemanticsOf{\SwapDNFLensOf{\DNFLens_1}{\DNFLens_2}}$.
+
   \[
     \inferrule*
     {
-      \SwapDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfRewritelessType
-      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2} \Leftrightarrow
-      \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}\\
-      $\ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \StarOf{\Rewrite}
-      \ConcatDNFOf{\DNFRegex_1}{\DNFRegex_2}$\\
-      $\ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}} \StarOf{\Rewrite}
-      \ConcatDNFOf{\DNFRegexAlt_2}{\DNFRegexAlt_1}$
+      \DNFLens \OfRewritelessType
+      \DNFRegex_L \Leftrightarrow \DNFRegex_R\\
+      \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} \StarOf{\Rewrite}
+      \DNFRegex_L\\
+      \ToDNFRegexOf{(\RegexConcat{\RegexAlt_2}{\RegexAlt_1})} \StarOf{\Rewrite}
+      \DNFRegex_R
     }
     {
-      \SwapDNFLensOf{\DNFLens_1}{\DNFLens_2} \OfType
-      \ToDNFRegexOf{\RegexConcat{\Regex_1}{\Regex_2}} \Leftrightarrow
-      \ToDNFRegexOf{\RegexConcat{\RegexAlt_2}{\RegexAlt_1}}
+      \DNFLens \OfType
+      \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} \Leftrightarrow
+      \ToDNFRegexOf{(\RegexConcat{\RegexAlt_2}{\RegexAlt_1})}
     }
   \]
+  
+  By Lemma~\ref{lem:typ_sem_swap},
+  $\SemanticsOf{\DNFLens} = \SemanticsOf{\SwapDNFLensOf{\DNFLens_1}{\DNFLens_2}} =
+  \SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1) \SuchThat
+    (\String_1,\StringAlt_1)\in\SemanticsOf{\DNFLens_1} \BooleanAnd
+    (\String_2,\StringAlt_2)\in\SemanticsOf{\DNFLens_2}} =
+  \SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1) \SuchThat
+    (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1} \BooleanAnd
+    (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}} =
+  \SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$.
   \\
   \\
 
