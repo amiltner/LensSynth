@@ -225,93 +225,93 @@
 The growing dependence on big data makes tools for reliably parsing,
 printing, cleaning, and transforming data increasingly important.
 One such class of tools is \emph{lenses}~\cite{Focal2005-long},
-bi-directional programs that help users solve the classic ``view update
+bidirectional programs that help users solve the classic ``view update
 problem'' \cite{chen2010comparative}.
-More specifically, a lens provides a user with two functions, a
-\emph{get} function and a \emph{put} function.  The \emph{get}
-function translates native data into a new format, or \emph{view}, for
-the user.  If the user updates the new view, the corresponding
+More specifically, a lens provides a user with two functions:
+\emph{get} and \emph{put}.  The \emph{get}
+function translates source data into a target format, or \emph{view}, for
+the user.  If the user updates the view, the corresponding
 \emph{put} function can translate the edited data back into
-the native format.
+the source format.
 
-Converting data back and forth between representations is a common problem.
-It arises in serializers and deserializers, models and views, picklers
-and unpicklers, and more.
-Bidirectional programs express both transformations in a single program, instead
-of requiring a program for each transformation.
-Bidirectional programming has begun to be used in practice for expressing some
-classes of back and forth transformations.
-Augeas~\cite{augeas}, a configuration editing system for linux, uses lens combinators
-to provide editable views of configuration files.
-The language biXid~\cite{bixid} expresses bidirectional XML
-transformations.
-XSugar~\cite{xsugar} converts bidirectionally between XML and non-XML data
-and between EpiDoc~\cite{epidoc} and
-Leiden+~\cite{leidenplus} formats for
-encoding ancient documents~\cite{epidocleidenplus}.
+%Converting data back and forth between representations is a common problem.
+%It arises in serializers and deserializers, models and views, picklers
+%and unpicklers, and more.
+%Bidirectional programs express both transformations in a single program, instead
+%of requiring a program for each transformation.
+%Bidirectional programming has begun to be used in practice for expressing some
+%classes of back and forth transformations.
 
-Lenses are popular because they typically come with strong guarantees
-about the round-trip behavior.  Such guarantees
-help users guard against data corruption while reading and editing
-high-value data sources.  General programming languages don't
-have bidirectional interpretations, and don't have type systems strong
-enough for invertibility guarantees. These guarantees are achieved through
-the use of domain-specific languages with strong type
-systems~\cite{Focal2005-long, boomerang, symmetric-lenses}.
-Unfortunately, such
-lens languages are currently quite non-standard.  The
-process of writing a lens is challenging, as a user must think
-about data conversion in two directions at once --- an
-unusual task for the everyday programmer.  As a consequence, 
-for the casual user of lenses, learning the language, its type system and its
-unorthodox programming style is time-consuming and, in the end,
-a disincentive to adopting the technology, despite its advantages.
+Lenses are useful because they provide strong guarantees about
+round-trip behavior.  Such guarantees guard against data corruption
+while reading, editing, and writing data sources.  Lenses are
+typically implemented as domain-specific languages with strong type
+systems~\cite{Focal2005-long, boomerang, symmetric-lenses} because
+general-purpose languages do not admit bidirectional interpretations
+nor do they have type systems strong enough to ensure invertibility.
+Example uses of lenses in practice include Augeas~\cite{augeas}, a
+configuration editing system for linux that uses lens combinators to
+provide editable views of configuration files; the biXid~\cite{bixid}
+language that expresses bidirectional XML transformations, and
+XSugar~\cite{xsugar} that converts bidirectionally between XML and
+non-XML data and between EpiDoc~\cite{epidoc} and
+Leiden+~\cite{leidenplus} formats for encoding ancient
+documents~\cite{epidocleidenplus}.
 
-To overcome the difficulty involved in adopting lens technologies, we have
-developed a new system for synthesizing lenses
-from their types and collections of representative examples.  More
-specifically, we focus on algorithms for the synthesis of bijective
-string lenses.  The language we use for these lenses has typing derivations of
-the form $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read
-``lens $\Lens$ converts back and forth between
-data in the language of regular expression $\Regex$ and data in the language
-of regular expression $\RegexAlt$''.
-Given a type $\Regex \Leftrightarrow \RegexAlt$, and a very small number of
-representative examples (sometimes
-no examples at all), we synthesize $\Lens$, a well typed lens, that implements
-a bijection between the languages of $\Regex$ and $\RegexAlt$, while satisfying
-the provided examples.
+Unfortunately, writing lenses presents a number of challenges.  First,
+users must learn a lens language and its type system.  Second, they
+must adopt its unorthodox programming style that requires thinking in
+two directions at once.  Finally, they must learn how to work within
+the restrictive type system that ensures invertibility.  These
+difficulties can disincentivize programmers from adopting the
+technology, despite its advantages.
 
-Recently, researchers have developed a number of new algorithms for
-synthesis of various types of
+To overcome these difficulties, we have developed a system for
+synthesizing bijective string lenses from the types of the source and
+target data formats and a collection of representative examples.
+The language we use for lenses has
+typing judgments of the form
+$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read
+``lens $\Lens$ converts between data in the language of
+regular expression $\Regex$ and data in the language of regular
+expression $\RegexAlt$.''  Given a type
+$\Regex \Leftrightarrow \RegexAlt$ and a small number of
+representative examples (sometimes no examples at all!), we synthesize
+$\Lens$, a well typed lens that implements a bijection between the
+languages of $\Regex$ and $\RegexAlt$ while matching the provided
+examples.
+
+Our work is related to recent efforts that synthesize various types of
 programs~\cite{yag+:pldi16,osera+:pldi15,frankle+:popl16,armando+:pldi16}.
 Many of these
 algorithms~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16} are
 directed in part by the syntax of types.  For instance, to find an
-expression with type $A \rightarrow B$, such algorithms will assume
-that the expression in question is a function of the form $\lambda
-x{:}A. e$.  These algorithms will then continue by searching for an
-expression $e$
-with type $B$ under the hypothesis that the parameter $x$ has type
-$A$.  In the case of the simply typed lambda calculus, such an
-approach reduces the complexity of the search for terms inhabiting the
-type without losing completeness.  Lenses are defined by a richer type system
+expression with type $A \rightarrow B$, such algorithms assume that
+the expression in question is a function of the form $\lambda
+x{:}A. e$.  These algorithms then search for an expression $e$ with
+type $B$ under the hypothesis that the parameter $x$ has type $A$.  
+In
+the case of the simply typed lambda calculus, such an approach reduces
+the complexity of the search for terms inhabiting the type without
+losing completeness.  This approach does not directly apply to the
+problem of lens synthesis, however, because
+lenses use a richer type system
 than the simply typed lambda calculus.
-Lenses have regular expression types, and as such,
-there are many equivalent ways to express the same type.
-Unfortunately, the many equivalent types makes simple
-syntax-directed algorithms not directly applicable.
+Specifically, lenses use regular expression types, which means 
+there are many equivalent ways to express the same type and a simple
+syntax-directed algorithm will not work.
 
-To explain the major components of our synthesis algorithm,
-we consider a running example involving conversion between citations given
-in (highly simplified) BibTex and EndNote formats.  Our BibTex format
-consists entirely of specifying a list of authors on a single line as follows.
+
+To explain the components of our synthesis algorithm,
+we use a running example that converts between citations given
+in simplified BibTex and EndNote formats.  The BibTex format
+specifies a list of authors on a single line:
 \begin{lstlisting}
 author={Conway, John and Kleene, Stephen Cole}
 \end{lstlisting}
-Our EndNote format contains the same information, but uses different separators,
-rearranges the order of first and last names, and uses a separate line for each
-author. 
+The EndNote format contains the same information, but uses different separators,
+rearranges the order of first and last names, and puts each author on
+a separate line:
 \begin{lstlisting}
 % A John Conway
 % A Stephen Cole Kleene
@@ -325,10 +325,10 @@ Names = (" " Name)*
 (* BibTex definitions *)
 BNames = Name ", " Name Names
 BibTex = ""
-    | "author={" BNames (" and " BNames)* "},"
+       | "author={" BNames (" and " BNames)* "},"
 
 (* EndNote definitions *)
-ENames = Name Names " " Name
+ENames  = Name Names " " Name
 EndNote = ("%A " ENames "\n")*
 
 (* Synthesis Specification With 1 Example *)
@@ -336,42 +336,39 @@ BibEnd : BibTex <=> EndNote = {
 "author={Conway, John and Kleene, Stephen Cole}"
 <-> "%A John Conway\n%A Stephen Cole Kleene" }
 \end{lstlisting}
-  \caption{Synthesis Problem Definition: Idealized Bibtex to EndNote}
+  \caption{Synthesis Example: Idealized Bibtex to EndNote}
   \label{fig:bibend-spec}
 \end{figure}
 
-Specifications for lens synthesis are
-given by defining the source and target data formats\footnote{Lenses
-  operate both left-to-right and right-to-left, so both formats are sometimes
-  sources and sometimes targets. Nevertheless, we will often call the
-  format on the left, the ``source,'' and the format on the right, 
-  the ``target.''} as well as a suite of input and output examples.
-Figure~\ref{fig:bibend-spec} presents
-the user's specification for synthesizing a lens which converts between the
-Bibtex and EndNote formats.
-In this specification, the lens
-we wish to synthesize is \CF{BibEnd}.  It converts between 
-the formats \CF{BibTex} and \CF{EndNote}.
-Such formats are defined using a standard syntax for regular expressions.
-Intermediate regular expressions are named to facilitate
-construction of complex formats.
+In our system, users write lens synthesis specifications by giving
+regular expressions that define the source and target formats
+% \footnote{Lenses
+%  operate both left-to-right and right-to-left, so both formats are sometimes
+%  sources and sometimes targets. Nevertheless, we will often call the
+%  format on the left, the ``source,'' and the format on the right, 
+%  the ``target.''}
+and by giving a suite of input/output examples.
+Figure~\ref{fig:bibend-spec} shows an example specification for a
+lens \CF{BibEnd} that converts between the
+\CF{Bibtex} and \CF{EndNote} formats.
+We allow users to name intermediate regular expressions
+(\CF{Name}, \CF{Names}) to facilitate  
+the construction of complex formats.
 
 
-\paragraph*{Challenge 1: Multi-dimensional Search Space}
+\paragraph*{Challenge 1: Multi-dimensional Search Space.}
 To illustrate a central challenge facing our synthesis system,
 consider the concatenation lens, $\ConcatLensOf{\Lens_1}{\Lens_2}$,
 one of the simplest string lens combinators.  
 When viewed from left to right, this lens defines a function \emph{get}, which,
-given a string 
-$\String$, divides $\String$ into two substrings $\String_1$ 
+divides an input string $\String$ into two substrings $\String_1$ 
 and $\String_2$, applies $\Lens_1$ to the first, yielding $t_1$,
 and $\Lens_2$ to the second, yielding $t_2$.  When viewed from
 right to left, it defines a second function \emph{put}, which maps
-data back from strings $t$ to strings $s$ in an analogous way.
-The type system for lenses ensures such \emph{get} and \emph{put} functions
-satisfy strong invertibility properties.  In our case, the two functions
-form a bijection.  More specifically, to give a type
-to the concatenation lens, we use the following typing rule.
+from strings $t$ to strings $s$ in an analogous way.
+The type system for lenses ensures these \emph{get} and \emph{put} functions
+form a bijection.  To type the concatenation lens, we use the
+typing rule: 
 \[
   \inferrule
   {
