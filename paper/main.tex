@@ -358,17 +358,15 @@ the construction of complex formats.
 
 \paragraph*{Challenge 1: Multi-dimensional Search Space.}
 To illustrate a central challenge facing our synthesis system,
-consider the concatenation lens, $\ConcatLensOf{\Lens_1}{\Lens_2}$,
-one of the simplest string lens combinators.  
-When viewed from left to right, this lens defines a function \emph{get}, which,
-divides an input string $\String$ into two substrings $\String_1$ 
-and $\String_2$, applies $\Lens_1$ to the first, yielding $t_1$,
-and $\Lens_2$ to the second, yielding $t_2$.  When viewed from
-right to left, it defines a second function \emph{put}, which maps
-from strings $t$ to strings $s$ in an analogous way.
-The type system for lenses ensures these \emph{get} and \emph{put} functions
-form a bijection.  To type the concatenation lens, we use the
-typing rule: 
+consider the concatenation lens, $\ConcatLensOf{\Lens_1}{\Lens_2}$.
+When viewed from left to right, this lens defines a
+function \emph{get} that divides an input string $\String$ into two
+substrings $\String_1$ and $\String_2$ and applies $\Lens_1$ to the first
+and $\Lens_2$ to the second to yield $t_1$ and $t_2$, respectively.
+When viewed from right to left, it defines a second
+function \emph{put}, which maps from strings $t$ to strings $s$ in an
+analogous way.  The type system for lenses ensures these \emph{get}
+and \emph{put} functions form a bijection via the typing rule:
 \[
   \inferrule
   {
@@ -382,27 +380,26 @@ typing rule:
     \Leftrightarrow \RegexAlt_1\Concat\RegexAlt_2
   }
 \]
-Above, the notation $\UnambigConcatOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$ and $\Regex_2$ are
-unambiguously concatenable, meaning there is
+The notation $\UnambigConcatOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$ and $\Regex_2$ are
+\textit{unambiguously concatenable}, meaning there is
 exactly one way to divide any
 string $\String$ in the language of $\Regex_1\Concat\Regex_2$ into $\String_1$
 and $\String_2$ such that $\String_1$ is in the language of $\Regex_1$
-and $\String_2$ is in the language of $\Regex_2$.  These unambiguous
-concatenation constraints guarantee the \emph{get} and \emph{put}
-functions are indeed functions and that they form a bijection if
-the underlying lenses are bijective.
+and $\String_2$ is in the language of $\Regex_2$.  These 
+contatentation constraints guarantee that \emph{get} and \emph{put}
+are bijective functions if 
+the lenses $\Lens_1$ and $\Lens_2$ are bijective.
 
-With these typing rules in hand, consider trying to search for
-a lens with the type $(A B) C \Leftrightarrow A' (B' C')$ when there exist
-lenses with types 
+Now consider searching for
+a lens with the type $(A B) C \Leftrightarrow A' (B' C')$ 
+given lenses with types 
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
-$C \Leftrightarrow C'$.  A straightforward,
-syntax-directed search suggests applying the rule for concatenation,
+$C \Leftrightarrow C'$.  A straightforward
+syntax-directed search suggests applying the rule for concatenation
 and looking for two simpler lenses with the types $A B \Leftrightarrow A'$
-and $C \Leftrightarrow B' C'$ respectively.  Unfortunately, at this point,
-we are stuck---we have no lenses with those types.  Of course,
-the natural
-solution to this problem
+and $C \Leftrightarrow B' C'$, respectively.  Unfortunately, at this point
+we are stuck---we have no lenses with those types.  
+A natural solution to this problem
 is to introduce a type conversion rule:
 \[
   \inferrule
@@ -415,49 +412,49 @@ is to introduce a type conversion rule:
     \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
   }
 \]
-With such a type conversion rule, we could first 
+With such a rule, we could 
 convert the type $(A B) C \Leftrightarrow A' (B' C')$
-to the better aligned $(A B) C \Leftrightarrow (A' B') C'$.
-When we then proceed with structure decomposition using the
-concatenation rule, we generate sub-problems involving
-finding lenses for types
+to the better-aligned $(A B) C \Leftrightarrow (A' B') C'$.
+With this type, structure decomposition using the
+concatenation rule generates sub-problems that require
+finding lenses for 
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
-$C \Leftrightarrow C'$, which is exactly what we had by assumption.
+$C \Leftrightarrow C'$,  exactly what we have.
 
-Because equivalence of regular expressions is decideable, when
-given a lens $\Lens$ with type $\Regex_1 \Leftrightarrow \Regex_2$,
-it is easy to \emph{check} whether that lens also has type 
-$\Regex_1' \Leftrightarrow \Regex_2'$, and lens programming languages
-such as Boomerang~\cite{boomerang} do so.  However, 
-when we turn to synthesis and are given the lens type 
-$\Regex_1' \Leftrightarrow \Regex_2'$ and the option to apply this
-rule, the search space gets infinite fan-out --- we must guess
-some arbitrary new regular expressions $\Regex_1$ and $\Regex_2$ that are
-equivalent to $\Regex_1'$ and $\Regex_2'$ respectively,
-and there are infinitely many such regular expressions to choose
-from.
+Because regular expressions equivalence is decideable, 
+it is easy to \emph{check} whether a given lens $\Lens$ with type 
+$\Regex_1 \Leftrightarrow \Regex_2$
+also has type 
+$\Regex_1' \Leftrightarrow \Regex_2'$. 
+During synthesis however, deciding when and how to use type conversion is
+difficult because
+there are an infinite number of regular
+expressions that are equivalent to the source and target regular
+expressions. 
 
-Furthermore, Boomerang has a composition operator to compose multiple lenses.
-Removing the composition operator from Boomerang reduces expressivity.
-That means, to have a synthesis procedure that can synthesize all lenses,
-the procedure must synthesize composition lenses.
-The typing of a composition lens requires that target type of the first lens is the
-source type of the second.
-To synthesize a composition lens between $\Regex_1$ and $\Regex_2$, an arbitrary
-$\Regex_3$ must be found,
-and then two lenses of types $\Regex_1 \Leftrightarrow \Regex_3$ and
-$\Regex_3 \Leftrightarrow \Regex_2$ must also be created.  Searching through all
-possible
-regular expressions for the correct $\Regex_3$ becomes a difficult infinite search
-problem.
+A second challenge arises from composition lenses.  The typing of such
+lenses requires the target type of the first lens to be the source
+type of the second.  To synthesize a composition lens between
+$\Regex_1$ and $\Regex_2$, we must find an intermediate type $\Regex_3$
+and lenses with types $\Regex_1 \Leftrightarrow \Regex_3$ and
+$\Regex_3 \Leftrightarrow \Regex_2$.  Searching for the correct
+regular expression $\Regex_3$ is difficult because
+the search space is infinite.  We cannot simply omit composition
+lenses from our langauge because their removal reduces the expressivity
+of the language.
 
-In essence, to naively apply type-directed synthesis techniques would involve
-solving the problem of search \emph{in three dimensions}:  In one
-dimension, we must search for a regular expression \emph{type}
-with an appropriate ``syntactic shape''.  In a second dimension,
-we must search for a lens \emph{expression} that has the given type and
-is consistent with the user's examples.  In a final dimension, we must search
-for intermediary regular expressions for composing lenses.
+%Furthermore, Boomerang has a composition operator to compose multiple
+%lenses.Removing the composition operator from Boomerang reduces
+%expressivity.  That means, to have a synthesis procedure that can
+%synthesize all lenses, the procedure must synthesize composition lenses.
+
+In essence, naively applying type-directed synthesis techniques
+involves searching \emph{in three infinite dimensions}:  we must
+search for
+(1) a regular expression \emph{type} with an appropriate ``syntactic shape,'' 
+(2) a lens \emph{expression} that has the given type and is consistent
+with the user's examples, and 
+(3) intermediary regular expressions for composing lenses.
 
 \paragraph*{Solution 1: Canonization}
 Our solution to this problem is to define a new language of lenses that
