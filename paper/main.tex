@@ -2416,6 +2416,23 @@ whitespace problem.
   \end{tabular}
 \end{proof}
 
+\begin{lemma}
+  \label{lem:lens-bij}
+  If $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, then
+  $\SemanticsOf{\Lens}$ is a bijection between $\LanguageOf{\Regex}$ and
+  $\LanguageOf{\RegexAlt}$.
+\end{lemma}
+\begin{proof}
+  TODO
+\end{proof}
+
+\begin{lemma}
+  \label{lem:rw-dnf-lens-bij}
+  If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then
+  $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\DNFRegex}$ and
+  $\LanguageOf{\DNFRegexAlt}$.
+\end{lemma}
+
 \begin{lemma}[Equivalence of \ConcatDNF{} and \Concat{}]
   \label{lem:cdnfeq}
   If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
@@ -2905,6 +2922,8 @@ whitespace problem.
     (\BigUnion_{i\in\RangeIncInc{1}{m}}\Language_i') = \SetOf{}$.
   \end{case}
 \end{proof}
+
+
 
 
 \begin{lemma}[Expressibility of Safe Boilerplate Alterations]
@@ -3575,6 +3594,15 @@ whitespace problem.
     By IH, $\LanguageOf{\DNFRegex'} = \LanguageOf{\DNFRegexAlt}$.
     So $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$.
   \end{case}
+\end{proof}
+
+\begin{lemma}
+  If $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then
+  $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\DNFRegex}$ and
+  $\LanguageOf{\DNFRegexAlt}$.
+\end{lemma}
+\begin{proof}
+  TODO
 \end{proof}
 
 \begin{lemma}[Soundness of DNF, Sequence, and Atom Lenses]\leavevmode
@@ -4775,6 +4803,12 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   TODO:
 \end{proof}
 
+%\begin{definition}[Adjacent Swapping Permutation]
+%  Let $\sigma_{i} \in S_n$ be the permutation where
+%  $\sigma_{i}(i) = i+1$, $\sigma_{i}(i+1) = i$, $\sigma_{i}(k) = k$
+%  when $k\neq i$, and $k\neq i+1$.
+%\end{definition}
+
 \begin{lemma}[Typing and Semantics of $\OrDNFLens$]
   \label{lem:typ_sem_or}
   Let $\DNFLens_1 \OfType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1$ and
@@ -4963,9 +4997,63 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   If $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$ is the
   typing of a rewriteless Atom lens, then
   $\AtomToDNFLensOf{\AtomLens} \OfRewritelessType \AtomToDNFOf{\Atom}
-  \Leftrightarrow \AtomToDNFOf{\AtomAlt}$
+  \Leftrightarrow \AtomToDNFOf{\AtomAlt}$, and
+  $\SemanticsOf{\AtomToDNFLensOf{\AtomLens}} = \SemanticsOf{\AtomLens}$.
 \end{lemma}
 \begin{proof}
+  Let $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$.
+  
+  $\SequenceUnambigConcatOf{(\EmptyString;\Atom;\EmptyString)}$ because
+  $\LanguageOf{\EmptyString} = \SetOf{\EmptyString}$.
+  $\SequenceUnambigConcatOf{(\EmptyString;\AtomAlt;\EmptyString)}$ because
+  $\LanguageOf{\EmptyString} = \SetOf{\EmptyString}$.
+
+  As there is only one sequence, the pointwise disjoint condition for DNF lenses
+  are true vacuously.
+  
+  Consider the typing derivation
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+        \AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt\\
+        \SequenceUnambigConcatOf{(\EmptyString;\Atom;\EmptyString)}\\
+        \SequenceUnambigConcatOf{(\EmptyString;\AtomAlt;\EmptyString)}
+      }
+      {
+        (\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)},\Identity)
+        \OfRewritelessType
+        \SequenceOf{\EmptyString;\Atom;\EmptyString} \Leftrightarrow
+        \SequenceOf{\EmptyString;\AtomAlt;\EmptyString}
+      }\\
+      i \neq j \BooleanImplies \LanguageOf{\Sequence_i} \Intersect
+      \LanguageOf{\Sequence_j} = \emptyset
+    }
+    {
+      (\DNFLensOf{(\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)},\Identity)},\Identity)
+      \OfRewritelessType
+      \DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}} \Leftrightarrow
+      \DNFOf{\SequenceOf{\EmptyString;\AtomAlt;\EmptyString}}
+    }
+  \]
+  
+  $\AtomToDNFLensOf{\AtomLens} =
+  (\DNFLensOf{(\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)},\Identity)},\Identity)$.
+  
+  $\SemanticsOf{\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)}}
+  =
+  \SetOf{(\EmptyString,\String,\EmptyString,\EmptyString,\StringAlt,\EmptyString)
+    \SuchThat (\String,\StringAlt) \in \LanguageOf{\AtomLens}} =
+  \SemanticsOf{\AtomLens}$.
+
+  $\SemanticsOf{(\DNFLensOf{(\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)},\Identity)},\Identity)}
+  =
+  \SetOf{(\String,\StringAlt) \SuchThat (\String,\StringAlt) \in
+    \SemanticsOf{\SequenceLensOf{(\EmptyString,\EmptyString);\AtomLens;(\EmptyString,\EmptyString)}}}
+  = \SetOf{(\String,\StringAlt) \SuchThat (\String,\StringAlt) \in
+    \SemanticsOf{\AtomLens}}
+  = \SemanticsOf{\AtomLens}$
 \end{proof}
 
 \begin{lemma}[Typing and Semantics of $\AtomToDNFLensOf{\IterateLensOf{\cdot}}$]
@@ -5055,33 +5143,10 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \Leftrightarrow \DNFRegexAlt_2 \OrDNF \DNFRegexAlt_1$.
 \end{lemma}
 \begin{proof}
+  TODO
 \end{proof}
 
-\begin{lemma}[Reordering of $\OrDNF$ Right]
-  \label{lem:or-dnf-reordering-right}
-  If there exists a DNF lens $\DNFLens \OfRewritelessType \DNFRegex_1 \OrDNF \ldots
-  \OrDNF \DNFRegex_n \Leftrightarrow
-  \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$, then for all permutations
-  $\sigma \in \PermutationSetOf{n}$, there exists a DNF lens $\DNFLens'
-  \OfRewritelessType \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
-  \Leftrightarrow
-  \DNFRegexAlt_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegexAlt_{\sigma(n)}$ where
-  $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens}$.
-\end{lemma}
-
-\begin{lemma}[Reordering of $\OrDNF$ Left]
-  \label{lem:or-dnf-reordering-left}
-  If there exists a DNF lens $\DNFLens \OfRewritelessType \DNFRegex_1 \OrDNF \ldots
-  \OrDNF \DNFRegex_n \Leftrightarrow
-  \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$, then for all permutations
-  $\sigma \in \PermutationSetOf{n}$, there exists a DNF lens $\DNFLens'
-  \OfRewritelessType \DNFRegex_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma(n)}
-  \Leftrightarrow
-  \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$ where
-  $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens}$.
-\end{lemma}
-
-\begin{lemma}[Unrolling of $\IterateLens$]
+\begin{lemma}[Left Unrolling of $\IterateLens$]
   \label{lem:iterate-lens-unroll}
   If $\IterateLensOf{\DNFLens}$ is an atom lens, then
   $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNFLens (\DNFLens
@@ -5089,16 +5154,18 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\DNFLens'}$
 \end{lemma}
 \begin{proof}
+  TODO
 \end{proof}
 
-\begin{lemma}[Quotienting of $\IterateLens$]
-  \label{lem:iterate-lens-quotient}
+\begin{lemma}[Right Unrolling of $\IterateLens$]
+  \label{lem:iterate-lens-unroll}
   If $\IterateLensOf{\DNFLens}$ is an atom lens, then
-  $\DNFLens' = (\DNFLens^0 \ConcatDNF \StarOf{(\DNFLens^n)}) \OrDNF \ldots \OrDNF
-  (\DNFLens^{n-1} \ConcatDNF \StarOf{(\DNFLens^n)})$ is a DNF Lens with
+  $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNFLens (\AtomToDNFLensOf{\IterateLensOf{\DNFLens}}
+  \ConcatDNFLens \DNFLens)$ is a DNF Lens with
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\DNFLens'}$
 \end{lemma}
 \begin{proof}
+  TODO
 \end{proof}
 
 \begin{lemma}[Closure of Rewriteless Regular Expressions under Composition]
@@ -5384,6 +5451,40 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     }
   \end{mathpar}
 \end{proof}
+
+
+\begin{lemma}[Expressibility of Adjacency Swapping Permutation of Separated Concat List]
+  Let for all $i \in \RangeIncInc{1}{n}, \DNFLens_i \OfRewritelessType
+  \DNFRegex_i \Leftrightarrow \DNFRegexAlt_i$
+  Let $\sigma_i$ be an adjacency swapping permutation, where $1 \leq i < n$.
+  There exists a DNF lens $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
+  \DNFRegex_1 \ConcatDNF
+  \ldots \ConcatDNF \DNFRegex_n \Leftrightarrow
+  \DNFRegexAlt_{\sigma_i(1)} \ConcatDNF \ldots \ConcatDNF
+  \DNFRegexAlt_{\sigma_i(n)}$, where $\SemanticsOf{\DNFRegex} =
+  \SetOf{(\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n,
+    \StringAlt_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma(n)})
+    \SuchThat
+  (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens_i}}$
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+\begin{lemma}[Reordering of $\OrDNF$ Right]
+  \label{lem:or-dnf-reordering-right}
+  If there exists a DNF lens $\DNFLens \OfRewritelessType \DNFRegex_1 \OrDNF \ldots
+  \OrDNF \DNFRegex_n \Leftrightarrow
+  \DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$, then for all permutations
+  $\sigma \in \PermutationSetOf{n}$, there exists a DNF lens $\DNFLens'
+  \OfRewritelessType \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+  \Leftrightarrow
+  \DNFRegexAlt_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegexAlt_{\sigma(n)}$ where
+  $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens}$.
+\end{lemma}
+\begin{proof}
+  TODO
+\end{proof}
+
 
 \begin{lemma}[Closure of Rewriteless DNF Lenses Under Inversion]
   \label{lem:closure-inversion}
@@ -6220,6 +6321,25 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     strongly unambiguous, and $\UnambigItOf{\DNFRegex}$.
   \end{enumerate}
 \end{definition}
+
+\begin{lemma}[Strong Unambiguity in Lens Types]
+  \label{lem:strong-unambig-lens-types}
+  If $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, then $\Regex$ is strongly
+  unambiguous, and $\RegexAlt$ is strongly unambiguous.
+\end{lemma}
+\begin{proof}
+  TODO
+\end{proof}
+
+\begin{lemma}[Strong Unambiguity in Rewriteless DNF Lens Types]
+  \label{lem:strong-unambig-dnf-lens-types}
+  If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+  then $\DNFRegex$ is strongly unambiguous, and $\DNFRegexAlt$ is strongly
+  unambiguous.
+\end{lemma}
+\begin{proof}
+  TODO
+\end{proof}
 
 \begin{lemma}
   \label{lem:pre-uniqueness-of-empty-in-dnf}
@@ -7272,10 +7392,12 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \begin{lemma}
-  \label{lem:pre-starred-confluence-transitive-reflexive}
+  \label{lem:pre-starred-confluence-propagator-like}
   If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
-  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, and
-  $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+  $\Property(x,y) \BooleanAnd \Property(y,z) \BooleanImplies
+  \Property(x,z)$, and
+  $\Property(x,y) \BooleanImplies \Property(x,x) \BooleanAnd \Property(y,y)$
   then if $\Property(x,y)$, $x\StarOf{\rightarrow} x_1$, $y\rightarrow
   x_1$, then there exists some $x_2$, $x_y$ such that
   $x_1\rightarrow x_2$, $y_1\StarOf{\rightarrow} y_2$, and
@@ -7347,10 +7469,11 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     \]
 
     By IH, there exists $x_3$, $y_2$ such that $x_1 \rightarrow x_3$, and
-    $y_1 \StarOf{\Rewrite} y_2$, and $\Property(x_3,y_2)$.
+    $y_1 \StarOf{\rightarrow} y_2$, and $\Property(x_3,y_2)$.
 
-    As $\StarOf{\Property}(a,b)$ if, and only if, $\Property(a,b)$,
-    $\Property(x_1,x_1)$.
+    As $\Property(x,y)$, we have $\Property(x,x)$.  As $\Property(x,x)$, and $x
+    \StarOf{\rightarrow} x_1$, then there exists $x'$ such that
+    $\Property(x_1,x')$, so $\Property(x_1,x_1)$.
     So, by IH, as $\Property(x_1,x_1)$, $x_1 \StarOf{\rightarrow} x_2$, and
     $x_1 \rightarrow x_3$, there exists $x_4,x_5$ such that $x_2 \rightarrow
     x_4$, $x_3 \StarOf{\rightarrow} x_5$, and $\Property(x_4,x_5)$.
@@ -7361,17 +7484,18 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     $y_2 \StarOf{\Rewrite} y_3$, and $\Property(x_5,y_3)$.
     By \TransitivityRule{}, $y_1 \StarOf{\Rewrite} y_3$.
     From before, $x_2 \rightarrow x_4$.
-    Because $\StarOf{\Property}(a,b)$ if, and only if $\Property(a,b)$,
-    as $\Property(x_4,x_5)$ and $\Property(x_5,y_3)$, we have
+    Because we have $\Property(x_4,x_5)$ and $\Property(x_5,y_3)$, we have
     $\Property(x_4,y_3)$.
   \end{case}
 \end{proof}
 
 \begin{lemma}
-  \label{lem:starred-confluence-transitive-reflexive}
+  \label{lem:starred-confluence-propatator-like}
   If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
   $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$, and
-  $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+  $\Property(x,y) \BooleanAnd \Property(y,z) \BooleanImplies
+  \Property(x,z)$, and
+  $\Property(x,y) \BooleanImplies \Property(x,x) \BooleanAnd \Property(y,y)$
   then if $\Property(x,y)$, $x \StarOf{\rightarrow} x_1$,
   $y \StarOf{\rightarrow} x_1$, then there exists some $x_2$, $x_y$ such that
   $x_1 \StarOf{\rightarrow} x_2$, $y_1\StarOf{\rightarrow} y_2$, and
@@ -7421,7 +7545,7 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
     $y \rightarrow y_1$, $x \StarOf{\rightarrow} x_1$, and
     $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
-    by Lemma~\ref{lem:pre-starred-confluence-transitive-reflexive},
+    by Lemma~\ref{lem:pre-starred-confluence-propagator-like},
     there exists
     $x_2$, $y_2$ such that $x_1 \rightarrow x_2$, $y_1 \StarOf{\rightarrow} y_2$,
     and $\Property(x_2,y_2)$.
@@ -7452,8 +7576,9 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     By IH, there exists $x_2$, $y_3$ such that $x_1 \StarOf{\rightarrow} x_2$, and
     $y_1 \StarOf{\Rewrite} y_3$, and $\Property(x_2,y_3)$.
 
-    As $\StarOf{\Property}(a,b)$ if, and only if, $\Property(a,b)$,
-    $\Property(y_1,y_1)$.
+    As $\Property(x,y)$, we have $\Property(y,y)$.  As $\Property(y,y)$, and $y
+    \StarOf{\rightarrow} y_1$, then there exists $y'$ such that
+    $\Property(y_1,y')$, so $\Property(y_1,y_1)$.
     So, by IH, as $\Property(y_1,y_1)$, $y_1 \StarOf{\rightarrow} y_3$, and
     $y_1 \StarOf{\rightarrow} y_2$, there exists $y_4,y_5$ such that
     $y_3 \StarOf{\rightarrow} y_4$,
@@ -7465,8 +7590,7 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     $x_2 \StarOf{\Rewrite} x_3$, and $\Property(x_3,y_4)$.
     By \TransitivityRule{}, $x_1 \StarOf{\Rewrite} x_3$.
     From before, $y_2 \rightarrow y_5$.
-    Because $\StarOf{\Property}(a,b)$ if, and only if $\Property(a,b)$,
-    as $\Property(x_3,y_4)$ and $\Property(y_4,y_5)$, we have
+    As we have $\Property(x_3,y_4)$ and $\Property(y_4,y_5)$, we have
     $\Property(x_3,y_5)$.
   \end{case}
 \end{proof}
@@ -7476,14 +7600,22 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   $\rightarrow$ if
   $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
   $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
-  $\Propagator(x,y) \BooleanAnd \Property(y,z) \BooleanImplies \Property(x,z)$,
-  and $\StarOf{\Propagator}(x,y)$ if, and only if $\Propagator(x,y)$,
+  $\Propagator(x,y) \BooleanAnd \Propagator(y,z) \BooleanImplies \Propagator(x,z)$,
+  $\Propagator(x,y) \BooleanImplies \Propagator(x,x) \BooleanAnd
+  \Propagator(y,y))$,
+  $\Property(x,y) \BooleanImplies \Propagator(x,x)$, and
+  $\Propagator(x,y) \BooleanAnd \Property(y,z) \BooleanImplies \Property(x,z)$.
 \end{definition}
 
 \begin{definition}
-  A property $\Propagator$ is a right propagator for $\Property$ with respect to
-  $\rightarrow$
-  if $\StarOf{\Propagator}(x,y)$ if, and only if $\Propagator(x,y)$,
+  A property $\Propagator$ is a left propagator for $\Property$ with respect to
+  $\rightarrow$ if
+  $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+  $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+  $\Propagator(x,y) \BooleanAnd \Propagator(y,z) \BooleanImplies \Propagator(x,z)$,
+  $\Propagator(x,y) \BooleanImplies \Propagator(x,x) \BooleanAnd
+  \Propagator(y,y))$,
+  $\Property(x,y) \BooleanImplies \Propagator(y,y)$, and
   $\Property(x,y) \BooleanAnd \Propagator(y,z) \BooleanImplies \Property(x,z)$.
 \end{definition}
 
@@ -7492,8 +7624,6 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   Let $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$.
   Let $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$.
   Let $\Propagator_L$ be a left propagator for $\Property$ with respect to
-  $\rightarrow$.
-  Let $\Propagator_R$ be a right propagator for $\Property$ with respect to
   $\rightarrow$.
   If $\Property(x_1,x_2)$, $x_1\StarOf{\rightarrow} x_1'$, $x_2\rightarrow
   x_2'$, then there exists some $x_1''$, $x_2''$ such that
@@ -7539,17 +7669,171 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
     \]
 
     As $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$, there exists
-    $x_1''$, $y_1''$ such that
+    $x_2$, $y_2$ such that $x_1 \rightarrow x_2$, $y_1 \rightarrow y_2$,
+    and $\Property(x_2,y_2)$.
+    Furthermore
+    \[
+      \inferrule*
+      {
+        y_1 \rightarrow y_2
+      }
+      {
+        y_1 \StarOf{\rightarrow} y_2
+      }
+    \]
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        x \StarOf{\rightarrow} x_1\\
+        x_1 \StarOf{\rightarrow} x_2
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_2
+      }
+    \]
+
+    By IH, there exists $x_3$, $y_2$ such that $x_1 \rightarrow x_3$, and
+    $y_1 \StarOf{\Rewrite} y_2$, and $\Property(x_3,y_2)$.
+
+    As $\StarOf{\Propagator_L}(a,b)$ if, and only if $\Propagator_L(a,b)$,
+    $\Propagator_L(x_1,x_1)$.
+
+    As $\Property(x,y)$, we have $\Propagator_L(x,x)$.
+    As $\Propagator_L(x,x)$ and $x \StarOf{\rightarrow} x_1$, there exists $x'$
+    such that $x \StarOf{\rightarrow} x'$, and $\Propagator_L(x_1,x')$, which
+    means that $\Propagator_L(x_1,x_1)$.
+    As $\Propagator_L$ is a propagator with respect to $\rightarrow$,
+    it fills the properties required for
+    Lemma~\ref{lem:pre-starred-confluence-propagator-like}, 
+    So, as $\Propagator_L(x_1,x_1)$, $x_1 \StarOf{\rightarrow} x_2$, and
+    $x_1 \rightarrow x_3$, there exists $x_4,x_5$ such that $x_2 \rightarrow
+    x_4$, $x_3 \StarOf{\rightarrow} x_5$, and $\Propagator_L(x_4,x_5)$.
+
+    As $\Property(x_3,y_2)$, and $x_3 \StarOf{\Rewrite} x_5$, then by
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$ and
+    Lemma~\ref{lem:mirroring-star}, there exists $y_3$ such that
+    $y_2 \StarOf{\Rewrite} y_3$, and $\Property(x_5,y_3)$.
+    By \TransitivityRule{}, $y_1 \StarOf{\Rewrite} y_3$.
+    From before, $x_2 \rightarrow x_4$.
+    Because
+    $\Propagator_L(x_4,x_5)$ and $\Property(x_5,y_3)$, and
+    $\Propagator_L$ is a left propagator, $\Property(x_4,y_3)$.
   \end{case}
 \end{proof}
 
 \begin{theorem}[Confluence Preserved Through Star]
   \label{thm:starred-confluence}
-  If $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$ then
-  $\IsConfluentWithPropertyOf{\StarOf{\rightarrow}}{\Property}$.
+  Let $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$.
+  Let $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$.
+  Let $\Propagator_L$ be a left propagator for $\Property$ with respect to
+  $\rightarrow$.
+  Let $\Propagator_R$ be a right propagator for $\Property$ with respect to
+  $\rightarrow$.
+  If $\Property(x_1,x_2)$, $x_1\StarOf{\rightarrow} x_1'$, $x_2\rightarrow
+  x_2'$, then there exists some $x_1''$, $x_2''$ such that
+  $x_1'\rightarrow x_1''$, $x_2'\StarOf{\rightarrow} x_2''$, and
+  $\Property(x_1'',x_2'')$.
 \end{theorem}
 \begin{proof}
-  TODO
+  By induction on the derivation of $y \StarOf{\rightarrow} y_1$.
+
+  \begin{case}[\ReflexivityRule]
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y \StarOf{\rightarrow} y
+      }
+    \]
+
+    By $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+    and Lemma~\ref{lem:mirroring-star},
+    there exists
+    some $y_1$ such that $y \StarOf{\rightarrow} y_1$ and $\Property(x_1,y_1)$.
+    Furthermore,
+    \[
+      \inferrule*
+      {
+      }
+      {
+        y_1 \StarOf{\Rewrite} y_1
+      }
+    \]
+    so we are done.
+  \end{case}
+
+  \begin{case}[\BaseRule{}]
+    \[
+      \inferrule*
+      {
+        y \rightarrow y_1
+      }
+      {
+        y \StarOf{\rightarrow} y_1
+      }
+    \]
+
+    As $\IsConfluentWithPropertyOf{\rightarrow}{\Property}$,
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$,
+    $y \rightarrow y_1$, $x \StarOf{\rightarrow} x_1$, and
+    $\StarOf{\Property}(x,y)$ if, and only if $\Property(x,y)$,
+    by Lemma~\ref{lem:pre-starred-confluence},
+    there exists
+    $x_2$, $y_2$ such that $x_1 \rightarrow x_2$, $y_1 \StarOf{\rightarrow} y_2$,
+    and $\Property(x_2,y_2)$.
+    Furthermore
+    \[
+      \inferrule*
+      {
+        x_1 \rightarrow x_2
+      }
+      {
+        x_1 \StarOf{\rightarrow} x_2
+      }
+    \]
+  \end{case}
+
+  \begin{case}[\TransitivityRule{}]
+    \[
+      \inferrule*
+      {
+        y \StarOf{\rightarrow} y_1\\
+        y_1 \StarOf{\rightarrow} y_2
+      }
+      {
+        y \StarOf{\rightarrow} y_2
+      }
+    \]
+
+    By IH, there exists $x_2$, $y_3$ such that $x_1 \StarOf{\rightarrow} x_2$, and
+    $y_1 \StarOf{\Rewrite} y_3$, and $\Property(x_2,y_3)$.
+
+    As $\Property(x,y)$, we have $\Propagator_R(y,y)$.
+    As $\Propagator_R(x,x)$ and $y \StarOf{\rightarrow} y_1$, there exists $y'$
+    such that $y \StarOf{\rightarrow} y'$, and $\Propagator_R(y_1,y')$, which
+    means that $\Propagator_R(y_1,y_1)$.
+    As $\Propagator_L$ is a propagator with respect to $\rightarrow$,
+    it fills the properties required for
+    Lemma~\ref{lem:starred-confluence-propagator-like}, 
+    So, as $\Propagator_R(y_1,y_1)$, $y_1 \StarOf{\rightarrow} y_3$, and
+    $y_1 \StarOf{\rightarrow} y_2$, there exists $y_4,y_5$ such that
+    $y_3 \StarOf{\rightarrow} y_4$,
+    $y_2 \StarOf{\rightarrow} y_5$, and $\Propagator_R(y_4,y_5)$.
+
+    As $\Property(x_2,y_3)$, and $y_3 \StarOf{\Rewrite} y_4$, then by
+    $\IsMirroringWithPropertyOf{\rightarrow}{\Property}$ and
+    Lemma~\ref{lem:mirroring-star}, there exists $x_3$ such that
+    $x_2 \StarOf{\Rewrite} x_3$, and $\Property(x_3,y_4)$.
+    By \TransitivityRule{}, $x_1 \StarOf{\Rewrite} x_3$.
+    From before, $y_2 \rightarrow y_5$.
+    Because
+    $\Property(x_3,y_4)$ and $\Propagator_R(y_4,y_5)$, and
+    $\Propagator_R$ is a right propagator, $\Property(x_3,y_5)$.
+  \end{case}
 \end{proof}
 
 \begin{definition}
@@ -10188,6 +10472,34 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \begin{lemma}
+  \label{lem:mirroring-property-parallel-swapless}
+  For all lenses $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
+  $\IsMirroringWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\Lens}}$,
+  over the set of strongly unambiguous DNF regular expressions.
+\end{lemma}
+\begin{proof}
+  Let $\DNFRegex,\DNFRegexAlt$ be strongly unambiguous DNF regular expressions,
+  with $\DNFRegex \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt$.
+  So there exists a rewriteless DNF lens
+  $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ where
+  $\SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}$.
+
+  Let $\DNFRegex \ParallelRewrite \DNFRegex'$.  By
+  Lemma~\ref{lem:copyable_expansions_left_swapless}, there exists $\DNFLens'$,
+  $\DNFRegexAlt'$ such that $\DNFRegexAlt \ParallelRewrite \DNFRegexAlt'$,
+  $\DNFLens' \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
+  and $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}$,
+  so $\DNFRegex' \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt'$.
+
+  Let $\DNFRegexAlt \ParallelRewrite \DNFRegexAlt'$.  By
+  Lemma~\ref{lem:copyable_expansions_right_swapless}, there exists $\DNFLens'$,
+  $\DNFRegex'$ such that $\DNFRegex \ParallelRewrite \DNFRegex'$,
+  $\DNFLens' \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
+  and $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}$,
+  so $\DNFRegex' \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt'$.
+\end{proof}
+
+\begin{lemma}
   \label{lem:copyable_expansions_right_swapless_star}
   Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
   \DNFRegexAlt$ and $\DNFRegexAlt \StarOf{\ParallelRewrite} \DNFRegexAlt'$.
@@ -10688,7 +11000,7 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 
 \begin{theorem}[Confluence of Parallel Rewriting Without Reordering]
   \label{thm:parallel_confluence_noswap}
-  For all lenses $\Lens$,
+  For all lenses $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
   $\IsConfluentWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\Lens}}$.
 \end{theorem}
 \begin{proof}
@@ -10706,6 +11018,109 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \SemanticsOf{\DNFLens}$.  Because $\SemanticsOf{\DNFLens'} =
   \SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}$, $\DNFRegex''
   \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt''$.
+\end{proof}
+
+\begin{lemma}[Identity is a left propagator]
+  \label{lem:id-left-prop}
+  If $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ is a lens,
+  then $\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}$ is a left propagator
+  for $\DNFLensHasSemanticsOf{\Lens}$ with respect to $\ParallelRewrite$.
+\end{lemma}
+\begin{proof}
+  If $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ is a lens,
+  by Lemma~\ref{lem:strong-unambig-lens-types},
+  $\Regex$ is strongly unambiguous.
+  By Lemma~\ref{lem:retaining-unambiguity-todnf}, $\ToDNFRegexOf{\Regex}$ is
+  strongly unambiguous.
+  As such, $\IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex$.
+  Consider $\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}$.
+  
+  By Lemma~\ref{lem:mirroring-property-parallel-swapless},
+  $\IsMirroringWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}}$.
+  
+  By Lemma~\ref{lem:thm:parallel_confluence_noswap},
+  $\IsConfluentWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}}$.
+  
+  Let $\DNFRegex_1 \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegex_2$,
+  and $\DNFRegex_2 \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegex_3$.
+  So there exists $\DNFLens_1$, $\DNFLens_2$ such that
+  $\DNFLens_1 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_2$ and
+  $\DNFLens_2 \OfRewritelessType \DNFRegex_2 \Leftrightarrow \DNFRegex_3$,
+  where $\SemanticsOf{\DNFLens_1} = \SemanticsOf{\IdentityLensOf{\Regex}} =
+  \SemanticsOf{\DNFLens_2}$.
+  By Lemma~\ref{lem:composition-completeness}, there exists
+  $\DNFLens_3 \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegex_3$, with
+  semantics $\SemanticsOf{\DNFLens_3} = \SemanticsOf{\IdentityLensOf{\Regex}}$,
+  as the semantics of each side of the composition was the identity relation
+  on $\LanguageOf{\Regex}$.  This means
+  $\DNFRegex_1 \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegex_3$.
+
+  Let $\DNFRegex \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegexAlt$.
+  So there exists $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+  \DNFRegexAlt$.  By Lemma~\ref{lem:lens-bij},
+  $\SemanticsOf{\Lens}$ is a bijection between $\LanguageOf{\Regex}$ and
+  $\LanguageOf{\RegexAlt}$.
+  As $\SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}$,
+  $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\Regex}$ and
+  $\LanguageOf{\RegexAlt}$.  $\SemanticsOf{\DNFLens}$ is a bijection between
+  $\LanguageOf{\DNFRegex}$ and $\LanguageOf{\DNFRegexAlt}$, by Lemma~\ref{lem:rw-dnf-lens-bij}, so
+  $\LanguageOf{\DNFRegex} = \LanguageOf{\Regex}$ and
+  $\LanguageOf{\DNFRegexAlt} = \LanguageOf{\RegexAlt}$.
+  As $\DNFRegex$ is strongly unambiguous, there exists an identity lens
+  $\IdentityLens_L \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegex$,
+  such that $\SemanticsOf{\IdentityLens_L} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegex}} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\Regex}} = \SemanticsOf{\IdentityLensOf{\Regex}}$.
+  This means $\DNFRegex \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegex$.
+  As $\DNFRegexAlt$ is strongly unambiguous, there exists an identity lens
+  $\IdentityLens_R \OfRewritelessType \DNFRegexAlt \Leftrightarrow \DNFRegexAlt$,
+  such that $\SemanticsOf{\IdentityLens_R} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegexAlt}} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\RegexAlt}} = \SemanticsOf{\IdentityLensOf{\RegexAlt}}$.
+  This means $\DNFRegexAlt \DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}} \DNFRegexAlt$.
+
+  Let $\DNFRegex \DNFLensHasSemanticsOf{\Lens} \DNFRegexAlt$.
+  This means there exists $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
+  \DNFRegexAlt$.
+  This means that $\DNFRegex$ is strongly unambiguous, so there exists a DNF
+  lens
+  $\DNFLens' \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegex$,
+  with $\SemanticsOf{\DNFLens'} = \SetOf{(\String,\String) \SuchThat \String \in
+    \LanguageOf{\DNFRegex}}$.  By the same logic as above,
+  $\LanguageOf{\DNFRegex} = \LanguageOf{\Regex}$, so $\SemanticsOf{\DNFLens'} =
+  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\Regex}} =
+  \SemanticsOf{\IdentityLensOf{\Regex}}$.
+\end{proof}
+
+\begin{lemma}[Identity is a right propagator]
+  \label{lem:id-right-prop}
+  If $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ is a lens,
+  then $\DNFLensHasSemanticsOf{\IdentityLensOf{\RegexAlt}}$ is a right propagator
+  for $\DNFLensHasSemanticsOf{\Lens}$ with respect to $\ParallelRewrite$.
+\end{lemma}
+\begin{proof}
+  By a symmetric argument to Lemma~\ref{lem:id-left-prop}.
+\end{proof}
+
+\begin{lemma}[Confluence of Starred Parallel Rewriting Without Reordering]
+  \label{thm:star_parallel_confluence}
+  For all lenses $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
+  $\IsConfluentWithPropertyOf{\StarOf{\ParallelRewrite}}{\DNFLensHasSemanticsOf{\Lens}}$.
+\end{lemma}
+\begin{proof}
+  By Lemma~\ref{lem:mirroring-property-parallel-swapless}
+  For all lenses $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
+  $\IsMirroringWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\Lens}}$.
+  For all lenses $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$,
+  $\IsConfluentWithPropertyOf{\ParallelRewrite}{\DNFLensHasSemanticsOf{\Lens}}$.
+  By Lemma~\ref{lem:id-left-prop},
+  $\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}$ is a left propagator for
+  $\DNFLensHasSemanticsOf{\Lens}$.
+  By Lemma~\ref{lem:id-right-prop},
+  $\DNFLensHasSemanticsOf{\IdentityLensOf{\Regex}}$ is a right propagator for
+  $\DNFLensHasSemanticsOf{\Lens}$.
+  By Theorem~\ref{thm:starred-confluence},
+  $\IsConfluentWithPropertyOf{\StarOf{\ParallelRewrite}}{\DNFLensHasSemanticsOf{\Lens}}$.
 \end{proof}
 
 \begin{lemma}
