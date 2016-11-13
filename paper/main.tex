@@ -1398,26 +1398,27 @@ Intuitions about DNF regular expressions may confirmed
 by their semantics, which we give by defining the language (set of strings)
 that each regular expression denotes:
 
-\noindent
+\begin{trivlist}
+\item 
 %\begin{center}
-  \begin{tabular}{R@{}L}
-    \LanguageOf{\StarOf{\DNFRegex}} = &
+  \begin{tabular}{@{\ }R@{\ }L}
+    \LanguageOf{\StarOf{\DNFRegex}} \ =\  &
                                         \{\String_1\Concat\ldots\Concat\String_n
                                         \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
-    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= & 
+    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}\ =\  & 
 %\\
 %\multicolumn{2}{L}{\ \ \ \ 
 \{\String_0\Concat\StringAlt_1\cdots\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}
 %}
 \\
-    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
+    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}\ =\  &
 %\\
 %\multicolumn{2}{L}{\ \ \ \ 
 \{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{and $i\in\RangeIncInc{1}{n}$}\}
 %}
   \end{tabular}
 %\end{center}
-\hspace{2mm}
+\end{trivlist}
 
 %% A DNF regular expression is a list of sequences.
 %% We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
@@ -1536,9 +1537,11 @@ The conversion algorithm itself, written  \ToDNFRegex{\Regex}, is defined below.
 %% of atoms.  The function $\OrDNF$ corresponds to the regular expression
 %% primitive \OrRegexType{}.  The function $\ConcatDNF$ corresponds to the regular
 %% expression primitive \ConcatRegexType{}. 
+\iffull
 \noindent
 We formalize the correspondence between regular expressions and
 DNF regular expressions via the following theorem.
+\fi
 
 \begin{restatable}[Translation Soundness]{theorem}{dnfrc}
   \label{thm:completeness-dnf-lenses}
@@ -1765,8 +1768,8 @@ not in the rewrite rules, to make the search space narrower.}
   \label{fig:dnf-lens-typing}
 \end{figure}
 
-We can now define a syntax for lenses between DNF regular
-expressions, called {\em DNF lenses}.  
+We can now define a syntax for DNF lenses between DNF regular
+expressions.  
 \begin{center}
   \begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
     % REGEX
@@ -1849,7 +1852,12 @@ $\DNFRegexAlt$.  The typing $\DNFLens \OfRewritelessType \DNFRegex
 languages of $\DNFRegex$ and $\DNFRegexAlt$, and no rewrites were used in the
 application of the typing.
 
-These DNF lenses only express bijections that are already expressible in the language of lenses.
+\iffull
+These DNF lenses only express bijections that are already expressible in the
+language of lenses, and they can express everything expressible in the
+language of lenses.
+\fi
+
 \begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
   \label{thm:dnfls}
   If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$,
@@ -1858,9 +1866,6 @@ These DNF lenses only express bijections that are already expressible in the lan
   $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$, and
   $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
-
-Furthermore, these DNF lenses can express everything
-expressible in the language of lenses.
 
 \begin{restatable}[Completeness of DNF Lenses]{theorem}{dnflc}
   \label{thm:dnflc}
@@ -1889,7 +1894,8 @@ correct permutations for each rule application, must be found.
 % begin implementation
 \section{Implementation}
 \label{implementation}
-We have implemented the lens synthesis algorithm in $n$ lines of OCaml code.
+We have implemented the lens synthesis algorithm in $n$\bcp{how many?} lines
+of OCaml code. 
 
 \paragraph*{Synthesis Overview}
 Algorithm~\ref{alg:synthlens} shows an overview of the synthesis
@@ -1933,7 +1939,7 @@ tweaked for readability with \Beautify{}.
   \end{algorithmic}
 \bcp{Larger comment: Is this seriously using {\em null} to
   represent a failure result from a subroutine??  The reviewers are going to
-  laugh at us.}\afm{is $\bot$ better?}
+  laugh at us.}\afm{is $\bot$ better?}\bcp{Still a bit horrible.}
 \end{algorithm}
 
 In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
@@ -1998,7 +2004,9 @@ vector space.
 DNF regular expressions with variables can map into this vector space with a function that
 counts the number of user defined data types present at a given level.
 This function, $\GetDist{}$ formalizes the mapping from DNF regular expressions
-into $\VectorSpace$.\\
+into $\VectorSpace$.
+\begin{trivlist}
+\item 
 \begin{tabular}{@{}L@{}L@{}}
   \GetDist(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) &
                                                      =\GetDist(\Sequence_1)+\ldots+\GetDist(\Sequence_n)\\
@@ -2007,6 +2015,7 @@ into $\VectorSpace$.\\
   \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
   \GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
 \end{tabular}
+\end{trivlist}
 The linear map $\phi$ is used to increment the number of nested stars, and is
 defined by $\phi(a*(\RegexVariable,n)) = a*(\RegexVariable,n+1)$
 
@@ -2237,7 +2246,7 @@ each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
     \\\hline
   \end{tabular}
   \label{fig:evaluation-data}
-  \caption{Impirical Results.  
+  \caption{Empirical Results.  
   \ksf{The benchmarks are sorted in increasing order by the sizes of
   the regular expression types.}   The \textbf{Time} column reports
   the average running time of 10 synthesis runs.  The \textbf{Avg \#
@@ -2481,7 +2490,7 @@ more examples which fix where the program is wrong.
 \section{Related Work}
 \paragraph*{FlashFill}
 FlashFill~\cite{gulwani-popl-2014} is another string transformation
-program.  FlashFill takes input and 
+tool.  FlashFill takes input and 
 output examples as its only form of specification.  For FlashFill's primary use
 case, providing easy transformations of Excel data, input and output examples as
 the only specification makes a lot of sense.  Our tool is intended for use for
