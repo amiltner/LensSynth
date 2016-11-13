@@ -25,7 +25,7 @@
 \usepackage{changepage}
 \usepackage{booktabs}
 \usepackage{amssymb}
-\usepackage{enumitem}
+\usepackage[inline]{enumitem}
 \usepackage{multirow,bigdelim}
 \usepackage{siunitx}
 \usepackage{listings}
@@ -146,45 +146,59 @@
 
 
 \begin{abstract}
-  % begin abstract
-  \emph{Lenses} are a bi-directional technique for specifying conversions between
-  data formats.  Specifically, a bijective lens is a declarative program that
-  simultaneously specifies a function to convert data from type $A$ to
-  type $B$ and a second function to convert data from type $B$ to type
-  $A$.  Such programs provide invertibility guarantees, avoiding
-  pernicious bugs that can corrupt data and downstream processing.
-  Unfortunately, lenses can be quite difficult to write, as the restrictive
-  typing which enforces guarantees about the program's invertibility also
-  heavily restricts what programs are allowed.  To overcome
-  this difficulty, we have developed an algorithm to automatically synthesize
-  bijective lenses from their types, expressed as regular expressions, and
-  a small number of examples.  Synthesizing lenses will allow average
-  programmers to get the
-  benefit of lenses' invertibility guarantees, without requiring them to
-  understand the lenses' complicated type system.
+  % begin abstract 
+  \emph{Lenses} are a bidirectional language for specifying
+  conversions between data formats.  They provide invertibility
+  guarantees, thus avoiding pernicious data-corrupting bugs.
+  Unfortunately, lenses can be difficult to write because the typing
+  that ensures invertibility heavily restricts the set of allowed
+  programs.  To overcome this difficulty, we have developed an
+  algorithm to automatically synthesize bijective lenses from pairs of
+  regular expressions that represent the source and target data
+  formats and a small number of examples.
 
-  The typing of lenses are pairs of regular expressions, to allow for
-  typechecking to be decideable, while still only letting well typed programs be
-  those which obey invertibility conditions.
-  Unfortunately, the rich structure of regular expressions
-  makes lens synthesis more complicated than previous work on other
-  forms of type-directed synthesis.  Specifically, finding a term to
-  bi-di
-  first finding equivalent regular expressions $A'$ and $B'$ that are
-  more algorithmically tractable.
-  We show how to manage this search by defining a new language of
-  lenses governed by normalized regular expression types and prove this
-  language
-  sound and complete with respect to a standard language of bijective lenses.  
-  We then show
-  how to search the reduced space for well-typed lenses that are consistent
-  with the given examples.  We demonstrate the effectiveness of our algorithm
-  by evaluating it on a benchmark suite containing 27 examples
-  comprising microbenchmarks, Flash Fill
+  The rich structure of regular expressions makes lens
+  synthesis more complicated than previous work on other forms of
+  type-directed synthesis.  Specifically, finding a term to
+  bi-directionally convert between regular expressions $A$ and $B$
+  requires first finding equivalent regular expressions $A'$ and $B'$
+  that are more algorithmically tractable.  We show how to manage this
+  search by defining a new language of lenses governed by normalized
+  regular expression types. We prove this language sound and complete
+  with respect to a standard language of bijective lenses\bcp{I don't know
+    what this means.}.  We then
+  show how to search the reduced space for well-typed lenses that are
+  consistent with user-supplied examples.  We demonstrate the
+  effectiveness of our algorithm by evaluating it on a benchmark suite
+  containing 23 examples comprising microbenchmarks, Flash Fill
   examples, and Augeas transformations of Linux configuration files.
-  We show we are able to infer lenses for all examples in the
-  benchmark suite in an average of 0.134 seconds. 
-  % end abstract
+  We are able to infer lenses for all benchmark programs
+  in an average of 0.134 seconds.
+
+\bcp{
+A possible alternative structure for the abstract: 
+\begin{itemize}
+\item Bidirectional transformations between different representations of
+data are found everywhere in software systems---in serializers and
+deserializers, parsers and pretty printers, database views and view update
+functions, and a multitude of ad hoc data transformers.
+\item Writing each direction of a bidirectional transformation as a separate
+function is tedious and error-prone.  
+\item Domain-specific languages that allow both directions to be written as
+a single expression are better, but can be rather fiddly.  For example,
+languages based on the theory of {\em lenses} tend to come with restrictive
+typing constraints such as unambiguity that are tricky for programmers to
+work with.
+\item Fortunately, we can do better: We show how this programming task can
+be automated using techniques of type-based program synthesis.  
+\item Specifically, we present an algorithm for synthesizing bijective lenses
+between pairs of string data formats.  Inputs to the algorithm are the
+schemas for the two formats, expressed as regular expressions, plus a few
+concrete examples to guide synthesis.  The output is a well-typed lens that
+transfors the examples as specified.  
+\item We evaluate our algorithm by...
+\end{itemize}
+}
 \end{abstract}
 
 % \category{D.3.1}
@@ -212,93 +226,93 @@
 The growing dependence on big data makes tools for reliably parsing,
 printing, cleaning, and transforming data increasingly important.
 One such class of tools is \emph{lenses}~\cite{Focal2005-long},
-bi-directional programs that help users solve the classic ``view update
+bidirectional programs that help users solve the classic ``view update
 problem'' \cite{chen2010comparative}.
-More specifically, a lens provides a user with two functions, a
-\emph{get} function and a \emph{put} function.  The \emph{get}
-function translates native data into a new format, or \emph{view}, for
-the user.  If the user updates the new view, the corresponding
+More specifically, a lens provides a user with two functions:
+\emph{get} and \emph{put}.  The \emph{get}
+function translates source data into a target format, or \emph{view}, for
+the user.  If the user updates the view, the corresponding
 \emph{put} function can translate the edited data back into
-the native format.
+the source format.
 
-Converting data back and forth between representations is a common problem.
-It arises in serializers and deserializers, models and views, picklers
-and unpicklers, and more.
-Bidirectional programs express both transformations in a single program, instead
-of requiring a program for each transformation.
-Bidirectional programming has begun to be used in practice for expressing some
-classes of back and forth transformations.
-Augeas~\cite{augeas}, a configuration editing system for linux, uses lens combinators
-to provide editable views of configuration files.
-The language biXid~\cite{bixid} expresses bidirectional XML
-transformations.
-XSugar~\cite{xsugar} converts bidirectionally between XML and non-XML data
-and between EpiDoc~\cite{epidoc} and
-Leiden+~\cite{leidenplus} formats for
-encoding ancient documents~\cite{epidocleidenplus}.
+%Converting data back and forth between representations is a common problem.
+%It arises in serializers and deserializers, models and views, picklers
+%and unpicklers, and more.
+%Bidirectional programs express both transformations in a single program, instead
+%of requiring a program for each transformation.
+%Bidirectional programming has begun to be used in practice for expressing some
+%classes of back and forth transformations.
 
-Lenses are popular because they typically come with strong guarantees
-about the round-trip behavior.  Such guarantees
-help users guard against data corruption while reading and editing
-high-value data sources.  General programming languages don't
-have bidirectional interpretations, and don't have type systems strong
-enough for invertibility guarantees. These guarantees are achieved through
-the use of domain-specific languages with strong type
-systems~\cite{Focal2005-long, boomerang, symmetric-lenses}.
-Unfortunately, such
-lens languages are currently quite non-standard.  The
-process of writing a lens is challenging, as a user must think
-about data conversion in two directions at once --- an
-unusual task for the everyday programmer.  As a consequence, 
-for the casual user of lenses, learning the language, its type system and its
-unorthodox programming style is time-consuming and, in the end,
-a disincentive to adopting the technology, despite its advantages.
+Lenses are useful because they provide strong guarantees about
+round-trip behavior.  Such guarantees guard against data corruption
+while reading, editing, and writing data sources.  Lenses are
+typically implemented as domain-specific languages with strong type
+systems~\cite{Focal2005-long, boomerang, symmetric-lenses} because
+general-purpose languages do not admit bidirectional interpretations
+nor do they have type systems strong enough to ensure invertibility.
+Example uses of lenses in practice include Augeas~\cite{augeas}, a
+configuration editing system for linux that uses lens combinators to
+provide editable views of configuration files; the biXid~\cite{bixid}
+language that expresses bidirectional XML transformations, and
+XSugar~\cite{xsugar} that converts bidirectionally between XML and
+non-XML data and between EpiDoc~\cite{epidoc} and
+Leiden+~\cite{leidenplus} formats for encoding ancient
+documents~\cite{epidocleidenplus}.
 
-To overcome the difficulty involved in adopting lens technologies, we have
-developed a new system for synthesizing lenses
-from their types and collections of representative examples.  More
-specifically, we focus on algorithms for the synthesis of bijective
-string lenses.  The language we use for these lenses has typing derivations of
-the form $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read
-``lens $\Lens$ converts back and forth between
-data in the language of regular expression $\Regex$ and data in the language
-of regular expression $\RegexAlt$''.
-Given a type $\Regex \Leftrightarrow \RegexAlt$, and a very small number of
-representative examples (sometimes
-no examples at all), we synthesize $\Lens$, a well typed lens, that implements
-a bijection between the languages of $\Regex$ and $\RegexAlt$, while satisfying
-the provided examples.
+Unfortunately, writing lenses presents a number of challenges.  First,
+users must learn a lens language and its type system.  Second, they
+must adopt its unorthodox programming style that requires thinking in
+two directions at once.  Finally, they must learn how to work within
+the restrictive type system that ensures invertibility.  These
+difficulties can disincentivize programmers from adopting the
+technology, despite its advantages.
 
-Recently, researchers have developed a number of new algorithms for
-synthesis of various types of
+To overcome these difficulties, we have developed a system for
+synthesizing bijective string lenses from the types of the source and
+target data formats and a collection of representative examples.
+The language we use for lenses has
+typing judgments of the form
+$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read
+``lens $\Lens$ converts between data in the language of
+regular expression $\Regex$ and data in the language of regular
+expression $\RegexAlt$.''  Given a type
+$\Regex \Leftrightarrow \RegexAlt$ and a small number of
+representative examples (sometimes no examples at all!), we synthesize
+$\Lens$, a well typed lens that implements a bijection between the
+languages of $\Regex$ and $\RegexAlt$ while matching the provided
+examples.
+
+Our work is related to recent efforts that synthesize various types of
 programs~\cite{yag+:pldi16,osera+:pldi15,frankle+:popl16,armando+:pldi16}.
 Many of these
 algorithms~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16} are
 directed in part by the syntax of types.  For instance, to find an
-expression with type $A \rightarrow B$, such algorithms will assume
-that the expression in question is a function of the form $\lambda
-x{:}A. e$.  These algorithms will then continue by searching for an
-expression $e$
-with type $B$ under the hypothesis that the parameter $x$ has type
-$A$.  In the case of the simply typed lambda calculus, such an
-approach reduces the complexity of the search for terms inhabiting the
-type without losing completeness.  Lenses are defined by a richer type system
+expression with type $A \rightarrow B$, such algorithms assume that
+the expression in question is a function of the form $\lambda
+x{:}A. e$.  These algorithms then search for an expression $e$ with
+type $B$ under the hypothesis that the parameter $x$ has type $A$.  
+In
+the case of the simply typed lambda calculus, such an approach reduces
+the complexity of the search for terms inhabiting the type without
+losing completeness.  This approach does not directly apply to the
+problem of lens synthesis, however, because
+lenses use a richer type system
 than the simply typed lambda calculus.
-Lenses have regular expression types, and as such,
-there are many equivalent ways to express the same type.
-Unfortunately, the many equivalent types makes simple
-syntax-directed algorithms not directly applicable.
+Specifically, lenses use regular expression types, which means 
+there are many equivalent ways to express the same type and a simple
+syntax-directed algorithm will not work.
 
-To explain the major components of our synthesis algorithm,
-we consider a running example involving conversion between citations given
-in (highly simplified) BibTex and EndNote formats.  Our BibTex format
-consists entirely of specifying a list of authors on a single line as follows.
+
+To explain the components of our synthesis algorithm,
+we use a running example that converts between citations given
+in simplified BibTex and EndNote formats.  The BibTex format
+specifies a list of authors on a single line:
 \begin{lstlisting}
 author={Conway, John and Kleene, Stephen Cole}
 \end{lstlisting}
-Our EndNote format contains the same information, but uses different separators,
-rearranges the order of first and last names, and uses a separate line for each
-author. 
+The EndNote format contains the same information, but uses different separators,
+rearranges the order of first and last names, and puts each author on
+a separate line:
 \begin{lstlisting}
 % A John Conway
 % A Stephen Cole Kleene
@@ -312,10 +326,10 @@ Names = (" " Name)*
 (* BibTex definitions *)
 BNames = Name ", " Name Names
 BibTex = ""
-    | "author={" BNames (" and " BNames)* "},"
+       | "author={" BNames (" and " BNames)* "},"
 
 (* EndNote definitions *)
-ENames = Name Names " " Name
+ENames  = Name Names " " Name
 EndNote = ("%A " ENames "\n")*
 
 (* Synthesis Specification With 1 Example *)
@@ -323,42 +337,37 @@ BibEnd : BibTex <=> EndNote = {
 "author={Conway, John and Kleene, Stephen Cole}"
 <-> "%A John Conway\n%A Stephen Cole Kleene" }
 \end{lstlisting}
-  \caption{Synthesis Problem Definition: Idealized Bibtex to EndNote}
+  \caption{Synthesis Example: Idealized Bibtex to EndNote}
   \label{fig:bibend-spec}
 \end{figure}
 
-Specifications for lens synthesis are
-given by defining the source and target data formats\footnote{Lenses
-  operate both left-to-right and right-to-left, so both formats are sometimes
-  sources and sometimes targets. Nevertheless, we will often call the
-  format on the left, the ``source,'' and the format on the right, 
-  the ``target.''} as well as a suite of input and output examples.
-Figure~\ref{fig:bibend-spec} presents
-the user's specification for synthesizing a lens which converts between the
-Bibtex and EndNote formats.
-In this specification, the lens
-we wish to synthesize is \CF{BibEnd}.  It converts between 
-the formats \CF{BibTex} and \CF{EndNote}.
-Such formats are defined using a standard syntax for regular expressions.
-Intermediate regular expressions are named to facilitate
-construction of complex formats.
+In our system, users write lens synthesis specifications by giving
+regular expressions that define the source and target formats
+% \footnote{Lenses
+%  operate both left-to-right and right-to-left, so both formats are sometimes
+%  sources and sometimes targets. Nevertheless, we will often call the
+%  format on the left, the ``source,'' and the format on the right, 
+%  the ``target.''}
+and by giving a suite of input/output examples.
+Figure~\ref{fig:bibend-spec} shows an example specification for a
+lens \CF{BibEnd} that converts between the
+\CF{Bibtex} and \CF{EndNote} formats.
+We allow users to name intermediate regular expressions
+(\CF{Name}, \CF{Names}) to facilitate  
+the construction of complex formats.
 
 
-\paragraph*{Challenge 1: Multi-dimensional Search Space}
+\paragraph*{Challenge 1: Multi-dimensional Search Space.}
 To illustrate a central challenge facing our synthesis system,
-consider the concatenation lens, $\ConcatLensOf{\Lens_1}{\Lens_2}$,
-one of the simplest string lens combinators.  
-When viewed from left to right, this lens defines a function \emph{get}, which,
-given a string 
-$\String$, divides $\String$ into two substrings $\String_1$ 
-and $\String_2$, applies $\Lens_1$ to the first, yielding $t_1$,
-and $\Lens_2$ to the second, yielding $t_2$.  When viewed from
-right to left, it defines a second function \emph{put}, which maps
-data back from strings $t$ to strings $s$ in an analogous way.
-The type system for lenses ensures such \emph{get} and \emph{put} functions
-satisfy strong invertibility properties.  In our case, the two functions
-form a bijection.  More specifically, to give a type
-to the concatenation lens, we use the following typing rule.
+consider the concatenation lens, $\ConcatLensOf{\Lens_1}{\Lens_2}$.
+When viewed from left to right, this lens defines a
+function \emph{get} that divides an input string $\String$ into two
+substrings $\String_1$ and $\String_2$ and applies $\Lens_1$ to the first
+and $\Lens_2$ to the second to yield $t_1$ and $t_2$, respectively.
+When viewed from right to left, it defines a second
+function \emph{put}, which maps from strings $t$ to strings $s$ in an
+analogous way.  The type system for lenses ensures these \emph{get}
+and \emph{put} functions form a bijection via the typing rule:
 \[
   \inferrule
   {
@@ -372,27 +381,26 @@ to the concatenation lens, we use the following typing rule.
     \Leftrightarrow \RegexAlt_1\Concat\RegexAlt_2
   }
 \]
-Above, the notation $\UnambigConcatOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$ and $\Regex_2$ are
-unambiguously concatenable, meaning there is
+The notation $\UnambigConcatOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$ and $\Regex_2$ are
+\textit{unambiguously concatenable}, meaning there is
 exactly one way to divide any
 string $\String$ in the language of $\Regex_1\Concat\Regex_2$ into $\String_1$
 and $\String_2$ such that $\String_1$ is in the language of $\Regex_1$
-and $\String_2$ is in the language of $\Regex_2$.  These unambiguous
-concatenation constraints guarantee the \emph{get} and \emph{put}
-functions are indeed functions and that they form a bijection if
-the underlying lenses are bijective.
+and $\String_2$ is in the language of $\Regex_2$.  These 
+contatentation constraints guarantee that \emph{get} and \emph{put}
+are bijective functions if 
+the lenses $\Lens_1$ and $\Lens_2$ are bijective.
 
-With these typing rules in hand, consider trying to search for
-a lens with the type $(A B) C \Leftrightarrow A' (B' C')$ when there exist
-lenses with types 
+Now consider searching for
+a lens with the type $(A B) C \Leftrightarrow A' (B' C')$ 
+given lenses with types 
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
-$C \Leftrightarrow C'$.  A straightforward,
-syntax-directed search suggests applying the rule for concatenation,
+$C \Leftrightarrow C'$.  A straightforward
+syntax-directed search suggests applying the rule for concatenation
 and looking for two simpler lenses with the types $A B \Leftrightarrow A'$
-and $C \Leftrightarrow B' C'$ respectively.  Unfortunately, at this point,
-we are stuck---we have no lenses with those types.  Of course,
-the natural
-solution to this problem
+and $C \Leftrightarrow B' C'$, respectively.  Unfortunately, at this point
+we are stuck---we have no lenses with those types.  
+A natural solution to this problem
 is to introduce a type conversion rule:
 \[
   \inferrule
@@ -405,57 +413,57 @@ is to introduce a type conversion rule:
     \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
   }
 \]
-With such a type conversion rule, we could first 
+With such a rule, we could 
 convert the type $(A B) C \Leftrightarrow A' (B' C')$
-to the better aligned $(A B) C \Leftrightarrow (A' B') C'$.
-When we then proceed with structure decomposition using the
-concatenation rule, we generate sub-problems involving
-finding lenses for types
+to the better-aligned $(A B) C \Leftrightarrow (A' B') C'$.
+With this type, structure decomposition using the
+concatenation rule generates sub-problems that require
+finding lenses for 
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
-$C \Leftrightarrow C'$, which is exactly what we had by assumption.
+$C \Leftrightarrow C'$,  exactly what we have.
 
-Because equivalence of regular expressions is decideable, when
-given a lens $\Lens$ with type $\Regex_1 \Leftrightarrow \Regex_2$,
-it is easy to \emph{check} whether that lens also has type 
-$\Regex_1' \Leftrightarrow \Regex_2'$, and lens programming languages
-such as Boomerang~\cite{boomerang} do so.  However, 
-when we turn to synthesis and are given the lens type 
-$\Regex_1' \Leftrightarrow \Regex_2'$ and the option to apply this
-rule, the search space gets infinite fan-out --- we must guess
-some arbitrary new regular expressions $\Regex_1$ and $\Regex_2$ that are
-equivalent to $\Regex_1'$ and $\Regex_2'$ respectively,
-and there are infinitely many such regular expressions to choose
-from.
+Because regular expressions equivalence is decideable, 
+it is easy to \emph{check} whether a given lens $\Lens$ with type 
+$\Regex_1 \Leftrightarrow \Regex_2$
+also has type 
+$\Regex_1' \Leftrightarrow \Regex_2'$. 
+During synthesis however, deciding when and how to use type conversion is
+difficult because
+there are an infinite number of regular
+expressions that are equivalent to the source and target regular
+expressions. 
 
-Furthermore, Boomerang has a composition operator to compose multiple lenses.
-Removing the composition operator from Boomerang reduces expressivity.
-That means, to have a synthesis procedure that can synthesize all lenses,
-the procedure must synthesize composition lenses.
-The typing of a composition lens requires that target type of the first lens is the
-source type of the second.
-To synthesize a composition lens between $\Regex_1$ and $\Regex_2$, an arbitrary
-$\Regex_3$ must be found,
-and then two lenses of types $\Regex_1 \Leftrightarrow \Regex_3$ and
-$\Regex_3 \Leftrightarrow \Regex_2$ must also be created.  Searching through all
-possible
-regular expressions for the correct $\Regex_3$ becomes a difficult infinite search
-problem.
+A second challenge arises from composition lenses.  The typing of such
+lenses requires the target type of the first lens to be the source
+type of the second.  To synthesize a composition lens between
+$\Regex_1$ and $\Regex_2$, we must find an intermediate type $\Regex_3$
+and lenses with types $\Regex_1 \Leftrightarrow \Regex_3$ and
+$\Regex_3 \Leftrightarrow \Regex_2$.  Searching for the correct
+regular expression $\Regex_3$ is difficult because
+the search space is infinite.  We cannot simply omit composition
+lenses from our langauge because their removal reduces the expressivity
+of the language.
 
-In essence, to naively apply type-directed synthesis techniques would involve
-solving the problem of search \emph{in three dimensions}:  In one
-dimension, we must search for a regular expression \emph{type}
-with an appropriate ``syntactic shape''.  In a second dimension,
-we must search for a lens \emph{expression} that has the given type and
-is consistent with the user's examples.  In a final dimension, we must search
-for intermediary regular expressions for composing lenses.
+%Furthermore, Boomerang has a composition operator to compose multiple
+%lenses.Removing the composition operator from Boomerang reduces
+%expressivity.  That means, to have a synthesis procedure that can
+%synthesize all lenses, the procedure must synthesize composition lenses.
+
+In essence, naively applying type-directed synthesis techniques
+involves searching \emph{in three infinite dimensions}:  we must
+search for
+(1) a regular expression \emph{type} with an appropriate ``syntactic shape,'' 
+(2) a lens \emph{expression} that has the given type and is consistent
+with the user's examples, and 
+(3) intermediary regular expressions for composing lenses.
 
 \paragraph*{Solution 1: Canonization}
-Our solution to this problem is to define a new language of lenses that
+Our solution is to define a new language of lenses that
 reduces the synthesis search space \emph{in all dimensions}.
-This language is designed so that its regular expression types are limited 
+We designed this language so that its regular expression types are limited 
 to those in a normalized form.  This normalized form
-demands that regular expressions be fully distributed, and associativity
-information be removed.
+demands that regular expressions be fully distributed and removes all
+associativity information.
 When converted into this normalized form, two regular expressions that differ
 only by associativity of concatenation will be syntactically equal.
 For example, rather than searching for a lens with type 
@@ -463,88 +471,83 @@ $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will always search
 for one with type  $A \Concat B \Concat C \Leftrightarrow A' \Concat B'
 \Concat C'$
 
-More generally, many, but not all, regular expression equivalences that
-prevent the type directed synthesis of lenses disappear.
-However, not all structural incogruities disappear because our normalized
+With this approach, many, but not all, regular expression equivalences that
+prevent type-directed lens synthesis disappear.
+Not all structural incongruities disappear because our normalized
 regular expressions
 are only \emph{pseudo-canonical}, the equivalence class of syntactic equality in
 this form is a finer equivalence relation than language equivalence.
 For instance, our normal form
 does not automatically unify regular expressions such as
 $A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.
-Consequently, we structure our synthesis algorithm in two parts:  The
+unrolling of Kleene Star.\footnote{\BCP{Why not?  More generally, why
+    couldn't we have built our algorithm by following the structure of a
+    proof of equivalence between the source and target types?  (I.e., why
+    did we have to use Conway's axioms or worry about confluence, given that
+    we know regular language equivalence is decidable?  Is it because that
+    proof is automata-theoretic?)}} 
+Consequently, we structure our synthesis algorithm in two parts.  The
 first is a syntax-directed search for a lens based on the structure of the given
-regular expression types and, if that fails, the second is a search,
-using a subset of Conway's axioms~\cite{conway} for 
-equivalent regular expression types that might allow a new search
-in the first phase of the search to succeed.
+regular expression types. If that fails, the second is a search,
+using a subset of Conway's axioms~\cite{conway}, for 
+equivalent regular expression types that might allow a new search to succeed.
 
-Furthermore, the specialized lenses between these
-pseudo-canonical forms are expessive enough that they don't need an explicit
-composition operator to be closed under composition.
-Indeed, despite not having a composition operator, these specialized lenses 
-are closed under composition.  Not requiring a composition operator reduces the
-search space by an entire
-dimension!  The synthesis algorithm no longer needs to search through possible
-intermediary regular expressions for compositions.
+The specialized lenses between our normalized 
+forms are expessive enough that they are closed under composition
+\emph{without adding a composition order}.  Obviating the need for a
+composition operator reduces the search space by an entire dimension
+because the synthesis algorithm no longer needs to search through
+possible intermediary regular expressions for compositions.
 
 \paragraph*{Challenge 2: Large Types}
-The types
-describing data formats may be very large --- they are regular
-grammars describing complex data formats.  The size of these regular expressions
-is another complication that
-arises in this synthesis setting, but not elsewhere in the literature on
-type-directed synthesis.  On the one hand, the size of these types is
-very useful as such types provide a wealth of information that constrains
-the search process effectively.  On the other hand, there is a lot of
-data that must be managed carefully by the synthesis system.
+The types describing data formats may be very large --- they are
+regular grammars describing complex data formats.  On the one hand,
+the size of these types is very useful as such types provide a wealth
+of information that constrains the search process effectively.  On the
+other hand, there is a lot of data that must be managed carefully by
+the synthesis system.\footnote{\ksf{Having to manage a lot of data
+carefully is not a compelling difficulty.  Is there another way of
+expressing this challenge?}}
 
 \paragraph*{Solution 2: Compositional Types}
-Our important observation is that users naturally construct such large types
-compositionally, using named abbreviations for subcomponents.
-The structure inherent in these named abbreviations can be
-exploited by the synthesis algorithm to speed up the search dramatically.
-
-For example, if the name $A$ appears once on both the left and the right,
-the system will hypothesize that the identity lens can be used to convert
-between occurrences of $A$.  On the other hand, if the name $A$ appears
-on the left, but not on the right, the system will determine that the
-name $A$ should be replaced by its definition.  These inferences that replace a
-user defined regular expression by its definition allow the
-system to quickly find a representation of the regular expression types which
-the synthesis algorithm can synthesize a lens between.
-
-Furthermore, differing
-numbers of occurrences of names can serve as a guide for applying other regular
-expression equivalence axioms in the synthesis algorithm.
-Hence, in general, to guide the transformation of regular expression
-types, we define a pseudometric based on the occurrence of names.  This
-psuedometric provides a heuristic to guide the search, which we've found to
-preform better than a simple breadth-first search.
+The key to solving this challenge is to observe that users naturally
+construct large types compositionally, using named abbreviations for
+subcomponents.  We exploit the structure inherent in these named
+abbreviations to speed up the search dramatically.  For example, if
+the name $A$ appears once in both the source and the target, the
+system hypothesizes that the identity lens can be used to convert
+between occurrences of $A$.  On the other hand, if the name $A$
+appears in the source, but not in the target, the system replaces the
+name $A$ with its definition.  Furthermore, differing numbers of
+occurrences of names serve as a guide for applying other regular
+expression equivalence axioms in the synthesis algorithm.  To capture
+this intuiton, we define a pseudometric based on the occurrence of
+names to guide the transformation of regular expression types.  This
+pseudometric provides a heuristic to guide the search, which we have
+found to perform better than a simple breadth-first search.
 
 
 \paragraph*{Contributions.}  We have made bidirectional programming more
-accessible to the average programmer, by designing and implementing
-a system for the synthesis of bijective string lenses.  In addition, this
-paper makes the following contributions:
+accessible to the average programmer by designing and implementing
+a system for the synthesis of bijective string lenses.  In addition,
+we make the following contributions: 
 
 \begin{itemize}
-\item It defines a new domain-specific language of lenses designed specifically
-  for synthesis.  This language has types of pseudo-canonical regular
-  expressions, and a term language that can map between the languages of these
-  pseudo-canonical regular expressions.
-\item We formalize the semantics of the language and prove it sound and complete
-  with respect to an existing, standard language for bijective string lenses.
-\item We designed a type-directed algorithm for synthesizing lenses in our new
-  domain-specific language, which can efficiently search through lens terms, and
+\item We define a new domain-specific lens language designed specifically
+  for synthesis.  This language uses pseudo-canonical regular
+  expressions to type the source and target data formats. Its term
+  language maps between the languages of these pseudo-canonical
+  regular expressions.
+\item We formalize the semantics of this language and prove it sound and complete
+  with respect to an existing language for bijective string lenses.
+\item We present a type-directed algorithm for synthesizing lenses in our new
+  domain-specific language, which can efficiently search through lens terms and
   type equivalences.
-\item We developed a collection of optimizations that speed up the
-  synthesis algorithm.  This algorithm has been evaluated on a range of
-  over 40 benchmarks including micro-benchmarks, a few examples from FlashFill,
-  and a number of examples from the Augeas system for transforming linux
+\item We evaluate the algorithm on 23 benchmarks, including
+  examples from FlashFill and from the Augeas system for transforming
+  linux 
   file formats.  Our synthesis algorithm succeeds on all of our
-  benchmarks, with a synthesis time of typically less than 1 second.
+  benchmarks, with an average synthesis time of 0.134 seconds.
 \end{itemize}
 % end introduction
 
@@ -586,21 +589,27 @@ paper makes the following contributions:
 %that language is \textit{unambiguously iterable},
 %written $\UnambigItOf{\Language}$.
 
+\BCP{When we remove stuff from the short version, we're not removing it
+  completely (i.e., commenting it out), but rather putting iffull...fi or
+  some such around it, right?  I had assumed that we were going to submit
+  (as ``supplemental material'') a long version containing both proofs and
+  all the stuff elided from the short version...}
+
+We assume given an alphabet $\Sigma$; variables $s$ and $t$ denote 
+strings in $\StarOf{\Sigma}$.  Regular expressions over $\Sigma$ are: 
+\begin{center}
+\begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
+& \Regex{},\RegexAlt{} & \GEq{} & \hspace{1.06em}s & \BaseRegexType{} \\
+          & & & \GBar{} $\emptyset$ & \EmptyRegexType{} \\
+          & & & \GBar{} \Regex{}* & \StarRegexType{} \\
+          & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ & \ConcatRegexType{} \\
+          & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & \OrRegexType{} \\
+\end{tabular}
+\end{center}
+The language of $R$, written $\LanguageOf{R}\subseteq \StarOf{\Sigma}$, is defined as usual.
 
 \paragraph*{Unambiguity}
 
-%The syntax for the regular expressions we use is given below.
-%
-%\begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
-%
-%  (Strings)& \String{},\StringAlt{} & \GEq{} & $\String\in\StarOf{\Sigma}$ \\
-%  (Regexs)& \Regex{},\RegexAlt{} & \GEq{} & s & \BaseRegexType{} \\
-%           & & & \GBar{} $\emptyset$ & \EmptyRegexType{} \\
-%           & & & \GBar{} \Regex{}* & \StarRegexType{} \\
-%           & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ & \ConcatRegexType{} \\
-%           & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & \OrRegexType{} \\
-%\end{tabular}
-%
 %These regular expressions are used to inductively define languages.
 %\[
 %  \begin{array}{lcl}
@@ -618,14 +627,14 @@ paper makes the following contributions:
 %  \end{array}
 %\]
 
-Two regular expressions, $\Regex$, $\RegexAlt$ are said to be 
+Regular expressions $\Regex$ and $\RegexAlt$ are 
 \textit{unambiguously concatenable}, written
 $\Regex\UnambigConcat\RegexAlt$ if, 
 for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
 $\String_2,\StringAlt_2\in\LanguageOf{\RegexAlt}$,
 $\String_1\Concat\String_2=\StringAlt_1\Concat\StringAlt_2$ implies
 $\String_1=\StringAlt_1$ and $\String_2=\StringAlt_2$.
-
+%
 A regular expression $\Regex$ is said to be \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$ if,
 for all $n,m\in\Nats$ and for all strings
@@ -634,29 +643,26 @@ if
 $\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_m$
 then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
 
-If $\Regex$ is a regular expression, where $\UnambigItOf{\LanguageOf{\Regex}}$,
-then that regular expression is \textit{unambiguously iterable},
-written $\UnambigItOf{\Regex}$.
-
-A regular expression $\Regex$ is \textit{strongly unambiguous} if $\Regex =
-\String$, $\LanguageOf{\Regex} = \SetOf{}$, or the following conditions are held:
-\begin{enumerate}[noitemsep,nosep]
-\item If $\Regex = \Regex_1 \Concat \Regex_2$ then $\Regex_1 \UnambigConcat
-  \Regex_2$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
-\item If $\Regex = \Regex_1 \Or \Regex_2$ then $\Regex_1 \Intersect \Regex_2 =
-  \emptyset$, and $\Regex_1$ and $\Regex_2$ are strongly unambiguous
-\item If $\Regex = \StarOf{(\Regex')}$, then $\UnambigItOf{(\Regex')}$ and
-  $\Regex'$ is strongly unambiguous
-\end{enumerate}
+A regular expression $\Regex$ is \textit{strongly unambiguous} if
+\begin{enumerate*}[label=(\alph*)]
+\item $\Regex = \String$, 
+\item $\Regex = \SetOf{}$, 
+\item $\Regex = \Regex_1 \Concat \Regex_2$ with $\Regex_1 \UnambigConcat
+  \Regex_2$ and $\Regex_1$ and $\Regex_2$ strongly unambiguous,
+\item $\Regex = \Regex_1 \Or \Regex_2$ with $\Regex_1 \Intersect \Regex_2 =
+  \emptyset$, and $\Regex_1$ and $\Regex_2$ strongly unambiguous,
+and
+\item $\Regex = \StarOf{(\Regex')}$ with $\UnambigItOf{(\Regex')}$ and
+  $\Regex'$ strongly unambiguous.
+\end{enumerate*}
 
 
 % fig:regex-equivalence-rules
 
 % fig:definitional-equivalence-rules
 \paragraph*{Equivalences}
-If $\Regex$ and $\RegexAlt$ are regular expressions, where
-$\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$, those two regular expressions
-are called \textit{equivalent}, written $\Regex\equiv\RegexAlt$.
+$R$ and $T$ are \textit{equivalent}, written $\Regex\equiv\RegexAlt$, if 
+$\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
 There exists an equational theory for determining if two regular expressions
 are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
 \cite{Krob}.
@@ -664,10 +670,17 @@ There are a number of proof systems that are complete with respect to
 determining regular
 expression equivalence, but equational theories embed a straightforward search
 procedure for generating equivalent regular expressions, for they provide a
-rewrite relation that creates equivalent regular expressions.
+rewrite relation that creates equivalent regular expressions.  \BCP{This is
+  not a very strong reason for following this path, given that this complete
+  search procedure was precisely what we were unable to establish.}
 
-Conway's axioms consist of the semiring axioms, and the following
-rules dealing with the equivalences on \StarRegexType{}.\\
+\bcp{This section confusingly blurs the distinction between equational
+  theories and systems of rewrite rules.}
+
+Conway's axioms consist of the semiring axioms\bcp{summarize them in words},
+and the following 
+rules dealing with the equivalences on \StarRegexType{}.
+\begin{center}
 \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
   \StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
   \StarOf{(\RegexConcat{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\RegexConcat{\Regex{}}{\StarOf{(\RegexConcat{\RegexAlt{}}{\Regex{}})}}}{\RegexAlt{}})} & \ProductstarRule{} \\
@@ -675,7 +688,8 @@ rules dealing with the equivalences on \StarRegexType{}.\\
   \StarOf{(\RegexOr{\Regex}{\RegexAlt})} & $\equiv$ & $\StarOf{(\RegexConcat{(\RegexOr{\Regex}{\RegexAlt})}{\RegexOr{\RegexAlt}{\RegexConcat{{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n}{\Regex}}})}\Concat$ & \DicyclicityRule{}\\
                                              & & $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$\\
                                              & & $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$
-\end{tabular}\\
+\end{tabular}
+\end{center}
 \ProductstarRule{} is an axiom corresponding to separating the
 zero case from the one or greater case in stars.
 \SumstarRule{} takes an iteration of two
@@ -691,16 +705,17 @@ which makes the search space very wide (indeed infinite).
 Furthermore, we have found two important properties which are sufficient for a
 lens language to not require a composition operator.
 To not require a composition operator, it is important for the rewrite relation
-to be confluent.  It is also important that rewrites can be \emph{mirrored}.
+to be confluent\bcp{say why}.  It is also important that rewrites can be \emph{mirrored}.
 If there is a lens $\Lens$ which maps between $\Regex$ and $\RegexAlt$,
 and if $\Regex$ rewrites to
 $\Regex'$, then $\RegexAlt$ can be rewritten in the same way to $\RegexAlt'$,
 such that there is
 a lens $\Lens'$ with the same semantics as $\Lens$, which maps between
-$\Regex'$ and $\RegexAlt'$.  While Conway's axioms are confluent, they don't
-satisfy the second property.
-Furthermore, removing the rewrites that cannot be mirrored makes
-the rewrites no longer confluent!
+$\Regex'$ and $\RegexAlt'$.  While Conway's axioms are confluent\BCP{I
+  thought we didn't know this}, they don't
+satisfy the second property\bcp{say why not}.
+Furthermore, removing the rewrites that cannot be mirrored makes\bcp{say why}
+the rewrites no longer confluent!\bcp{...Or complete, I suppose.}  
 
 Because of these issues, instead of looking through all regular expressions
 that are
@@ -721,11 +736,13 @@ the regular expression equivalence rules, the \textit{definitional equivalence
 These equivalence rules are
 unable to express all of the equivalences of language equivalence.
 These equivalence rules consist of the semiring axioms, and the following
-rules dealing with the equivalences on \StarRegexType{}.\\
+rules dealing with the equivalences on \StarRegexType{}.
+\begin{center}
 \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
   \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
   \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
-\end{tabular}\\
+\end{tabular}
+\end{center}
 In this subset, the full generality of \ProductstarRule{} is not present,
 \DicyclicityRule{} is not present, \StarstarRule{} is not present,
 and \SumstarRule{} is not present.  \StarstarRule{} is a rule that introduces
@@ -846,30 +863,30 @@ All bijections between languages are lenses.  We define Bijective Lenses to be
 bijections created from the Boomerang lens combinators, mapping between
 languages of regular expressions.
 The syntax for these bijective lenses is provided below.
-\resizebox{\columnwidth}{!}{%
+\begin{center}
   \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % REGEX
-    (Lenses)& \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
+    & \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
             & & & \GBar{} $\IterateLensOf{\Lens}$ & Iterate \\
             & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
             & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
             & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
             & & & \GBar{} $\ComposeLensOf{\Lens_1}{\Lens_2}$ & Compose\\
             & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
-  \end{tabular}}
+  \end{tabular}
+\end{center}
 
 The lenses also have denotational semantics, where $\SemanticsOf{\Lens}
 \subseteq \StringType \Cross \StringType$.  If $(\String_1,\String_2) \in
 \SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
 $\String_2$.
-
-\resizebox{\columnwidth}{!}{%
-  \begin{tabular}{rcl}
+\begin{center}
+  \begin{tabular}{@{}rcl}
     $\SemanticsOf{const(\String_1,\String_2)}$ &=& $\SetOf{(\String_1,\String_2)}$\\
     
     $\SemanticsOf{\IterateLensOf{\Lens}}$ &=& $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
-                                            \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-                                            (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
+                                            \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat$\\
+ &&                                           $\hspace*{2em}(\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
     
     $\SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$ &=&
                                                       $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat$\\
@@ -895,7 +912,9 @@ $\String_2$.
                                               \SuchThat \String\in
                                               \LanguageOf{\Regex}}$
   \end{tabular}
-}
+\end{center}
+\bcp{We should either write composition with a ; or else define it's
+  semantics the other way round.}
 
 The simplest lens in the combinator language is the the constant lens between
 strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
@@ -961,9 +980,8 @@ expressivity of lenses in practice.
 
 Recall the previous example of synthesizing a lens between \CF{BibTex} and
 \CF{EndNote}, specified in Figure~\ref{fig:bibend-spec}.  Synthesizing a lens
-between \CF{BibTex} and \CF{EndNote} is done through in three steps:
-\textbf{Step 1: Inlining Definitions}, \textbf{Step 2: Traversing
-  Equivalences}, and \textbf{Step 3: Creating Lenses}.  \textbf{Step 1:
+between \CF{BibTex} and \CF{EndNote} is done in three steps.
+\textbf{Step 1:
   Inlining Definitions} uses some built in deductive techniques to infer when
 user defined regular expressions must be replaced by their definitions.
 \textbf{Step 2: Traversing Equivalences} searches through various equivalences
@@ -987,6 +1005,7 @@ regular expression types to create the lenses.
   \caption{
     Trees of user defined regular expressions,
     with those that must be replaced by their definitions crossed out.
+    \bcp{Suggest cutting this figure.}
   }
   \label{fig:expanded-defs}
 \end{figure}
@@ -1031,6 +1050,8 @@ DNFEndReplacement:
   \label{fig:examples-expanded}
   \caption{
     \CF{BibTex} and \CF{EndNotes} with various transformations performed.
+\bcp{All the double quotes make the examples quite hard to read.  Could we
+  simplify the formats to eliminate them, for purposes of this example?}
   }
 \end{figure}
 After completing these necessary expansions, the problem becomes synthesizing a
@@ -1079,7 +1100,7 @@ each specification is a combination of how many equivalence rewrites have been
 applied,
 and how different the two regular expressions in the specification are.  This
 priority calculation is described in greater detail in
-\S\ref{implementation}
+\S\ref{implementation}.
 \CF{DNFEndUnroll} and \CF{DNFBib'} are very similar, in that they have the same
 number of instances of \CF{Name} and \CF{Names}.  However, \CF{DNFEndReplacement} is
 very different, with a different number of \CF{Name}, \CF{Names}, and a
@@ -1192,10 +1213,10 @@ Distributing terms and removing associativity information creates a mutually
 recursive data structure, consisting of the types of
 DNF regular expressions, sequences, and atoms.
 The syntax of DNF regular
-expressions, sequences, and atoms are given below.\\
+expressions, sequences, and atoms are given below.
+\begin{center}
 \resizebox{\columnwidth}{!}{%
   \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
-    
     % DNF_REGEX
     (Atoms)& \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
     (Sequences)& \Sequence{},\SequenceAlt{} & \GEq{} &
@@ -1203,18 +1224,24 @@ expressions, sequences, and atoms are given below.\\
     (DNF Regexes)& \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & \MultiOrDNFRegexType{} \\
   \end{tabular}
 }
+\end{center}
 
 Like regular expressions, DNF regular expressions can be used to inductively
-define languages.\\
+define languages.
+\begin{center}
 \resizebox{\columnwidth}{!}{
   \begin{tabular}{R@{}L}
     \LanguageOf{\StarOf{\DNFRegex}} = &
-                                        \{\String_1\Concat\ldots\Concat\String_n \SuchThat n\in\Nats \wedge \String_i\in\LanguageOf{\DNFRegex}\}\\
+                                        \{\String_1\Concat\ldots\Concat\String_n
+                                        \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
     \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= &
                                                                                                                         \{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}\\
     \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
                                                                        \{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{ for some $i\in\RangeIncInc{1}{n}$}\}
   \end{tabular}}
+\end{center}
+\bcp{Overall, I don't like the resizebox trick.  Better to reorganize the
+  material so it fits.}
 
 A DNF regular expression is a list of sequences.
 We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
@@ -1259,15 +1286,15 @@ regular expressions.  In the implementation, user defined regular expressions
 are atoms as well, turning atoms into a sum type of user defined regular
 expressions, and \StarAtomType{}s.
 
-A sequence of strings and atoms is said to be \textit{sequence unambiguously
+A sequence of strings and atoms is \textit{sequence unambiguously
   concatenable},
 written $\SequenceUnambigConcatOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$,
 if, when $\String_i',\StringAlt_i'\in\LanguageOf{\Atom_i}$ for all $i$, then
 $\String_0\String_1'\ldots\String_n'\String_n=
 \String_0\StringAlt_1'\ldots\StringAlt_n'\String_n$
 implies $\String_i'=\StringAlt_i'$ for all $i$.
-
-A DNF regular expression $\Regex$ is said to be \textit{unambiguously iterable},
+%
+A DNF regular expression $\Regex$ is \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$ if,
 for all $n,m\in\Nats$ and for all strings
 $\String_1,\ldots,\String_n,\StringAlt_1,\ldots,\StringAlt_m\in\LanguageOf{\Regex}$,
@@ -1285,6 +1312,7 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
   \\
   \ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
   $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
+\vspace*{-1.7ex}
   \[
     \begin{array}{rcccl}
       \DNFLeft & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1}\DNFSep & \cdots
@@ -1443,7 +1471,9 @@ rewritten regular expressions.  These rewrites are the ones used in
     }
 
   \end{mathpar}
-  \caption{DNF Regex Rewrite Rules}
+  \caption{DNF Regex Rewrite Rules\bcp{Figure belongs on previous page.  And
+    the last three rules are not needed: just say that the star relation is
+    the reflexive and transitive closure of the unstarred one.}}
   \label{fig:dnf-regex-rewrites}
 \end{figure*}
 
@@ -1469,13 +1499,16 @@ this rewrite to rewriting atoms containing those regular expressions.
 The symbol $\StarOf{\Rewrite}$ is used to denote the transitive and reflexive
 closure of $\Rewrite$.
 
-\section{DNF Lenses}
+\bcp{IMHO this section is needs some expansion---the rules are pretty
+  complicated, and they need better explanation.}
 
-% fig:dnf-lens-semantics
-\begin{figure}
-  \caption{DNF Lens Semantics}
-  \label{fig:dnf-lens-semantics}
-\end{figure}
+\BCP{Also, a technical point: Don't we need to show that these rules
+  correspond to (an oriented version of) the $\equiv_d$ relation?  We use
+  the latter in the example section, but our implementation uses the
+  former.  (I guess a proof of this must be buried in the proofs of 6.1 and
+  6.2 (right?).  But it needs to be called out explicitly.)} 
+
+\section{DNF Lenses}
 
 % fig:dnf-lens-typing
 \begin{figure}
@@ -1537,9 +1570,9 @@ closure of $\Rewrite$.
   \label{fig:dnf-lens-typing}
 \end{figure}
 
-Armed with these rewrites, we can define a language for lenses on DNF regular
-expressions, called ``Disjunctive Normal Form'' or ``DNF'' lenses.  The syntax
-for DNF lenses is given below\\
+We can now define a syntax for lenses between DNF regular
+expressions, called {\em DNF lenses}.  
+\begin{center}
 \resizebox{\columnwidth}{!}{
   \begin{tabular}{@{}l@{\ }l@{\ }c@{}l@{\ }>{\itshape\/}r@{}}
     % REGEX
@@ -1549,10 +1582,13 @@ for DNF lenses is given below\\
                   & & & $\sigma \in S_n)$ & Sequence\SubN{}\\
     (DNF Lenses)& \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ & DNF\SubN{}\\
   \end{tabular}}
-
+\end{center}
 
 DNF lenses are defined via 3 mutually recursive data structures, DNF lenses, sequence lenses,
-and atom lenses.  Like lenses, DNF Lenses have denotational semantics to express bijective mappings.\\
+and atom lenses.  Like lenses, DNF Lenses have denotational semantics to
+express bijective mappings.
+\begin{trivlist}
+\item 
   $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
   \hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
     \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
@@ -1569,7 +1605,7 @@ and atom lenses.  Like lenses, DNF Lenses have denotational semantics to express
       \SequenceLens_n},\Permutation)}=$\\
   \hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
     (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
-
+\end{trivlist}
 A DNF lens is a list of sequence lenses.
 We use the balanced delimiters of
 $\DNFLensLeft$ and $\DNFLensRight$ to show that a list of sequence lenses
@@ -1700,6 +1736,10 @@ tweaked for readability with \Beautify{}.
     \State $\ReturnVal{\Call{Beautify}{\Lens}}$
     \EndFunction
   \end{algorithmic}
+\bcp{Minor comment: we can save several lines by removing ``end if'' and
+  such.  Larger comment: Is this seriously using {\em null} to
+  represent a failure result from a subroutine??  The reviewers are going to
+  laugh at us.}
 \end{algorithm}
 
 In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
