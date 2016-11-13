@@ -2258,7 +2258,8 @@ each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
 \end{figure}
 
 We evaluated our synthesis algorithm by applying it to \ksf{XX} benchmark
-programs derived from practice.   We investigated how long it took to
+programs derived from practice.   We investigated the correctness of
+the inferred lenses, how long it took to
 synthesize each lens, how many user-supplied examples synthesis required,
 and how important user-defined types were to the process.
 Figure~\ref{fig:evaluation-data} shows the results for each of our
@@ -2335,6 +2336,20 @@ the synthesized lenses.}
 % intermediary sub-expressions, to avoid repeating the same synthesis
 % algorithm. 
 
+\paragraph*{Correctness}
+To assess the correctness of the inferred lenses, we inspected each to
+determine if the generated lens matched our understanding of the given
+benchmark.  For all but cust/bib\_prob, the inferred lens was correct.
+For bib\_prob, the inferred lens had the correct type and performed
+correctly on all supplied examples, but would have been incorrect on
+other examples.  When we refined one of the given examples to
+highlight the previously unseen case and re-ran the algorithm, it
+produced the correct lens. As further validation, we confirmed that the
+synthesized lenses performed correctly on the supplied examples and on
+additional examples not made available to the synthesis algorithm,
+having held back approximately half of our example data for validation.
+
+
 \paragraph*{Speed of Synthesis}
 %
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
@@ -2366,55 +2381,63 @@ that contain disjunctions of 26 letters.  The source and target
 regular expressions each contain two references to these disjunctions;
 hence the name ``double.''  In this example, the conversion to DNF
 form creates 676 sequences in the first expansion.  This number grows
-to 17576 sequences in subsequent conversions.
+to 17576 sequences in subsequent conversions. \ksf{We should add a
+sentence explaining why we think this example won't occur for real.}
 
 % If we take this problem to the logical extremes, we see that the the triple
 % capitalization problem takes 6.974 seconds, and the quadruple capitalization
 % problem takes 33 minutes and 54.730 seconds.
 
 \paragraph*{Importance of Examples}
+To evaluate how many user-supplied examples the algorithm requires in
+practice, we \textit{randomly} generated appropriate source/target
+pairs, mimicking what a naive user might do.  We did not write the
+examples by hand out of concern that our knowledge of the synthesis
+algorithm might bias the selection.  In
+Figure~\ref{fig:evaluation-data}, the column \textbf{Avg\# Exs} shows
+the number of randomly generated examples it takes to synthesize the
+correct lens averaged over ten runs.  Across all examples, the average
+number of required examples is \ksf{XXX}. The mode is zero, and the
+maximum is 19.  We note that a clever user may be able to reduce the
+number of required examples by selecting examples carefully.
 
-We wanted to see how many examples were required to synthesize the correct
-bijective lens.
-However, because of our implicit understanding of the algorithm, we fear we may
-choose examples that we know will work well with the synthesis algorithm,
-instead of choosing examples that users are likely to.
-Because of that, we test the number of examples that it takes to generate the
-correct lens, with randomly generated examples.
+These numbers are low because there are relatively few well-typed
+bijective lenses between any two source and target regular expressions. 
+As one would expected, the benchmarks where there are multiple ways to
+map source data to the target (and vice versa) require the most examples.
+For example, the benchmark aug/addr-probs requires examples because it
+must differentiate between and first and last names in both the
+source and target and map between them appropriately.
 
-The column \textbf{Examples Required} in Figure~\ref{fig:evaluation-data}
-provides the number of randomly generated examples it takes, on average, to
-synthesize the correct lens on our test suite.  
+As the bib\_prob example illustrates, the average number of examples to
+infer the correct lens does not tell the whole story.  The system will
+stop as soon as it finds a correctly typed lens that correctly maps
+all the supplied examples.  This inferred lens may or may not
+correctly handle unseen examples that correspond to
+unexercised portions of the source and target regular expressions.
+Column \textbf{Max\# Exs} in Figure~\ref{fig:evaluation-data} lists
+the number of examples that are required to exercise all choice
+points.  Intuitively, this number represents the maximum number of
+examples that a user must supply to guide the synthesis engine if it
+always guesses the wrong mapping when multiple mappings are possible.
+Note these examples must be carefully selected to exercise all
+choices; a very large number of examples that all follow the same
+pattern are no more helpful than a single such example.  We see an
+example of this phenomenon in the example ff/extract-fname where the
+average number of examples is greater than the Max number of examples
+because the system randomly generated redundant examples.
 
-As we see in Figure~\ref{fig:evaluation-data}, examples are not
-incredibly
-important for synthesizing bijective lenses.
-Because bijective lenses have very few well typed programs, compared to the
-number of functions, oftentimes just a few examples is sufficient.
-As would be expected, the functions that have to make choices about the
-locations of where data goes are those that require more examples.
-In particular, the address problem requires more examples, because it must make
-choices of where information goes, like which name is the a person's first name,
-and which is their last.
+The average number of examples is so much lower than the maximum
+number of required examples because of correspondances in how we wrote
+the regular expressions for the source and target data formats. 
+Specifically, when we had corresponding disjunctions in both the
+source and the target, we ordered them the same way.  The algorithm
+uses the supplied ordering to guide its search, and so the system
+requires fewer examples.   We did not write the examples in this style
+to facilitate synthesis, but rather because maintaining similar
+subparts in similar orderings makes the types much easier to 
+read. We expect that most users would do the same.
 
-However, this column does not tell the whole story.
-The column \textbf{Max Exs Reqd} in Figure~\ref{fig:evaluation-data}
-provides the maximum number of examples required.
-This column represents the number of examples that are required if the
-synthesis engine always guessed the incorrect permutation, when multiple
-permutations satisfy the type and examples.
-This column shows that, while in practice few examples are required,
-when complicated permutations are needed, more examples are required.
-
-The test programs require
-so few examples, when adversarial synthesis of permutations could necessitate so
-many examples, because we unintentionally ordered the $\OrRegexType$s in many of
-the test programs regular expressions.
-We represented subparts of similar data formats in a consistent ordering,
-requiring fewer examples.  We expect that most programmers do the same.
-Maintaining similar subparts in similar orderings makes the types much easier to
-read, make it easier for checking that the languages are in bijection with each
-other.
 
 \paragraph*{Importance of User Defined Data Types}
 
