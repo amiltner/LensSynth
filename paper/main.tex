@@ -153,7 +153,7 @@
   Unfortunately, lenses can be difficult to write because the typing
   that ensures invertibility heavily restricts the set of allowed
   programs.  To overcome this difficulty, we have developed an
-  algorithm to automatically synthesize bijective lenses from pairs of
+  algorithm to automatically synthesize bijective lenses,  from pairs of
   regular expressions that represent the source and target data
   formats and a small number of examples.
 
@@ -163,12 +163,10 @@
   bi-directionally convert between regular expressions $A$ and $B$
   requires first finding equivalent regular expressions $A'$ and $B'$
   that are more algorithmically tractable.  We show how to manage this
-  search by defining a new language of lenses governed by normalized
-  regular expression types. We prove this language sound and complete
-  with respect to \afm{bijective lenses derived from the combinators used
-  in Boomerang}\sout{a standard language of bijective lenses}\bcp{I don't know
-    what this means.}.  We then
-  show how to search the reduced space for well-typed lenses that are
+  search by moving the search problem to a space of simplified (but fully
+  expressive) lenses 
+  governed by normalized regular expression types.  We then
+  show how to search this reduced space for well-typed lenses that are
   consistent with user-supplied examples.  We demonstrate the
   effectiveness of our algorithm by evaluating it on a benchmark suite
   containing 23 examples comprising microbenchmarks, Flash Fill
@@ -180,23 +178,26 @@
 A possible alternative structure for the abstract: 
 \begin{itemize}
 \item Bidirectional transformations between different representations of
-data are found everywhere in software systems---in serializers and
+data can be found everywhere in software systems---in serializers and
 deserializers, parsers and pretty printers, database views and view update
 functions, and a multitude of ad hoc data transformers.
 \item Writing each direction of a bidirectional transformation as a separate
 function is tedious and error-prone.  
 \item Domain-specific languages that allow both directions to be written as
 a single expression are better, but can be rather fiddly.  For example,
-languages based on the theory of {\em lenses} tend to come with restrictive
-typing constraints such as unambiguity that are tricky for programmers to
-work with.
+languages like Boomerang, based on the theory of {\em lenses}, tend to come
+with restrictive typing constraints such as {\em unambiguity} that are
+tricky for programmers to work with.
 \item Fortunately, we can do better: We show how this programming task can
 be automated using techniques of type-based program synthesis.  
-\item Specifically, we present an algorithm for synthesizing bijective lenses
-between pairs of string data formats.  Inputs to the algorithm are the
+\item Specifically, we present an algorithm for synthesizing bijective
+lenses between 
+pairs of string data formats.  Inputs to the algorithm are the
 schemas for the two formats, expressed as regular expressions, plus a few
-concrete examples to guide synthesis.  The output is a well-typed lens that
+concrete examples to guide synthesis.  The output is a well-typed program
+in the bijective subset of Boomerang that
 transfors the examples as specified.  
+\item (Briefly!) The main challenge is... We address it by...
 \item We evaluate our algorithm by...
 \end{itemize}
 }
@@ -481,19 +482,21 @@ this form is a finer equivalence relation than language equivalence.
 For instance, our normal form
 does not automatically unify regular expressions such as
 $A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.  \afm{The source and target types of lenses are not
-  necessarily language equivalent, so we cannot use standard equivalence
-  strategies to determine if lenses exist between them.  Furthermore, we cannot
-  even approach this problem by generating transducers between the languages;
-  lenses are able to swap data.  Commonly, data formats do not have all data in
-  the same locations, and swapping is important for expressing data
-  transformations between these formats.}
-\footnote{\BCP{Why not?  More generally, why
-    couldn't we have built our algorithm by following the structure of a
-    proof of equivalence between the source and target types?  (I.e., why
-    did we have to use Conway's axioms or worry about confluence, given that
-    we know regular language equivalence is decidable?  Is it because that
-    proof is automata-theoretic?)}} 
+unrolling of Kleene Star.\BCP{Why not?}
+% \bcp{Why
+%     couldn't we have built our algorithm by following the structure of a
+%     proof of equivalence between the source and target types?  (I.e., why
+%     did we have to use Conway's axioms or worry about confluence, given that
+%     we know regular language equivalence is decidable?  Is it because that
+%     proof is automata-theoretic?)}
+%   \afm{The source and target types of lenses are not
+%   necessarily language equivalent, so we cannot use standard equivalence
+%   strategies to determine if lenses exist between them.  Furthermore, we cannot
+%   even approach this problem by generating transducers between the languages;
+%   lenses are able to swap data.  Commonly, data formats do not have all data in
+%   the same locations, and swapping is important for expressing data
+%   transformations between these formats.}
+% BCP: OK, that was a dumb question.  
 Consequently, we structure our synthesis algorithm in two parts.  The
 first is a syntax-directed search for a lens based on the structure of the given
 regular expression types. If that fails, the second is a search,
@@ -512,12 +515,8 @@ The types describing data formats may be very large --- they are
 regular grammars describing complex data formats.  On the one hand,
 the size of these types is very useful as such types provide a wealth
 of information that constrains the search process effectively.  On the
-other hand, \afm{the algorithm must be able to guarantee that the generated lens
-  satisfies the many constraints introduced by these large, complicated types}
-\sout{there is a lot of data that must be managed carefully by
-the synthesis system}.\footnote{\ksf{Having to manage a lot of data
-carefully is not a compelling difficulty.  Is there another way of
-expressing this challenge?}}
+other hand, the algorithm must be able to guarantee that the generated lens
+satisfies the many constraints introduced by these large and complex types. 
 
 \paragraph*{Solution 2: Compositional Types}
 The key to solving this challenge is to observe that users naturally
@@ -599,13 +598,15 @@ we make the following contributions:
 %that language is \textit{unambiguously iterable},
 %written $\UnambigItOf{\Language}$.
 
-\BCP{When we remove stuff from the short version, we're not removing it
-  completely (i.e., commenting it out), but rather putting iffull...fi or
-  some such around it, right?  I had assumed that we were going to submit
-  (as ``supplemental material'') a long version containing both proofs and
-  all the stuff elided from the short version...}
-\afm{for this I just removed it, for a lot of things I moved it into the
-  appendix.  In future I will do the iffull strategy.}
+% \BCP{When we remove stuff from the short version, we're not removing it
+%   completely (i.e., commenting it out), but rather putting iffull...fi or
+%   some such around it, right?  I had assumed that we were going to submit
+%   (as ``supplemental material'') a long version containing both proofs and
+%   all the stuff elided from the short version...}  \afm{for this I just
+%   removed it, for a lot of things I moved it into the appendix.  In future I
+%   will do the iffull strategy.}  \bcp{OK, for this bit I don't see much harm
+%   in just losing things even in the long version.  Just wanted to make sure
+%   we had the long version in mind.}
 
 We assume given an alphabet $\Sigma$; variables $s$ and $t$ denote 
 strings in $\StarOf{\Sigma}$.  Regular expressions over $\Sigma$ are: 
@@ -691,8 +692,12 @@ rewrite relation that creates equivalent regular expressions.  \afm{Using a
   not a very strong reason for following this path, given that this complete
   search procedure was precisely what we were unable to establish.}
 
-\bcp{This section confusingly blurs the distinction between equational
-  theories and systems of rewrite rules.}
+\BCP{This section confusingly blurs the distinction between equational
+  theories and systems of rewrite rules.  What I've always had in mind when
+  we've used the phrase ``rewrite rules'' has been an {\em oriented version}
+of the equational theory, where each equation is replaced by a single rule
+that rewrites from one side to the other (either left to right or right to
+left, but not both).}
 
 Conway's axioms consist of the semiring axioms \afm{of associativity of
 \OrRegexType{} and \ConcatRegexType{}, commutativity of \OrRegexType{},
@@ -729,7 +734,9 @@ to be confluent\bcp{say why}.  \afm{If two lenses were composed together, and
   in the typing of each of the sublenses, the central regular expression was
   rewritten using non-confluent rewrites, there would be no way to build up a
   new lens that did not use composition, but still had the same end type, as
-  there would be no way to combine the derivations.}
+  there would be no way to combine the derivations.}\bcp{This seems like an
+  instance of the confusion I mentioned above: The typing rules use the
+  equivalence relation, not the rewrite rules.}
 It is also important that rewrites can be \emph{mirrored}.
 If there is a lens $\Lens$ which maps between $\Regex$ and $\RegexAlt$,
 and if $\Regex$ rewrites to
