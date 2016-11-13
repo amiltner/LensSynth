@@ -1288,7 +1288,7 @@ DNF regular expressions (\DNFRegex{},\DNFRegexAlt{}),
 sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt).
 
 \begin{center}
-  \begin{tabular}{lcl@{\ }>{\itshape\/}r}
+  \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % DNF_REGEX
     \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
     \Sequence{},\SequenceAlt{} & \GEq{} &
@@ -1297,64 +1297,90 @@ sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt).
   \end{tabular}
 \end{center}
 
-Like regular expressions, DNF regular expressions can be used to inductively
-define languages.
-\begin{center}
-  \begin{tabular}{R@{}L}
-    \LanguageOf{\StarOf{\DNFRegex}} = &
-                                        \{\String_1\Concat\ldots\Concat\String_n
-                                        \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
-    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= &
-                                                                                                                        \{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \\
-    & \hspace*{2em}\SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}\\
-    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
-                                                                       \{\String \SuchThat \String \in \LanguageOf{\Sequence_i}\\
-    & \hspace*{2em}\text{ for some $i\in\RangeIncInc{1}{n}$}\}
-  \end{tabular}
-\end{center}
-
-A DNF regular expression is a list of sequences.
-We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
-to show that a list of sequences creates a DNF regular expression.
-A DNF regular expression corresponds to a regular expression consisting of many
-\OrRegexType{}s.  
-This correspondence is mirrored in the semantics, as the language of a DNF
-regular expression
-is the union of the sequences it is composed of.  This unioning is very similar
-to the unioning in the definition of the
-language of an
-\OrRegexType{} regular expression.
-
-A sequence is a list of atoms, with strings surrounding each atom.
-We use the balanced delimiters of $\SequenceLeft$ and $\SequenceRight$ to show
-that a list of atoms and strings creates a sequence.
-A sequence corresponds to a regular expression consisting
-of many \ConcatRegexType{}s.
-This correspondence is mirrored in the semantics, as the language of a sequence is a
-concatenation of strings, where each string is either the string in the
-sequence, or a string belonging to the language of the atom.  This concatenation
-is very
-similar to the concatenation in the definition of the language of
-a \ConcatRegexType{} regular expression.
-A sequence can be put into this form, where every atom is separated by a string,
-because if two atoms are next to each other, $\EmptyString$ can be placed
-between them.  If there are multiple strings between atoms, those strings can be
-concatenated into a single string.
+Intuitively, a DNF regular expression is an n-ary disjunction of
+sequences.  A sequence alternates between concrete strings and
+atoms.  Notice that it is straightforward to convert an abitrary series
+of atoms and strings into this form:  If there are multiple atoms between
+concrete strings, the atoms 
+may be separated by empty strings, and if there are multiple concrete strings 
+between atoms, the strings may be concatenated into a single string.
 The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
 stands for
 $\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
 with every string in the sequence is the empty string.
+Notice also that a simple string with no atoms may be represented as
+a sequence.
+An atom is an iteration of DNF Regular expressions.
+In our implementation, names of user-defined regular expressions
+are atoms; we elide such definitions from our theoretical analysis.
 
-An atom is an iteration of DNF Regular expression.  Atoms correspond very
-closely to regular expression \StarRegexType{}s.  This correspondence is mirrored in the
-semantics, as the language of an atom is constructed in the exact same way as a
-\StarRegexType{}.  The only difference between atoms and \StarRegexType{}s
-is that the iteration in atoms
-corresponds to the iteration of languages of DNF regular expressions, while the
-iteration in \StarRegexType{}s corresponds to the iteration of languages of
-regular expressions.  In the implementation, user defined regular expressions
-are atoms as well, turning atoms into a sum type of user defined regular
-expressions, and \StarAtomType{}s.
+Intuitions about DNF regular expressions may confirmed
+by their semantics, which we give by defining the language (set of strings)
+that each regular expression denotes:
+
+\noindent
+%\begin{center}
+  \begin{tabular}{R@{}L}
+    \LanguageOf{\StarOf{\DNFRegex}} = &
+                                        \{\String_1\Concat\ldots\Concat\String_n
+                                        \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
+    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= & 
+%\\
+%\multicolumn{2}{L}{\ \ \ \ 
+\{\String_0\Concat\StringAlt_1\cdots\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}
+%}
+\\
+    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
+%\\
+%\multicolumn{2}{L}{\ \ \ \ 
+\{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{and $i\in\RangeIncInc{1}{n}$}\}
+%}
+  \end{tabular}
+%\end{center}
+\hspace{2mm}
+
+%% A DNF regular expression is a list of sequences.
+%% We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
+%% to show that a list of sequences creates a DNF regular expression.
+%% A DNF regular expression corresponds to a regular expression consisting of many
+%% \OrRegexType{}s.  
+%% This correspondence is mirrored in the semantics, as the language of a DNF
+%% regular expression
+%% is the union of the sequences it is composed of.  This unioning is very similar
+%% to the unioning in the definition of the
+%% language of an
+%% \OrRegexType{} regular expression.
+
+%% A sequence is a list of atoms, with strings surrounding each atom.
+%% We use the balanced delimiters of $\SequenceLeft$ and $\SequenceRight$ to show
+%% that a list of atoms and strings creates a sequence.
+%% A sequence corresponds to a regular expression consisting
+%% of many \ConcatRegexType{}s.
+%% This correspondence is mirrored in the semantics, as the language of a sequence is a
+%% concatenation of strings, where each string is either the string in the
+%% sequence, or a string belonging to the language of the atom.  This concatenation
+%% is very
+%% similar to the concatenation in the definition of the language of
+%% a \ConcatRegexType{} regular expression.
+%% A sequence can be put into this form, where every atom is separated by a string,
+%% because if two atoms are next to each other, $\EmptyString$ can be placed
+%% between them.  If there are multiple strings between atoms, those strings can be
+%% concatenated into a single string.
+%% The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
+%% stands for
+%% $\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
+%% with every string in the sequence is the empty string.
+
+%% An atom is an iteration of DNF Regular expression.  Atoms correspond very
+%% closely to regular expression \StarRegexType{}s.  This correspondence is mirrored in the
+%% semantics, as the language of an atom is constructed in the exact same way as a
+%% \StarRegexType{}.  The only difference between atoms and \StarRegexType{}s
+%% is that the iteration in atoms
+%% corresponds to the iteration of languages of DNF regular expressions, while the
+%% iteration in \StarRegexType{}s corresponds to the iteration of languages of
+%% regular expressions.  In the implementation, user defined regular expressions
+%% are atoms as well, turning atoms into a sum type of user defined regular
+%% expressions, and \StarAtomType{}s.
 
 A sequence of strings and atoms is \textit{sequence unambiguously
   concatenable},
@@ -1404,13 +1430,14 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
   \label{fig:dnf-regex-functions}
 \end{figure}
 
-A DNF regular expression can be created from a regular expression through repeated
-application of the distributivity rule, and through removal of association
-information.
-This process requires some auxiliary definitions
-which are defined in Figure~\ref{fig:dnf-regex-functions}.
-From these functions, we can define \ToDNFRegex{}, a function which converts a regular expression into
-an equivalent DNF regular expression.
+Any regular expression may be converted into an equivalent DNF regular expression.  
+To define the conversion function, we rely on several auxiliary functions defined in 
+Figure~\ref{fig:dnf-regex-functions}.  Intuitively, $\DNFRegex{} \ConcatDNF \DNFRegex{}$ concatenates
+two DNF regular expressions, producing a well-formed DNF regular expression as a result.
+Similarly, $\DNFRegex{} \OrDNF{} \DNFRegex{}$ generates a new DNF regular expression representing the
+union of two DNF regular expressions.  Finally, $\AtomToDNF{(\Atom)}$ converts a naked atom into a
+well-formed DNF regular expression.
+The conversion algorithm itself, written  \ToDNFRegex{\Regex}, is defined below.
 \[
   \begin{array}{rcl}
     \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
@@ -1421,48 +1448,50 @@ an equivalent DNF regular expression.
   \end{array}
 \]
 
-Intuitively, the definition of $\ToDNFRegex$ states that the DNF regular
-expression with no sequences
-corresponds to the empty set.  A single sequence with only a string corresponds
-to a \BaseRegexType{} regular expression string.
-The stars of DNF regular expressions correspond to the stars
-of atoms.  The function $\OrDNF$ corresponds to the regular expression
-primitive \OrRegexType{}.  The function $\ConcatDNF$ corresponds to the regular
-expression primitive \ConcatRegexType{}.  We formalize this correspondence
-in the following theorem.
+%% Intuitively, the definition of $\ToDNFRegex$ states that the DNF regular
+%% expression with no sequences
+%% corresponds to the empty set.  A single sequence with only a string corresponds
+%% to a \BaseRegexType{} regular expression string.
+%% The stars of DNF regular expressions correspond to the stars
+%% of atoms.  The function $\OrDNF$ corresponds to the regular expression
+%% primitive \OrRegexType{}.  The function $\ConcatDNF$ corresponds to the regular
+%% expression primitive \ConcatRegexType{}. 
+\noindent
+We formalize the correspondence between regular expressions and
+DNF regular expressions via the following theorem.
 
-\begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
+\begin{restatable}[Translation Soundness]{theorem}{dnfrc}
   \label{thm:completeness-dnf-lenses}
   For all regular expressions \Regex{},
   $\LanguageOf{\ToDNFRegexOf{\Regex}}=\LanguageOf{\Regex{}}$.
 \end{restatable}
 
-Furthermore, we can prove that DNF regular expressions are sound with respect to
-regular expressions,
-and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.\\
-  \begin{tabular}{r@{\ }c@{\ }l}
-    $\ToRegexOf{(\StarOf{\DNFRegex})}$ & = & $\StarOf{(\ToRegexOf{\DNFRegex})}$\\
-    $\ToRegexOf{\SequenceOf{\String_0}}$ & = & $\String_0$\\
-    $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
-    \SequenceSep\Atom_n\SequenceSep\String_n}} $ & = & $
-    \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
-    \ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}}}$\\
-                                       & &
-    $\Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
-    $\ToRegexOf{\DNFOf{}} $ & = & $\emptyset$\\
-    $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}} $ & = &
-    $(\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
-    \,\Or\, (\ToRegexOf{\Sequence_n})$
-  \end{tabular}
+%% Furthermore, we can prove that DNF regular expressions are sound with respect to
+%% regular expressions,
+%% and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.\\
+%%   \begin{tabular}{r@{\ }c@{\ }l}
+%%     $\ToRegexOf{(\StarOf{\DNFRegex})}$ & = & $\StarOf{(\ToRegexOf{\DNFRegex})}$\\
+%%     $\ToRegexOf{\SequenceOf{\String_0}}$ & = & $\String_0$\\
+%%     $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+%%     \SequenceSep\Atom_n\SequenceSep\String_n}} $ & = & $
+%%     \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+%%     \ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}}}$\\
+%%                                        & &
+%%     $\Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
+%%     $\ToRegexOf{\DNFOf{}} $ & = & $\emptyset$\\
+%%     $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}} $ & = &
+%%     $(\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
+%%     \,\Or\, (\ToRegexOf{\Sequence_n})$
+%%   \end{tabular}
 
-This function provides a way to find a regular expression which corresponds to a given
-DNF regular expression.  We formalize this correspondence with the theorem
-below.
+%% This function provides a way to find a regular expression which corresponds to a given
+%% DNF regular expression.  We formalize this correspondence with the theorem
+%% below.
 
-\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
-  \label{thm:dnfrs}
-  $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
-\end{restatable}
+%% \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
+%%   \label{thm:dnfrs}
+%%   $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
+%% \end{restatable}
 
 % fig:dnf-regex-rewrites
 \begin{figure*}
@@ -1539,24 +1568,30 @@ below.
 
 \paragraph*{DNF Regular Expression Rewrites}
 
-In our synthesis algorithm we need to allow for a rewrite system on DNF regular
-expressions to search through the equivalences.
-Using the star equivalences, the synthesis algorithm applies rewrites
-to the stars in a DNF
-regular expression for type-directed synthesis to eventually be applied to the
-rewritten regular expressions.  These rewrites are the ones used in
-\textbf{Step 2: Traversing Equivalences}.
-
-
-
-Figure~\ref{fig:dnf-regex-rewrites} defines the rewrite rules.
-  We write $\StarOf{\Rewrite}$ for
-    the reflexive, transitive closure of $\Rewrite{}$. 
-Intuitively, applications of these rewrite rules correspond to traversing
-through equivalences of the DNF regular expressions.
-However, by having rewrite rules, instead of a rule similar to
-\RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
-to limit the fan-out and only traverse a few.
+There are many fewer DNF regular expressions than regular expressions, but there
+still remain pairs of DNF regular expressions that while syntactically different,
+are semantically identical.  
+%% In order to search the space of equivalent DNF 
+%% In our synthesis algorithm we need to allow for a rewrite system on DNF regular
+%% expressions to search through the equivalences.
+%% Using the star equivalences, the synthesis algorithm applies rewrites
+%% to the stars in a DNF
+%% regular expression for type-directed synthesis to eventually be applied to the
+%% rewritten regular expressions.  These rewrites are the ones used in
+%% \textbf{Step 2: Traversing Equivalences}.
+Figure~\ref{fig:dnf-regex-rewrites} defines a collection of rewrite rules on DNF regular expressions
+designed to search the space of equivalent DNF REs.  We write $\StarOf{\Rewrite}$ for
+    the reflexive, transitive closure of $\Rewrite{}$.
+This directed rewrite system help us limit
+the search space more than the non-directional equivalence $\equiv_d$ relation.
+However, because the rewrite rules are confluent, we will show that it is just as powerful as the
+$\equiv_d$ relation.
+ 
+%% Intuitively, applications of these rewrite rules correspond to traversing
+%% through equivalences of the DNF regular expressions.
+%% However, by having rewrite rules, instead of a rule similar to
+%% \RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
+%% to limit the fan-out and only traverse a few.
 
 These rewrite rules present ways for atoms to be rewritten to DNF regular
 expressions, with rules like \AtomUnrollstarLeftRule{} and
