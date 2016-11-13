@@ -411,9 +411,9 @@ lenses with types $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and
 $C \Leftrightarrow C'$.  A straightforward syntax-directed search might try
 applying the rule for concatenation (from bottom to top) and looking for two
 simpler lenses with the types $A B \Leftrightarrow A'$ and
-$C \Leftrightarrow B' C'$.  But this strategy is not going to get us far.
+$C \Leftrightarrow B' C'$.  Clearly, this is not going to get us far.
 
-A natural next try is to introduce a type conversion rule
+We might next try introducing a type conversion rule like
 \[
   \inferrule
   {
@@ -433,7 +433,7 @@ applications of concatenation rule generate subproblems
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
 $C \Leftrightarrow C'$,  which we know how to solve.
 
-Because regular expressions equivalence is decideable, 
+Since regular-expression equivalence is decideable, 
 it is easy to \emph{check} whether a given lens $\Lens$ with type 
 $\Regex_1 \Leftrightarrow \Regex_2$
 also has type 
@@ -444,60 +444,68 @@ difficult because there are infinitely many regular expressions that are
 equivalent to the source and target regular expressions.  Do we need to
 consider all of them?  In what order?
 
-A second challenge arises from composition lenses.  The typing of such
-lenses requires the target type of the first lens to be the source
-type of the second.  To synthesize a composition lens between
+A related challenge arises from the composition operator,
+$\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
+$$
+    \inferrule[]%\ComposeLensRule{}
+    {
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+    }
+    {
+      \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
+    }
+$$
+requires that the target type of $l_1$ be the source
+type of $l_2$.  To synthesize a composition lens between
 $\Regex_1$ and $\Regex_2$, we must find an intermediate type $\Regex_3$
 and lenses with types $\Regex_1 \Leftrightarrow \Regex_3$ and
 $\Regex_3 \Leftrightarrow \Regex_2$.  Searching for the correct
-regular expression $\Regex_3$ is difficult because
-the search space is infinite.  We cannot simply omit composition
-lenses from our langauge because their removal reduces the expressivity
-of the language.
+regular expression $\Regex_3$ is again problematic because
+the search space is infinite.  
+
 
 %Furthermore, Boomerang has a composition operator to compose multiple
 %lenses.Removing the composition operator from Boomerang reduces
 %expressivity.  That means, to have a synthesis procedure that can
 %synthesize all lenses, the procedure must synthesize composition lenses.
 
-In essence, naively applying type-directed synthesis techniques
+Thus, naively applying type-directed synthesis techniques
 involves searching \emph{in three infinite dimensions}:  we must
 search for
-(1) a regular expression \emph{type} with an appropriate ``syntactic shape,'' 
+(1) a \emph{type} consisting of two regular expressions equivalent to the
+given ones but with an ``appropriate shape,'' 
 (2) a lens \emph{expression} that has the given type and is consistent
 with the user's examples, and 
-(3) intermediary regular expressions for composing lenses.
+(3) {\em intermediate} regular expressions for each use of the composition
+operator.  
 
-\paragraph*{Solution 1: Canonization}
-Our solution is to define a new language of lenses that
-reduces the synthesis search space \emph{in all dimensions}.
-We designed this language so that its regular expression types are limited 
-to those in a normalized form.  This normalized form
-demands that regular expressions be fully distributed and removes all
-associativity information.
-When converted into this normalized form, two regular expressions that differ
-only by associativity of concatenation will be syntactically equal.
-For example, rather than searching for a lens with type 
-$(A B) C \Leftrightarrow A' (B' C')$, our algorithm will always search
-for one with type  $A \Concat B \Concat C \Leftrightarrow A' \Concat B'
-\Concat C'$
+Our approach to this challenge is to define a new ``DNF syntax'' for types
+and lenses that reduces the synthesis search space \emph{in all dimensions}.
+In this language, regular expressions are written in disjunctive normal
+form, where unions are fully distributed over concatenation and where binary
+operators are replaced by $n$-ary ones, eliminating associativity rules.
+For example, when presented with a synthesis problem with type
+$(A B) C \Leftrightarrow A' (B' C')$, our algorithm will first convert this
+type into $A \Concat B \Concat C \Leftrightarrow A' \Concat B' \Concat C'$.
+\bcp{Maybe the latter should be presented in the DNF syntax.}
 
-With this approach, many, but not all, regular expression equivalences that
-prevent type-directed lens synthesis disappear.
+Normalization to DNF eliminates, many, but not all, of the regular expression
+equivalences that may needed before applying a simple structural search that
+follows the syntax of types.
 Not all structural incongruities disappear because our normalized
-regular expressions
-are only \emph{pseudo-canonical}, the equivalence class of syntactic equality in
-this form is a finer equivalence relation than language equivalence.
+regular expressions are only \emph{pseudo-canonical}.
 For instance, our normal form
 does not automatically unify regular expressions such as
 $A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.\BCP{Why not?}  \afm{Attempting to normalize by putting
+unrolling of Kleene Star.  \afm{Attempting to normalize by putting
 the regular expressions in the smaller form on the left form prevents finding
 transformations between $\EmptyString \Or (\Regex \Concat \StarOf{\Regex})$ and
 $\EmptyString \Or (\Regex' \Concat \StarOf{\Regex})$, as the first form would be
 able to be transformed, while the second could not.  Attempting to put the
 regular expressions into the larger form on the right cannot be done, as that
-rule can be applied an arbitrarily large number of times.}
+rule can be applied an arbitrarily large number of times.}\bcp{This
+explanation belongs in black!}
 % \bcp{Why
 %     couldn't we have built our algorithm by following the structure of a
 %     proof of equivalence between the source and target types?  (I.e., why
@@ -518,68 +526,69 @@ regular expression types. If that fails, the second is a search,
 using a subset of Conway's axioms~\cite{conway}, for 
 equivalent regular expression types that might allow a new search to succeed.
 
-The specialized lenses between our normalized 
-forms are expessive enough that they are closed under composition
-\emph{without adding a composition operator}.  Obviating the need for a
-composition operator reduces the search space by an entire dimension
-because the synthesis algorithm no longer needs to search through
-possible intermediary regular expressions for compositions.
+Like DNF regular expressions, DNF lenses are stratified, with disjunctions
+outside of concatenations, and they use $n$-ary operators instead of binary
+ones, further reducing the search space.  The DNF syntax also omits the lens
+composition operator because (unlike the standard lens syntax) its other
+operators are already closed under composition (any program that can be
+written with composition can also be written without it).  This reduces the
+search space by an entire dimension because the synthesis algorithm no
+longer needs to search through possible intermediary regular expressions for
+compositions.
 
 \paragraph*{Challenge 2: Large Types}
-The types describing data formats may be very large --- they are
-regular grammars describing complex data formats.  On the one hand,
-the size of these types is very useful as such types provide a wealth
-of information that constrains the search process effectively.  On the
-other hand, the algorithm must be able to guarantee that the generated lens
-satisfies the many constraints introduced by these large and complex types. 
+In practice, the regular expressions describing complex {\em ad hoc} data
+formats may be very large.  
+%
+The key to addressing this challenge is to observe that users naturally
+construct large types incrementally, introducing named abbreviations for
+major subcomponents.  We can exploit the structure inherent in these named
+abbreviations to speed up the search dramatically.  For example, if the name
+$A$ appears just once in both the source and the target types, the system
+hypothesizes that the identity lens can be used to convert between
+occurrences of $A$.  On the other hand, if the name $A$ appears in the
+source but not in the target, the system replaces the name $A$ with its
+definition.  Similarly, differing numbers of occurrences of the same name
+can serve as a guide for applying equivalence axioms in the synthesis
+algorithm.  We guide the transformation of regular expression types during
+search using a pseudometric based on counting occurrences of names---this
+heuristic turns out to perform much better than a simple breadth-first
+search.
 
-\paragraph*{Solution 2: Compositional Types}
-The key to solving this challenge is to observe that users naturally
-construct large types compositionally, using named abbreviations for
-subcomponents.  We exploit the structure inherent in these named
-abbreviations to speed up the search dramatically.  For example, if
-the name $A$ appears once in both the source and the target, the
-system hypothesizes that the identity lens can be used to convert
-between occurrences of $A$.  On the other hand, if the name $A$
-appears in the source, but not in the target, the system replaces the
-name $A$ with its definition.  Furthermore, differing numbers of
-occurrences of names serve as a guide for applying other regular
-expression equivalence axioms in the synthesis algorithm.  To capture
-this intuiton, we define a pseudometric based on the occurrence of
-names to guide the transformation of regular expression types.  This
-pseudometric provides a heuristic to guide the search, which we have
-found to perform better than a simple breadth-first search.
-
-
-\paragraph*{Contributions.}  We have made bidirectional programming more
-accessible to the average programmer by designing and implementing
-a system for the synthesis of bijective string lenses.  In addition,
-we make the following contributions: 
+\paragraph*{Contributions.}  Our synthesis algorithm is intended to make
+bidirectional programming more accessible to non-expert programmers.  We
+offer the following technical contributions:
 
 \begin{itemize}
-\item We define a new domain-specific lens language designed specifically
-  for synthesis.  This language uses pseudo-canonical regular
-  expressions to type the source and target data formats. Its term
-  language maps between the languages of these pseudo-canonical
-  regular expressions.
-\item We formalize the semantics of this language and prove it sound and complete
-  with respect to an existing language for bijective string lenses.
-\item We present a type-directed algorithm for synthesizing lenses in our new
-  domain-specific language, which can efficiently search through lens terms and
-  type equivalences.
-\item We evaluate the algorithm on 23 benchmarks, including
-  examples from FlashFill and from the Augeas system for transforming
-  linux 
-  file formats.  Our synthesis algorithm succeeds on all of our
-  benchmarks, with an average synthesis time of 0.134 seconds.
+\item We introduce DNF lenses, a variant of standard lenses designed
+specifically for synthesis (\S \ref{sec:dnfre} and \S \ref{sec:dnf}).  This
+language uses pseudo-canonical regular 
+expressions to type the source and target data formats. Its term language
+maps between the languages of these pseudo-canonical regular expressions.
+We show how to convert back
+and forth between ordinary regular expressions and lenses and the DNF forms,
+and prove these translations sound and complete with respect to a high-level
+lens syntax based on a bijective subset of the well-studied Boomerang
+language~\cite{boomerang}.  \BCP{This claim is not entirely accurate, unless
+  it's stated and read very carefully: our high-level lens syntax is just a
+  subset of (the bijective subset of) Boomerang, because it doesn't have all
+  the type equivalences.  I've tried to adjust the wording so it's true,
+  but...} 
+\item We develop a type-directed algorithm for synthesizing DNF lenses (\S
+\ref{implementation}) and prove it correct and complete.
+\item We evaluate this algorithm on 23 benchmarks, including examples from
+FlashFill\bcp{explain what it is} and from the Augeas system for
+transforming linux file formats (\S \ref{evaluation}).  Our tool succeeds on
+all of our benchmarks, with an average synthesis time of 0.134
+seconds\bcp{how many significant digits?}.
 \end{itemize}
 % end introduction
 
 % begin background
 \section{Background}
 
-\subsection{Regular Expressions}
-\label{sec:regexp}
+\SUBSECTION{Regular Expressions}
+% \label{sec:regexp}
 
 %\paragraph*{Languages and Alphabets}
 %
@@ -626,7 +635,7 @@ we make the following contributions:
 %   in just losing things even in the long version.  Just wanted to make sure
 %   we had the long version in mind.}
 
-We assume given an alphabet $\Sigma$; variables $s$ and $t$ denote 
+$\Sigma$ is the alphabet of individual characters; $s$ and $t$ range over
 strings in $\StarOf{\Sigma}$.  Regular expressions over $\Sigma$ are: 
 \begin{center}
 \begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
@@ -640,7 +649,7 @@ strings in $\StarOf{\Sigma}$.  Regular expressions over $\Sigma$ are:
 $\LanguageOf{R}\subseteq \StarOf{\Sigma}$, the language of $R$, is
 defined as usual. 
 
-\paragraph*{Unambiguity}
+\paragraph*{\iffull Regular-Expression \fi Unambiguity}
 
 %These regular expressions are used to inductively define languages.
 %\[
@@ -693,7 +702,7 @@ must themselves be strongly unambiguous.
 % fig:regex-equivalence-rules
 
 % fig:definitional-equivalence-rules
-\paragraph*{Equivalences}
+\paragraph*{\iffull Regular-Expression \fi Equivalences}
 $R$ and $T$ are \textit{equivalent}, written $\Regex\equiv\RegexAlt$, if 
 $\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
 There exists an equational theory for determining whether two regular expressions
@@ -757,7 +766,7 @@ context of lens synthesis presents several problems.  To understand
 why, we need to see how the equational theory is used to type lenses. 
 
 
-\subsection{Bijective Lenses}
+\SUBSECTION{Bijective Lenses}
 
 % fig:lens-semantics
 
@@ -773,7 +782,7 @@ The syntax for these bijective lenses is given by:
             & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
             & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
             & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
-            & & & \GBar{} $\ComposeLensOf{\Lens_1}{\Lens_2}$ & Compose\\
+            & & & \GBar{} $\ComposeLensOf{\Lens_2}{\Lens_1}$ & Compose\\
             & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
   \end{tabular}
 \end{center}
@@ -825,7 +834,7 @@ on a on a regular expression, $\IdentityLensOf{\Regex}$, operates in both
 directions by applying the
 identity function to strings in $\LanguageOf{\Regex}$.  The composition
 combinator, 
-$\ComposeLensOf{\Lens_1}{\Lens_2}$, operates by applying $\Lens_1$ then $\Lens_2$
+$\ComposeLensOf{\Lens_2}{\Lens_1}$, operates by applying $\Lens_1$ then $\Lens_2$
 when operating left to right, and applying $\Lens_2$ then $\Lens_1$ when
 operating right to left.
 
@@ -842,7 +851,7 @@ applying $\Lens$ to subparts of a string.
 \paragraph{Lens Typing}
 
 \begin{figure}
-  \centering\footnotesize
+  \centering% \footnotesize
   \begin{mathpar}
     \inferrule[]% \ConstantLensRule{}
     {
@@ -863,6 +872,7 @@ applying $\Lens$ to subparts of a string.
       \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
     }
 
+\iffull
     \inferrule[]%\ConcatLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
@@ -873,6 +883,7 @@ applying $\Lens$ to subparts of a string.
     {
       \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
     }
+\fi
 
     \inferrule[]%\SwapLensRule{}
     {
@@ -895,6 +906,7 @@ applying $\Lens$ to subparts of a string.
       \OrLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 | \RegexAlt_1 \Leftrightarrow \Regex_2 | \RegexAlt_2
     }
 
+\iffull
     \inferrule[]%\ComposeLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
@@ -903,6 +915,7 @@ applying $\Lens$ to subparts of a string.
     {
       \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
     }
+\fi
 
     \inferrule[]%\IdentityLensRule{}
     {
@@ -923,8 +936,7 @@ applying $\Lens$ to subparts of a string.
     }
   \end{mathpar}
 
-  \caption{Lens Typing\bcp{Fine.  Let's
-      remember to make them bigger too.}}
+  \caption{Lens Typing Rules \iffull\else (except $\mathit{concat}$ and $;$) \fi}
   \label{fig:lens-typing}
 \end{figure}
 
@@ -969,7 +981,7 @@ tractable notion of equivalence $\DefinitionalEquiv \subseteq \equiv$,
 as we next explain.  We have not found this restriction to be limit
 the expressivity of lenses in practice.
 
-\subsection{Definitional Equivalence and Rewriting}
+\SUBSECTION{Definitional Equivalence and Rewriting}
 
 \saz{It could be that this discussion belongs after the example and
   closer to the definition of DNF lenses. In that case, we might want
@@ -1345,6 +1357,7 @@ This parsing information means that the first \CF{Name} in \CF{DNFBib'} must map
 % begin formalisms
 
 \section{DNF Regular Expressions}
+\label{sec:dnfre}
 
 
 The first important step in our synthesis algorithm is to convert
@@ -13940,7 +13953,7 @@ TODO
       \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
     }
     {
-      \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
+      \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
     }
   \]
 
