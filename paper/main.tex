@@ -165,7 +165,8 @@
   that are more algorithmically tractable.  We show how to manage this
   search by defining a new language of lenses governed by normalized
   regular expression types. We prove this language sound and complete
-  with respect to a standard language of bijective lenses\bcp{I don't know
+  with respect to \afm{bijective lenses derived from the combinators used
+  in Boomerang}\sout{a standard language of bijective lenses}\bcp{I don't know
     what this means.}.  We then
   show how to search the reduced space for well-typed lenses that are
   consistent with user-supplied examples.  We demonstrate the
@@ -480,7 +481,14 @@ this form is a finer equivalence relation than language equivalence.
 For instance, our normal form
 does not automatically unify regular expressions such as
 $A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.\footnote{\BCP{Why not?  More generally, why
+unrolling of Kleene Star.  \afm{The source and target types of lenses are not
+  necessarily language equivalent, so we cannot use standard equivalence
+  strategies to determine if lenses exist between them.  Furthermore, we cannot
+  even approach this problem by generating transducers between the languages;
+  lenses are able to swap data.  Commonly, data formats do not have all data in
+  the same locations, and swapping is important for expressing data
+  transformations between these formats.}
+\footnote{\BCP{Why not?  More generally, why
     couldn't we have built our algorithm by following the structure of a
     proof of equivalence between the source and target types?  (I.e., why
     did we have to use Conway's axioms or worry about confluence, given that
@@ -504,8 +512,10 @@ The types describing data formats may be very large --- they are
 regular grammars describing complex data formats.  On the one hand,
 the size of these types is very useful as such types provide a wealth
 of information that constrains the search process effectively.  On the
-other hand, there is a lot of data that must be managed carefully by
-the synthesis system.\footnote{\ksf{Having to manage a lot of data
+other hand, \afm{the algorithm must be able to guarantee that the generated lens
+  satisfies the many constraints introduced by these large, complicated types}
+\sout{there is a lot of data that must be managed carefully by
+the synthesis system}.\footnote{\ksf{Having to manage a lot of data
 carefully is not a compelling difficulty.  Is there another way of
 expressing this challenge?}}
 
@@ -594,6 +604,8 @@ we make the following contributions:
   some such around it, right?  I had assumed that we were going to submit
   (as ``supplemental material'') a long version containing both proofs and
   all the stuff elided from the short version...}
+\afm{for this I just removed it, for a lot of things I moved it into the
+  appendix.  In future I will do the iffull strategy.}
 
 We assume given an alphabet $\Sigma$; variables $s$ and $t$ denote 
 strings in $\StarOf{\Sigma}$.  Regular expressions over $\Sigma$ are: 
@@ -670,15 +682,23 @@ There are a number of proof systems that are complete with respect to
 determining regular
 expression equivalence, but equational theories embed a straightforward search
 procedure for generating equivalent regular expressions, for they provide a
-rewrite relation that creates equivalent regular expressions.  \BCP{This is
+rewrite relation that creates equivalent regular expressions.  \afm{Using a
+  different proof system would achieve the same result: we search through
+  equivalent regular expressions in synthesizing \RewriteRegexLensRule{},
+  we would just also be required to keep track of other information, like Horn
+  clauses.  An equational theory provides rewrite rules associated with the
+  application of an equivalence rule.}\BCP{This is
   not a very strong reason for following this path, given that this complete
   search procedure was precisely what we were unable to establish.}
 
 \bcp{This section confusingly blurs the distinction between equational
   theories and systems of rewrite rules.}
 
-Conway's axioms consist of the semiring axioms\bcp{summarize them in words},
-and the following 
+Conway's axioms consist of the semiring axioms \afm{of associativity of
+\OrRegexType{} and \ConcatRegexType{}, commutativity of \OrRegexType{},
+distributivity, and the existance of \OrRegexType{} and \ConcatRegexType{}
+identities.  They also consist of}\bcp{summarize them in words},
+\sout{and} the following 
 rules dealing with the equivalences on \StarRegexType{}.
 \begin{center}
 \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
@@ -705,17 +725,33 @@ which makes the search space very wide (indeed infinite).
 Furthermore, we have found two important properties which are sufficient for a
 lens language to not require a composition operator.
 To not require a composition operator, it is important for the rewrite relation
-to be confluent\bcp{say why}.  It is also important that rewrites can be \emph{mirrored}.
+to be confluent\bcp{say why}.  \afm{If two lenses were composed together, and
+  in the typing of each of the sublenses, the central regular expression was
+  rewritten using non-confluent rewrites, there would be no way to build up a
+  new lens that did not use composition, but still had the same end type, as
+  there would be no way to combine the derivations.}
+It is also important that rewrites can be \emph{mirrored}.
 If there is a lens $\Lens$ which maps between $\Regex$ and $\RegexAlt$,
 and if $\Regex$ rewrites to
 $\Regex'$, then $\RegexAlt$ can be rewritten in the same way to $\RegexAlt'$,
 such that there is
 a lens $\Lens'$ with the same semantics as $\Lens$, which maps between
-$\Regex'$ and $\RegexAlt'$.  While Conway's axioms are confluent\BCP{I
-  thought we didn't know this}, they don't
-satisfy the second property\bcp{say why not}.
+$\Regex'$ and $\RegexAlt'$.  While \afm{the rewrite rules corresponding to both
+  the forward and the backward directions of each equivalence of }Conway's
+axioms are confluent \afm{as the reverse rewrite can always be taken}
+\BCP{I thought we didn't know this}, they don't
+satisfy the second property\bcp{say why not}.  Given a lens between $A$ and $C$,
+There are lenses between
+$\StarOf{(\StarOf{A}\Concat B)}\Concat\StarOf{A}$ and
+$\StarOf{(\StarOf{A}\Concat B)}\Concat\StarOf{C}$, but
+$\StarOf{(\StarOf{A}\Concat B)}\Concat\StarOf{A}$ can be rewritten to
+$\StarOf{(A \Or B)}$, whereas there's no analogous transformation for
+$\StarOf{(\StarOf{A}\Concat B)}\Concat\StarOf{C}$.
 Furthermore, removing the rewrites that cannot be mirrored makes\bcp{say why}
-the rewrites no longer confluent!\bcp{...Or complete, I suppose.}  
+the rewrites no longer confluent \afm{as the approach of taking the reverse
+  rewrite can no longer be used, and some of the transformations alter the
+  structure in such different ways that they cannot be brought back together}!
+\bcp{...Or complete, I suppose.}  
 
 Because of these issues, instead of looking through all regular expressions
 that are
@@ -855,7 +891,7 @@ experiments (see \S\ref{evaluation}).
   \end{mathpar}
 
   \caption{Lens Typing\bcp{We can save quite a few lines by moving the rule
-      names}}
+      names}\afm{What do you mean by this?}}
   \label{fig:lens-typing}
 \end{figure}
 
@@ -903,7 +939,7 @@ $\String_2$.
                                                   \SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
                                                   \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}$\\
     
-    $\SemanticsOf{\ComposeLensOf{\Lens_1}{\Lens_2}}$ &=&
+    $\SemanticsOf{\ComposeLensOf{\Lens_2}{\Lens_1}}$ &=&
                                                        $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2$\\
                                              & & $\hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
                                                  (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}$\\
@@ -1022,30 +1058,30 @@ not inline all definitions, as doing so in more complicated data formats can
 create huge regular expressions.
 
 \begin{figure}
-\begin{lstlisting}
+\begin{lstlisting}[mathescape=true]
 BibTex':
-  "" 
-  | ("author={" Name ", " Name Names
-    (" and " (Name ", " Name Names))* "},")
+  $\EmptyString$ 
+  | ($\mathit{author=}$ Name $\mathit{,}$ Name Names
+    ($\mathit{\_and\_}$ (Name $\mathit{,\_}$ Name Names))* $\mathit{\},}$)
 
 EndNote':
-  ("%A " (Name Names " " Name) "\n")*
+  ($\mathit{\%A\_}$ (Name Names $\mathit{\_}$ Name) $\mathit{\\n}$)*
 
 DNFBib':
-  ""
-  | "author={" Name ", " Name "" Names ""
-    (" and " Name ", " Name "" Names "")* "},"
+  $\EmptyString$
+  | $\mathit{author=\{}$ Name $\mathit{,\_}$ Name $\EmptyString$ Names $\EmptyString$
+    ($\mathit{\_and\_}$ Name $\mathit{,\_}$ Name $\EmptyString$ Names $\EmptyString$)* $\mathit{\},}$
 
 DNFEnd':
-  "" ("%A " Name "" Names " " Name "\n")* ""
+  $\EmptyString$ ($\mathit{\%A\_}$ Name $\EmptyString$ Names $\mathit{\_}$ Name $\mathit{\\n}$)* $\EmptyString$
 
 DNFEndUnroll:
-  ""
-  | "%A " Name "" Names " " Name "\n"
-    ("%A " Name "" Names " " Name "\n")* ""
+  $\EmptyString$
+  | $\mathit{\%A\_}$ Name $\EmptyString$ Names $\mathit{\_}$ Name $\mathit{\\n}$
+    ($\mathit{\%A\_}$ Name $\EmptyString$ Names $\mathit{\_}$ Name $\mathit{\\n}$)* $\EmptyString$
 
 DNFEndReplacement:
-  ("%A " Name "" (" " Name)* " " Name "\n")* ""
+  ($\mathit{\%A\_}$ Name $\EmptyString$ ($\mathit{\_}$ Name)* $\mathit{\_}$ Name $\mathit{\\n}$)* $\EmptyString$
 \end{lstlisting}
   \label{fig:examples-expanded}
   \caption{
@@ -1492,12 +1528,18 @@ These rewrite rules are similar to the equivalence rules for DNF regular
 expressions, \UnrollstarLeftRule{} and \UnrollstarRightRule{}.
 With the atoms rewritten to DNF regular expressions, \DNFStructuralRewriteRule{}
 provides a way to combine the rewritten atom into the broader regular
-expression.
+expression\afm{, through singling out the atom, expanding it, and recombining it into
+the regular expression}.
 Similarly, if a DNF regular expression is rewritten to a different
 DNF regular expression, the rewrite rule \AtomStructuralRewriteRule{} can extend
 this rewrite to rewriting atoms containing those regular expressions.
 The symbol $\StarOf{\Rewrite}$ is used to denote the transitive and reflexive
-closure of $\Rewrite$.
+closure of $\Rewrite$.  \afm{These correspond closely with the definitional
+equivalence rules.  Many of the semiring axioms are normalized in the regular
+expression into this form, and these rewrites correspond to applications of the
+rewrites associated with \StarRegexType{}.  This does not handle \OrRegexType{}
+commutativity -- this commutativity is handled in the typing of the DNF lenses,
+not in the rewrite rules, to make the search space narrower.}
 
 \bcp{IMHO this section is needs some expansion---the rules are pretty
   complicated, and they need better explanation.}
@@ -1718,7 +1760,7 @@ tweaked for readability with \Beautify{}.
     \State $((\DNFRegex,\DNFRegexAlt),\ExpCount) \gets \QueueElement$
     \State $\DNFLens \gets
     \Call{\SynthRWLDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
-    \If{$\DNFLens \neq \Null$}
+    \If{$\DNFLens \neq \bot$}
     \State $\ReturnVal{\DNFLens}$
     \Else
     \State $\DNFRegexs \gets \Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
@@ -1739,7 +1781,7 @@ tweaked for readability with \Beautify{}.
 \bcp{Minor comment: we can save several lines by removing ``end if'' and
   such.  Larger comment: Is this seriously using {\em null} to
   represent a failure result from a subroutine??  The reviewers are going to
-  laugh at us.}
+  laugh at us.}\afm{is $\bot$ better?}
 \end{algorithm}
 
 In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
@@ -3217,8 +3259,7 @@ whitespace problem.
     $\Regex_2=\ToRegex(\Atom_i)$,
     $\Regex_3=\ToRegex(\Atom_{i+1})$, and
     $\Regex_4=\ToRegex([\Sep;\Atom_{i+1};\ldots;\Atom_{n};\Sep])$.
-    Consider the following deduction\bcp{I find these deductions a bit heavy and
-      hard to read, but I guess I can get used to them.  }
+    Consider the following deduction
     \begin{mathpar}
 
       \inferrule*[left=\Derivation{}]
