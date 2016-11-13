@@ -1,3 +1,4 @@
+\newif\ifdraft\drafttrue  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
 \newif\ifappendices\appendicesfalse
@@ -227,10 +228,15 @@ transfors the examples as specified.
 \section{Introduction}
 
 The growing dependence on big data makes tools for reliably parsing,
-printing, cleaning, and transforming data increasingly important.
+printing, cleaning, and transforming data in {\em ad hoc} formats
+increasingly important. 
 One such class of tools is \emph{lenses}~\cite{Focal2005-long},
 bidirectional programs that help users solve the classic ``view update
-problem'' \cite{chen2010comparative}.
+problem'' \cite{chen2010comparative}.\BCP{We persistently mix
+  general [asymmetric or even symmetric] lenses with bijective lenses.
+  Here, for example, it's true that asymmetric lenses are intended as a
+  solution to the view-update problem, but 
+  {\em bijective} lenses are notm really.}
 More specifically, a lens provides a user with two functions:
 \emph{get} and \emph{put}.  The \emph{get}
 function translates source data into a target format, or \emph{view}, for
@@ -252,25 +258,43 @@ while reading, editing, and writing data sources.  Lenses are
 typically implemented as domain-specific languages with strong type
 systems~\cite{Focal2005-long, boomerang, symmetric-lenses} because
 general-purpose languages do not admit bidirectional interpretations
-nor do they have type systems strong enough to ensure invertibility.
-Example uses of lenses in practice include Augeas~\cite{augeas}, a
-configuration editing system for linux that uses lens combinators to
-provide editable views of configuration files; the biXid~\cite{bixid}
-language that expresses bidirectional XML transformations, and
-XSugar~\cite{xsugar} that converts bidirectionally between XML and
-non-XML data and between EpiDoc~\cite{epidoc} and
-Leiden+~\cite{leidenplus} formats for encoding ancient
-documents~\cite{epidocleidenplus}.
+nor do they have type systems strong enough to ensure desired round-tripping
+laws.
 
-Unfortunately, writing lenses presents a number of challenges.  First,
-users must learn a lens language and its type system.  Second, they
-must adopt its unorthodox programming style that requires thinking in
-two directions at once.  Finally, they must learn how to work within
-the restrictive type system that ensures invertibility.  These
-difficulties can disincentivize programmers from adopting the
-technology, despite its advantages.
+Lens-like languages have been used successfully in a number of practical
+applications.  For example, include Augeas~\cite{augeas}, a configuration
+editing system for linux that uses lens combinators to provide editable
+views of configuration files; the biXid~\cite{bixid} language that expresses
+bidirectional XML transformations, and XSugar~\cite{xsugar} that converts
+bidirectionally between XML and non-XML data and between
+EpiDoc~\cite{epidoc} and Leiden+~\cite{leidenplus} formats for encoding
+ancient documents~\cite{epidocleidenplus}.  \BCP{Some things to figure
+  out... biXid and XSugar are not exactly lens languages.  And there are a
+  whole bunch of other lens-like languages, e.g. from Tokyo, that we should
+  mention.  One issue we'll need to deal with is that many of these
+  languages do {\em not} have especially restrictive type systems; instead,
+  they give up on totality.  E.g., instead of requiring unambiguity, they
+  might simply declare that their lenses will signal an error if you ever
+  supply them with a string that has two different parses.  I'm not
+  completely sure how we want to frame the discussion, but I will think
+  about it.}
+%
+However, these languages have not been widely adopted, for several reasons.
+First, users must learn a lens language and its type system.  Second, they
+must adopt its unorthodox programming style that requires thinking in two
+directions at once.  Finally and most importantly, they must learn how to
+work within the restrictive type system that ensures invertibility.  These
+difficulties can disincentivize programmers from adopting the technology,
+despite its advantages.
+%
+\BCP{IMHO, the third of these is the only really important one.  And, to be
+  fair, our tool does not really save programmers from dealing with
+  unambiguity, since they still have to write the types!}
 
-To overcome these difficulties, we have developed a system for
+One way to overcome these difficulties is to {\em synthesize} lenses from
+types and examples, rather than 
+
+ have developed a system for
 synthesizing bijective string lenses from the types of the source and
 target data formats and a collection of representative examples.
 The language we use for lenses has
