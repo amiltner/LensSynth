@@ -2181,30 +2181,35 @@ On average, synthesis required \ksf{0.134 seconds} and \ksf{UU
 user-supplied examples.}
 
 \paragraph*{Benchmark Suite Construction}
-We constructed our benchmarks by adapting examples from Augeas and
-FlashFill and by handcrafting specific examples to test various
+We constructed our benchmarks by adapting examples from
+Augeas~\cite{augeas} and 
+FlashFill~\cite{gulwani-popl-2014} and by handcrafting specific
+examples to test various 
 features of the algorithm.
-Specifically, we derived \ksf{17} of the benchmark programs by
+Specifically, we derived \ksf{17} of the benchmark tests by
 adapting all of the lenses from the Augeas distribution that started
-with the letter 'A' as well as the lenses
+with the letter `A' as well as the lenses
 \texttt{aug/xml-firstlevel} and \texttt{aug/xml} that were referenced
-by the 'A' lenses.  We derived \ksf{3} benchmarks from examples in the
-FlashFill paper~\cite{gulwani-popl-2014} .
+by the `A' lenses.  We derived \ksf{3} benchmarks from examples in the
+FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
+We wrote \ksf{3} custom examples to test various features of the
+algorithm.
+In Figure~\ref{fig:evaluation-data}, examples derived from Augeas are
+prefixed with ``aug'', those from FlashFill with ``ff'', and those
+written by hand by ``cust.''
 
-Specifically, \ksf{YY} of the
-programs came from Augeas data transformation problems and \ksf{ZZ}
-from FlashFill examples.  We wrote \ksf{WWW} custom examples to test
-various features of the algorithm.
-
-Augeas uses combinators similar to Boomerang, but enables transformations
-from strings on the left to a structured tree format on the right, instead
-of strings on both sides.  We mimicked these as string lens synthesis
-problems by choosing string formats that look like a serialized version of
-the tree formats.  Augeas also supports a more general class of {\em
-  asymmetric lenses}~\cite{Focal2005-long}, whereas our synthesis algorithm
-works only with bijective lenses.  By including extra fields in the tree
-format on the right, we were able to turn non-bijective synthesis problems
-into bijective ones for purposes of the experiment.
+Augeas is a configuration editing system for linux that uses lens
+combinators similar to those in Boomerang. However, it transforms
+strings on the left to structured trees on the right rather than
+transforming strings to strings.
+We adapted these Augeas lenses to our setting by converting the
+right-hand sides to strings that corresponded to serialized versions
+of the tree formats.  
+Augeas also supports {\em asymmetric lenses}~\cite{Focal2005-long},
+which are more general than the bijective lenses we can synthesize.
+We adapted these examples by adding extra fields to the
+right-hand side to make the transfomations bijective and thus suitable
+for our study.
 
 % KSF: I believe this paragraph is no longer relevant because we are
 % not including Boomerang benchmarks.
@@ -2216,69 +2221,66 @@ into bijective ones for purposes of the experiment.
 %lenses.  Any part of the string that would be quotiented, instead is
 %included in a different area of the string, to maintain bijectivity.
 
-FlashFill examples, unlike the other tests, are not in fact lenses, they are
-merely string transformations.  Furthermore, many of them are non-bijective, as
-FlashFill examples are often about extracting certain pieces of information.
-However, through the same process of making the transformations bijective as
-tackled in other ports, we
-add in invertibility constraints that allow the transformation to be interpreted
-as a lens.
+FlashFill is a system that allows users to specify common string
+transformations by example~\cite{gulwani-popl-2014}.  
+Many of the examples from FlashFill are non-bijective because
+the user's goal is often to extract information.  We were able to
+adapt some examples by adding information to the target so the
+resulting transformation was bijective.
 
-These tests were selected to demonstrate our algorithms ability to synthesize
-transformations used in practice.  Many had an appearance similar to the
-\CF{BibEnd} example given in Figure~\ref{fig:bibend-spec}.  However, \CF{BibEnd}
-was simplified for clarity's sake, and the examples taken from real world
-applications are usually much longer and involve far more user defined regular
-expressions.  Furthermore, in larger synthesis problems,
-we build intermediary lenses
-between intermediary regular expressions as a sanity check for bijectivity.
-These intermediary lenses are then used in the synthesis algorithm for mapping
-the intermediary sub-expressions, to avoid repeating the same synthesis
-algorithm.
+\ksf{Anders, we need to have a paragraph describing the synthetic
+benchmarks and what we created them to evaluate.}
+
+\ksf{Anders, we need to have a paragraph describing the sizes of these
+benchmark programs.  The paragraph needs to be concrete, talking about
+the sizes of the source/target regular expressions and/or the size of
+the synthesized lenses.}
+
+
+% KSF: This material seems to fit into a description of the algorithm,
+% not the evaluation section. Furthermore, in larger synthesis
+% problems, we build intermediary lenses between intermediary regular
+% expressions as a sanity check for bijectivity.  These intermediary
+% lenses are then used in the synthesis algorithm for mapping the
+% intermediary sub-expressions, to avoid repeating the same synthesis
+% algorithm. 
 
 \paragraph*{Speed of Synthesis}
 %
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
-test suite, with the column \textbf{ComputationTime} showing the runtime of the
-overall synthesis algorithm.
+benchmark suite. The column \textbf{Time} shows the runtime of the
+synthesis algorithm in microseconds; smaller numbers are better.
+Across all examples, the average synthesis time is \ksf{0.134
+seconds}; the slowest example (aug/xml) completes in just under four 
+seconds. 
+\ksf{Say something about how the running time relates to the
+complexity of the benchmark program once we have that data available.}
 
-In this figure, we want to minimize runtime, as a smaller runtime means we were
-able to synthesize very efficiently.
-We found that, on many of our difficult examples, our algorithm was able to find
-the appropriate lens very quickly.
+The example aug/xml takes as long as it does primarily because of the
+complexity of the regular expressions that describe the source and
+target data formats, \ksf{XXX tokens and YYY tokens,
+respectively}.\footnote{Note that xml is not a regular language, so
+    the source and target regular expressions describe only xml
+    expressions up to depth 3.} 
+A second challenge is that the system must apply a number of regular
+expression expansions to get the source and target regular expressions
+into alignment.  The large sizes of these regular expressions means
+the system can perform many expansions and the search space is large.
 
-This figure shows us where the strengths and weaknesses of our algorithm lie.
-In particular, our synthesis strategy does quite well on problems that only
-include a small number of transformations, even if the number of sequences is
-decently large.
-However, on sufficiently complex examples, our algorithm takes longer,
-For example xml.ls are both quite slow.
+We constructed the pathological example \ksf{cust/double-capital} to
+highlight the exponential blow-up that arises in expanding
+disjunctions in the conversion to DNF form.  This example converts
+between strings of lowercase letters to strings of uppercase letters
+and vice versa, leading to source and target regular expression types
+that contain disjunctions of 26 letters.  The source and target
+regular expressions each contain two references to these disjunctions;
+hence the name ``double.''  In this example, the conversion to DNF
+form creates 676 sequences in the first expansion.  This number grows
+to 17576 sequences in subsequent conversions.
 
-The test xml.ls takes a long time, as it is a very complicated regular
-expression.  Because full xml is not expressible as a regular expression, xml.ls
-expresses xml of depth up to 3.  The full specification for all xml up to depth
-3 is a huge regular expression.  Not only
-this is the regular expression large,
-but a number of regular expression expansions must be preformed to get it
-into dictionary form; different things must happen on a star that is matched
-0 times, and a star that is matched one or more times.  Because of the size of
-the regular expression, many expansions can be preformed, and because expansions
-must be preformed, it requires a large amount of search to find the correct
-expansions to synthesize a lens.
-
-Not shown in the figure is an unrealistic test, called the
-double capitalization problem.  This was intentionally made to
-exploit an issue that can arise from DNF conversion.  In converting to DNF form,
-a concatenation of many \OrRegexType{}s causes a huge blowup.  In the
-double capitalization problem, this blowup is exploited.  This problem causes a
-blowup, causing there to be 676 sequences created immediately.
-Any time SynthRewritelessDNF is called, it must find the correct mapping of all
-676 sequences.  A single instance of finding 676 sequences is not that bad, but it
-becomes worse when that must be done on every expansion, and some of the bad
-expansions that are popped create 17576 sequences.
-If we take this problem to the logical extremes, we see that the the triple
-capitalization problem takes 6.974 seconds, and the quadruple capitalization
-problem takes 33 minutes and 54.730 seconds.
+% If we take this problem to the logical extremes, we see that the the triple
+% capitalization problem takes 6.974 seconds, and the quadruple capitalization
+% problem takes 33 minutes and 54.730 seconds.
 
 \paragraph*{Importance of Examples}
 
