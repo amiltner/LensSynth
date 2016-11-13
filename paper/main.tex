@@ -1,3 +1,4 @@
+\newif\ifdraft\drafttrue  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
 \newif\ifappendices\appendicesfalse
@@ -227,10 +228,15 @@ transfors the examples as specified.
 \section{Introduction}
 
 The growing dependence on big data makes tools for reliably parsing,
-printing, cleaning, and transforming data increasingly important.
+printing, cleaning, and transforming data in {\em ad hoc} formats
+increasingly important. 
 One such class of tools is \emph{lenses}~\cite{Focal2005-long},
 bidirectional programs that help users solve the classic ``view update
-problem'' \cite{chen2010comparative}.
+problem'' \cite{chen2010comparative}.\BCP{We persistently mix
+  general [asymmetric or even symmetric] lenses with bijective lenses.
+  Here, for example, it's true that asymmetric lenses are intended as a
+  solution to the view-update problem, but 
+  {\em bijective} lenses are notm really.}
 More specifically, a lens provides a user with two functions:
 \emph{get} and \emph{put}.  The \emph{get}
 function translates source data into a target format, or \emph{view}, for
@@ -252,25 +258,43 @@ while reading, editing, and writing data sources.  Lenses are
 typically implemented as domain-specific languages with strong type
 systems~\cite{Focal2005-long, boomerang, symmetric-lenses} because
 general-purpose languages do not admit bidirectional interpretations
-nor do they have type systems strong enough to ensure invertibility.
-Example uses of lenses in practice include Augeas~\cite{augeas}, a
-configuration editing system for linux that uses lens combinators to
-provide editable views of configuration files; the biXid~\cite{bixid}
-language that expresses bidirectional XML transformations, and
-XSugar~\cite{xsugar} that converts bidirectionally between XML and
-non-XML data and between EpiDoc~\cite{epidoc} and
-Leiden+~\cite{leidenplus} formats for encoding ancient
-documents~\cite{epidocleidenplus}.
+nor do they have type systems strong enough to ensure desired round-tripping
+laws.
 
-Unfortunately, writing lenses presents a number of challenges.  First,
-users must learn a lens language and its type system.  Second, they
-must adopt its unorthodox programming style that requires thinking in
-two directions at once.  Finally, they must learn how to work within
-the restrictive type system that ensures invertibility.  These
-difficulties can disincentivize programmers from adopting the
-technology, despite its advantages.
+Lens-like languages have been used successfully in a number of practical
+applications.  For example, include Augeas~\cite{augeas}, a configuration
+editing system for linux that uses lens combinators to provide editable
+views of configuration files; the biXid~\cite{bixid} language that expresses
+bidirectional XML transformations, and XSugar~\cite{xsugar} that converts
+bidirectionally between XML and non-XML data and between
+EpiDoc~\cite{epidoc} and Leiden+~\cite{leidenplus} formats for encoding
+ancient documents~\cite{epidocleidenplus}.  \BCP{Some things to figure
+  out... biXid and XSugar are not exactly lens languages.  And there are a
+  whole bunch of other lens-like languages, e.g. from Tokyo, that we should
+  mention.  One issue we'll need to deal with is that many of these
+  languages do {\em not} have especially restrictive type systems; instead,
+  they give up on totality.  E.g., instead of requiring unambiguity, they
+  might simply declare that their lenses will signal an error if you ever
+  supply them with a string that has two different parses.  I'm not
+  completely sure how we want to frame the discussion, but I will think
+  about it.}
+%
+However, these languages have not been widely adopted, for several reasons.
+First, users must learn a lens language and its type system.  Second, they
+must adopt its unorthodox programming style that requires thinking in two
+directions at once.  Finally and most importantly, they must learn how to
+work within the restrictive type system that ensures invertibility.  These
+difficulties can disincentivize programmers from adopting the technology,
+despite its advantages.
+%
+\BCP{IMHO, the third of these is the only really important one.  And, to be
+  fair, our tool does not really save programmers from dealing with
+  unambiguity, since they still have to write the types!}
 
-To overcome these difficulties, we have developed a system for
+One way to overcome these difficulties is to {\em synthesize} lenses from
+types and examples, rather than 
+
+ have developed a system for
 synthesizing bijective string lenses from the types of the source and
 target data formats and a collection of representative examples.
 The language we use for lenses has
@@ -1264,7 +1288,7 @@ DNF regular expressions (\DNFRegex{},\DNFRegexAlt{}),
 sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt).
 
 \begin{center}
-  \begin{tabular}{lcl@{\ }>{\itshape\/}r}
+  \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % DNF_REGEX
     \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
     \Sequence{},\SequenceAlt{} & \GEq{} &
@@ -1273,64 +1297,90 @@ sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt).
   \end{tabular}
 \end{center}
 
-Like regular expressions, DNF regular expressions can be used to inductively
-define languages.
-\begin{center}
-  \begin{tabular}{R@{}L}
-    \LanguageOf{\StarOf{\DNFRegex}} = &
-                                        \{\String_1\Concat\ldots\Concat\String_n
-                                        \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
-    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= &
-                                                                                                                        \{\String_0\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_n\Concat\String_n \\
-    & \hspace*{2em}\SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}\\
-    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
-                                                                       \{\String \SuchThat \String \in \LanguageOf{\Sequence_i}\\
-    & \hspace*{2em}\text{ for some $i\in\RangeIncInc{1}{n}$}\}
-  \end{tabular}
-\end{center}
-
-A DNF regular expression is a list of sequences.
-We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
-to show that a list of sequences creates a DNF regular expression.
-A DNF regular expression corresponds to a regular expression consisting of many
-\OrRegexType{}s.  
-This correspondence is mirrored in the semantics, as the language of a DNF
-regular expression
-is the union of the sequences it is composed of.  This unioning is very similar
-to the unioning in the definition of the
-language of an
-\OrRegexType{} regular expression.
-
-A sequence is a list of atoms, with strings surrounding each atom.
-We use the balanced delimiters of $\SequenceLeft$ and $\SequenceRight$ to show
-that a list of atoms and strings creates a sequence.
-A sequence corresponds to a regular expression consisting
-of many \ConcatRegexType{}s.
-This correspondence is mirrored in the semantics, as the language of a sequence is a
-concatenation of strings, where each string is either the string in the
-sequence, or a string belonging to the language of the atom.  This concatenation
-is very
-similar to the concatenation in the definition of the language of
-a \ConcatRegexType{} regular expression.
-A sequence can be put into this form, where every atom is separated by a string,
-because if two atoms are next to each other, $\EmptyString$ can be placed
-between them.  If there are multiple strings between atoms, those strings can be
-concatenated into a single string.
+Intuitively, a DNF regular expression is an n-ary disjunction of
+sequences.  A sequence alternates between concrete strings and
+atoms.  Notice that it is straightforward to convert an abitrary series
+of atoms and strings into this form:  If there are multiple atoms between
+concrete strings, the atoms 
+may be separated by empty strings, and if there are multiple concrete strings 
+between atoms, the strings may be concatenated into a single string.
 The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
 stands for
 $\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
 with every string in the sequence is the empty string.
+Notice also that a simple string with no atoms may be represented as
+a sequence.
+An atom is an iteration of DNF Regular expressions.
+In our implementation, names of user-defined regular expressions
+are atoms; we elide such definitions from our theoretical analysis.
 
-An atom is an iteration of DNF Regular expression.  Atoms correspond very
-closely to regular expression \StarRegexType{}s.  This correspondence is mirrored in the
-semantics, as the language of an atom is constructed in the exact same way as a
-\StarRegexType{}.  The only difference between atoms and \StarRegexType{}s
-is that the iteration in atoms
-corresponds to the iteration of languages of DNF regular expressions, while the
-iteration in \StarRegexType{}s corresponds to the iteration of languages of
-regular expressions.  In the implementation, user defined regular expressions
-are atoms as well, turning atoms into a sum type of user defined regular
-expressions, and \StarAtomType{}s.
+Intuitions about DNF regular expressions may confirmed
+by their semantics, which we give by defining the language (set of strings)
+that each regular expression denotes:
+
+\noindent
+%\begin{center}
+  \begin{tabular}{R@{}L}
+    \LanguageOf{\StarOf{\DNFRegex}} = &
+                                        \{\String_1\Concat\ldots\Concat\String_n
+                                        \SuchThat \forall i \String_i\in\LanguageOf{\DNFRegex}\}\\
+    \LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}= & 
+%\\
+%\multicolumn{2}{L}{\ \ \ \ 
+\{\String_0\Concat\StringAlt_1\cdots\StringAlt_n\Concat\String_n \SuchThat \StringAlt_i\in\LanguageOf{\Atom_i}\}
+%}
+\\
+    \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}= &
+%\\
+%\multicolumn{2}{L}{\ \ \ \ 
+\{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{and $i\in\RangeIncInc{1}{n}$}\}
+%}
+  \end{tabular}
+%\end{center}
+\hspace{2mm}
+
+%% A DNF regular expression is a list of sequences.
+%% We use the balanced delimiters of $\DNFLeft$ and $\DNFRight$
+%% to show that a list of sequences creates a DNF regular expression.
+%% A DNF regular expression corresponds to a regular expression consisting of many
+%% \OrRegexType{}s.  
+%% This correspondence is mirrored in the semantics, as the language of a DNF
+%% regular expression
+%% is the union of the sequences it is composed of.  This unioning is very similar
+%% to the unioning in the definition of the
+%% language of an
+%% \OrRegexType{} regular expression.
+
+%% A sequence is a list of atoms, with strings surrounding each atom.
+%% We use the balanced delimiters of $\SequenceLeft$ and $\SequenceRight$ to show
+%% that a list of atoms and strings creates a sequence.
+%% A sequence corresponds to a regular expression consisting
+%% of many \ConcatRegexType{}s.
+%% This correspondence is mirrored in the semantics, as the language of a sequence is a
+%% concatenation of strings, where each string is either the string in the
+%% sequence, or a string belonging to the language of the atom.  This concatenation
+%% is very
+%% similar to the concatenation in the definition of the language of
+%% a \ConcatRegexType{} regular expression.
+%% A sequence can be put into this form, where every atom is separated by a string,
+%% because if two atoms are next to each other, $\EmptyString$ can be placed
+%% between them.  If there are multiple strings between atoms, those strings can be
+%% concatenated into a single string.
+%% The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
+%% stands for
+%% $\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
+%% with every string in the sequence is the empty string.
+
+%% An atom is an iteration of DNF Regular expression.  Atoms correspond very
+%% closely to regular expression \StarRegexType{}s.  This correspondence is mirrored in the
+%% semantics, as the language of an atom is constructed in the exact same way as a
+%% \StarRegexType{}.  The only difference between atoms and \StarRegexType{}s
+%% is that the iteration in atoms
+%% corresponds to the iteration of languages of DNF regular expressions, while the
+%% iteration in \StarRegexType{}s corresponds to the iteration of languages of
+%% regular expressions.  In the implementation, user defined regular expressions
+%% are atoms as well, turning atoms into a sum type of user defined regular
+%% expressions, and \StarAtomType{}s.
 
 A sequence of strings and atoms is \textit{sequence unambiguously
   concatenable},
@@ -1380,13 +1430,14 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
   \label{fig:dnf-regex-functions}
 \end{figure}
 
-A DNF regular expression can be created from a regular expression through repeated
-application of the distributivity rule, and through removal of association
-information.
-This process requires some auxiliary definitions
-which are defined in Figure~\ref{fig:dnf-regex-functions}.
-From these functions, we can define \ToDNFRegex{}, a function which converts a regular expression into
-an equivalent DNF regular expression.
+Any regular expression may be converted into an equivalent DNF regular expression.  
+To define the conversion function, we rely on several auxiliary functions defined in 
+Figure~\ref{fig:dnf-regex-functions}.  Intuitively, $\DNFRegex{} \ConcatDNF \DNFRegex{}$ concatenates
+two DNF regular expressions, producing a well-formed DNF regular expression as a result.
+Similarly, $\DNFRegex{} \OrDNF{} \DNFRegex{}$ generates a new DNF regular expression representing the
+union of two DNF regular expressions.  Finally, $\AtomToDNF{(\Atom)}$ converts a naked atom into a
+well-formed DNF regular expression.
+The conversion algorithm itself, written  \ToDNFRegex{\Regex}, is defined below.
 \[
   \begin{array}{rcl}
     \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
@@ -1397,48 +1448,50 @@ an equivalent DNF regular expression.
   \end{array}
 \]
 
-Intuitively, the definition of $\ToDNFRegex$ states that the DNF regular
-expression with no sequences
-corresponds to the empty set.  A single sequence with only a string corresponds
-to a \BaseRegexType{} regular expression string.
-The stars of DNF regular expressions correspond to the stars
-of atoms.  The function $\OrDNF$ corresponds to the regular expression
-primitive \OrRegexType{}.  The function $\ConcatDNF$ corresponds to the regular
-expression primitive \ConcatRegexType{}.  We formalize this correspondence
-in the following theorem.
+%% Intuitively, the definition of $\ToDNFRegex$ states that the DNF regular
+%% expression with no sequences
+%% corresponds to the empty set.  A single sequence with only a string corresponds
+%% to a \BaseRegexType{} regular expression string.
+%% The stars of DNF regular expressions correspond to the stars
+%% of atoms.  The function $\OrDNF$ corresponds to the regular expression
+%% primitive \OrRegexType{}.  The function $\ConcatDNF$ corresponds to the regular
+%% expression primitive \ConcatRegexType{}. 
+\noindent
+We formalize the correspondence between regular expressions and
+DNF regular expressions via the following theorem.
 
-\begin{restatable}[Completeness of DNF Regexs]{theorem}{dnfrc}
+\begin{restatable}[Translation Soundness]{theorem}{dnfrc}
   \label{thm:completeness-dnf-lenses}
   For all regular expressions \Regex{},
   $\LanguageOf{\ToDNFRegexOf{\Regex}}=\LanguageOf{\Regex{}}$.
 \end{restatable}
 
-Furthermore, we can prove that DNF regular expressions are sound with respect to
-regular expressions,
-and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.\\
-  \begin{tabular}{r@{\ }c@{\ }l}
-    $\ToRegexOf{(\StarOf{\DNFRegex})}$ & = & $\StarOf{(\ToRegexOf{\DNFRegex})}$\\
-    $\ToRegexOf{\SequenceOf{\String_0}}$ & = & $\String_0$\\
-    $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
-    \SequenceSep\Atom_n\SequenceSep\String_n}} $ & = & $
-    \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
-    \ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}}}$\\
-                                       & &
-    $\Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
-    $\ToRegexOf{\DNFOf{}} $ & = & $\emptyset$\\
-    $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}} $ & = &
-    $(\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
-    \,\Or\, (\ToRegexOf{\Sequence_n})$
-  \end{tabular}
+%% Furthermore, we can prove that DNF regular expressions are sound with respect to
+%% regular expressions,
+%% and that \ToDNFRegex{} is surjective, by providing a right inverse, $\ToRegex$.\\
+%%   \begin{tabular}{r@{\ }c@{\ }l}
+%%     $\ToRegexOf{(\StarOf{\DNFRegex})}$ & = & $\StarOf{(\ToRegexOf{\DNFRegex})}$\\
+%%     $\ToRegexOf{\SequenceOf{\String_0}}$ & = & $\String_0$\\
+%%     $\ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots
+%%     \SequenceSep\Atom_n\SequenceSep\String_n}} $ & = & $
+%%     \ToRegexOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep
+%%     \ldots\SequenceSep\Atom_{n-1}\SequenceSep\String_{n-1}}}$\\
+%%                                        & &
+%%     $\Concat \ToRegexOf{\Atom_n} \Concat \String_{n+1}$\\
+%%     $\ToRegexOf{\DNFOf{}} $ & = & $\emptyset$\\
+%%     $\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}} $ & = &
+%%     $(\ToRegexOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{n-1}}})
+%%     \,\Or\, (\ToRegexOf{\Sequence_n})$
+%%   \end{tabular}
 
-This function provides a way to find a regular expression which corresponds to a given
-DNF regular expression.  We formalize this correspondence with the theorem
-below.
+%% This function provides a way to find a regular expression which corresponds to a given
+%% DNF regular expression.  We formalize this correspondence with the theorem
+%% below.
 
-\begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
-  \label{thm:dnfrs}
-  $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
-\end{restatable}
+%% \begin{restatable}[Soundness of DNF Regexs]{theorem}{dnfrs}
+%%   \label{thm:dnfrs}
+%%   $\ToDNFRegexOf{\,\ToRegexOf{\DNFRegex}} = \DNFRegex$
+%% \end{restatable}
 
 % fig:dnf-regex-rewrites
 \begin{figure*}
@@ -1515,24 +1568,30 @@ below.
 
 \paragraph*{DNF Regular Expression Rewrites}
 
-In our synthesis algorithm we need to allow for a rewrite system on DNF regular
-expressions to search through the equivalences.
-Using the star equivalences, the synthesis algorithm applies rewrites
-to the stars in a DNF
-regular expression for type-directed synthesis to eventually be applied to the
-rewritten regular expressions.  These rewrites are the ones used in
-\textbf{Step 2: Traversing Equivalences}.
-
-
-
-Figure~\ref{fig:dnf-regex-rewrites} defines the rewrite rules.
-  We write $\StarOf{\Rewrite}$ for
-    the reflexive, transitive closure of $\Rewrite{}$. 
-Intuitively, applications of these rewrite rules correspond to traversing
-through equivalences of the DNF regular expressions.
-However, by having rewrite rules, instead of a rule similar to
-\RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
-to limit the fan-out and only traverse a few.
+There are many fewer DNF regular expressions than regular expressions, but there
+still remain pairs of DNF regular expressions that while syntactically different,
+are semantically identical.  
+%% In order to search the space of equivalent DNF 
+%% In our synthesis algorithm we need to allow for a rewrite system on DNF regular
+%% expressions to search through the equivalences.
+%% Using the star equivalences, the synthesis algorithm applies rewrites
+%% to the stars in a DNF
+%% regular expression for type-directed synthesis to eventually be applied to the
+%% rewritten regular expressions.  These rewrites are the ones used in
+%% \textbf{Step 2: Traversing Equivalences}.
+Figure~\ref{fig:dnf-regex-rewrites} defines a collection of rewrite rules on DNF regular expressions
+designed to search the space of equivalent DNF REs.  We write $\StarOf{\Rewrite}$ for
+    the reflexive, transitive closure of $\Rewrite{}$.
+This directed rewrite system help us limit
+the search space more than the non-directional equivalence $\equiv_d$ relation.
+However, because the rewrite rules are confluent, we will show that it is just as powerful as the
+$\equiv_d$ relation.
+ 
+%% Intuitively, applications of these rewrite rules correspond to traversing
+%% through equivalences of the DNF regular expressions.
+%% However, by having rewrite rules, instead of a rule similar to
+%% \RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
+%% to limit the fan-out and only traverse a few.
 
 These rewrite rules present ways for atoms to be rewritten to DNF regular
 expressions, with rules like \AtomUnrollstarLeftRule{} and
@@ -2091,113 +2150,137 @@ each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
   \begin{tabular}{|l|c|c|c|c|}
     \hline
     \bfseries Test & \bfseries Time (ms)
-    & \bfseries Exs Reqd & \bfseries Max Exs
-                                   \csvreader[head to column names]{generated-data/data.csv}{}
-                                   {\\\hline\Test & \ComputationTime  & \ExamplesRequired & \MaxExampleCount}
+    & \bfseries Avg\# Exs & \bfseries Max\# Exs
+           \csvreader[head to column names]{generated-data/data.csv}{}
+           {\\\hline\Test & \ComputationTime  & \ExamplesRequired & \MaxExampleCount}
     \\\hline
   \end{tabular}
   \label{fig:evaluation-data}
-  \caption{Evaluation Data}
+  \caption{Impirical Results.  
+  \ksf{The benchmarks are sorted in increasing order by the sizes of
+  the regular expression types.}   The \textbf{Time} column reports
+  the average running time of 10 synthesis runs.  The \textbf{Avg \#
+  Exs} reports the average required number of randomly generated
+  examples. The \textbf{Max\# Exs} represents the maximum
+  number of examples that the user would have to supply to force the
+  synthesizer to explore all choices.
+}
 \end{figure}
 
-We evaluated our algorithm by testing its ability to synthesize bijective lenses
-that would be seen in practice.  As such, we derived the bijective lens synthesis problems
-from string and data transformation problems present in the Augeas
-repository, from FlashFill examples, and from Boomerang's test suite.
-Furthermore, through generating random examples, we test the importance of
-examples.  Through removing all user input user defined data type information,
-we test the importance of user defined data types to our algorithm.
-Figure~\ref{fig:evaluation-data} presents the data from our test runs.
+We evaluated our synthesis algorithm by applying it to \ksf{XX} benchmark
+programs derived from practice.   We investigated how long it took to
+synthesize each lens, how many user-supplied examples synthesis required,
+and how important user-defined types were to the process.
+Figure~\ref{fig:evaluation-data} shows the results for each of our
+benchmark programs.  \ksf{The rows are sorted in increasing order by
+the sizes of the regular expression types.}
 The values presented are the arithmetic means of 10 test runs.
-The tests were run on a 2.5 GHz Intel Core i7 processor, with
-16 GB of 1600 MHz DDR3, running Mac OS X Yosemite.
+The tests were run on a 2.5 GHz Intel Core i7 processor with
+16 GB of 1600 MHz DDR3 running Mac OS X Yosemite.
+On average, synthesis required \ksf{0.134 seconds} and \ksf{UU
+user-supplied examples.}
 
-\paragraph*{Test Selection}
-
-Our tests are adapted from examples of string transformations in Augeas,
-Boomerang, and FlashFill.
-
-Augeas uses combinators similar to Boomerang, but enables transformations
-from strings on the left to a structured tree format on the right, instead
-of strings on both sides.  We mimicked these as string lens synthesis
-problems by choosing string formats that look like a serialized version of
-the tree formats.  Augeas also supports a more general class of {\em
-  asymmetric lenses}~\cite{Focal2005-long}, whereas our synthesis algorithm
-works only with bijective lenses.  By including extra fields in the tree
-format on the right, we were able to turn non-bijective synthesis problems
-into bijective ones for purposes of the experiment.
-
-Just like Augeas, Boomerang has combinators that go beyond the basic lens
-combinators, including keyed data and quotienting.  Keyed data has little impact
-on the output format, but merely changes how the invertibility laws behave.  Because
-we have bijective lenses, keyed data has no impact.  We treat quotienting
-similarly to non-bijective lenses.  Any part of the string that would be
-quotiented, instead is included in a different area of the string, to maintain
-bijectivity.
-
-FlashFill examples, unlike the other tests, are not in fact lenses, they are
-merely string transformations.  Furthermore, many of them are non-bijective, as
-FlashFill examples are often about extracting certain pieces of information.
-However, through the same process of making the transformations bijective as
-tackled in other ports, we
-add in invertibility constraints that allow the transformation to be interpreted
-as a lens.
-
-These tests were selected to demonstrate our algorithms ability to synthesize
-transformations used in practice.  Many had an appearance similar to the
-\CF{BibEnd} example given in Figure~\ref{fig:bibend-spec}.  However, \CF{BibEnd}
-was simplified for clarity's sake, and the examples taken from real world
-applications are usually much longer and involve far more user defined regular
-expressions.  Furthermore, in larger synthesis problems,
-we build intermediary lenses
-between intermediary regular expressions as a sanity check for bijectivity.
-These intermediary lenses are then used in the synthesis algorithm for mapping
-the intermediary sub-expressions, to avoid repeating the same synthesis
+\paragraph*{Benchmark Suite Construction}
+We constructed our benchmarks by adapting examples from
+Augeas~\cite{augeas} and 
+FlashFill~\cite{gulwani-popl-2014} and by handcrafting specific
+examples to test various 
+features of the algorithm.
+Specifically, we derived \ksf{17} of the benchmark tests by
+adapting all of the lenses from the Augeas distribution that started
+with the letter `A' as well as the lenses
+\texttt{aug/xml-firstlevel} and \texttt{aug/xml} that were referenced
+by the `A' lenses.  We derived \ksf{3} benchmarks from examples in the
+FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
+We wrote \ksf{3} custom examples to test various features of the
 algorithm.
+In Figure~\ref{fig:evaluation-data}, examples derived from Augeas are
+prefixed with ``aug'', those from FlashFill with ``ff'', and those
+written by hand by ``cust.''
+
+Augeas is a configuration editing system for linux that uses lens
+combinators similar to those in Boomerang. However, it transforms
+strings on the left to structured trees on the right rather than
+transforming strings to strings.
+We adapted these Augeas lenses to our setting by converting the
+right-hand sides to strings that corresponded to serialized versions
+of the tree formats.  
+Augeas also supports {\em asymmetric lenses}~\cite{Focal2005-long},
+which are more general than the bijective lenses we can synthesize.
+We adapted these examples by adding extra fields to the
+right-hand side to make the transfomations bijective and thus suitable
+for our study.
+
+% KSF: I believe this paragraph is no longer relevant because we are
+% not including Boomerang benchmarks.
+%Just like Augeas, Boomerang has combinators that go beyond the basic
+%lens combinators, including keyed data and quotienting.  Keyed data
+%has little impact on the output format, but merely changes how the
+%invertibility laws behave.  Because we have bijective lenses, keyed
+%data has no impact.  We treat quotienting similarly to non-bijective
+%lenses.  Any part of the string that would be quotiented, instead is
+%included in a different area of the string, to maintain bijectivity.
+
+FlashFill is a system that allows users to specify common string
+transformations by example~\cite{gulwani-popl-2014}.  
+Many of the examples from FlashFill are non-bijective because
+the user's goal is often to extract information.  We were able to
+adapt some examples by adding information to the target so the
+resulting transformation was bijective.
+
+\ksf{Anders, we need to have a paragraph describing the synthetic
+benchmarks and what we created them to evaluate.}
+
+\ksf{Anders, we need to have a paragraph describing the sizes of these
+benchmark programs.  The paragraph needs to be concrete, talking about
+the sizes of the source/target regular expressions and/or the size of
+the synthesized lenses.}
+
+
+% KSF: This material seems to fit into a description of the algorithm,
+% not the evaluation section. Furthermore, in larger synthesis
+% problems, we build intermediary lenses between intermediary regular
+% expressions as a sanity check for bijectivity.  These intermediary
+% lenses are then used in the synthesis algorithm for mapping the
+% intermediary sub-expressions, to avoid repeating the same synthesis
+% algorithm. 
 
 \paragraph*{Speed of Synthesis}
 %
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
-test suite, with the column \textbf{ComputationTime} showing the runtime of the
-overall synthesis algorithm.
+benchmark suite. The column \textbf{Time} shows the runtime of the
+synthesis algorithm in microseconds; smaller numbers are better.
+Across all examples, the average synthesis time is \ksf{0.134
+seconds}; the slowest example (aug/xml) completes in just under four 
+seconds. 
+\ksf{Say something about how the running time relates to the
+complexity of the benchmark program once we have that data available.}
 
-In this figure, we want to minimize runtime, as a smaller runtime means we were
-able to synthesize very efficiently.
-We found that, on many of our difficult examples, our algorithm was able to find
-the appropriate lens very quickly.
+The example aug/xml takes as long as it does primarily because of the
+complexity of the regular expressions that describe the source and
+target data formats, \ksf{XXX tokens and YYY tokens,
+respectively}.\footnote{Note that xml is not a regular language, so
+    the source and target regular expressions describe only xml
+    expressions up to depth 3.} 
+A second challenge is that the system must apply a number of regular
+expression expansions to get the source and target regular expressions
+into alignment.  The large sizes of these regular expressions means
+the system can perform many expansions and the search space is large.
 
-This figure shows us where the strengths and weaknesses of our algorithm lie.
-In particular, our synthesis strategy does quite well on problems that only
-include a small number of transformations, even if the number of sequences is
-decently large.
-However, on sufficiently complex examples, our algorithm takes longer,
-For example xml.ls are both quite slow.
+We constructed the pathological example \ksf{cust/double-capital} to
+highlight the exponential blow-up that arises in expanding
+disjunctions in the conversion to DNF form.  This example converts
+between strings of lowercase letters to strings of uppercase letters
+and vice versa, leading to source and target regular expression types
+that contain disjunctions of 26 letters.  The source and target
+regular expressions each contain two references to these disjunctions;
+hence the name ``double.''  In this example, the conversion to DNF
+form creates 676 sequences in the first expansion.  This number grows
+to 17576 sequences in subsequent conversions.
 
-The test xml.ls takes a long time, as it is a very complicated regular
-expression.  Because full xml is not expressible as a regular expression, xml.ls
-expresses xml of depth up to 3.  The full specification for all xml up to depth
-3 is a huge regular expression.  Not only
-this is the regular expression large,
-but a number of regular expression expansions must be preformed to get it
-into dictionary form; different things must happen on a star that is matched
-0 times, and a star that is matched one or more times.  Because of the size of
-the regular expression, many expansions can be preformed, and because expansions
-must be preformed, it requires a large amount of search to find the correct
-expansions to synthesize a lens.
-
-Not shown in the figure is an unrealistic test, called the
-double capitalization problem.  This was intentionally made to
-exploit an issue that can arise from DNF conversion.  In converting to DNF form,
-a concatenation of many \OrRegexType{}s causes a huge blowup.  In the
-double capitalization problem, this blowup is exploited.  This problem causes a
-blowup, causing there to be 676 sequences created immediately.
-Any time SynthRewritelessDNF is called, it must find the correct mapping of all
-676 sequences.  A single instance of finding 676 sequences is not that bad, but it
-becomes worse when that must be done on every expansion, and some of the bad
-expansions that are popped create 17576 sequences.
-If we take this problem to the logical extremes, we see that the the triple
-capitalization problem takes 6.974 seconds, and the quadruple capitalization
-problem takes 33 minutes and 54.730 seconds.
+% If we take this problem to the logical extremes, we see that the the triple
+% capitalization problem takes 6.974 seconds, and the quadruple capitalization
+% problem takes 33 minutes and 54.730 seconds.
 
 \paragraph*{Importance of Examples}
 
@@ -2316,7 +2399,8 @@ more examples which fix where the program is wrong.
 % begin related-work
 \section{Related Work}
 \paragraph*{FlashFill}
-FlashFill is another string transformation program.  FlashFill takes input and
+FlashFill~\cite{gulwani-popl-2014} is another string transformation
+program.  FlashFill takes input and 
 output examples as its only form of specification.  For FlashFill's primary use
 case, providing easy transformations of Excel data, input and output examples as
 the only specification makes a lot of sense.  Our tool is intended for use for
@@ -2343,7 +2427,7 @@ to efficiently find many correct transformations very quickly.  However, in
 many complicated data formats, nested loops are inevitable. 
 
 \paragraph*{FlashExtract}
-FlashExtract is a program that takes an input of a string, and a partial
+FlashExtract~\cite{le-pldi-2014} is a program that takes an input of a string, and a partial
 labeling of substrings within that string, to try to label the rest of the
 substrings.  FlashExtract was able to label some amounts of the strings, but was
 unable to handle reorderings of the data well.  While it would do well in
