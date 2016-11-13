@@ -292,32 +292,29 @@ despite its advantages.
   unambiguity, since they still have to write the types!}
 
 One way to overcome these difficulties is to {\em synthesize} lenses from
-types and examples, rather than 
+types and examples.  We propose an algorithm for doing this, for the case of
+bijective lenses between regular string languages.  Given a type
+$\Regex \Leftrightarrow \RegexAlt$ (which describes lenses mapping
+bijectively between $\Regex$ and $\RegexAlt$) and a small number of
+examples, our algorithm will synthesize a well-typed lens whose behavior
+matches the examples.
 
- have developed a system for
-synthesizing bijective string lenses from the types of the source and
-target data formats and a collection of representative examples.
-The language we use for lenses has
-typing judgments of the form
-$\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, which may be read
-``lens $\Lens$ converts between data in the language of
-regular expression $\Regex$ and data in the language of regular
-expression $\RegexAlt$.''  Given a type
-$\Regex \Leftrightarrow \RegexAlt$ and a small number of
-representative examples (sometimes no examples at all!), we synthesize
-$\Lens$, a well typed lens that implements a bijection between the
-languages of $\Regex$ and $\RegexAlt$ while matching the provided
-examples.
-
-Our work is related to recent efforts that synthesize various types of
-programs~\cite{yag+:pldi16,osera+:pldi15,frankle+:popl16,armando+:pldi16}.
-Many of these
-algorithms~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16} are
-directed in part by the syntax of types.  For instance, to find an
-expression with type $A \rightarrow B$, such algorithms assume that
-the expression in question is a function of the form $\lambda
-x{:}A. e$.  These algorithms then search for an expression $e$ with
-type $B$ under the hypothesis that the parameter $x$ has type $A$.  
+Our work continues a recent trend toward synthesizing programs in a variety
+of domain-specific languages~\cite[etc.]{yag+:pldi16, osera+:pldi15,
+  frankle+:popl16, armando+:pldi16}\bcp{Are these citations for ``program
+  synthesis for DSLs''?  Seems very incomplete, if so.  Maybe we don't want
+  to try to cite that whole literature, unless Steve knows enough about it
+  to be sure that we're doing a good job of it.}, many guided by
+types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16}.  
+\iffull
+\bcp{I think the rest of the paragraph can probably go, even in the long
+  version.} 
+For instance,
+to find an expression with type $A \rightarrow B$, such algorithms assume
+that the expression in question is a function of the form
+$\lambda x{:}A. e$.  These algorithms then search for an expression $e$ with
+type $B$ under the hypothesis that the parameter $x$ has type $A$.
+%
 In
 the case of the simply typed lambda calculus, such an approach reduces
 the complexity of the search for terms inhabiting the type without
@@ -328,21 +325,21 @@ than the simply typed lambda calculus.
 Specifically, lenses use regular expression types, which means 
 there are many equivalent ways to express the same type and a simple
 syntax-directed algorithm will not work.
+\fi
 
-
-To explain the components of our synthesis algorithm,
+To explain our algorithm,
 we use a running example that converts between citations given
-in simplified BibTex and EndNote formats.  The BibTex format
+in simplified fragments of BibTex and EndNote formats.  The BibTex format
 specifies a list of authors on a single line:
 \begin{lstlisting}
-author={Conway, John and Kleene, Stephen Cole}
+   author={Conway, John and Kleene, Stephen Cole}
 \end{lstlisting}
 The EndNote format contains the same information, but uses different separators,
 rearranges the order of first and last names, and puts each author on
 a separate line:
 \begin{lstlisting}
-% A John Conway
-% A Stephen Cole Kleene
+   % A John Conway
+   % A Stephen Cole Kleene
 \end{lstlisting}
 
 \begin{figure}
@@ -368,21 +365,11 @@ BibEnd : BibTex <=> EndNote = {
   \label{fig:bibend-spec}
 \end{figure}
 
-In our system, users write lens synthesis specifications by giving
-regular expressions that define the source and target formats
-% \footnote{Lenses
-%  operate both left-to-right and right-to-left, so both formats are sometimes
-%  sources and sometimes targets. Nevertheless, we will often call the
-%  format on the left, the ``source,'' and the format on the right, 
-%  the ``target.''}
-and by giving a suite of input/output examples.
-Figure~\ref{fig:bibend-spec} shows an example specification for a
-lens \CF{BibEnd} that converts between the
-\CF{Bibtex} and \CF{EndNote} formats.
-We allow users to name intermediate regular expressions
-(\CF{Name}, \CF{Names}) to facilitate  
-the construction of complex formats.
-
+Figure~\ref{fig:bibend-spec} shows an example specification for a lens
+\CF{BibEnd} that converts between the \CF{Bibtex} and \CF{EndNote} formats.
+Giving names to intermediate regular expressions (\CF{Name}, \CF{Names},
+etc.) facilitates construction of complex formats; we will see that they
+also play an important role in the synthesis process.
 
 \paragraph*{Challenge 1: Multi-dimensional Search Space.}
 To illustrate a central challenge facing our synthesis system,
@@ -931,7 +918,8 @@ experiments (see \S\ref{evaluation}).
   \end{mathpar}
 
   \caption{Lens Typing\bcp{We can save quite a few lines by moving the rule
-      names}\afm{What do you mean by this?}\saz{This}}
+      names}\afm{What do you mean by this?}\saz{This}\bcp{Fine.  Let's
+      remember to make them bigger too.}}
   \label{fig:lens-typing}
 \end{figure}
 
