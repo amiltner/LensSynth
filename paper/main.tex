@@ -170,7 +170,7 @@
   show how to search the reduced space for well-typed lenses that are
   consistent with user-supplied examples.  We demonstrate the
   effectiveness of our algorithm by evaluating it on a benchmark suite
-  containing 27 examples comprising microbenchmarks, Flash Fill
+  containing 23 examples comprising microbenchmarks, Flash Fill
   examples, and Augeas transformations of Linux configuration files.
   We are able to infer lenses for all benchmark programs
   in an average of 0.134 seconds.
@@ -458,12 +458,12 @@ with the user's examples, and
 (3) intermediary regular expressions for composing lenses.
 
 \paragraph*{Solution 1: Canonization}
-Our solution to this problem is to define a new language of lenses that
+Our solution is to define a new language of lenses that
 reduces the synthesis search space \emph{in all dimensions}.
-This language is designed so that its regular expression types are limited 
+We designed this language so that its regular expression types are limited 
 to those in a normalized form.  This normalized form
-demands that regular expressions be fully distributed, and associativity
-information be removed.
+demands that regular expressions be fully distributed and removes all
+associativity information.
 When converted into this normalized form, two regular expressions that differ
 only by associativity of concatenation will be syntactically equal.
 For example, rather than searching for a lens with type 
@@ -471,9 +471,9 @@ $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will always search
 for one with type  $A \Concat B \Concat C \Leftrightarrow A' \Concat B'
 \Concat C'$
 
-More generally, many, but not all, regular expression equivalences that
-prevent the type directed synthesis of lenses disappear.
-However, not all structural incogruities disappear because our normalized
+With this approach, many, but not all, regular expression equivalences that
+prevent type-directed lens synthesis disappear.
+Not all structural incongruities disappear because our normalized
 regular expressions
 are only \emph{pseudo-canonical}, the equivalence class of syntactic equality in
 this form is a finer equivalence relation than language equivalence.
@@ -486,78 +486,68 @@ unrolling of Kleene Star.\footnote{\BCP{Why not?  More generally, why
     did we have to use Conway's axioms or worry about confluence, given that
     we know regular language equivalence is decidable?  Is it because that
     proof is automata-theoretic?)}} 
-Consequently, we structure our synthesis algorithm in two parts:  The
+Consequently, we structure our synthesis algorithm in two parts.  The
 first is a syntax-directed search for a lens based on the structure of the given
-regular expression types and, if that fails, the second is a search,
-using a subset of Conway's axioms~\cite{conway} for 
-equivalent regular expression types that might allow a new search
-in the first phase of the search to succeed.
+regular expression types. If that fails, the second is a search,
+using a subset of Conway's axioms~\cite{conway}, for 
+equivalent regular expression types that might allow a new search to succeed.
 
-Furthermore, the specialized lenses between these
-pseudo-canonical forms are expessive enough that they don't need an explicit
-composition operator to be closed under composition.
-Indeed, despite not having a composition operator, these specialized lenses 
-are closed under composition.  Not requiring a composition operator reduces the
-search space by an entire
-dimension!  The synthesis algorithm no longer needs to search through possible
-intermediary regular expressions for compositions.
+The specialized lenses between our normalized 
+forms are expessive enough that they are closed under composition
+\emph{without adding a composition order}.  Obviating the need for a
+composition operator reduces the search space by an entire dimension
+because the synthesis algorithm no longer needs to search through
+possible intermediary regular expressions for compositions.
 
 \paragraph*{Challenge 2: Large Types}
-The types
-describing data formats may be very large --- they are regular
-grammars describing complex data formats.  The size of these regular expressions
-is another complication that
-arises in this synthesis setting, but not elsewhere in the literature on
-type-directed synthesis.  On the one hand, the size of these types is
-very useful as such types provide a wealth of information that constrains
-the search process effectively.  On the other hand, there is a lot of
-data that must be managed carefully by the synthesis system.
+The types describing data formats may be very large --- they are
+regular grammars describing complex data formats.  On the one hand,
+the size of these types is very useful as such types provide a wealth
+of information that constrains the search process effectively.  On the
+other hand, there is a lot of data that must be managed carefully by
+the synthesis system.\footnote{\ksf{Having to manage a lot of data
+carefully is not a compelling difficulty.  Is there another way of
+expressing this challenge?}}
 
 \paragraph*{Solution 2: Compositional Types}
-Our important observation is that users naturally construct such large types
-compositionally, using named abbreviations for subcomponents.
-The structure inherent in these named abbreviations can be
-exploited by the synthesis algorithm to speed up the search dramatically.
-
-For example, if the name $A$ appears once on both the left and the right,
-the system will hypothesize that the identity lens can be used to convert
-between occurrences of $A$.  On the other hand, if the name $A$ appears
-on the left, but not on the right, the system will determine that the
-name $A$ should be replaced by its definition.  These inferences that replace a
-user defined regular expression by its definition allow the
-system to quickly find a representation of the regular expression types which
-the synthesis algorithm can synthesize a lens between.
-
-Furthermore, differing
-numbers of occurrences of names can serve as a guide for applying other regular
-expression equivalence axioms in the synthesis algorithm.
-Hence, in general, to guide the transformation of regular expression
-types, we define a pseudometric based on the occurrence of names.  This
-psuedometric provides a heuristic to guide the search, which we've found to
-preform better than a simple breadth-first search.
+The key to solving this challenge is to observe that users naturally
+construct large types compositionally, using named abbreviations for
+subcomponents.  We exploit the structure inherent in these named
+abbreviations to speed up the search dramatically.  For example, if
+the name $A$ appears once in both the source and the target, the
+system hypothesizes that the identity lens can be used to convert
+between occurrences of $A$.  On the other hand, if the name $A$
+appears in the source, but not in the target, the system replaces the
+name $A$ with its definition.  Furthermore, differing numbers of
+occurrences of names serve as a guide for applying other regular
+expression equivalence axioms in the synthesis algorithm.  To capture
+this intuiton, we define a pseudometric based on the occurrence of
+names to guide the transformation of regular expression types.  This
+pseudometric provides a heuristic to guide the search, which we have
+found to perform better than a simple breadth-first search.
 
 
 \paragraph*{Contributions.}  We have made bidirectional programming more
-accessible to the average programmer, by designing and implementing
-a system for the synthesis of bijective string lenses.  In addition, this
-paper makes the following contributions:
+accessible to the average programmer by designing and implementing
+a system for the synthesis of bijective string lenses.  In addition,
+we make the following contributions: 
 
 \begin{itemize}
-\item It defines a new domain-specific language of lenses designed specifically
-  for synthesis.  This language has types of pseudo-canonical regular
-  expressions, and a term language that can map between the languages of these
-  pseudo-canonical regular expressions.
-\item We formalize the semantics of the language and prove it sound and complete
-  with respect to an existing, standard language for bijective string lenses.
-\item We designed a type-directed algorithm for synthesizing lenses in our new
-  domain-specific language, which can efficiently search through lens terms, and
+\item We define a new domain-specific lens language designed specifically
+  for synthesis.  This language uses pseudo-canonical regular
+  expressions to type the source and target data formats. Its term
+  language maps between the languages of these pseudo-canonical
+  regular expressions.
+\item We formalize the semantics of this language and prove it sound and complete
+  with respect to an existing language for bijective string lenses.
+\item We present a type-directed algorithm for synthesizing lenses in our new
+  domain-specific language, which can efficiently search through lens terms and
   type equivalences.
-\item We developed a collection of optimizations that speed up the
-  synthesis algorithm.  This algorithm has been evaluated on a range of
-  over 40 benchmarks including micro-benchmarks, a few examples from FlashFill,
-  and a number of examples from the Augeas system for transforming linux
+\item We evaluate the algorithm on 23 benchmarks, including
+  examples from FlashFill and from the Augeas system for transforming
+  linux 
   file formats.  Our synthesis algorithm succeeds on all of our
-  benchmarks, with a synthesis time of typically less than 1 second.
+  benchmarks, with an average synthesis time of 0.134 seconds.
 \end{itemize}
 % end introduction
 
