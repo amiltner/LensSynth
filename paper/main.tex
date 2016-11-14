@@ -261,12 +261,19 @@ representation that can be edited either manually or programmatically, and
 then uses the lens's \emph{put} to merge the edited results back into the
 original string format. \bcp{Mention some other lens-based languages,
   including several from Tokyo.  We want to be as complete as possible here,
-  since these people are likely to be our reviewers.}  However, the
-unfamilarity of these languages has impeded adoption in many settings where
+  since these people are likely to be our reviewers.}  However, these
+languages are often based around an unfamiliar collection of primitives,
+which require programmers to think in two directions at the same time---a tricky
+task that is foreign to most programmers.  In addition, the details are often fiddly.
+For example, in the case of Boomerang, programmers must often rearrange the order
+of data items by recursively using operators that swap the order of adjacent
+fields.  The challenge of learning these languages and using them effectively
+has impeded their adoption in many settings where
 well-behaved bidirectional transformations are needed.
 
-Our long-term goal is to make lens programming easier by {\em synthesizing}
-lenses from examples instead of asking programmers to write them explicitly.
+Our goal is to make lens programming easier by synthesizing
+lenses from simpler, higher-level specifications
+instead of asking programmers to write them explicitly.
 %
 This work continues a recent trend toward synthesizing programs in a variety
 of domain-specific languages~\cite[etc.]{yag+:pldi16, osera+:pldi15,
@@ -296,24 +303,48 @@ Specifically, lenses use regular expression types, which means
 there are many equivalent ways to express the same type and a simple
 syntax-directed algorithm will not work.
 \fi
+%
+%Specifically, we aim to create a version of the Boomerang
+%language~\cite{boomerang,MoreBoomerangCitesIfThereAreAny} in which lenses
+%can be written by examples.  
+%% Doing this involves two significant
+%% steps.  First, given the types of the source and target and some examples,
+%% we need to be able to synthesize lens programs with the desired behavior.
+%% Second, in some cases we may wish to synthesize the types themselves, given
+%% examples of source and target data.  In this paper, we address the first
+%% step, leaving the second to future work.
+%
+More specifically, our system supports the synthesis of \emph{bijective lenses}, a useful 
+subset of the Boomerang language.
+%%  that convert
+%% back and forth between text files.  These bijective lenses represent a core
+%% fragment of Boomerang.  Boomerang also supports more general {\em asymmetric}
+%% lenses---we focus on the bijective case to tackle the fundamental
+%% issue of how to control the size of the \emph{multi-dimensional} search space
+As inputs, our synthesis system takes specifications of
+the format of both source and target files, as well as zero or more concrete examples 
+of the desired transformation.  Our format specifications are supplied in the
+form of regular expressions.  Because regular expressions are so widely understood,
+we anticipate such inputs will be substantially easier for everyday programmers
+to work with.  Importantly, these format descriptions make it possible to communicate a great
+deal of information to the synthesis system.  This design choice appears to make synthesis
+very robust, to help the system scale to handle
+large and complex data sources, including those with nested iteration that other
+synthesis algorithms preclude, and to constrain the search space so
+a programmer typically need very few, if any, examples.
 
-Specifically, we aim to create a version of the Boomerang
-language~\cite{boomerang,MoreBoomerangCitesIfThereAreAny} in which lenses
-can be written entirely by example.  Doing this involves two significant
-steps.  First, given the types of the source and target and some examples,
-we need to be able to synthesize lens programs with the desired behavior.
-Second, in some cases we may wish to synthesize the types themselves, given
-examples of source and target data.  In this paper, we address the first
-step, leaving the second to future work.  Moreover, we work with a
-simplified core of Boomerang in which only {\em bijective} lenses can be
-represented.  (Boomerang supports a more general class of {\em asymmetric}
-lenses, where information in the source format may be elided in the target
-format.)  The bijective case already raises thorny issues about controlling
-the size of the search space, and we believe that the solutions we've
-developed will be useful in the harder asymmetric case.  Moreover, bijective
-string transformations are already an interesting domain in themselves.
-\bcp{I've tried to make this paragraph much more honest about what we're
-  doing.  Is it too weak now?}
+%% very few 
+%% a description of the formats
+%% Moreover, we work with a
+%% simplified core of Boomerang in which only {\em bijective} lenses can be
+%% represented.  (Boomerang supports a more general class of {\em asymmetric}
+%% lenses, where information in the source format may be elided in the target
+%% format.)  The bijective case already raises thorny issues about controlling
+%% the size of the search space, and we believe that the solutions we've
+%% developed will be useful in the harder asymmetric case.  Moreover, bijective
+%% string transformations are already an interesting domain in themselves.
+%% \bcp{I've tried to make this paragraph much more honest about what we're
+%%   doing.  Is it too weak now?}
 
 % One way to overcome these difficulties is to {\em synthesize} lenses from
 % types and examples.  We propose an algorithm for doing this, for the case of
