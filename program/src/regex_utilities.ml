@@ -129,3 +129,17 @@ let simplify_regex : regex -> regex =
     (merge_concated_bases
      % clean_regex
      % maximally_factor_regex)
+
+
+let size (r:regex) : int =
+  let rec size_internal (r:regex) : int =
+    begin match r with
+      | RegExEmpty -> 1
+      | RegExBase _ -> 1
+      | RegExConcat (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
+      | RegExOr (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
+      | RegExStar r' -> 1 + (size_internal r')
+      | RegExVariable _ -> 1
+    end
+  in
+  size_internal r

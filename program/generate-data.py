@@ -14,7 +14,7 @@ TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
 BASE_FLAGS = ["-iterativedeepenstrategy"]
 TIMEOUT_TIME = 60
-GENERATE_EXAMPLES_TIMEOUT_TIME = 60
+GENERATE_EXAMPLES_TIMEOUT_TIME = 6000
 
 REPETITION_COUNT = 2
 
@@ -126,7 +126,32 @@ def gather_data(rootlength, prog, path, base):
 	current_data["MaxExampleCount"]="Timeout"
     else:
 	current_data["MaxExampleCount"]=max_ex_run_data
+    spec_size_run_data = []
+    timeout = False
+    error = False
+    (datum,err) = gather_datum(prog, path, base,['-spec_size'],TIMEOUT_TIME)
+    if datum == "":
+        if err == "":
+	    timeout = True
+        else:
+            print(err)
+            print("there was an error")
+            error = True
+    else:
+	spec_size_run_data=int(datum)
+    if error:
+        current_data["SpecSize"]="Error"
+    elif timeout:
+	current_data["SpecSize"]="Timeout"
+    else:
+	current_data["SpecSize"]=spec_size_run_data
     return current_data
+
+def specsize_compare(x,y):
+    return x["SpecSize"]-y["SpecSize"]
+
+def sort_data(data):
+    return sorted(data,cmp=specsize_compare)
 
 def print_data(data):
     ensure_dir("generated_data/")
@@ -164,6 +189,7 @@ def main(args):
 		print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
 		current_data = gather_data(rootlength,prog, path, base)
                 data.append(current_data)
+            data = sort_data(data)
 	    print_data(data)
         else:
             path, filename = os.path.split(path)
@@ -172,6 +198,7 @@ def main(args):
                 print_usage(args)
             else:
                 data = gather_data(prog, path, base)
+                sort_data(data)
 		print_data([data])
     else:
         print_usage(args)

@@ -14,6 +14,8 @@ open Boom_lang
 open Eval
 open Converter
 open Normalized_lang
+open Regex_utilities
+open Language_equivalences
 
 exception Arg_exception
 
@@ -24,6 +26,7 @@ type driver_mode =
   | Time
   | GeneratedExamples
   | MaxSpecify
+  | SpecSize
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -67,6 +70,10 @@ let args =
   ; ( "-max_to_specify"
     , Arg.Unit (fun _ -> set_opt MaxSpecify)
     , " Set to calculate the maximum number of examples to fully specify"
+    )
+  ; ( "-spec_size"
+    , Arg.Unit (fun _ -> set_opt SpecSize)
+    , " Set to calculate the size of the user input specification size"
     )
   ]
   |> Arg.align
@@ -161,7 +168,7 @@ let collect_example_number (p:program) : unit =
            if l' = l then
              Right (List.length acc)
            else
-             let leftex = gen_element_of_regex_language rc r1 in
+             let leftex = gen_element_of_dnf_regex rc (to_dnf_regex r1) in
              let rightex = lens_putr rc lc l leftex in
              let acc = (leftex,rightex)::acc in
              Left acc
@@ -248,6 +255,43 @@ let collect_max_example_number (p:program) : unit =
   let max_exs_required = max_examples_required rc lc l in
   print_endline (string_of_int max_exs_required)
 
+let specification_size (p:program) : unit =
+  let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
+  let rec retrieve_transitive_userdefs (r:regex) : string list =
+    begin match r with
+    | RegExEmpty -> []
+    | RegExBase _ -> []
+    | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
+        (retrieve_transitive_userdefs r2)
+    | RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
+        (retrieve_transitive_userdefs r2)
+    | RegExStar r' -> retrieve_transitive_userdefs r'
+    | RegExVariable t ->
+      t::(begin match RegexContext.lookup_for_expansion_exn rc t with
+      | None -> []
+      | Some rex -> retrieve_transitive_userdefs rex
+      end)
+    end
+  in
+  let all_userdefs = (retrieve_transitive_userdefs r1) @
+                     (retrieve_transitive_userdefs r2) in
+  let all_regexps =
+    List.dedup(
+      r1::r2::(List.map ~f:(fun s ->
+          (RegexContext.lookup_exn rc s))
+          all_userdefs))
+  in
+  let all_sizes =
+    List.map ~f:(fun r -> size r) all_regexps
+  in
+  let mysize = List.fold_left
+    ~f:(+)
+    ~init:0
+    all_sizes
+  in
+
+  print_endline (string_of_int (mysize))
+
 let print_outputs (p:program) : unit =
   print_endline "module Generated =";
   let (_,lc,p) = synthesize_and_load_program p in
@@ -283,6 +327,8 @@ let main () =
             |> collect_max_example_number
           | Default | Synth ->
             parse_file f |> expand_regexps_if_necessary |> print_outputs
+          | SpecSize ->
+            parse_file f |> expand_regexps_if_necessary |> specification_size
         end
     end
 
