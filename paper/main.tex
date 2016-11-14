@@ -1917,15 +1917,19 @@ tweaked for readability with \Beautify{}.
     \While{$\True$}
     \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}$
     \State $((\DNFRegex,\DNFRegexAlt),\ExpCount) \gets \QueueElement$
-    \State $\DNFLens \gets
+    \State $\DNFLensOption \gets
     \Call{\SynthRWLDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
-    \If{$\DNFLens \neq \bot$}
-    \State $\ReturnVal{\DNFLens}$
-    \Else
+    \Switch{\DNFLensOption}
+    \Case {\None}
     \State $\DNFRegexs \gets \Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
-    \State $\QueueElements \gets \Call{\Map}{\lambda x.(x,\ExpCount+1),\DNFRegexs}$
+    \State $\ExpCount \gets \ExpCount+1$
+    \State $\QueueElements \gets \Call{\Map}{\lambda x.(x,\ExpCount),\DNFRegexs}$
     \State $\Queue \gets \Call{\EnqueueMany}{\QueueElements,\Queue}$
-    \EndIf
+    \EndCase
+    \SecondCase {\SomeOf{\DNFLens}}
+    \State $\ReturnVal{\DNFLens}$
+    \EndSecondCase
+    \EndSwitch
     \EndWhile
     \EndFunction
     \Statex
@@ -1939,7 +1943,8 @@ tweaked for readability with \Beautify{}.
   \end{algorithmic}
 \bcp{Larger comment: Is this seriously using {\em null} to
   represent a failure result from a subroutine??  The reviewers are going to
-  laugh at us.}\afm{is $\bot$ better?}\bcp{Still a bit horrible.}
+  laugh at us.}\afm{is $\bot$ better?}\bcp{Still a bit horrible.}\afm{match
+  statement?}
 \end{algorithm}
 
 In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
