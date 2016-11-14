@@ -184,7 +184,7 @@ updaters, and a multitude of ad hoc data converters.
 Building bidirectional transformations manually---by writing two separate
 functions that are intended to be inverses---is tedious and error prone.
 %
-A better approach is to use a domain-specific language (there are many) in
+A better approach is to use a domain-specific language in
 which both directions can be written as a single expression, but this
 requires learning a new notation.
 
@@ -204,7 +204,7 @@ search to a different space where both regular expressions and lenses are
 constrained to a ``disjunctive normal form,'' and by treating user-defined
 names for regular expressions semi-opaquely during synthesis.
 
-We evaluate our algorithm on a benchmark suite of 23 examples comprising
+We evaluate our algorithm on a benchmark suite of 23 examples including
 both microbenchmarks and realistic examples adapted from FlashFill, a tool
 for synthesizing string transformations in spreadsheets, and Augeas, a tool
 for bidirectional processing of Linux system configuration files based on
@@ -236,83 +236,46 @@ an average of 0.134\bcp{digits?} seconds.
 
 The growing dependence on big data makes tools for reliably parsing,
 printing, cleaning, and transforming data in {\em ad hoc} formats
-increasingly important. 
-One such class of tools is \emph{lenses}~\cite{Focal2005-long},
-bidirectional programs that help users solve the classic ``view update
-problem'' \cite{chen2010comparative}.\BCP{We persistently mix
-  general [asymmetric or even symmetric] lenses with bijective lenses.
-  Here, for example, it's true that asymmetric lenses are intended as a
-  solution to the view-update problem, but 
-  {\em bijective} lenses are not, really.}
-More specifically, a lens provides a user with two functions:
-\emph{get} and \emph{put}.  The \emph{get}
-function translates source data into a target format, or \emph{view}, for
-the user.  If the user updates the view, the corresponding
-\emph{put} function can translate the edited data back into
-the source format.
+increasingly important.  One such class of tools is
+\emph{lenses}~\cite{Focal2005-long, boomerang, symmetric-lenses,
+  ManyMoreLensCitations}, bidirectional programs that help users solve the
+classic ``view update problem'' \cite{chen2010comparative,
+  FirstViewUpdateProblemCitation}.  A lens comprises two functions, called
+\emph{get} and \emph{put}.  The \emph{get} function translates source data
+into a target format, or \emph{view}.  If the view is updated, the
+\emph{put} function can be used to translate the edited data back into the
+source format.  The \emph{get} and \emph{put} functions are both represented
+by a single expression written in a domain-specific language whose
+primitives can be read in either direction.
 
-%Converting data back and forth between representations is a common problem.
-%It arises in serializers and deserializers, models and views, picklers
-%and unpicklers, and more.
-%Bidirectional programs express both transformations in a single program, instead
-%of requiring a program for each transformation.
-%Bidirectional programming has begun to be used in practice for expressing some
-%classes of back and forth transformations.
-
-Lenses are useful because they provide strong guarantees about
-round-trip behavior.  Such guarantees guard against data corruption
-while reading, editing, and writing data sources.  Lenses are
-typically implemented as domain-specific languages with strong type
-systems~\cite{Focal2005-long, boomerang, symmetric-lenses} because
-general-purpose languages do not admit bidirectional interpretations
-nor do they have type systems strong enough to ensure desired round-tripping
-laws.
-
-Lens-like languages have been used successfully in a number of practical
-applications.  For example, include Augeas~\cite{augeas}, a configuration
-editing system for linux that uses lens combinators to provide editable
-views of configuration files; the biXid~\cite{bixid} language that expresses
-bidirectional XML transformations, and XSugar~\cite{xsugar} that converts
-bidirectionally between XML and non-XML data and between
-EpiDoc~\cite{epidoc} and Leiden+~\cite{leidenplus} formats for encoding
-ancient documents~\cite{epidocleidenplus}.  \BCP{Some things to figure
-  out... biXid and XSugar are not exactly lens languages.  And there are a
-  whole bunch of other lens-like languages, e.g. from Tokyo, that we should
-  mention.  One issue we'll need to deal with is that many of these
-  languages do {\em not} have especially restrictive type systems; instead,
-  they give up on totality.  E.g., instead of requiring unambiguity, they
-  might simply declare that their lenses will signal an error if you ever
-  supply them with a string that has two different parses.  I'm not
-  completely sure how we want to frame the discussion, but I will think
-  about it.}
+An attractive feature of lens-based programming languages is that they can
+provide strong guarantees about the round-trip behavior of the two
+components, guarding against data corruption while reading,
+editing, and writing data sources.  
 %
-However, these languages have not been widely adopted, for several reasons.
-First, users must learn a lens language and its type system.  Second, they
-must adopt its unorthodox programming style that requires thinking in two
-directions at once.  Finally and most importantly, they must learn how to
-work within the restrictive type system that ensures invertibility.  These
-difficulties can disincentivize programmers from adopting the technology,
-despite its advantages.
+Such languages have been applied in a variety of practical settings.  For
+example, Augeas~\cite{augeas} is a popular tool that reads Linux system
+configuration files in a variety of {\em ad hoc} formats, uses the
+\emph{get} part of a lens to transform them into a simple, uniform tree
+representation that can be edited either manually or programmatically, and
+then uses the lens's \emph{put} to merge the edited results back into the
+original string format. \bcp{Mention some other lens-based languages,
+  including several from Tokyo.  We want to be as complete as possible here,
+  since these people are likely to be our reviewers.}  However, the
+unfamilarity of these languages has impeded adoption in many settings where
+well-behaved bidirectional transformations are needed.
+
+Our long-term goal is to make lens programming easier by {\em synthesizing}
+lenses from examples instead of asking programmers to write them explicitly.
 %
-\BCP{IMHO, the third of these is the only really important one.  And, to be
-  fair, our tool does not really save programmers from dealing with
-  unambiguity, since they still have to write the types!}
-
-One way to overcome these difficulties is to {\em synthesize} lenses from
-types and examples.  We propose an algorithm for doing this, for the case of
-bijective lenses between regular string languages.  Given a type
-$\Regex \Leftrightarrow \RegexAlt$ (which describes lenses mapping
-bijectively between $\Regex$ and $\RegexAlt$) and a small number of
-examples, our algorithm will synthesize a well-typed lens whose behavior
-matches the examples.
-
-Our work continues a recent trend toward synthesizing programs in a variety
+This work continues a recent trend toward synthesizing programs in a variety
 of domain-specific languages~\cite[etc.]{yag+:pldi16, osera+:pldi15,
   frankle+:popl16, armando+:pldi16}\bcp{Are these citations for ``program
   synthesis for DSLs''?  Seems very incomplete, if so.  Maybe we don't want
   to try to cite that whole literature, unless Steve knows enough about it
   to be sure that we're doing a good job of it.}, many guided by
 types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16}.  
+%
 \iffull
 \bcp{I think the rest of the paragraph can probably go, even in the long
   version.} 
@@ -334,20 +297,31 @@ there are many equivalent ways to express the same type and a simple
 syntax-directed algorithm will not work.
 \fi
 
-To explain our algorithm,
-we use a running example that converts between citations given
-in simplified fragments of BibTex and EndNote formats.  The BibTex format
-specifies a list of authors on a single line:
-\begin{lstlisting}
-   author={Conway, John and Kleene, Stephen Cole}
-\end{lstlisting}
-The EndNote format contains the same information, but uses different separators,
-rearranges the order of first and last names, and puts each author on
-a separate line:
-\begin{lstlisting}
-   % A John Conway
-   % A Stephen Cole Kleene
-\end{lstlisting}
+Specifically, we aim to create a version of the Boomerang
+language~\cite{boomerang,MoreBoomerangCitesIfThereAreAny} in which lenses
+can be written entirely by example.  Doing this involves two significant
+steps.  First, given the types of the source and target and some examples,
+we need to be able to synthesize lens programs with the desired behavior.
+Second, in some cases we may wish to synthesize the types themselves, given
+examples of source and target data.  In this paper, we address the first
+step, leaving the second to future work.  Moreover, we work with a
+simplified core of Boomerang in which only {\em bijective} lenses can be
+represented.  (Boomerang supports a more general class of {\em asymmetric}
+lenses, where information in the source format may be elided in the target
+format.)  The bijective case already raises thorny issues about controlling
+the size of the search space, and we believe that the solutions we've
+developed will be useful in the harder asymmetric case.  Moreover, bijective
+string transformations are already an interesting domain in themselves.
+\bcp{I've tried to make this paragraph much more honest about what we're
+  doing.  Is it too weak now?}
+
+% One way to overcome these difficulties is to {\em synthesize} lenses from
+% types and examples.  We propose an algorithm for doing this, for the case of
+% bijective lenses between regular string languages.  Given a type
+% $\Regex \Leftrightarrow \RegexAlt$ (which describes lenses mapping
+% bijectively between $\Regex$ and $\RegexAlt$) and a small number of
+% examples, our algorithm will synthesize a well-typed lens whose behavior
+% matches the examples.
 
 \begin{figure}
 \begin{lstlisting}
@@ -368,10 +342,23 @@ BibEnd : BibTex <=> EndNote = {
 "author={Conway, John and Kleene, Stephen Cole}"
 <-> "%A John Conway\n%A Stephen Cole Kleene" }
 \end{lstlisting}
-  \caption{Synthesis Example: Idealized Bibtex to EndNote}
+  \caption{Synthesis Example: Idealized Bibtex to EndNote\bcp{single quotes?}}
   \label{fig:bibend-spec}
 \end{figure}
 
+To explain our algorithm, we use a running example that converts between
+bibliographic citations in simplified fragments of BibTex and EndNote
+formats.  The BibTex format specifies (just) a list of authors on a single line:
+\begin{lstlisting}
+   author={Conway, John and Kleene, Stephen Cole}
+\end{lstlisting}
+The EndNote format contains the same information, but uses different separators,
+rearranges the order of first and last names, and puts each author on
+a separate line:
+\begin{lstlisting}
+   % A John Conway
+   % A Stephen Cole Kleene
+\end{lstlisting}
 Figure~\ref{fig:bibend-spec} shows an example specification for a lens
 \CF{BibEnd} that converts between the \CF{Bibtex} and \CF{EndNote} formats.
 Giving names to intermediate regular expressions (\CF{Name}, \CF{Names},
@@ -379,16 +366,14 @@ etc.) facilitates construction of complex formats; we will see that they
 also play an important role in the synthesis process.
 
 \paragraph*{Challenge 1: Multi-dimensional Search Space.}
-A central challenge facing our synthesis algorithm is illustrated
-by the concatenation operator, $\ConcatLensOf{\Lens_1}{\Lens_2}$.
-When viewed from left to right, this lens defines a
-function \emph{get} that divides an input string $\String$ into two
-substrings $\String_1$ and $\String_2$ and applies $\Lens_1$ to the first
-and $\Lens_2$ to the second to yield $t_1$ and $t_2$.
-When viewed from right to left, it defines a second
-function \emph{put}, which maps from strings $t$ to strings $s$ in an
-analogous way.  The type system for lenses ensures these \emph{get}
-and \emph{put} functions form a bijection via this typing rule:
+A central challenge facing our synthesis algorithm is illustrated by
+Boomerang's concatenation operator, $\ConcatLensOf{\Lens_1}{\Lens_2}$.  The
+\emph{get} function of this lens divides an input string $\String$ into two
+substrings $\String_1$ and $\String_2$ and applies the sub-lens $\Lens_1$ to
+the first and $\Lens_2$ to the second to yield $t_1$ and $t_2$.  The
+\emph{put} function maps from strings $t$ to strings $s$ in an analogous
+way.  The type system ensures that these functions form a bijection by
+imposing this typing rule:
 \[
   \inferrule
   {
@@ -451,7 +436,7 @@ difficult because there are infinitely many regular expressions that are
 equivalent to the source and target regular expressions.  Do we need to
 consider all of them?  In what order?
 
-A related challenge arises from the composition operator,
+A related challenge arises from Boomerang's composition operator,
 $\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
 $$
     \inferrule[]%\ComposeLensRule{}
@@ -575,12 +560,7 @@ maps between the languages of these pseudo-canonical regular expressions.
 We show how to convert back
 and forth between ordinary regular expressions and lenses and the DNF forms,
 and prove these translations sound and complete with respect to a high-level
-lens syntax based on a bijective subset of the well-studied Boomerang
-language~\cite{boomerang}.  \BCP{This claim is not entirely accurate, unless
-  it's stated and read very carefully: our high-level lens syntax is just a
-  subset of (the bijective subset of) Boomerang, because it doesn't have all
-  the type equivalences.  I've tried to adjust the wording so it's true,
-  but...} 
+lens syntax based on a bijective subset of Boomerang.  
 \item We develop a type-directed algorithm for synthesizing DNF lenses (\S
 \ref{implementation}) and prove it correct and complete.
 \item We evaluate this algorithm on 23 benchmarks, including examples from
@@ -2533,6 +2513,15 @@ which we accounted for in $\DefinitionalEquiv$.
 
 % begin related-work
 \section{Related Work}
+
+\bcp{More: Other bidirectional languages include
+biXid~\cite{bixid} language, which expresses 
+bidirectional XML transformations, and XSugar~\cite{xsugar} that converts
+bidirectionally between XML and non-XML data and between
+EpiDoc~\cite{epidoc} and Leiden+~\cite{leidenplus} formats for encoding
+ancient documents~\cite{epidocleidenplus}.  
+}
+
 \paragraph*{FlashFill}
 FlashFill~\cite{gulwani-popl-2014} is another string transformation
 tool.  FlashFill takes input and 
@@ -2633,6 +2622,8 @@ we would like to work on would be able to synthesize quotient lenses.
 Another approach to having disparate information on each side of the lens is
 through the use of symmetric lenses.  Symmetric lenses could be another approach to the
 whitespace problem.
+
+\bcp{Talk about Dave and Kathleen's work on synthesizing regex types.}
 
 % end conclusion
 
