@@ -1015,7 +1015,12 @@ unfettered use of rewrites based on Conway's axioms will not satisfy
 this latter property. 
 
 We have shown \saz{Anders: did we prove that these two properties are
-  sufficient?}  that two properties are sufficient to ensure that any
+  sufficient?} \afm{I guess you are right that we didn't show those properties
+  alone are sufficient.  They are important properties in our proof, but we
+  prove its sufficient in the DNF case.  We don't make a statement about it in
+  the non DNF case; while it may be true, we aren't sure that it is.  Maybe
+  these two properties are important in ensuring?} that two properties are
+sufficient to ensure that any
 equational theory of regular expressions implemented via rewrite rules $\to$
 is compatible with our lens synthesis strategy.  First, 
 the rewrite system should be \textit{confluent}\bcp{spell out}.  Second,  whenever $\Lens \OfType{} \Regex \Leftrightarrow \RegexAlt$ and 
@@ -1093,7 +1098,10 @@ For our purposes, we take the \textit{definitional equivalence rules} $\Definiti
 The corresponding rewriting relation, which orients these rules from
 left to right is both confluent and mirroring.  \saz{What does the
   rewrite relation do on the semiring axioms?}   \saz{Can we state
-  this as a lemma?}
+  this as a lemma?} \afm{Darn, this is another case where we prove it in the DNF
+  case, but not really in the normal regular expression case.  This is why I
+  didn't discuss semiring axioms, because DNF form doesn't really care about
+  those axioms.  I'm not too sure how to proceed on this.}
 
 This choice of definitional equivalence rules is the coarsest subset of the
 regular expression equivalence rules we could find that still is confluent
@@ -1173,27 +1181,27 @@ create huge regular expressions.
 \begin{figure}
 \begin{lstlisting}[mathescape=true,columns=fixed]
 BibTex':
-  $\uline{\EmptyString}$  | ($\uline{\text{author=}}$ { Name $\uline{\text{,}}$ Name Names
-       ($\uline{\text{ and }}$ (Name $\uline{\text{, }}$ Name Names))* $\uline{\text{\},}}$)
+  `$\EmptyString$'  | (`$\text{author=}$' { Name `$\text{,}$' Name Names
+       (`$\text{ and }$' (Name `$\text{, }$' Name Names))* `$\text{\},}$')
 
 EndNote':
-  ($\uline{\text{\%A }}$ (Name Names $\uline{\text{ }}$ Name) $\uline{\text{\\n}}$)*
+  (`$\text{\%A }$' (Name Names `$\text{ }$' Name) `$\text{\\n}$')*
 
 DNFBib':
-  $\uline{\EmptyString}$
-  | $\uline{\text{author=\{}}$ Name $\uline{\text{, }}$ Name $\uline{\EmptyString}$ Names $\uline{\EmptyString}$
-    ($\uline{\text{ and }}$ Name $\uline{\text{, }}$ Name $\uline{\EmptyString}$ Names $\uline{\EmptyString}$)* $\uline{\text{\},}}$
+  `$\EmptyString$'
+  | `$\text{author=\{}$' Name `$\text{, }$' Name `$\EmptyString$' Names `$\EmptyString$'
+    (`$\text{ and }$' Name `$\text{, }$' Name `$\EmptyString$' Names `$\EmptyString$')* `$\text{\},}$'
 
 DNFEnd':
-  $\uline{\EmptyString}$ ($\uline{\text{\%A }}$ Name $\uline{\EmptyString}$ Names $\uline{\text{ }}$ Name $\uline{\text{\\n}}$)* $\uline{\EmptyString}$
+  `$\EmptyString$' (`$\text{\%A }$' Name `$\EmptyString$' Names `$\text{ }$' Name `$\text{\\n}$')* `$\EmptyString$'
 
 DNFEndUnroll:
-  $\uline{\EmptyString}$
-  | $\uline{\text{\%A }}$ Name $\uline{\EmptyString}$ Names $\uline{\text{ }}$ Name $\uline{\text{\\n}}$
-    ($\uline{\text{\%A }}$ Name $\uline{\EmptyString}$ Names $\uline{\text{ }}$ Name $\uline{\text{\\n}}$)* $\uline{\EmptyString}$
+  `$\EmptyString$'
+  | `$\text{\%A }$' Name `$\EmptyString$' Names `$\text{ }$' Name `$\text{\\n}$'
+    (`$\text{\%A }$' Name `$\EmptyString$' Names `$\text{ }$' Name `$\text{\\n}$')* `$\EmptyString$'
 
 DNFEndReplacement:
-  ($\uline{\text{\%A }}$ Name $\uline{\EmptyString}$ ($\uline{\text{ }}$ Name)* $\uline{\text{ }}$ Name $\uline{\text{\\n}}$)* $\uline{\EmptyString}$
+  (`$\text{\%A }$' Name `$\EmptyString$' (`$\text{ }$' Name)* `$\text{ }$' Name `$\text{\\n}$')* `$\EmptyString$'
 \end{lstlisting}
   \label{fig:examples-expanded}
   \caption{
@@ -2275,7 +2283,7 @@ data types, which then creates a more complicated search problem.
     \bfseries Test & \bfseries Size & \bfseries (ms)
     & \bfseries Exmpl & \bfseries Exmpl
            \csvreader[head to column names]{generated-data/data.csv}{}
-           {\\\hline\Test & \SpecSize & \ComputationTime  & \ExamplesRequired & \MaxExampleCount}
+           {\\\hline\CF{\Test} & \SpecSize & \ComputationTime  & \ExamplesRequired & \MaxExampleCount}
     \\\hline
   \end{tabular}
   \label{fig:evaluation-data}
@@ -2743,7 +2751,56 @@ whitespace problem.
   $\LanguageOf{\RegexAlt}$.
 \end{lemma}
 \begin{proof}
-  TODO
+  By induction on the typing derivation of the lens
+  \begin{case}[\ConstLensType{}]
+    \[
+      \inferrule*
+      {
+        \String_1 \in \StarOf{\Sigma}\\
+        \String_2 \in \StarOf{\Sigma}
+      }
+      {
+        \ConstLensOf{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
+      }
+    \]
+
+    $\LanguageOf{\String_1} = \SetOf{\String_1}$.
+    
+    $\LanguageOf{\String_2} = \SetOf{\String_2}$.
+
+    $SemanticsOf{\ConstLensOf{\String_1}{\String_2}} = \SetOf{(\String_1,\String_2)}$.
+  \end{case}
+
+  \begin{case}[\IdentityLensType{}]
+    \[
+      \inferrule*
+      {
+        \Regex \text{ is strongly unambiguous}
+      }
+      {
+        \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
+      }
+    \]
+
+    $\LanguageOf{\Regex} = \LanguageOf{\Regex}$
+
+    The relation on $\LanguageOf{\Regex}$ is a bijection.
+  \end{case}
+
+  \begin{case}[\IterateLensType{}]
+    \[
+      {
+        \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
+        \UnambigItOf{\Regex}\\
+        \UnambigItOf{\RegexAlt}
+      }
+      {
+        \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\StarOf{\Regex}$, and
+  \end{case}
 \end{proof}
 
 \begin{lemma}
