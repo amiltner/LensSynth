@@ -9,6 +9,7 @@ watch :
 clean :
 	latexmk -C
 
-fast:
+bcp:
+	cp $(HOME)/common/bib/bcp.bib .
 	-pdflatex main
 	-bibtex main
