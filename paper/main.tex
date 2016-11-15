@@ -1959,47 +1959,52 @@ We have implemented the lens synthesis algorithm in $n$\bcp{how many?} lines
 of OCaml code. 
 
 \paragraph*{Synthesis Overview}
-Algorithm~\ref{alg:synthlens} shows an overview of the synthesis
-algorithm.  The algorithm, \SynthLens{}, takes in a pair of
-regular expressions ($\Regex$ and $\RegexAlt$), and examples ($\Examples$),
-and uses $\ToDNFRegex$ to convert the
-regular expressions into DNF regular expressions.
-Then, \SynthDNFLens{} is called on these DNF regular expressions to create a
-DNF lens.
-This DNF lens is then converted into a lens with \ToLens{}, and finally
-tweaked for readability with \Beautify{}.
+Algorithm~\ref{alg:synthlens} gives an overview of the synthesis
+algorithm, \SynthLens{}, which takes as input source $\Regex$ and
+target $\RegexAlt$ regular expression and a list of examples
+$\Examples$.
+The algorithm converts
+$\Regex$ and $\RegexAlt$ into DNF regular expressions
+$\DNFRegex_0$ and $\DNFRegexAlt_0$
+using the $\ToDNFRegex$ operator.
+It then calls \SynthDNFLens{}
+on $\DNFRegex_0$, $\DNFRegexAlt_0$, and the examples
+to create a DNF lens $\DNFLens$.  
+Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
+
+%finally tweaked for readability with \Beautify{}.
 
 \begin{algorithm}
   \caption{\SynthLens}
   \label{alg:synthlens}
   \begin{algorithmic}[1]
-    \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
-    \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
+    \Function{SynthDNFLens}{$\DNFRegex_0,\DNFRegexAlt_0,\Examples$}
+    \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex_0,\DNFRegexAlt_0),0}$
     \While{$\True$}
     \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}$
     \State $((\DNFRegex,\DNFRegexAlt),\ExpCount) \gets \QueueElement$
     \State $\DNFLensOption \gets
     \Call{\SynthRWLDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
     \Switch{\DNFLensOption}
-    \Case {\None}
+    \Case {\SomeOf{\DNFLens}}
+    \State $\ReturnVal{\DNFLens}$
+    \EndCase
+    \SecondCase {\None}
     \State $\DNFRegexs \gets \Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
     \State $\ExpCount \gets \ExpCount+1$
     \State $\QueueElements \gets \Call{\Map}{\lambda x.(x,\ExpCount),\DNFRegexs}$
     \State $\Queue \gets \Call{\EnqueueMany}{\QueueElements,\Queue}$
-    \EndCase
-    \SecondCase {\SomeOf{\DNFLens}}
-    \State $\ReturnVal{\DNFLens}$
     \EndSecondCase
+
     \EndSwitch
     \EndWhile
     \EndFunction
     \Statex
     \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
-    \State $(\DNFRegex,\DNFRegexAlt) \gets
+    \State $(\DNFRegex_0,\DNFRegexAlt_0) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
-    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
-    \State $\Lens \gets \Call{ToLens}{\DNFLens}$
-    \State $\ReturnVal{\Call{Beautify}{\Lens}}$
+    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex_0,\DNFRegexAlt_0,\Examples}$
+    \State $\ReturnVal{\Call{ToLens}{\DNFLens}}$
     \EndFunction
   \end{algorithmic}
 % \bcp{Larger comment: Is this seriously using {\em null} to
@@ -2010,103 +2015,106 @@ tweaked for readability with \Beautify{}.
 \bcp{Can we take away ``end case'' too?}
 \end{algorithm}
 
-In \SynthDNFLens{}, a singleton priority queue ($\Queue$) is created, consisting of the
-two input DNF regular expressions and the number of expansions preformed $(0)$.
-This priority queue is designed
-such that lower priority typing constraints either have undergone a large number
-of rewrites, or have typing constraints that are very difference in appearance
-from each other.
-Next a loop begins which pops the highest priority element from the queue.
-This element is a tuple consisting of the DNF regular expressions, and a tracker
-of how many expansions have been preformed ($\ExpCount$).
-\SynthRWLDNFLens is then called on the DNF regular expressions and
-the examples, to search for a rewriteless DNF lens.
-If a rewriteless DNF lens is found, it is returned.
-If no lens is found, a single rewrite is applied to either the left or the right
-DNF regular expression in \ExpandOnce.  In other words, if $\DNFRegex$ and
-$\DNFRegexAlt$ are the DNF regular expressions,
-$\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
+\SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
+  the search for a DNF lens.  Each element in the queue
+  $\QueueElement$ is a pair of source and target DNF regular
+  expressions $\DNFRegex$ and $\DNFRegexAlt$ and a count of the number
+  of expansions $\ExpCount$ required to obtain these regular
+  expressions from the originals $\DNFRegex_0$ and
+  $\DNFRegexAlt_0$. The algorithm initializes the queue with
+  $\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
+  zero.  The algorithm then proceeds by iteratively examining the
+  highest priority element from the queue, using the
+  function \SynthRWLDNFLens{} to try to find a rewriteless DNF lens
+  between the source and target DNF regular expressions that satisfy
+  the examples \Examples.  If successful, the algorithm returns the
+  DNF lens $\DNFLens$.  Otherwise, the function \ExpandOnce{} produces
+  the set of all source/target DNF regular expression pairs that can
+  be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by applying a single
+  rewrite to either the source or target DNF regular expression.  In
+  other words, $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
 \SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
 \Union
 \SetOf{(\DNFRegex,\DNFRegexAlt') \SuchThat \DNFRegexAlt \Rewrite \DNFRegexAlt'}$.
-All the DNF regular expressions returned by this are enqueued, with the
-information that an extra expansion has been preformed, and the loop continues.
+  The algorithm associates an incremented expansion count with each
+  resulting source/target pair and enqueues them to continue the search.
 
 \paragraph*{Priority Queue}
-We say that the lower the priority value, the higher the priority.
-The priority value of an element is based on two factors.  The first factor is
-the number of expansions that have been performed.  If more expansions have been
-preformed, the priority will be lower.  The inclusion of expansions preformed
-forces some exploration of the
-search space; if it were the only factor of priority, the search would be
-entirely a breadth first search through the application of rewrite rules.
-The second factor is how different the two regular expressions of the
-specification are.  This difference is determined from our implementation of
-a psuedometric $\Distance$.  Our distance $\Distance$ is
-a pseudometric, as $\Distance$ satisfies the triangle property, $\Distance$ is
-symmetric, and $\Distance(\DNFRegex,\DNFRegex) = 0$, but
+We use heuristics to prioritize candidate source/target DNF
+regular expressions that seem more likely to quickly lead to DNF
+lenses.  Specifically, we give higher priority to candidates that have
+undergone fewer rewrites and for which the source and target DNF
+regular expressions are more similar.  To assign a priority to a queue
+element, we calculuate its score; lower scores correspond to higher
+priorities. 
+
+We define the score of a pair of DNF regular expressions
+$(\DNFRegex{},\DNFRegexAlt{})$ with expansion count $\ExpCount$ to be
+$8*\ExpCount+ \Distance(\DNFRegex{},\DNFRegexAlt{})$, where
+$\Distance$ is a pseudometric that captures the level of difference
+between two DNF regular expressions.  Including the expansion count in
+the score allows lower priority expansions to eventually reach the
+front of the queue. It prevents the algorithm from getting stuck
+exploring incorrect and increasingly deep expansions of DNF regular
+expressions that have a low distance between them.  We determined
+experimentally that eight is an effective weight for the expansion
+count.
+
+We define the pseudometric $\Distance$ to be the sum of two simpler
+pseudometrics: $\Distance(\DNFRegex,\DNFRegexAlt)
+= \Distance_{size}(\DNFRegex,\DNFRegexAlt)+\Distance_{dist}(\DNFRegex,\DNFRegexAlt)$.
+This distance is a pseudometric (rather than a metric) because it
+satisfies the triangle property, it is symmetric, and
+$\Distance(\DNFRegex,\DNFRegex) = 0$, but
 $\Distance(\DNFRegex,\DNFRegexAlt) = 0$ does not imply $\DNFRegex =
-\DNFRegexAlt$.  This pseudometric is implemented
-as the sum of simpler pseudometrics,
-$\Distance = \Distance_{size}+\Distance_{dist}$.
+\DNFRegexAlt$. 
 
-The size distance, $\Distance_{size}$ is defined as merely the difference in the
-sizes of the DNF
-regular expressions.  The size of a DNF regular expression is the sum of the
-sizes of all lists present in the DNF regular expression data structure.
-The size distance, $\Distance_{size}$ is formally defined as
-$\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$.
-For two DNF regular expressions to have a rewriteless DNF lens between
-them, they must be the same size, so using this pseudometric makes ones closer
-in size popped sooner.
+The size distance $\Distance_{size}(\DNFRegex,\DNFRegexAlt)$ measures
+the difference in the sizes of the two DNF regular expressions.
+We consider the size of a DNF regular expression to be the
+sum of the lengths of all lists in the DNF regular expression data
+structure.  Formally, we define
+$\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$. 
+This pseudometric priorities
+candidates that are close in size because
+two DNF regular expressions must have the same size to have a
+rewriteless DNF lens between them.
 
-The distribution distance, $\Distance_{dist}$, captures how different the distributions of
-user defined regular expressions in the two input regular expressions
-are.
-The distribution of user defined regular expressions can be viewed as
-$\VectorSpace{}$, an
-infinite dimensional vector space over the reals.
-The set $\SetOf{1*(\RegexVariable,n) | n\in\Nats, \RegexVariable
-  \text{ is a user defined regular expression}}$ serves as a basis for this
-vector space.
-DNF regular expressions with variables can map into this vector space with a function that
-counts the number of user defined data types present at a given level.
-This function, $\GetDist{}$ formalizes the mapping from DNF regular expressions
-into $\VectorSpace$.
+The distribution distance $\Distance_{dist}(\DNFRegex,\DNFRegexAlt)$
+measures the difference in the distributions of user-defined regular
+expressions in the two input regular expressions.  The distribution of
+user-defined regular expressions can be viewed as an infinite
+dimensional vector space over the reals, which we call
+$\VectorSpace{}$.  The set $\SetOf{1*(\RegexVariable,n) |
+n\in\Nats, \RegexVariable \text{ is a user defined regular
+expression}}$ serves as a basis for this vector space.  We map DNF
+regular expressions with variables into this vector space using a
+function $\GetDist{}$ that counts the number of user-defined regular
+expressions $\RegexVariable$ present at a given level:
 \begin{trivlist}
 \item 
 \begin{tabular}{@{}L@{}L@{}}
+  \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
   \GetDist(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) &
                                                      =\GetDist(\Sequence_1)+\ldots+\GetDist(\Sequence_n)\\
   \GetDist(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}) &
                                                                       =\GetDist(\Atom_1)+\ldots+\GetDist(\Atom_n)\\
-  \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
   \GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
 \end{tabular}
 \end{trivlist}
-The linear map $\phi$ is used to increment the number of nested stars, and is
-defined by $\phi(a*(\RegexVariable,n)) = a*(\RegexVariable,n+1)$
+The linear map $\phi$, 
+defined as $\phi(a*(\RegexVariable,n)) = a*(\RegexVariable,n+1)$,
+increments the number of nested stars.
 
-If $\LOneNorm$ computes the Manhattan distance on $\VectorSpace$ the
-distribution distance
+Given $\GetDist$, we define the distribution distance to be
 $\Distance_{dist}(\DNFRegex,\DNFRegexAlt)=
-\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$.  This
-distance calculates how different the distribution of user defined regular
-expressions are in two DNF regular expressions.  Only when the distribution of
-user defined regular expressions are equal can a lens between two DNF regular
-expressions be synthesized.  This metric makes regular expressions with
-similar distributions of user defined regular expressions be popped earlier.
+\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$
+where $\LOneNorm$ computes the Manhattan distance on $\VectorSpace$.
+This pseudometric priorities candidates with similar distributions
+because two DNF regular expressions must have the same distribution of
+user-defined regular expressions to have a rewriteless DNF lens
+between them.
 
-The priority of a pair of DNF regular expressions, $(\DNFRegex{},\DNFRegexAlt{})$,
-is $\Distance(\DNFRegex{},\DNFRegexAlt{})+8*\ExpCount$, where
-$\ExpCount$ is the total number of expansions preformed.
-Keeping track of expansion count is important as it allows for lower priority
-expansions to be eventually popped, instead of getting stuck doing incorrect,
-increasingly deep expansions whose DNF regular expressions have a low distance.
-Experimentally, 8 is a good value for how much weight the expansion
-count should get in the priority.  It allows for not getting stuck in a local
-minima in the search space, while still allowing for the distance to choose the
-correct expansion the majority of the time.
 
 \paragraph*{\SynthRWLDNFLens}
 
