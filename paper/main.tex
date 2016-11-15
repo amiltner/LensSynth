@@ -1827,25 +1827,55 @@ resulting term remains in DNF form.
   \label{fig:dnf-lens-typing}
 \end{figure}
 
-Just as DNF regular expressions are comprised of DNF sequences and
-DNF atoms, DNF lenses (\DNFLens{}) are comprised of 
+The syntax of DNF lenses (\DNFLens{}),
 sequence lenses (\SequenceLens{})
-and atom lenses (\AtomLens{}).
-The grammar for these terms is defined below.
+and atom lenses (\AtomLens{}) is defined below. DNF lenses and
+sequence lenses both contain permutations ($\sigma$) which help
+describe how these lenses act on data.
 %We can now define a syntax for DNF lenses between DNF regular
 %expressions.  
 \begin{center}
   \begin{tabular}{@{}l@{\ }c@{}l@{}}
     % REGEX
     \AtomLens{} & \GEq{} & $\IterateLensOf{\DNFLens}$ \\
-    \SequenceLens{} & \GEq{} & $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma \in S_n)$ \\
-    \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma \in S_n)$ \\
+    \SequenceLens{} & \GEq{} & $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma)$ \\
+    \DNFLens{} & \GEq{} & $(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n}, \sigma)$ \\
   \end{tabular}
 \end{center}
 
-DNF lenses are defined via 3 mutually recursive data structures, DNF lenses, sequence lenses,
-and atom lenses.  Like lenses, DNF Lenses have denotational semantics to
-express bijective mappings.
+A DNF lens contains a collection of sequence lenses and a permutation.
+As an example, consider a DNF lens between data with type 
+$\DNFRegex_{11} \OrDNF \DNFRegex_{12}$ and data with type
+$\DNFRegex_{21} \OrDNF \DNFRegex_{22}$.  In such a lens, 
+the permutation $\sigma$ 
+indicates whether data matching $\DNFRegex_{11}$ will be translated to
+data matching $\DNFRegex_{21}$ or $\DNFRegex_{22}$, and likewise for
+$\DNFRegex_{12}$.  As we will see in a moment, these permutations make
+it possible to construct a well-typed lens between two DNF regular expressions
+regardless of the order in which clauses in a DNF regular expression appear,
+thereby eliminating the need to consider equivalence modulo commutativity 
+of these clauses.
+
+A DNF sequence lens includes (1) a series of atom lenses separated by pairs of 
+strings, and (2) a permutation. If there are $n$ elements in the series then
+the DNF sequence lens divides an input string up into $n$ substrings.
+The $i^{th}$ such substring is transformed by the $i^{th}$ element of the series.
+More precisely, if that $i^th$ element is an atom lens, then the  $i^th$
+substring is transformed according to that atom lens.  If $i^th$ element
+is a pair of strings $(s_1,s_2)$ then that pair of strings
+acts like a constant lens: when used from left-to-right, such a lens 
+translates string $s_1$ into $s_2$; when used from right-to-left, such a
+lens translates string $s_2$ into $s_1$. 
+After all of the substrings have been transformed,
+the permutation describes how to rearrange the 
+substrings transformed by the atom lenses to obtain the final output.
+
+An atom lens is an iteration of a DNF lens; its semantics is similar to
+the semantics of ordinary iteration lenses.
+
+The semantics of DNF Lenses, sequence lenses and atom lenses 
+is defined formally below.
+
 \begin{trivlist}
 \item 
   $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
@@ -1865,53 +1895,80 @@ express bijective mappings.
   \hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
     (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
 \end{trivlist}
-A DNF lens is a list of sequence lenses.
-We use the balanced delimiters of
-$\DNFLensLeft$ and $\DNFLensRight$ to show that a list of sequence lenses
-creates a DNF lens.
-A DNF lens corresponds
-to a lens consisting of many \OrLens{}s.  This correspondence is mirrored in the semantics, as the
-bijection determined by a DNF lens corresponds to applying one of many sequence
-lenses, just as the bijection determined by an \OrLens{} is determined through
-applying one of two lenses.  Furthermore, if a DNF lens is defined on $n$,
-elements, then a permutation on $n$ elements, $\sigma$, is also provided.  This
-permutation term
-does nothing for the semantics, but is used for typechecking, and eliminates the
-need to have a rewrite rule corresponding to the commutativity of union.
+%% A DNF lens is a list of sequence lenses.
+%% We use the balanced delimiters of
+%% $\DNFLensLeft$ and $\DNFLensRight$ to show that a list of sequence lenses
+%% creates a DNF lens.
+%% A DNF lens corresponds
+%% to a lens consisting of many \OrLens{}s.  This correspondence is mirrored in the semantics, as the
+%% bijection determined by a DNF lens corresponds to applying one of many sequence
+%% lenses, just as the bijection determined by an \OrLens{} is determined through
+%% applying one of two lenses.  Furthermore, if a DNF lens is defined on $n$,
+%% elements, then a permutation on $n$ elements, $\sigma$, is also provided.  This
+%% permutation term
+%% does nothing for the semantics, but is used for typechecking, and eliminates the
+%% need to have a rewrite rule corresponding to the commutativity of union.
 
-A sequence lens is a list of atom lenses and pairs of strings.
-We use the balanced delimiters of $\SequenceLensLeft$ and 
-$\SequenceLensRight$ to show that a list of atom lenses and pairs of strings is
-a sequence lens.
-A sequence lens corresponds to a lens consisting of many \ConcatLens{}s,
-\SwapLens{}s, and \ConstLens{}s.
-Sequence lenses bear similarities to \ConcatLens{} and
-\SwapLens{}, as they both are made for handling concatenated strings.  The
-pairs of strings within a sequence lens correspond to the pairs of strings on
-\ConstLens{}s.
-To handle the reordering of lenses that comes from
-\SwapLens{}, sequence lenses with $n$ atom lenses come with $\sigma$, a
-permutation on $n$ elements.  This permutation permutes the output strings of
-the atom lenses.
+%% A sequence lens is a list of atom lenses and pairs of strings.
+%% We use the balanced delimiters of $\SequenceLensLeft$ and 
+%% $\SequenceLensRight$ to show that a list of atom lenses and pairs of strings is
+%% a sequence lens.
+%% A sequence lens corresponds to a lens consisting of many \ConcatLens{}s,
+%% \SwapLens{}s, and \ConstLens{}s.
+%% Sequence lenses bear similarities to \ConcatLens{} and
+%% \SwapLens{}, as they both are made for handling concatenated strings.  The
+%% pairs of strings within a sequence lens correspond to the pairs of strings on
+%% \ConstLens{}s.
+%% To handle the reordering of lenses that comes from
+%% \SwapLens{}, sequence lenses with $n$ atom lenses come with $\sigma$, a
+%% permutation on $n$ elements.  This permutation permutes the output strings of
+%% the atom lenses.
 
-An atom lens is an iteration of a DNF lens.  Atom lenses correspond very closely to
-the $\IterateLens$ present in lenses.  However, atom lens $\IterateLens$s
-iterate DNF lenses,
-whereas the $\IterateLens$ present in lenses iterate lenses.  In our
-implementation, identity lenses which operate on user defined regular
-expressions are also considered atom lenses.  Considering identities on
-user defined regular expressions atom lenses makes atom lenses a sum type
-in the implementation.
+%% An atom lens is an iteration of a DNF lens.  Atom lenses correspond very closely to
+%% the $\IterateLens$ present in lenses.  However, atom lens $\IterateLens$s
+%% iterate DNF lenses,
+%% whereas the $\IterateLens$ present in lenses iterate lenses.  In our
+%% implementation, identity lenses which operate on user defined regular
+%% expressions are also considered atom lenses.  Considering identities on
+%% user defined regular expressions atom lenses makes atom lenses a sum type
+%% in the implementation.
 
-Similarly to the language of lenses, the typing of the lenses
-correspond closely to the syntax for the lenses themselves.
-The typing of these DNF lenses are defined in Figure~\ref{fig:dnf-lens-typing}.
-The typing $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ means that
-$\DNFLens$ maps bijectively between the languages of $\DNFRegex$ and
-$\DNFRegexAlt$.  The typing $\DNFLens \OfRewritelessType \DNFRegex
-\Leftrightarrow \DNFRegexAlt$ means that $\DNFLens$ maps bijectively between the
-languages of $\DNFRegex$ and $\DNFRegexAlt$, and no rewrites were used in the
-application of the typing.
+\paragraph*{Type Checking}
+Figure~\ref{fig:dnf-lens-typing} presents the type checking rules for
+DNF lenses.  In order to control where regular expression rewriting
+may be used (and thereby reduce search complexity), 
+the figure defines two separate typing judgements.
+The first judgement has the form 
+$\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
+It implies that the lens $\DNFLens$ is a well-formed
+bijective map between the
+languages of $\DNFRegex$ and $\DNFRegexAlt$.  This judgement does
+not include the rule for rewriting the types of the source or target
+data.  The second judgement has the form 
+$\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$.  
+It rewrites the source and target types, and then searches for a
+DNF lens with the rewritten types.
+
+One of the key differences between these typing judgements and the
+judgement for ordinary lenses are the permutations.  For example,
+in the rule for typing DNF lenses, the permutation $\sigma$
+indicates how to match up 
+sequence types on in the domain 
+($\Sequence_1\ldots\Sequence_n$) and the 
+range ($\SequenceAlt_{\sigma(1)}\ldots\SequenceAlt_{\sigma(n)}$).
+Permutations are used in a similar way in the typing rule for
+sequence lenses.
+
+%% There is one rule for each syntactic form
+%% Similarly to the language of lenses, the typing of the lenses
+%% correspond closely to the syntax for the lenses themselves.
+%% The typing of these DNF lenses are defined in Figure~\ref{fig:dnf-lens-typing}.
+%% The typing $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ means that
+%% $\DNFLens$ maps bijectively between the languages of $\DNFRegex$ and
+%% $\DNFRegexAlt$.  The typing $\DNFLens \OfRewritelessType \DNFRegex
+%% \Leftrightarrow \DNFRegexAlt$ means that $\DNFLens$ maps bijectively between the
+%% languages of $\DNFRegex$ and $\DNFRegexAlt$, and no rewrites were used in the
+%% application of the typing.
 
 \iffull
 These DNF lenses only express bijections that are already expressible in the
@@ -1919,12 +1976,17 @@ language of lenses, and they can express everything expressible in the
 language of lenses.
 \fi
 
+\paragraph*{Properties}  While DNF lenses have a restrictive syntax, they
+remain as powerful as ordinary bijective lenses.  The following theorems
+characterize the relationship between the two languages.
+
 \begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
   \label{thm:dnfls}
   If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$,
-  then there exists a derivation of $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ such that
-  $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
-  $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$, and
+  then there exists a lens $\Lens$ and regular expressions $\Regex$ and 
+$\RegexAlt$ such that $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ and
+  $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$ and
+  $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$ and
   $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
@@ -1932,24 +1994,32 @@ language of lenses.
   \label{thm:dnflc}
   If there exists a derivation for $\Lens \OfType \Regex \Leftrightarrow
   \RegexAlt$,
-  then there exists a derivation for
-  $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow \ToDNFRegexOf{\RegexAlt}$
-  such that $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
+  then there exists a $\DNFLens$ such that
+  $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow \ToDNFRegexOf{\RegexAlt}$ and $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
-DNF lenses are much more suited to synthesis.
-All rules except for \RewriteDNFRegexLensRule{} have a simple inductive
-algorithm that comes from the type.  Furthermore, even
-\RewriteDNFRegexLensRule{} can only be applied once at the end of the typing
-derivation, and it is not computationally intensive to find what rewrites can
-apply to a given DNF regular expression.
-Furthermore, there is no composition operator, so
-we have reduced the dimensions we are searching in from 3 to 2.  Before, given a
-specification, multiple rules could be applicable, equivalent regular
-expressions would have to be searched through, and regular expressions for
-composition would need to be found.
-For DNF lenses, only the correct rewrites for the regular expressions, and the
-correct permutations for each rule application, must be found.
+\paragraph*{Discussion} 
+DNF lenses are significantly better suited to synthesis than regular
+bijective lenses.  First, they contain no composition operator.
+Second, the use of equivalence (rewriting) is highly constrained:  Rewriting
+may only be used once at the top-most level as opposed to interleaved
+between uses of the other rules.  Consequently, a type-directed synthesis
+algorithm may be factored into two discreet steps: one step that
+searches (heuristically) for an effective pair of regular expressions
+and a second step that is directed by the syntax of the regular expression
+types that were discovered in the first step.
+%% All rules except for \RewriteDNFRegexLensRule{} have a simple inductive
+%% algorithm that comes from the type.  Furthermore, even
+%% \RewriteDNFRegexLensRule{} can only be applied once at the end of the typing
+%% derivation, and it is not computationally intensive to find what rewrites can
+%% apply to a given DNF regular expression.
+%% Furthermore, there is no composition operator, so
+%% we have reduced the dimensions we are searching in from 3 to 2.  Before, given a
+%% specification, multiple rules could be applicable, equivalent regular
+%% expressions would have to be searched through, and regular expressions for
+%% composition would need to be found.
+%% For DNF lenses, only the correct rewrites for the regular expressions, and the
+%% correct permutations for each rule application, must be found.
 % end formalisms
 
 % begin implementation
