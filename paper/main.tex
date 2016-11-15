@@ -2186,68 +2186,79 @@ user-defined regular expressions to have a rewriteless DNF lens
 between them.
 
 
-\paragraph*{\SynthRWLDNFLens(\DNFRegex,\DNFRegexAlt,\Examples)} 
-\ksf{This section is under revision; I'll work more on it Tuesday morning.}
-This function implements the core of our synthesis algorithm. 
+\paragraph*{\SynthRWLDNFLens} 
+This function implements the core of our synthesis algorithm.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
-and nested atoms while taking into account the information contained
-in the examples.  Once it finds an alignment, it generates the
+and nested atoms, taking into account the information contained in the
+examples.  Once it finds an alignment, it generates the
 corresponding lens. 
 
-To capture the information in the examples, the function starts by
-annotating each node in the data structure representing the source DNF
-regular expression with the corresponding portion of each example, and
-similarly for the target. 
+To incorporate the example information, \SynthRWLDNFLens{} annotates each
+node in the data structure representing the source DNF regular
+expression with the corresponding portion of each example, and
+similarly for the target.  For example, we would annotate
+different occurrences of \CF{Name} in the source 
+regular expression with \CF{``Stephen''} or \CF{``Kleene''}, as
+determined by how the regular expression would parse the example. 
 
-Next, it orders the annotated DNF regular expressions, remembering
-the permutations used 
-to perform those orderings.  Next, it does a tree zip of the two
-ordered, exampled dnf regular expressions, to pair up subcomponents of
-the two dnf regular expressions.  
+Searching for aligning permutations requires care, as naively
+considering all permutations between two DNF regular
+expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ would require time
+proportional to $n!$.  A better approach is to identify elements of
+the source and target DNF regular expressions that match and to
+leverage that information to create candidate permutations.  To find
+such matching elements, the function considers both the structure of
+the nested components and the example annotations.  
 
-Every subcomponent of one of the DNF regular expression is paired up
-with a single subcomponent of the other regular expression.  These
-dictate which subcomponent has a sublens between them.  However, we
-have only built a lens between the normalized regular expressions, not
-the original ones.  To make a lens between the original regular
-expressions, it uses the permutations generated for normalization to
-determine which permutations in the generated dnf lenses permit the
-matched subcomponents to still map to each other.
+To see how we use the example annotations, consider synthesizing a
+lens between the \CF{BibStar} and \CF{EndStar} formats.  The source
+and target both contain two instances of \CF{Name}.  The annotations
+help determine which \CF{Name} in the source corresponds to
+which \CF{Name} in the target by tracking how the examples are mapped.
+For example, the algorithm would align source and target \CF{Name}s
+that share the annotation \CF{``Kleene''}.
+
+More generally, the key insight is that certain invariants must hold
+for a DNF lens to have semantics that match the examples. Specifically:
+\begin{enumerate}
+\item A sequence in the source DNF regular expression annotated with
+  source example string ``s'' must be sent to the sequence in the
+  target DNF regular expression annotated with the corresponding
+  target example string ``t.''
+
+\item A user-defined regular expression in the source DNF regular
+  expression annotated with string ``s'' must be mapped to the same
+  user-defined regular expression in the target annotated
+  with the exact same string ``s''. 
+
+\item An iteration in the source DNF regular expression annotated with
+  the source example string ``s'' must correspond to an iteration in
+  the target DNF regular expression with the corresponding target
+  example string ``t.''  The source and target iterations must iterate
+  the same number ot times, and all invariants must hold for each
+  iterated part.
+\end{enumerate}
+We leverage these invariants to guide our search for aligning permutations.
 
 
-While performing type directed synthesis on DNF regular expressions, both
-synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
-the generation of a permutation.  Naively searching through all possible
-permutations is incredibly inefficient.  Were we to naively search through all the
-rewriteless DNF Lenses between
-the DNF regular expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
-processed.
+After finding appropriate permutations, we can
+synthesize a rewriteless DNF lens between
+$\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ simply by finding a
+sequence lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.
+Similarly, after finding appropriate permutations to align the atoms,
+we can synthesize a rewriteless sequence lens between
+$\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
+$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$
+simply by finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for
+all $i$.
 
-It is a better approach to recognize which subcomponents of types 
-recognize can be mapped to each other, and
-create the permutations based on those mappings, than to
-search through all possible permutations.  To handle finding which
-subcomponents can be mapped to each other, SynthRewritelessDNF further
-normalizes the input regular expressions.
-Ordering the sequence components and atom subcomponents of a dnf
-regular expression further normalizes it
-After correctly ordering the sequences, we can synthesize a rewriteless DNF lens
-between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
-lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.  Similarly, after
-correctly ordering the atoms, we can
-synthesize a rewriteless sequence lens 
-between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
-$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$ through
-merely finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for all $i$.
 
-However, these ordering normalization techniques can change the semantics of the
-regular
-expressions.  To get around this issue, remembering the alterations taken for
-normalization, and later applying them in reverse to the synthesized DNF lens
-can retrieve a lens between the original DNF regular expressions.
+
+
+
 
 %\begin{figure}
 %  \label{fig:lens-synth-ordering-ex}
@@ -2369,37 +2380,6 @@ can retrieve a lens between the original DNF regular expressions.
 %the permutations required for the lens between unordered BibTex and unordered
 %EndNote.
 
-Unfortunately, while this ordering and mapping procedure can find a well typed
-DNF lens, it doesn't
-necessarily find the one that matches the examples.  In the situation where
-there are multiple valid sorted orderings, there are multiple different lenses
-with potentially different semantics.  For example, in the
-synthesis of a lens between \CF{BibStar} and \CF{EndStar}, there are two
-instances of \CF{Name}.  Which of these should go first when ordered?  Instead
-of iterating through all the possible sortings, and finding one that matches
-the examples, we would like to
-be able to immediately find only a sorting which satisfies the examples.
-
-The key insight here is that certain invariants must hold for a DNF lens to have
-semantics that match the examples.
-
-\begin{enumerate}
-\item If a source example string matches one of the sequences during parsing,
-  it must be sent to the sequence the target example string matches during parsing.
-\item If a source example string matches a user defined regular expression during
-  parsing, the target must match the exact same string during parsing.
-\item If a source example string matches an iteration, then the target must iterate
-  the same number of times, and all the invariants must hold for each iterated part.
-\end{enumerate}
-
-We can hold these invariants by joining additional parsing information alongside
-the regular
-expression components, and creating an ordering on DNF regular expressions
-with parsing information.  By attaching additional parsing information,
-each \CF{Name} no longer is merely a \CF{Name}, it is \CF{Name} alongside
-\CF{"Stephen"} or \CF{"Kleene"}.  With that additional information, the
-\CF{Name}s can be ordered, and correctly mapped to the other
-\CF{Name}s in a manner that satisfies the examples.
 
 
 \paragraph*{Importance of User Defined Data Types}
