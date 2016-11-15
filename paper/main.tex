@@ -2524,11 +2524,11 @@ the user's goal is often to extract information.  We were able to
 adapt some examples by adding information to the target so the
 resulting transformation was bijective.
 
-Finally, we added examples to highlight weaknesses of
-our algorithm (\texttt{cust/cap-prob} and \texttt{cust/2-cap-prob}) 
+Finally, we added custom examples to highlight weaknesses of
+our algorithm (\texttt{cap-prob} and \texttt{2-cap-prob}) 
 and to test situations for which we thought the tool would be
-particularly useful (\texttt{cust/date-probs}, \texttt{cust/bib-prob},
-and \texttt{cust/addr-probs}).   These examples convert between date
+particularly useful (\texttt{date-probs}, \texttt{bib-prob},
+and \texttt{addr-probs}).   These examples convert between date
 formats, bibliography formats, and address formats, respectively.
 
 
@@ -2575,46 +2575,49 @@ to the complexity of the source and target regular expressions.  Other
 factors, such as the degree to which the source and target regular
 expressions vary, have a large impact.
 
-The example \texttt{aug/xml} takes as long as it does primarily because of the
-number of expansions required to be performed for finding the lens.
-Synthesizing this lens requires 12 expansions, where usually
-fewer than 5 expansions is sufficient.
-Combined with the complexity of the regular expressions that describe the
-source and
+The example \texttt{aug/xml} takes as long as it does primarily
+because of the number of expansions required to find the lens.
+Specifically, it requires twelve expansions
+in contrast to the other
+benchmarks, each of which requires fewer than five.  Combined with the
+complexity of the regular expressions that describe the source and
 target data formats, \ksf{XXX} tokens and \ksf{YYY} tokens,
-respectively, finding the correct expansions is quite difficult.
-\footnote{Note that xml is not a regular language, so
+respectively, finding the correct expansions is quite
+difficult.\footnote{Note that xml is not a regular language, so 
   the source and target regular expressions describe only xml
   expressions up to depth 3.}
-Even with our metric, over 400 expansions must be searched through before the
-correct 12 expansions are found.
+Even using our metric, the algorithm must consider over 400 expansions
+to find the correct twelve expansions.
 
-We constructed the pathological example \texttt{cust/2-cap-prob} to
+We constructed the example \texttt{cust/2-cap-prob} to
 highlight the exponential blow-up that arises in expanding
 disjunctions in the conversion to DNF form.  This example converts
 between strings of lowercase letters to strings of uppercase letters
 and vice versa, leading to source and target regular expression types
 that contain disjunctions of 26 letters.  The source and target
 regular expressions each contain two references to these disjunctions;
-hence the name ``2-cap-prob.''  In this example, the conversion to DNF
+hence the name ``\texttt{2-cap-prob}.''  In this example, the conversion to DNF
 form creates 676 sequences in the first expansion.  This number grows
 to 17576 sequences in subsequent conversions.
-In boomerang, a \CF{to\_lower} function is already provided, so the usage of
-user defined lenses would solve this.  In more generality, whenever there is a
-bijection between so many complex pieces of data, we expect reasonable
-programmers to create auxiliary lenses, and not handle the complex task of
-determining these mappings only within even more complex lenses.
+
+We do not expect this kind of situation to be a problem in practice
+because we anticipate users will create auxiliary lenses to manage
+complex conversions between nested data types.  Boomerang, for
+example, provides a \CF{to\_lower} lens for this situation.  By
+defining a user-defined datatype and an associated lens (perhaps via
+synthesis!) to manage the capitalization conversion, users can avoid
+the combinatorial explosion in the search space.
 
 % If we take this problem to the logical extremes, we see that the the triple
 % capitalization problem takes 6.974 seconds, and the quadruple capitalization
 % problem takes 33 minutes and 54.730 seconds.
 
-If a bijection that satisfies the examples does not exist between the
-source and target regular expressions, our tool rarely terminates.
-Instead, it performs increasibly complicated regular expression
-transformations to try to find a bijective lens.  In practice, if the
-system takes more than 10 seconds, we abort and revise the regular
-expressions to make it easier to find a bijection.
+We note that if a bijection that satisfies the examples does not exist
+between the source and target regular expressions, our tool rarely
+terminates.  Instead, it performs increasingly complicated regular
+expression transformations to try to find a bijective lens.  In
+practice, if the system takes more than 10 seconds, we abort and
+revise the regular expressions to make it easier to find a bijection.
 
 
 \paragraph*{Importance of Examples}
