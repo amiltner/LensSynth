@@ -907,10 +907,13 @@ applying $\Lens$ to subparts of a string.
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
       \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-      \UnambigOrOf{\LanguageOf{\Regex_1}}{\LanguageOf{\Regex_2}}\\ \UnambigOrOf{\LanguageOf{\RegexAlt_1}}{\LanguageOf{\RegexAlt_2}}
+      \UnambigOrOf{\Regex_1}{\Regex_2}\\
+      \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
     }
     {
-      \OrLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 | \RegexAlt_1 \Leftrightarrow \Regex_2 | \RegexAlt_2
+      \OrLensOf{\Lens_1}{\Lens_2} \OfType
+      \Regex_1 \Or \Regex_2
+      \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
     }
 
 \iffull
@@ -920,7 +923,7 @@ applying $\Lens$ to subparts of a string.
       \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
     }
     {
-      \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
+      \Lens_2 ; \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_3
     }
 \fi
 
@@ -2761,7 +2764,6 @@ and Nicolas.}
   $\LanguageOf{\RegexAlt}$.
 \end{lemma}
 \begin{proof}
-  TODO
   By induction on the typing derivation of the lens
   \begin{case}[\ConstLensType{}]
     \[
@@ -2795,11 +2797,12 @@ and Nicolas.}
 
     $\LanguageOf{\Regex} = \LanguageOf{\Regex}$
 
-    The relation on $\LanguageOf{\Regex}$ is a bijection.
+    The identity relation on $\LanguageOf{\Regex}$ is a bijection.
   \end{case}
 
   \begin{case}[\IterateLensType{}]
     \[
+      \inferrule*
       {
         \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
         \UnambigItOf{\Regex}\\
@@ -2810,18 +2813,376 @@ and Nicolas.}
       }
     \]
 
-    Let $\String_1,\String_2$ in $\StarOf{\Regex}$, and
+    Let $\String_1,\String_2$ in $\LanguageOf{\StarOf{\Regex}}$, and
     $(\String_1,\StringAlt) \in \SemanticsOf{\IterateLensOf{\Lens}}$, and
     $(\String_2,\StringAlt) \in \SemanticsOf{\IterateLensOf{\Lens}}$.
+
+    So $\String_1 = \String_{1,1}\Concat\ldots\Concat\String_{1,n}$,
+    $\StringAlt = \StringAlt_1\Concat\ldots\StringAlt_n$, and
+    $(\String_{1,i},\StringAlt_i) \in \SemanticsOf{\Lens}$.
+    So $\String_2 = \String_{2,1}\Concat\ldots\Concat\String_{2,m}$,
+    $\StringAlt = \StringAlt_1'\Concat\ldots\StringAlt_m'$, and
+    $(\String_{2,i},\StringAlt_i') \in \SemanticsOf{\Lens}$.
+    By $\UnambigItOf{\RegexAlt}$, this means that $m=n$, and $\StringAlt_i =
+    \StringAlt_i'$.
+    So $(\String_{1,i},\StringAlt_i)$, and $(\String_{2,i},\StringAlt_i)$ are
+    both in $\SemanticsOf{\Lens}$.
+    As $\Lens$ is a bijection, by IH, $\String_{1,i} = \String_{2,i}$, so $\String_1 =
+    \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\StarOf{\RegexAlt}}$.
+
+    Let $\String\in\LanguageOf{\StarOf{\Regex}}$.
+    $\String = \String_1\Concat\ldots\Concat\String_n$, where $\String_i \in
+    \LanguageOf{\Regex}$.
+    By IH, as $\Lens$ is a bijection, there exists $\StringAlt_i\in\LanguageOf{\Regex}$ such that
+    $(\String_i,\StringAlt_i) \in \SemanticsOf{\Lens}$.
+    So $(\String,\StringAlt_1\Concat\ldots\Concat\StringAlt_n) \in
+    \SemanticsOf{\IterateLensOf{\Lens}}$,
+    and $\StringAlt_1 \Concat \ldots \Concat \StringAlt_n \in \LanguageOf{\StarOf{\RegexAlt}}$.
+
+    Similarly for $\StringAlt \in \LanguageOf{\StarOf{\RegexAlt}}$.
+  \end{case}
+
+  \begin{case}[ConcatLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+        \UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}
+      }
+      {
+        \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\LanguageOf{\Regex_1\Concat\Regex_2}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$.
+
+    So $\String_1 = \String_{1,1}\Concat\String_{1,2}$,
+    $\StringAlt = \StringAlt_1\StringAlt_2$, and
+    $(\String_{1,i},\StringAlt_i) \in \SemanticsOf{\Lens_i}$.
+    So $\String_2 = \String_{2,1}\Concat\String_{2,2}$,
+    $\StringAlt = \StringAlt_1'\Concat\StringAlt_2'$, and
+    $(\String_{2,i},\StringAlt_i') \in \SemanticsOf{\Lens_i}$.
+    By $\UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}$,
+    $\StringAlt_i = \StringAlt_i'$.
+    So $(\String_{1,i},\StringAlt_i)$, and $(\String_{2,i},\StringAlt_i)$ are
+    both in $\SemanticsOf{\Lens_i}$.
+    As $\Lens_i$ is a bijection, by IH, $\String_{1,i} = \String_{2,i}$, so $\String_1 =
+    \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\RegexAlt_1 \Concat \RegexAlt_2}$.
+
+    Let $\String\in\LanguageOf{\Regex_1\Concat\Regex_2}$.
+    $\String = \String_1\Concat\String_2$, where $\String_i \in
+    \LanguageOf{\Regex_i}$.
+    By IH, as $\Lens_i$ is a bijection, there exists $\StringAlt_i\in\LanguageOf{\DNFRegexAlt}$ such that
+    $(\String_i,\StringAlt_i) \in \SemanticsOf{\Lens_i}$.
+    So $(\String,\StringAlt_1\Concat\StringAlt_2) \in
+    \SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$.
+
+    Similarly for $\StringAlt \in \LanguageOf{\RegexAlt_1\Concat\RegexAlt_2}$.
+  \end{case}
+
+  \begin{case}[\SwapLensType]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+        \UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}
+      }
+      {
+        \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\LanguageOf{\Regex_1\Concat\Regex_2}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$.
+
+    So $\String_1 = \String_{1,1}\Concat\String_{1,2}$,
+    $\StringAlt = \StringAlt_2\StringAlt_1$, and
+    $(\String_{1,i},\StringAlt_i) \in \SemanticsOf{\Lens_i}$.
+    So $\String_2 = \String_{2,1}\Concat\String_{2,2}$,
+    $\StringAlt = \StringAlt_2'\Concat\StringAlt_1'$, and
+    $(\String_{2,i},\StringAlt_i') \in \SemanticsOf{\Lens_i}$.
+    By $\UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}$,
+    $\StringAlt_i = \StringAlt_i'$.
+    So $(\String_{1,i},\StringAlt_i)$, and $(\String_{2,i},\StringAlt_i)$ are
+    both in $\SemanticsOf{\Lens_i}$.
+    As $\Lens_i$ is a bijection, by IH, $\String_{1,i} = \String_{2,i}$,
+    so $\String_1 = \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\RegexAlt_2\Concat\RegexAlt_1}$.
+
+    Let $\String\in\LanguageOf{\Regex_1\Concat\Regex_2}$.
+    $\String = \String_1\Concat\String_2$, where $\String_i \in
+    \LanguageOf{\Regex_i}$.
+    By IH, as $\Lens_i$ is a bijection, there exists $\StringAlt_i\in\LanguageOf{\RegexAlt_i}$ such that
+    $(\String_i,\StringAlt_i) \in \SemanticsOf{\Lens_i}$.
+    So $(\String,\StringAlt_2\Concat\StringAlt_1) \in
+    \SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$,
+    and $\StringAlt_2 \Concat \StringAlt_1 \in \LanguageOf{\Regex_2 \Concat \Regex_1}$.
+
+    Similarly for $\StringAlt \in \LanguageOf{\RegexAlt_2\Concat\RegexAlt_1}$.
+  \end{case}
+
+  \begin{case}[\OrLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigOrOf{\Regex_1}{\Regex_2}\\
+        \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
+      }
+      {
+        \OrLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Or \Regex_2
+        \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\LanguageOf{\Regex_1\Or\Regex_2}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$.
+
+    So $(\String_1,\StringAlt) \in \SemanticsOf{\Lens_1}$ or
+    $(\String_1,\StringAlt) \in \SemanticsOf{\Lens_2}$.
+    So $(\String_2,\StringAlt) \in \SemanticsOf{\Lens_1}$ or
+    $(\String_2,\StringAlt) \in \SemanticsOf{\Lens_2}$.
+
+    As $\UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}$, $\StringAlt_i$ is in only one of
+    $\LanguageOf{\RegexAlt_1}$ or $\LanguageOf{\RegexAlt_2}$.
+
+    Let $\StringAlt_i \in \LanguageOf{\RegexAlt_1}$.  This means that
+    $(\String_1,\StringAlt) \in \SemanticsOf{\Lens_1}$ and
+    $(\String_2,\StringAlt) \in \SemanticsOf{\Lens_1}$.
+    As $\Lens_1$ is a bijection, by IH, $\String_1 = \String_2$.
+    Similarly if $\StringAlt \in \LanguageOf{\RegexAlt_2}$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\RegexAlt_2\Concat\RegexAlt_1}$.
+
+    Let $\String\in\LanguageOf{\Regex_1\Or\Regex_2}$.
+    So $\String$ is either in $\LanguageOf{\Regex_1}$ or $\LanguageOf{\Regex_2}$.
+    If $\String \in \LanguageOf{\Regex_1}$, then as $\Lens_1$ is a bijection
+    between $\LanguageOf{\Regex_1}$ and $\LanguageOf{\Regex_2}$,
+    there exists $\StringAlt \in \LanguageOf{RegexAlt_1}$ such that
+    $(\String,\StringAlt) \in \SemanticsOf{\Lens_1}$, so
+    $(\String,\StringAlt) \in \SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$,
+    and $\StringAlt \in \LanguageOf{\RegexAlt_1 \Or \RegexAlt_2}$.
+    Similarly if $\String \in \LanguageOf{\Regex_2}$.
+
+    Similarly for $\StringAlt \in \LanguageOf{\RegexAlt_2\Concat\RegexAlt_1}$.
+  \end{case}
+
+  \begin{case}[\ComposeLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+      }
+      {
+        \Lens_1 ; \Lens_2 \OfType \Regex_1 \Leftrightarrow \Regex_3
+      }
+    \]
+
+    By IH, $\SemanticsOf{\Lens_1}$ is a bijection between
+    $\LanguageOf{\Regex_1}$ and $\LanguageOf{\Regex_2}$.
+    By IH, $\SemanticsOf{\Lens_2}$ is a bijection between
+    $\LanguageOf{\Regex_2}$ and $\LanguageOf{\Regex_3}$.
+    From math, this means that their composition is also a bijection.
   \end{case}
 \end{proof}
 
 \begin{lemma}
   \label{lem:rw-dnf-lens-bij}
-  If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then
-  $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\DNFRegex}$ and
-  $\LanguageOf{\DNFRegexAlt}$.
+  \leavevmode
+  \begin{itemize}
+  \item
+    If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then
+    $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\DNFRegex}$ and
+    $\LanguageOf{\DNFRegexAlt}$.
+  \item
+    If $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$, then
+    $\SemanticsOf{\SequenceLens}$ is a bijection between $\LanguageOf{\Sequence}$ and
+    $\LanguageOf{\SequenceAlt}$.
+  \item
+    If $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$, then
+    $\SemanticsOf{\AtomLens}$ is a bijection between $\LanguageOf{\Atom}$ and
+    $\LanguageOf{\AtomAlt}$.
+  \end{itemize}
 \end{lemma}
+\begin{proof}
+  By mutual induction on the typing derivations of DNF lenses, sequence lenses,
+  and atom lenses.
+  \begin{case}[\IterateAtomType{}]
+    \[
+      \inferrule*
+      {
+        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
+        \UnambigItOf{\DNFRegex}\\
+        \UnambigItOf{\DNFRegexAlt}
+      }
+      {
+        \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+        \Leftrightarrow \StarOf{\DNFRegexAlt}
+      }
+    \]
+    
+    Let $\String_1,\String_2$ in $\LanguageOf{\StarOf{\DNFRegex}}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\IterateLensOf{\DNFLens}}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{\IterateLensOf{\DNFLens}}$.
+    
+    So $\String_1 = \String_{1,1}\Concat\ldots\Concat\String_{1,n}$,
+    $\StringAlt = \StringAlt_1\Concat\ldots\StringAlt_n$, and
+    $(\String_{1,i},\StringAlt_i) \in \SemanticsOf{\DNFLens}$.
+    So $\String_2 = \String_{2,1}\Concat\ldots\Concat\String_{2,m}$,
+    $\StringAlt = \StringAlt_1'\Concat\ldots\StringAlt_m'$, and
+    $(\String_{2,i},\StringAlt_i') \in \SemanticsOf{\DNFLens}$.
+    By $\UnambigItOf{\DNFRegexAlt}$, this means that $m=n$, and $\StringAlt_i =
+    \StringAlt_i'$.
+    So $(\String_{1,i},\StringAlt_i)$, and $(\String_{2,i},\StringAlt_i)$ are
+    both in $\SemanticsOf{\DNFLens}$.
+    As $\DNFLens$ is a bijection, by IH, $\String_{1,i} = \String_{2,i}$, so $\String_1 =
+    \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\StarOf{\DNFRegexAlt}}$.
+
+    Let $\String\in\LanguageOf{\StarOf{\DNFRegex}}$.
+    $\String = \String_1\Concat\ldots\Concat\String_n$, where $\String_i \in
+    \LanguageOf{\DNFRegex}$.
+    By IH, as $\DNFLens$ is a bijection, there exists $\StringAlt_i\in\LanguageOf{\DNFRegexAlt}$ such that
+    $(\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}$.
+    So $(\String,\StringAlt_1\Concat\ldots\Concat\StringAlt_n) \in
+    \SemanticsOf{\IterateLensOf{\DNFLens}}$,
+    and $\StringAlt_1\Concat\ldots\Concat\StringAlt_n \in \LanguageOf{\DNFRegexAlt}$.
+
+    Similarly for $\StringAlt \in \LanguageOf{\StarOf{\DNFRegexAlt}}$.
+  \end{case}
+
+  \begin{case}[\SequenceLensType{}]
+    \[
+      \inferrule*
+      {
+        \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+        \ldots\\
+        \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
+        \sigma \in \PermutationSetOf{n}\\
+        \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+        \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+      }
+      {
+        (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma)
+        \OfRewritelessType\\
+        \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}
+        \Leftrightarrow
+        \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma)}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma)}$.
+    
+    So $\String_1 = \String_0\Concat\String_{1,1}\Concat\ldots\Concat\String_{1,n}\Concat\String_n$,
+    $\StringAlt = \StringAlt_0\Concat\StringAlt_{1,\sigma(i)}\Concat\ldots\StringAlt_{1,\sigma(n)}\Concat\StringAlt_n$, and
+    $(\String_{1,i},\StringAlt_{1,i}) \in \SemanticsOf{\AtomLens_i}$.
+    So $\String_2 = \String_0\Concat\String_{2,1}\Concat\ldots\Concat\String_{2,n}\Concat\String_n$,
+    $\StringAlt = \StringAlt_0\Concat\StringAlt_{2,\sigma(1)}\Concat\ldots\Concat\StringAlt_{2,n}\Concat\StringAlt_{\sigma(n)}$, and
+    $(\String_{2,i},\StringAlt_{2,i}) \in \SemanticsOf{\DNFLens}$.
+    By
+    $\UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}$,
+    this means that $\StringAlt_{1,i} = \StringAlt_{2,i}$.
+    So $(\String_{1,i},\StringAlt_{1,i})$, and $(\String_{2,i},\StringAlt_{1,i})$ are
+    both in $\SemanticsOf{\AtomLens_i}$.
+    As $\AtomLens$ is a bijection, by IH, $\String_{1,i} = \String_{2,i}$, so $\String_1 =
+    \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\StarOf{\DNFRegexAlt}}$.
+
+    Let $\String\in\LanguageOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}}$.
+    $\String =
+    \String_0\Concat\String_1'\ldots\Concat\String_n'\Concat\String_n$,
+    where $\String_i' \in \LanguageOf{\Atom_i}$.
+    By IH, as $\Sequence_i$ is a bijection, there exists $\StringAlt_i'\in\LanguageOf{\AtomAlt_i}$ such that
+    $(\String_i',\StringAlt_i') \in \SemanticsOf{\AtomLens}$.
+    So $(\String,\StringAlt_0\Concat\StringAlt_{\sigma(1)}'\Concat\ldots\Concat\StringAlt_{\sigma(n)}'\Concat\StringAlt_n) \in
+    \SemanticsOf{\SequenceLens}$,
+    and
+    $\StringAlt_0\Concat\StringAlt_{\sigma(1)}'\Concat\ldots\Concat\StringAlt_{\sigma(n)}'\Concat\StringAlt_n
+    \in
+    \LanguageOf{\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}}$
+
+    Similarly for $\StringAlt \in \LanguageOf{\StarOf{\DNFRegexAlt}}$.
+  \end{case}
+  
+  \begin{case}[\DNFLensType{}]
+    \[
+      \inferrule*
+      {
+        \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+        \ldots\\
+        \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+        \sigma \in \PermutationSetOf{n}\\
+        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+      }
+      {
+        (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma)
+        \OfRewritelessType\\
+        \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+        \Leftrightarrow
+        \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+      }
+    \]
+
+    Let $\String_1,\String_2$ in $\LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma)}$, and
+    $(\String_2,\StringAlt) \in \SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma)}$.
+    
+    So $\exists i.\String_1 \in \LanguageOf{\Sequence_i}$,
+    $\StringAlt \in \LanguageOf{\SequenceAlt_{\sigma(i)}}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\SequenceLens_i}$.
+    So $\exists j.\String_2 \in \LanguageOf{\Sequence_j}$,
+    $\StringAlt \in \LanguageOf{\SequenceAlt_{\sigma(j)}}$, and
+    $(\String_1,\StringAlt) \in \SemanticsOf{\SequenceLens_j}$.
+    As
+    $i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap
+    \LanguageOf{\SequenceAlt_{j}}=\emptyset$, $i = j$.
+    So $\String_1 \in \LanguageOf{\Sequence_i}$, $\String_2 \in
+    \LanguageOf{\Sequence_i}$.
+    As, by IH, $\SequenceLens_i$ is a bijection,
+    $\String_1 = \String_2$.
+
+    Similarly for $\StringAlt_1,\StringAlt_2$ in
+    $\LanguageOf{\StarOf{\DNFRegexAlt}}$.
+
+    Let $\String\in\LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}$.
+    So there exists an $i$ such that $\String \in \LanguageOf{\Sequence_i}$.
+    By IH, as $\Sequence_i$ is a bijection, there exists $\StringAlt\in\LanguageOf{\SequenceAlt_i}$ such that
+    $(\String,\StringAlt) \in \SemanticsOf{\Sequence_i}$.
+    So
+    $(\String,\StringAlt) \in
+    \SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma)}$,
+    and $\StringAlt \in
+    \LanguageOf{\DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}}$. 
+
+    Similarly for $\StringAlt \in \LanguageOf{\StarOf{\DNFRegexAlt}}$.
+  \end{case}
+\end{proof}
 
 \begin{lemma}[Equivalence of \ConcatDNF{} and \Concat{}]
   \label{lem:cdnfeq}
@@ -3508,14 +3869,15 @@ and Nicolas.}
   \end{proof}
 \end{lemma}
 
-\begin{theorem}[Unambiguity of $\Sep$]
+\begin{lemma}[Unambiguity of $\Sep$]
+  \label{lem:sep_unambiguity}
   Let $\Alphabet$ be an alphabet.  Let $\Alphabet_{\Sep}=\Alphabet\Union\SetOf{\Sep}$,
   where \Sep{} is a character not in \Alphabet{}.
   If $\Language_1, \ldots,
   \Language_n$, are languages in $\StarOf{\Alphabet}$, then
   $\UnambigConcat\SequenceOf{\LanguageOf{\Sep};\Language_1;\LanguageOf{\Sep};
     \ldots;\LanguageOf{\Sep};\Language_n;\LanguageOf{\Sep}}$.
-\end{theorem}
+\end{lemma}
 \begin{proof}
   We prove this by induction on $n$.
 
@@ -3983,15 +4345,6 @@ and Nicolas.}
     By IH, $\LanguageOf{\DNFRegex'} = \LanguageOf{\DNFRegexAlt}$.
     So $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$.
   \end{case}
-\end{proof}
-
-\begin{lemma}
-  If $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$, then
-  $\SemanticsOf{\DNFLens}$ is a bijection between $\LanguageOf{\DNFRegex}$ and
-  $\LanguageOf{\DNFRegexAlt}$.
-\end{lemma}
-\begin{proof}
-  TODO
 \end{proof}
 
 \begin{lemma}[Soundness of DNF, Sequence, and Atom Lenses]\leavevmode
@@ -5532,29 +5885,193 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \Leftrightarrow \DNFRegexAlt_2 \OrDNF \DNFRegexAlt_1$.
 \end{lemma}
 \begin{proof}
-  TODO
+  Let $\DNFRegex_1 = \DNFOf{\Sequence_{1,1};\ldots;\Sequence_{1,n}}$.
+  Let $\DNFRegex_2 = \DNFOf{\Sequence_{2,1};\ldots;\Sequence_{2,n'}}$.
+  Let $\DNFRegexAlt_1 = \DNFOf{\SequenceAlt_{1,1};\ldots;\SequenceAlt_{1,m}}$.
+  Let $\DNFRegexAlt_2 = \DNFOf{\SequenceAlt_{2,1};\ldots;\SequenceAlt_{2,m'}}$.
+  Let $\DNFLens = (\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_{n+m}},\sigma)$
+
+  So $\DNFRegex_1 \OrDNF \DNFRegex_2 =
+  \DNFOf{\Sequence_1;\ldots;\Sequence_{n+n'}}$, where
+  $\Sequence_i =
+  \begin{cases*}
+    \Sequence_{1,i} & if $i \leq n$\\
+    \Sequence_{2,i-n} & if $i > n$
+  \end{cases*}$
+
+  So $\DNFRegexAlt_1 \OrDNF \DNFRegexAlt_2 =
+  \DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(m+m')}}$, where
+  $\SequenceAlt_{\sigma(i)} =
+  \begin{cases*}
+    \SequenceAlt_{1,i} & if $i \leq m$\\
+    \SequenceAlt_{2,i-m} & if $i > m$
+  \end{cases*}$
+
+  By inversion
+  \[
+    \inferrule*
+    {
+      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+      \ldots\\
+      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+      \sigma \in \PermutationSetOf{n}\\
+      i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+      i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+      \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+    }
+  \]
+
+  Consider the permutation $\sigma'(i) =
+  \begin{cases*}
+    \sigma(i+m) & if $\sigma(i) \leq m'$\\
+    \sigma(i-m) & if $\sigma(i) > m'$
+  \end{cases*}$
+
+  Consider the lens
+  \[
+    \inferrule*
+    {
+      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+      \ldots\\
+      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+      \sigma' \in \PermutationSetOf{n}\\
+      i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+      i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma')
+      \OfRewritelessType\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+      \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma'(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma'(n)}}
+    }
+  \]
+  
+  So $\SequenceAlt_{\sigma'(i)} =
+  \begin{cases*}
+    \SequenceAlt_{\sigma(i+m)} = \SequenceAlt_{2,i} & if $\sigma(i) \leq m'$\\
+    \SequenceAlt_{\sigma(i-m)} = \SequenceAlt_{1,i} & if $\sigma(i) > m$
+  \end{cases*}$
+
+  So $\DNFOf{\SequenceAlt_{\sigma'(1)};\ldots;\SequenceAlt_{\sigma'(m+m')}} =
+  \DNFRegexAlt_2 \OrDNF \DNFRegexAlt_1$.
+
+  Furthermore, The semantics are the same, as permutation has no impact on the
+  semantics of DNF lenses.
 \end{proof}
 
 \begin{lemma}[Left Unrolling of $\IterateLens$]
   \label{lem:iterate-lens-unroll-left}
-  If $\IterateLensOf{\DNFLens}$ is an atom lens, then
-  $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNFLens (\DNFLens
-  \ConcatDNFLens \AtomToDNFLensOf{\IterateLensOf{\DNFLens}})$ is a DNF Lens with
+  If $\IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+  \Leftrightarrow \StarOf{\DNFRegexAlt}$ is an atom lens, then
+  $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}}
+  \OrDNFLens
+  (\DNFLens \ConcatDNFLens \AtomToDNFLensOf{\IterateLensOf{\DNFLens}})
+  \OfRewritelessType
+  \DNFOf{\SequenceOf{\EmptyString}}
+  \OrDNF
+  (\DNFRegex \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegex}})
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{\EmptyString}}
+  \OrDNF
+  (\DNFRegexAlt \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegexAlt}})$
+  is a DNF Lens with
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\DNFLens'}$
 \end{lemma}
 \begin{proof}
-  TODO
+  So $\StarOf{\DNFRegex}$ and $\StarOf{\DNFRegexAlt}$ are strongly unambiguous
+  atoms.
+
+  As such, this means $\UnambigItOf{\DNFRegex}$, $\UnambigItOf{\DNFRegexAlt}$,
+  $\DNFRegex$ is strongly unambiguous, and $\DNFRegexAlt$ is strongly
+  unambiguous.
+
+  Want to show: because $\UnambigItOf{\DNFRegex}$,
+  $\UnambigConcatOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}}$.
+  Let $\String_1,\String_2 \in \LanguageOf{\DNFRegex}$.
+  Let $\StringAlt_1,\StringAlt_2 \in \LanguageOf{\StarOf{\DNFRegex}}$.
+  Let $\String_1\Concat\StringAlt_1 = \String_2 \Concat \StringAlt_2$.
+  This is $\String_1\Concat\StringAlt_{1,1}\Concat\ldots\Concat\StringAlt_{1,n}$
+  and $\String_2\Concat\StringAlt_{2,1}\Concat\ldots\Concat\StringAlt_{2,n'}$.
+  where each substring is in $\LanguageOf{\DNFRegex}$.  By unambiguous
+  iteration, $n=n'$, and $\String_1 = \String_2$, $\StringAlt_{1,i} =
+  \StringAlt_{2,i}$,
+  so $\String_1 = \String_2$ and $\StringAlt_1 = \StringAlt_2$.
+
+  As such Lemma~\ref{lem:typ_sem_concat} applies, so
+  $(\DNFLens \ConcatDNFLens \AtomToDNFLensOf{\IterateLensOf{\DNFLens}})
+  \OfRewritelessType
+  (\DNFRegex \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegex}})
+  \Leftrightarrow
+  (\DNFRegexAlt \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegexAlt}})$.
+
+  Want to show: because $\UnambigItOf{\DNFRegex}$,
+  $\UnambigOrOf{\DNFOf{\SequenceOf{\EmptyString}}}{\DNFRegex \ConcatDNF
+    \AtomToDNFOf{\StarOf{\DNFRegex}}}$.
+  $\EmptyString$ is the only element of
+  $\LanguageOf{\DNFOf{\SequenceOf{\EmptyString}}}$.
+  $\EmptyString \not\in \LanguageOf{\DNFRegex \ConcatDNF
+    \AtomToDNFOf{\StarOf{\DNFRegex}}}$, as it cannot be in $\LanguageOf{\DNFRegex}$.
+  Otherwise if $\EmptyString \in \LanguageOf{\DNFRegex}$, then for all
+  $\String_1\Concat\ldots\Concat\String_n =
+  \EmptyString\Concat\String_1\Concat\ldots\Concat\String_n$, betraying
+  unambiguous iteration.
+
+  As such Lemma~\ref{lem:typ_sem_or} applies, so
+  $\DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNF
+  (\DNFLens \ConcatDNFLens \AtomToDNFLensOf{\IterateLensOf{\DNFLens}})
+  \OfRewritelessType
+  \DNFOf{\SequenceOf{(\EmptyString,\EmptyString)}} \OrDNF
+  (\DNFRegex \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegex}})
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{(\EmptyString,\EmptyString)}} \OrDNF
+  (\DNFRegexAlt \ConcatDNF \AtomToDNFOf{\StarOf{\DNFRegexAlt}})$.
+
+  $\SemanticsOf{\DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNF
+    (\DNFLens \ConcatDNFLens \AtomToDNFLensOf{\IterateLensOf{\DNFLens}})} =
+  \SetOf{(\String,\StringAlt) \SuchThat (\String,\StringAlt) \in
+    \SemanticsOf{\DNFOf{\SequenceOf{(\EmptyString,\EmptyString)}}} \BooleanOr
+    (\String,\StringAlt) \in
+    \SemanticsOf{\DNFLens \ConcatDNFLens
+      \AtomToDNFLensOf{\IterateLensOf{\DNFLens}}}} =
+  \SetOf{(\String,\StringAlt) \SuchThat (\String,\StringAlt) \in
+    \SemanticsOf{\DNFOf{\SequenceOf{(\EmptyString,\EmptyString)}}}} \Union
+  \SetOf{(\String,\StringAlt) \SuchThat (\String,\StringAlt) \in
+    \SemanticsOf{\DNFLens \ConcatDNFLens
+      \AtomToDNFLensOf{\IterateLensOf{\DNFLens}}}}$.
+  By the definition of $\ConcatDNFLens$ and $\IterateLens$, this equals
+  $\SetOf{(\EmptyString,\EmptyString)} \Union
+  \SetOf{(\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+    \SuchThat n \geq 1 \BooleanAnd (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}}$.
+  Through combining the zero case and the one case, this is
+  $\SetOf{(\String_1\Concat\ldots\Concat\String_n,\StringAlt_1\Concat\ldots\Concat\StringAlt_n)
+    \SuchThat (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}} =
+  \SemanticsOf{\IterateLensOf{\AtomLens}}$.
 \end{proof}
 
 \begin{lemma}[Right Unrolling of $\IterateLens$]
   \label{lem:iterate-lens-unroll-right}
-  If $\IterateLensOf{\DNFLens}$ is an atom lens, then
-  $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}} \OrDNFLens (\AtomToDNFLensOf{\IterateLensOf{\DNFLens}}
-  \ConcatDNFLens \DNFLens)$ is a DNF Lens with
+  If $\IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+  \Leftrightarrow \StarOf{\DNFRegexAlt}$ is an atom lens, then
+  $\DNFLens' = \DNFLensOf{\SequenceLensOf{(\EmptyString,\EmptyString)}}
+  \OrDNFLens
+  (\AtomToDNFLensOf{\IterateLensOf{\DNFLens}} \ConcatDNFLens \DNFLens)
+  \OfRewritelessType
+  \DNFOf{\SequenceOf{\EmptyString}}
+  \OrDNF
+  (\AtomToDNFOf{\StarOf{\DNFRegex}} \ConcatDNF \DNFRegex)
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{\EmptyString}}
+  \OrDNF
+  (\AtomToDNFOf{\StarOf{\DNFRegexAlt}} \ConcatDNF \DNFRegexAlt)$
+  is a DNF Lens with
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\DNFLens'}$
 \end{lemma}
 \begin{proof}
-  TODO
+  This is proven symmetrically to Lemma~\ref{lem:iterate-lens-unroll-left}.
 \end{proof}
 
 \begin{lemma}[Left Unrolling of $\IterateLens$ DNF]
@@ -5565,7 +6082,8 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\DNFLens'}$
 \end{lemma}
 \begin{proof}
-  TODO
+  This is through a combination of Lemma~\ref{lem:iterate-lens-unroll-left}, and
+  Lemma~\ref{lem:typ_sem_todnflens}.
 \end{proof}
 
 \begin{lemma}[Right Unrolling of $\IterateLens$ DNF]
@@ -5576,7 +6094,8 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   $\SemanticsOf{\IterateLensOf{\DNFLens}} = \SemanticsOf{\AtomToDNFLensOf{\DNFLens'}}$
 \end{lemma}
 \begin{proof}
-  By Lemma~\ref{}
+  This is through a combination of Lemma~\ref{lem:iterate-lens-unroll-right}, and
+  Lemma~\ref{lem:typ_sem_todnflens}.
 \end{proof}
 
 \begin{lemma}[Closure of Rewriteless Regular Expressions under Composition]
@@ -5864,7 +6383,9 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 
-\begin{lemma}[Expressibility of Adjacency Swapping Permutation of Separated Concat List]
+\begin{lemma}[Expressibility of Adjacency Swapping Permutation of Separated
+  Concat List]
+  \label{lem:adj-swap-perm-concat-express}
   Let for all $i \in \RangeIncInc{1}{n}, \DNFLens_i \OfRewritelessType
   \DNFRegex_i \Leftrightarrow \DNFRegexAlt_i$
   Let $\sigma_i$ be an adjacency swapping permutation, where $1 \leq i < n$.
@@ -5882,9 +6403,8 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \begin{proof}
   As $\DNFRegex_i$ and
   $\DNFRegexAlt_i$ are strongly unambiguous, by
-  Lemma~\ref{lem:strong-unambig-dnf-lens-types}, and as
-  $\UnambigConcatOf{\DNFOf{\SequenceOf{\Sep}}}{\Language}$, and
-  $\UnambigConcatOf{\Language}{\DNFOf{\SequenceOf{\Sep}}}$, for all $\Language$,
+  Lemma~\ref{lem:strong-unambig-dnf-lens-types}, and from
+  Lemma~\ref{lem:sep_unambiguity},
   we have that $\DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
   \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
   \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}}$ is strongly
@@ -5898,6 +6418,7 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \begin{lemma}[Expressibility of Permutation of Separated Concat List]
+  \label{lem:perm-sep-concat}
   Let for all $i \in \RangeIncInc{1}{n}, \DNFLens_i \OfRewritelessType
   \DNFRegex_i \Leftrightarrow \DNFRegexAlt_i$
   Let $\sigma$ be a permutation, where $1 \leq i < n$.
@@ -5905,8 +6426,8 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
   \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
   \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
-  \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
-  \DNFRegexAlt_{\sigma(n)}$, where $\SemanticsOf{\DNFRegex} =
+  \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
+  \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\SequenceOf{\Sep}}$, where $\SemanticsOf{\DNFRegex} =
   \SetOf{(\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n\Concat\Sep,
     \Sep\Concat\StringAlt_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma(n)}\Concat\Sep)
     \SuchThat
@@ -5923,31 +6444,326 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
   \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}}$ is strongly
   unambiguous.
 
-  From algebra, $\sigma$ can be decomposed into a series of $\sigma_{i_1}
-  \Compose \ldots \Compose \sigma_{i_j}$.
+  From algebra, $\sigma$ can be decomposed into a series of $\sigma_{i_j}
+  \Compose \ldots \Compose \sigma_{i_1}$.
 
-TODO
+  We proceed by induction
+
+  \begin{case}[$j=0$]
+    $\sigma = \Identity$.
+    
+    Through repeated application of $\ConcatDNFLens$, 
+    $\DNFOf{\SequenceOf{(\Sep,\Sep)}} \ConcatDNFLens
+    \DNFLens_1 \ConcatDNFLens \ldots \ConcatDNFLens
+    \DNFLens_n \ConcatDNFLens \DNFLensOf{\SequenceLensOf{(\Sep,\Sep)}}
+    \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
+    \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
+    \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
+    \DNFRegexAlt_{\sigma(n)}$, where
+    $\SemanticsOf{\DNFRegex} =
+    \SetOf{(\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n\Concat\Sep,
+      \Sep\Concat\StringAlt_{1}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{n}\Concat\Sep)
+      \SuchThat
+      (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens_i}}$
+  \end{case}
+
+  \begin{case}[$j>0$]
+    $\sigma = \sigma_{i_j} \Compose \ldots \Compose \sigma_{i_1}$.
+    $\sigma' = \sigma_{i_{j-1}} \Compose \ldots \Compose \sigma_{i_1}$.
+    $\sigma = \sigma_{i_j} \Compose \sigma'$.
+    
+    By IH there exists a DNF lens $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
+    \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
+    \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegexAlt_{\sigma'(1)} \ConcatDNF \ldots \ConcatDNF
+    \DNFRegexAlt_{\sigma'(n)} \ConcatDNF \DNFOf{\SequenceOf{\Sep}}$, where $\SemanticsOf{\DNFRegex} =
+    \SetOf{(\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n\Concat\Sep,
+      \Sep\Concat\StringAlt_{\sigma'(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma'(n)}\Concat\Sep)
+      \SuchThat
+      (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens_i}}$
+    
+    As $\DNFRegexAlt_i$ are strongly unambiguous, by
+    Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
+    an identity lens $\DNFLens_i' \OfRewritelessType \DNFRegexAlt_i \Leftrightarrow
+    \DNFRegexAlt_i$, for each $\DNFRegexAlt_i$.
+    
+    By Lemma~\ref{lem:adj-swap-perm-concat-express}, there exists a DNF lens
+    $\DNFLens' \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
+    \DNFRegexAlt_{\sigma'(1)} \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \DNFOf{\SequenceOf{\Sep}} \DNFRegexAlt_{\sigma'(n)} \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
+    \DNFRegexAlt_{\sigma_{i_j}(\sigma'(1))} \ConcatDNF \ldots \ConcatDNF
+    \DNFRegexAlt_{\sigma_{i_j}(\sigma'(n))}$, where $\SemanticsOf{\DNFRegex} =
+    \SetOf{(\Sep\Concat\StringAlt_{\sigma'(1)}\Concat\Sep\Concat\ldots\Concat\Sep\StringAlt_{\sigma'(n)}\Concat\Sep,
+      \Sep\Concat\StringAlt_{\sigma_{i_j}(\sigma'(1))}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma_{i_j}(\sigma'(n))}\Concat\Sep)
+      \SuchThat
+      (\StringAlt_{\sigma'(i)},\StringAlt_{\sigma'(i)}) \in
+      \SemanticsOf{\DNFLens_i}}$.
+
+    So, by Lemma~\ref{lem:composition-completeness}, there exists a DNF lens
+    $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
+    \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
+    \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
+    \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
+    \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\SequenceOf{\Sep}}$, where $\SemanticsOf{\DNFRegex} =
+    \SetOf{(\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n\Concat\Sep,
+      \Sep\Concat\StringAlt_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma(n)}\Concat\Sep)
+      \SuchThat
+      (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens_i}}$
+  \end{case}
 \end{proof}
 
 \begin{lemma}[Expressibility of Concat Permutation]
   \label{lem:conat-perms}
   Let for all $i \in \RangeIncInc{1}{n}, \DNFLens_i \OfRewritelessType
   \DNFRegex_i \Leftrightarrow \DNFRegexAlt_i$.
-  Let (unambiguity condition)
-  Let $\sigma$ be a permutation, where $1 \leq i < n$.
-  There exists a DNF lens $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\Sep}}
-  \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
-  \ldots \ConcatDNF \DNFOf{\SequenceOf{\Sep}} \ConcatDNF
-  \DNFOf{\SequenceOf{\Sep}} \DNFRegex_n \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
-  \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
-  \DNFRegexAlt_{\sigma(n)}$, where $\SemanticsOf{\DNFRegex} =
-  \SetOf{(\Sep\Concat\String_1\Concat\Sep\Concat\ldots\Concat\Sep\String_n\Concat\Sep,
-    \Sep\Concat\StringAlt_{\sigma(1)}\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma(n)}\Concat\Sep)
+  Let $\SequenceUnambigConcatOf{\Sep,\DNFRegex_1,\ldots,\DNFRegexAlt_n,\Sep}$.
+  Let $\sigma$ be a permutation.
+  Let $\SequenceUnambigConcatOf{\Sep,\DNFRegexAlt_{\sigma(n)},\ldots,\DNFRegexAlt_{\sigma(n)},\Sep}$.
+  There exists a DNF lens $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\String_0}}
+  \DNFRegex_1 \ConcatDNF \DNFOf{\SequenceOf{\String_1}} \ConcatDNF
+  \ldots \ConcatDNF \DNFOf{\SequenceOf{\String_{n-1}}} \ConcatDNF
+  \DNFRegex_n \ConcatDNF \DNFOf{\SequenceOf{\String_n}} \Leftrightarrow
+  \DNFOf{\SequenceOf{\String_0}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots \ConcatDNF
+  \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\SequenceOf{\String_n}}$, where $\SemanticsOf{\DNFRegex} =
+  \SetOf{(\String_0\Concat\String_1'\Concat\String_1\Concat\ldots\Concat\String_{n-1}\String_n'\Concat\String_n,
+    \StringAlt_0\Concat\StringAlt_{\sigma(1)}'\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_{n-1}\Concat\StringAlt_{\sigma(n)}'\Concat\StringAlt_n)
     \SuchThat
-  (\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens_i}}$.
+  (\String_i',\StringAlt_i') \in \SemanticsOf{\DNFLens_i}}$.
 \end{lemma}
 \begin{proof}
-TODO
+  By Lemma~\ref{lem:strong-unambig-dnf-lens-types}, $\DNFRegex_i$ and
+  $\DNFRegexAlt_i$ are strongly unambiguous.
+  
+  By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
+  $\DNFLens_i' \OfRewritelessType \DNFRegex_i \Leftrightarrow \DNFRegex_i$,
+  which are the identity transformations.
+  
+  By Lemma~\ref{lem:strongly-unambiguous-identity-expressible}, there exists
+  $\DNFLens_i'' \OfRewritelessType \DNFRegexAlt_i \Leftrightarrow \DNFRegexAlt_i$,
+  which are the identity transformations.
+
+  Consider the lenses
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+      }
+      {
+        \SequenceLensOf{(\String_i,\Sep)} \OfRewritelessType
+        \SequenceOf{\String_i} \Leftrightarrow \SequenceOf{\Sep}
+      }
+    }
+    {
+      \DNFLensOf{\SequenceOf{(\String_i,\Sep)}} \OfRewritelessType
+      \DNFOf{\SequenceOf{\String_i}} \Leftrightarrow \DNFOf{\SequenceOf{\Sep}}
+    }
+  \]
+
+  \[
+    \inferrule*
+    {
+      \inferrule*
+      {
+      }
+      {
+        \SequenceLensOf{(\Sep,\StringAlt_i)} \OfRewritelessType
+        \SequenceOf{\Sep} \Leftrightarrow \SequenceOf{\StringAlt_i}
+      }
+    }
+    {
+      \DNFLensOf{\SequenceOf{(\Sep,\StringAlt_i)}} \OfRewritelessType
+      \DNFOf{\SequenceOf{\Sep}} \Leftrightarrow
+      \DNFOf{\SequenceOf{\StringAlt_i}}
+    }
+  \]
+
+  Because
+  $\SequenceUnambigConcatOf{\Sep,\DNFRegex_1,\ldots,\DNFRegex_n,\Sep}$,
+  through repeated application of
+  Lemma~\ref{lem:typ-sem-concat},
+  $\DNFLensOf{\SequenceOf{(\String_0,\Sep)}} \ConcatDNF \DNFLens_1' \ConcatDNF
+  \ldots \ConcatDNF \DNFLens_n' \ConcatDNF
+  \DNFLensOf{\SequenceOf{(\String_n,\Sep)}} \OfRewritelessType
+  \DNFOf{\SequenceOf{\String_0}} \ConcatDNF \DNFRegex_1 \ConcatDNF \ldots
+  \ConcatDNF \DNFRegex_n \ConcatDNF \DNFOf{\SequenceOf{\String_n}}
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegex_1 \ConcatDNF \ldots
+  \ConcatDNF \DNFRegex_n \ConcatDNF \DNFOf{\Sep}$, with semantics
+  $\SemanticsOf{\DNFLensOf{\SequenceOf{(\String_0,\Sep)}} \ConcatDNF \DNFLens_1' \ConcatDNF
+    \ldots \ConcatDNF \DNFLens_n' \ConcatDNF
+    \DNFLensOf{\SequenceOf{(\String_n,\Sep)}}} =
+  \SetOf{(\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n,
+    \Sep\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\Sep) \SuchThat
+  \String_i\in\LanguageOf{\DNFRegex_i}}$
+
+  Because
+  $\SequenceUnambigConcatOf{\Sep,\DNFRegexAlt_{\sigma(1)},\ldots,\DNFRegexAlt_{\sigma(n)},\Sep}$,
+  through repeated application of
+  Lemma~\ref{lem:typ-sem-concat},
+  $\DNFLensOf{\SequenceOf{(\Sep,\StringAlt_0)}} \ConcatDNF \DNFLens_{\sigma(1)}'' \ConcatDNF
+  \ldots \ConcatDNF \DNFLens_{\sigma(n)}'' \ConcatDNF
+  \DNFLensOf{\SequenceOf{(\Sep,\StringAlt_n)}} \OfRewritelessType
+  \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots
+  \ConcatDNF \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\Sep}
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{\StringAlt_0}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots
+  \ConcatDNF \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\SequenceOf{\StringAlt_n}}$, with semantics
+  $\SemanticsOf{\DNFLensOf{\SequenceOf{(\Sep,\StringAlt_0)}} \ConcatDNF \DNFLens_{\sigma(1)}'' \ConcatDNF
+    \ldots \ConcatDNF \DNFLens_{\sigma(n)}'' \ConcatDNF
+    \DNFLensOf{\SequenceOf{(\Sep,\StringAlt_n)}}} =
+  \SetOf{(\Sep\Concat\StringAlt_{\sigma(1)}'\Concat\ldots\Concat\StringAlt_{\sigma(n)}'\Concat\Sep,
+    \StringAlt_0\Concat\StringAlt_{\sigma(1)}'\Concat\ldots\Concat\StringAlt_{\sigma(n)}'\Concat\StringAlt_n) \SuchThat
+    \String_i\in\LanguageOf{\DNFRegexAlt_i}}$
+  
+  By Lemma~\ref{lem:perm-sep-concat},
+  there exists a lens $\DNFLens \OfRewritelessType \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegex_1 \ConcatDNF \ldots
+  \ConcatDNF \DNFRegex_n \ConcatDNF \DNFOf{\Sep} \Leftrightarrow
+  \DNFOf{\SequenceOf{\Sep}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots
+  \ConcatDNF \DNFRegexAlt_{\sigma(n)} \ConcatDNF \DNFOf{\Sep}$, with semantics
+  $\SemanticsOf{\DNFLens} = \SetOf{(\Sep\Concat\String_1'\Concat\Sep\Concat\ldots\Concat\Sep\String_n'\Concat\Sep,
+    \Sep\Concat\StringAlt_{\sigma(1)}'\Concat\Sep\Concat\ldots\Concat\Sep\Concat\StringAlt_{\sigma(n)}'\Concat\Sep)
+    \SuchThat
+    (\String_i',\StringAlt_i') \in \SemanticsOf{\DNFLens_i}}$.
+
+  By Lemma~\ref{lem:composition-completeness},
+  there exists a lens $\DNFLens' \OfRewritelessType \DNFOf{\SequenceOf{\String_0}} \ConcatDNF \DNFRegex_1 \ConcatDNF \ldots
+  \ConcatDNF \DNFRegex_n \ConcatDNF \DNFOf{\SequenceOf{\String_n}}
+  \Leftrightarrow
+  \DNFOf{\SequenceOf{\StringAlt_0}} \ConcatDNF \DNFRegexAlt_{\sigma(1)} \ConcatDNF \ldots
+  \ConcatDNF \DNFRegexAlt_{\sigma(n)} \ConcatDNF
+  \DNFOf{\SequenceOf{\StringAlt_n}}$.
+  The semantics, through running the strings through, is $\SetOf{(\String_0\Concat\String_1'\Concat\String_1\Concat\ldots\Concat\String_{n-1}\String_n'\Concat\String_n,
+    \StringAlt_0\Concat\StringAlt_{\sigma(1)}'\Concat\StringAlt_1\Concat\ldots\Concat\StringAlt_{n-1}\Concat\StringAlt_{\sigma(n)}'\Concat\StringAlt_n)
+    \SuchThat
+  (\String_i',\StringAlt_i') \in \SemanticsOf{\DNFLens_i}}$.
+\end{proof}
+
+\begin{lemma}[Identity Transformation on Adjacent Swapping Or]
+  \label{lem:adj-swap-or}
+  Let $\DNFRegex_1,\ldots,\DNFRegex_n$ be strongly unambiguous DNF regular
+  expressions, where $j \neq k \BooleanImplies
+  \LanguageOf{\DNFRegex_i} = \LanguageOf{\DNFRegex_j}$.
+
+  Let $\sigma_i$ be an adjacent swapping permutation.
+
+  There exists a lens $\DNFLens \OfRewritelessType DNFRegex_1 \OrDNF \ldots
+  \OrDNF \DNFRegex_n \Leftrightarrow \DNFRegex_{\sigma_i(1)} \OrDNF \ldots
+  \OrDNF \DNFRegex_{\sigma_i(n)}$, such that $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex_1 \OrDNF
+      \ldots \OrDNF \DNFRegex_n}}$.
+\end{lemma}
+\begin{proof}
+  As each DNF regular expression is strongly unambiguous, there exists a DNF
+  lens $\DNFLens_j \OfRewritelessType \DNFRegex_j \Leftrightarrow \DNFRegex_j$
+  such that $\SemanticsOf{\DNFLens_j} = \SetOf{(\String,\String) \SuchThat
+    \String \in \LanguageOf{\DNFRegex_j}}$.
+  By assumption, $\UnambigOrOf{\DNFRegex_i}{\DNFRegex_{i+1}}$, so by
+  Lemma~\ref{lem:or-dnf-commutativity},
+  there exists $\DNFLens' \OfRewritelessType \DNFRegex_i \OrDNF \DNFRegexAlt_i
+  \Leftrightarrow \DNFRegexAlt_i \OrDNF \DNFRegex_i$.  By repeated application of
+  Lemma~\ref{lem:typ_sem_or},
+  $\DNFLens_0 \OrDNF \ldots \OrDNF \DNFLens_{i-1} \OrDNF \DNFLens' \OrDNF
+  \DNFLens_{i+2} \OrDNF \ldots \OrDNF \DNFLens_n \OfRewritelessType
+  \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+  \Leftrightarrow
+  \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_{i+1} \OrDNF \DNFRegex_i \OrDNF
+  \ldots \OrDNF \DNFRegex_n$.
+
+  Because each of the lenses included in this is the identity lens, the overall
+  lens is the identity lens.
+\end{proof}
+
+\begin{lemma}[Identity Transformation on Or Permutations]
+  \label{lem:perm-or}
+  Let $\DNFRegex_1,\ldots,\DNFRegex_n$ be strongly unambiguous DNF regular
+  expressions, where $j \neq k \BooleanImplies
+  \LanguageOf{\DNFRegex_i} = \LanguageOf{\DNFRegex_j}$.
+
+  Let $\sigma$ be a permutation.
+
+  There exists a lens $\DNFLens \OfRewritelessType DNFRegex_1 \OrDNF \ldots
+  \OrDNF \DNFRegex_n \Leftrightarrow \DNFRegex_{\sigma(1)} \OrDNF \ldots
+  \OrDNF \DNFRegex_{\sigma(n)}$, such that $\SemanticsOf{\DNFLens} =
+  \SetOf{(\String,\String) \SuchThat \String \in \LanguageOf{\DNFRegex_1 \OrDNF
+      \ldots \OrDNF \DNFRegex_n}}$.
+\end{lemma}
+\begin{proof}
+  From algebra, there exists a decomposition of $\sigma$ into adjacency
+  switching permutations $\sigma = \sigma_{i_j} \Compose \ldots \Compose
+  \sigma_{i_1}$.
+
+  We prove this by induction on $n$!
+
+  \begin{case}[$j=0$]
+    $\sigma = \Identity$
+
+    As each $\DNFRegex_i$ there exists an identity transformation
+    $\DNFLens_i \OfRewritelessType \DNFRegex_i \Leftrightarrow \DNFRegex_i$.
+
+    By repeated application of
+    Lemma~\ref{lem:typ_sem_or},
+    $\DNFLens_1 \OrDNFLens \ldots \OrDNFLens \DNFLens_n \OfRewritelessType
+    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n \Leftrightarrow
+    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n$ with semantics of the
+    identity, as each of the lenses that built it up have identity semantics.
+  \end{case}
+
+  \begin{case}[$j>0$]
+    $\sigma = \sigma_{i_j} \Compose \ldots \Compose \sigma_{i_1}$
+    Define $\sigma' = \sigma_{i_{j-1}} \Compose \ldots \Compose \sigma_{i_1}$
+    By IH, there exists a DNF lens
+    $\DNFLens \OfRewritelessType
+    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+    \Leftrightarrow
+    \DNFRegex_{\sigma'(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma'(n)}$.
+
+    By Lemma~\ref{lem:adj-swap-or}, there exists a lens
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex_{\sigma'(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma'(n)}
+    \Leftrightarrow
+    \DNFRegex_{(\sigma_{i_j} \Compose \sigma')(1)} \OrDNF \ldots \OrDNF
+    \DNFRegex_{(\sigma_{i_j} \Compose \sigma')(n)}$,
+    so 
+    $\DNFLens' \OfRewritelessType
+    \DNFRegex_{\sigma'(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma'(n)}
+    \Leftrightarrow
+    \DNFRegex_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma(n)}$, where
+    $\DNFLens$ has the identity semantics.
+
+    By Lemma~\ref{lem:composition-completeness},
+    there exists $\DNFLens'' \OfRewritelessType
+    \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+    \Leftrightarrow
+    \DNFRegex_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegex_{\sigma(n)}$.
+    As each of its component transformations has identity semantics identity,
+    it too has identity semantics.
+  \end{case}
+\end{proof}
+
+\begin{lemma}[Propagation of Unambiguity to Subcomponents $\OrDNF$]
+  \label{lem:or-prop-subcomponent}
+  If $\DNFRegex \OrDNF \DNFRegexAlt$ is strongly unambiguous, then
+  $\DNFRegex$ is strongly unambiguous, $\DNFRegexAlt$ is strongly unambiguous,
+  and $\UnambigOrOf{\DNFRegex}{\DNFRegexAlt}$.
+\end{lemma}
+\begin{proof}
+  Let $\DNFRegex = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$.
+  Let $\DNFRegexAlt = \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+  $\DNFRegex \OrDNF \DNFRegexAlt =
+  \DNFOf{\Sequence_1;\ldots;\Sequence_n;\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+
+  This means that, as it is strongly unambiguous, all of the sequences are
+  pairwise disjoint, and each sequence is strongly unambiguous.
+  By Lemma~\ref{lem:unambig-union-equiv}, this means that
+  all of the sequences in $\DNFRegex$ are pairwise disjoint, all the sequences
+  in $\DNFRegexAlt$ are pairwise disjoint, and
+  $\UnambigOrOf{\DNFRegex}{\DNFRegexAlt}$.
 \end{proof}
 
 \begin{lemma}[Reordering of $\OrDNF$ Right]
@@ -5962,7 +6778,24 @@ TODO
   $\SemanticsOf{\DNFLens'} = \SemanticsOf{\DNFLens}$.
 \end{lemma}
 \begin{proof}
-  TODO
+  From Lemma~\ref{lem:strong-unambig-dnf-lens-types},
+  $\DNFRegexAlt_1 \OrDNF \ldots \OrDNF \DNFRegexAlt_n$ is strongly unambiguous.
+  By repeated application of Lemma~\ref{lem:or-prop-subcomponent},
+  $i \neq j \BooleanImplies \DNFRegexAlt_i \Intersect \DNFRegexAlt_j =
+  \SetOf{}$, and each $\DNFRegexAlt_i$ is strongly unambiguous.
+
+  This means Lemma~\ref{lem:perm-or} applies, so there exists a DNF lens
+  $\DNFLens' \OfRewritelessType \DNFRegexAlt_1 \OrDNF \ldots \OrDNF
+  \DNFRegexAlt_n \Leftrightarrow
+  \DNFRegexAlt_{\sigma(1)} \OrDNF \ldots \OrDNF \DNFRegexAlt_{\sigma(n)}$ such
+  that $\SemanticsOf{\DNFLens'}$ is the identity semantics.
+
+  So, by composing $\DNFLens$ with $\DNFLens'$ from
+  Lemma~\ref{lem:composition-completeness}, we get
+  $\DNFLens'' \OfRewritelessType \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n
+  \Leftrightarrow \DNFRegexAlt_{\sigma(1} \OrDNF \ldots \OrDNF
+  \DNFRegexAlt_{\sigma(n)}$, which has $\SemanticsOf{\DNFLens''} =
+  \SemanticsOf{\DNFLens}$ as $\DNFLens'$ has identity semantics.
 \end{proof}
 
 \begin{lemma}[Closure of Rewriteless DNF Lenses Under Inversion]
@@ -6807,17 +7640,251 @@ TODO
   unambiguous, and $\RegexAlt$ is strongly unambiguous.
 \end{lemma}
 \begin{proof}
-  TODO
+  By induction on the typing derivation of $\Lens$
+  \begin{case}[\ConstLensType{}]
+    \[
+      \inferrule*
+      {
+        \String_1 \in \StarOf{\Sigma}\\
+        \String_2 \in \StarOf{\Sigma}
+      }
+      {
+        \ConstLensOf{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
+      }
+    \]
+
+    Base strings are strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\ConcatLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+        \UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}
+      }
+      {
+        \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
+      }
+    \]
+
+    So by IH, $\Regex_1$, $\Regex_2$, $\RegexAlt_1$, and $\RegexAlt_2$ are all
+    strongly unambiguous.
+
+    As $\UnambigConcatOf{\Regex_1}{\Regex_2}$, $\Regex_1 \Concat \Regex_2$ is
+    strongly unambiguous.
+
+    As $\UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}$, $\RegexAlt_1 \Concat \RegexAlt_2$ is
+    strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\IterateLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
+        \UnambigItOf{\Regex}\\
+        \UnambigItOf{\RegexAlt}
+      }
+      {
+        \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
+      }
+    \]
+
+    So, by IH, $\Regex$ and $\RegexAlt$ are both strongly unambiguous.
+
+    As $\UnambigItOf{\Regex}$, $\StarOf{\Regex}$ is strongly unambiguous.
+
+    As $\UnambigItOf{\RegexAlt}$, $\StarOf{\RegexAlt}$ is strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\SwapLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+        \UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}
+      }
+      {
+        \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
+      }
+    \]
+
+    So by IH, $\Regex_1$, $\Regex_2$, $\RegexAlt_1$, and $\RegexAlt_2$ are all
+    strongly unambiguous.
+
+    As $\UnambigConcatOf{\Regex_1}{\Regex_2}$, $\Regex_1 \Concat \Regex_2$ is
+    strongly unambiguous.
+
+    As $\UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}$, $\RegexAlt_2 \Concat \RegexAlt_1$ is
+    strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\OrLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+        \UnambigOrOf{\Regex_1}{\Regex_2}\\
+        \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
+      }
+      {
+        \OrLensOf{\Lens_1}{\Lens_2} \OfType
+        \Regex_1 \Or \Regex_2
+        \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
+      }
+    \]
+
+    So by IH, $\Regex_1$, $\Regex_2$, $\RegexAlt_1$, and $\RegexAlt_2$ are all
+    strongly unambiguous.
+
+    As $\UnambigOrOf{\Regex_1}{\Regex_2}$, $\Regex_1 \Or \Regex_2$ is
+    strongly unambiguous.
+
+    As $\UnambigOrOf{\RegexAlt_2}{\RegexAlt_1}$, $\RegexAlt_2 \Or \RegexAlt_1$ is
+    strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\ComposeLensType{}]
+    \[
+      \inferrule*
+      {
+        \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+        \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+      }
+      {
+        \Lens_2 ; \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_3
+      }
+    \]
+
+    By IH, $\Regex_1$ is strongly unambiguous, and $\Regex_3$ is strongly
+    unambiguous.
+  \end{case}
+
+  \begin{case}[\IdentityLensType{}]
+    \[
+      \inferrule*
+      {
+        \Regex \text{ is strongly unambiguous}
+      }
+      {
+        \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
+      }
+    \]
+
+    By assumption, $\Regex$ is strongly unambiguous.
+  \end{case}
 \end{proof}
 
 \begin{lemma}[Strong Unambiguity in Rewriteless DNF Lens Types]
   \label{lem:strong-unambig-dnf-lens-types}
-  If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-  then $\DNFRegex$ is strongly unambiguous, and $\DNFRegexAlt$ is strongly
-  unambiguous.
+  \leavevmode
+  \begin{itemize}
+  \item If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    then $\DNFRegex$ is strongly unambiguous, and $\DNFRegexAlt$ is strongly
+    unambiguous.
+  \item If $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$,
+    then $\Sequence$ is strongly unambiguous, and $\SequenceAlt$ is strongly
+    unambiguous.
+  \item If $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$,
+    then $\Atom$ is strongly unambiguous, and $\AtomAlt$ is strongly
+    unambiguous.
+  \end{itemize}
 \end{lemma}
 \begin{proof}
-  TODO
+  By mutual induction on the typing derivation of $\DNFLens$, $\SequenceLens$,
+  and $\AtomLens$.
+  \begin{case}[\AtomLensType{}]
+    \[
+      \inferrule*
+      {
+        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
+        \UnambigItOf{\DNFRegex}\\
+        \UnambigItOf{\DNFRegexAlt}
+      }
+      {
+        \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+        \Leftrightarrow \StarOf{\DNFRegexAlt}
+      }
+    \]
+
+    By IH, $\DNFRegex$ and $\DNFRegexAlt$ are strongly unambiguous.
+
+    As $\UnambigItOf{\DNFRegex}$, $\StarOf{\DNFRegex}$ is strongly unambiguous.
+
+    As $\UnambigItOf{\DNFRegexAlt}$, $\StarOf{\DNFRegexAlt}$ is strongly
+    unambiguous.
+  \end{case}
+
+  \begin{case}[\SequenceLensType{}]
+    \[
+      \inferrule*
+      {
+        \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+        \ldots\\
+        \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
+        \sigma \in \PermutationSetOf{n}\\
+        \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+        \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+      }
+      {
+        (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
+        \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
+        \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+      }
+    \]
+
+    By IH, $\Atom_i$ and $\AtomAlt_i$ are strongly unambiguous for all $i$.
+
+    As
+    $\UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$,
+    we have
+    $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$
+    is strongly unambiguous.
+
+    As
+    $\UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}$,
+    we have
+    $\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}$
+    is strongly unambiguous.
+  \end{case}
+
+  \begin{case}[\DNFLensType{}]
+    \[
+      \inferrule*
+      {
+        \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+        \ldots\\
+        \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+        \sigma \in \PermutationSetOf{n}\\
+        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+      }
+      {
+        (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
+        \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+        \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+      }
+    \]
+
+    By IH, $\Sequence_i$ and $\SequenceAlt_i$ are strongly unambiguous for all
+    $i$.
+
+    As $i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap
+    \LanguageOf{\Sequence_{j}}=\emptyset$, we have
+    $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ is strongly
+    unambiguous.
+
+    As $i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap
+    \LanguageOf{\SequenceAlt_{j}}=\emptyset$, we have
+    $\DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}$
+    is strongly unambiguous.
+  \end{case}
 \end{proof}
 
 \begin{lemma}
@@ -12078,9 +13145,9 @@ TODO
       \Leftrightarrow
       \DNFRegexAlt_{\sigma(1)}' \OrDNF \ldots \OrDNF \DNFRegexAlt_{\sigma(n)}'$,
       with $\SemanticsOf{\overline{\DNFLens}} =
-      \SetOf{(\String,\StringAlt) \SuchThat \Exists i. (\String,\StringAlt) \in
+      \SetOf{(\String,\StringAlt) \SuchThat \exists i. (\String,\StringAlt) \in
         \SemanticsOf{\overline{\DNFLens_i}}} =
-      \SetOf{(\String,\StringAlt) \SuchThat \Exists i. (\String,\StringAlt) \in
+      \SetOf{(\String,\StringAlt) \SuchThat \exists i. (\String,\StringAlt) \in
         \SemanticsOf{\SequenceLens_i}} =
       \SemanticsOf{\DNFLens}$.
 
