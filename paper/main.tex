@@ -2048,7 +2048,7 @@ types that were discovered in the first step.
 % begin implementation
 \section{Implementation}
 \label{implementation}
-We have implemented the lens synthesis algorithm in $n$\bcp{how many?} lines
+We have implemented the lens synthesis algorithm in 5515 lines
 of OCaml code. 
 
 \paragraph*{Synthesis Overview}
@@ -2222,7 +2222,7 @@ node in the data structure representing the source DNF regular
 expression with the corresponding portion of each example, and
 similarly for the target.  For example, we would annotate
 different occurrences of \CF{Name} in the source 
-regular expression with \bcp{quotes font?}\CF{``Stephen''} or \CF{``Kleene''}, as
+regular expression with ``\CF{Stephen}'' or ``\CF{Kleene},'' as
 determined by how the regular expression would parse the example. 
 
 Searching for aligning permutations requires care, as naively
@@ -2241,7 +2241,7 @@ and target both contain two instances of \CF{Name}.  The annotations
 help determine which \CF{Name} in the source corresponds to
 which \CF{Name} in the target by tracking how the examples are mapped.
 For example, the algorithm would align source and target \CF{Name}s
-that share the annotation \CF{``Kleene''}.
+that share the annotation ``\CF{Kleene}''.
 
 More generally, the key insight is that certain invariants must hold
 for a DNF lens to have semantics that match the examples. Specifically:
@@ -2254,7 +2254,7 @@ for a DNF lens to have semantics that match the examples. Specifically:
 \item A user-defined regular expression in the source DNF regular
   expression annotated with string ``s'' must be mapped to the same
   user-defined regular expression in the target annotated
-  with the exact same string ``s''. 
+  with the exact same string ``s.'' 
 
 \item An iteration in the source DNF regular expression annotated with
   the source example string ``s'' must correspond to an iteration in
@@ -2266,15 +2266,15 @@ for a DNF lens to have semantics that match the examples. Specifically:
 We leverage these invariants to guide our search for aligning permutations.
 
 
-After finding an appropriate permutation, $\sigma$, we can
+After finding an appropriate permutation, $\sigma$,  we can
 synthesize a rewriteless DNF lens between
-$\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and the aligned DNF regular expression
 $\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$ simply by finding a
-sequence lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.
-Similarly, after finding an appropriate permutations to align the atoms,
-$\sigma$,
-we can synthesize a rewriteless sequence lens between
-$\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
+sequence lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$. 
+Similarly, after finding an appropriate permutation to align the
+atoms, $\sigma$,  we can synthesize a rewriteless sequence lens
+between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
+the aligned sequence
 $\SequenceOf{\StringAlt_0;\AtomAlt_{\sigma(1)};\ldots;\AtomAlt_{\sigma(n)};\StringAlt_n}$
 simply by finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for
 all $i$.
@@ -2406,30 +2406,29 @@ all $i$.
 
 
 
-\paragraph*{Importance of User Defined Data Types}
+\paragraph*{Importance of User-Defined Data Types}
+We note that user-defined data types are critical to the performance of
+the synthesis algorithm in a number of ways.  First, they help
+determine which expansions to perform.  Second, they reduce the
+number of sequences we must manage. \ksf{how?}  Third, they reduce the sizes of
+the regular expression types we must consider because we do not expand
+user-defined data types during normalization.  Removing the ability to
+use previously defined lenses makes certain problems in our benchmark
+suite intractable, like \texttt{xml}.
 
-User defined data types are critical to the performance of
-the synthesis algorithm.  They help direct the search of
-which expansions should be performed.  Furthermore, they help to reduce the
-number of sequences we have to deal with.  There is a potentially exponentially
-large blowup in converting regular expressions into DNF form, but keeping
-certain portions of the regular expressions abstracted lessens that blowup,
-as those regular expressions are kept atomic in converting into DNF form.
+User-defined data types are also critical to the way we reuse
+previously defined lenses. Specifically, we restrict the application
+of previously-defined lenses to user-defined data types.  In the
+absence of a previously defined lens, a user-defined type in the
+source must map to the same user-defined type in the target, and all
+examples must have exactly the same string in both the source and
+target.  We can loosen this restriction when given a previously
+defined lens between user-defined data types.  
 
-User defined data types are also critical in the applications of previously
-defined lenses.  We restrict the application of previously defined lenses to
-only on user defined data types in the synthesis algorithm.  We then group the
-user defined data types based on which have previously defined lenses between
-them.  This grouping allows for efficient recognition of when two user defined regular
-expressions can be mapped to each other.  Removing the ability to use previously
-defined lenses makes certain problems intractable, like xml.ls.
-
-While we can simulate the use of user defined data types automatically, by
-giving regular expressions which have the same syntax the same user defined data
-type, manually inputting them performs better in practice.  The
-procedure for automatically creating user defined data types creates far more
-data types, which then creates a more complicated search problem.
-
+We have experimented with automatically creating named data types by
+giving names to recurring regular expressions.  To date, this process
+has not improved performance because the relatively large number of
+inferred types enlarges the search space too much.
 
 
 % end implementation
