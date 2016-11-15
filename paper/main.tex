@@ -2094,7 +2094,9 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
   the search for a DNF lens.  Each element in the queue
   $\QueueElement$ is a pair of source and target DNF regular
   expressions $\DNFRegex$ and $\DNFRegexAlt$ and a count of the number
-  of expansions $\ExpCount$ required to obtain these regular
+  of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
+name for its definition used)  $\ExpCount$
+required to obtain these regular
   expressions from the originals, $\DNFRegex_0$ and
   $\DNFRegexAlt_0$. The algorithm initializes the queue with
   $\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
@@ -2106,11 +2108,13 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
   DNF lens $\DNFLens$.  Otherwise, the function \ExpandOnce{} produces
   the set of all source/target DNF regular expression pairs that can
   be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by applying a single
-  rewrite to either the source or target DNF regular expression.  In
-  other words, $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
-\SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
-\Union
-\SetOf{(\DNFRegex,\DNFRegexAlt') \SuchThat \DNFRegexAlt \Rewrite \DNFRegexAlt'}$.
+  rewrite to either the source or target DNF regular expression or by
+  replacing a user-defined name by its definition.  
+%In
+%  other words, $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
+%\SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
+%\Union
+%\SetOf{(\DNFRegex,\DNFRegexAlt') \SuchThat \DNFRegexAlt \Rewrite \DNFRegexAlt'}$.
   The algorithm associates an incremented expansion count with each
   resulting source/target pair and enqueues them to continue the search.
 
@@ -2145,7 +2149,7 @@ $\Distance(\DNFRegex,\DNFRegexAlt) = 0$ does not imply $\DNFRegex =
 \DNFRegexAlt$. 
 
 The size distance $\Distance_{size}(\DNFRegex,\DNFRegexAlt)$ measures
-the difference in the sizes of the two DNF regular expressions.
+the difference in the sizes between two DNF regular expressions.
 We consider the size of a DNF regular expression to be the
 sum of the lengths of all lists in the DNF regular expression data
 structure.  Formally, we define
@@ -2160,9 +2164,10 @@ measures the difference in the distributions of user-defined regular
 expressions in the two input regular expressions.  The distribution of
 user-defined regular expressions can be viewed as an infinite
 dimensional vector space over the reals, which we call
-$\VectorSpace{}$.  The set $\SetOf{1*(\RegexVariable,n) |
-n\in\Nats, \RegexVariable \text{ is a user defined regular
-expression}}$ serves as a basis for this vector space.  We map DNF
+$\VectorSpace{}$.  Intuitively, we give each dimension a name
+of the form $(\RegexVariable,n)$.  We write $1*(\RegexVariable,n)$
+to denote the unit vector in the dimension named $(\RegexVariable,n)$.
+We map DNF
 regular expressions with variables into this vector space using a
 function $\GetDist{}$ that counts the number of user-defined regular
 expressions $\RegexVariable$ present at a given level:
@@ -2218,34 +2223,46 @@ such matching elements, the function considers both the structure of
 the nested components and the example annotations.  
 
 To see how we use the example annotations, consider synthesizing a
-lens between the \CF{BibStar} and \CF{EndStar} formats.  The source
-and target both contain two instances of \CF{Name}.  The annotations
-help determine which \CF{Name} in the source corresponds to
-which \CF{Name} in the target by tracking how the examples are mapped.
-For example, the algorithm would align source and target \CF{Name}s
-that share the annotation ``\CF{Kleene}''.
+lens between two formats that both contain two instances of the \CF{Name}
+type.  If the first occurrence of \CF{Name} in the source
+and the second of occurrence of \CF{Name} in the target are both
+annotated with ``\CF{Kleene}'' then data may have been copied between those 
+occurrences of \CF{Name}.  More generally, the annotations
+help determine which instance of a user-defined type in the source corresponds 
+to which instance of a user-defined type in the target, thereby
+reducing the number of permutations we need to consider.
 
-More generally, the key insight is that certain invariants must hold
-for a DNF lens to have semantics that match the examples. Specifically:
+Continuing, several invariants must hold in order
+for a DNF lens to be able to process a set of examples correctly. 
+For instance:
 \begin{enumerate*}[label=(\arabic*) ]
-\item A sequence in the source DNF regular expression annotated with
-  source example string ``s'' must be sent to the sequence in the
-  target DNF regular expression annotated with the corresponding
-  target example string ``t.''
+\item If a disjunct of the source DNF RE is annotated with
+  ``s'' then the synthesized lens permutation $\sigma$ must identify the
+  target DNF RE with the corresponding example string, and
 
-\item A user-defined regular expression in the source DNF regular
-  expression annotated with string ``s'' must be mapped to the same
-  user-defined regular expression in the target annotated
-  with the exact same string ``s.'' 
+%\item A sequence source DNF regular expression annotated with
+%  source example string ``s'' must be sent to the sequence in the
+%  target DNF regular expression annotated with the corresponding
+%  target example string ``t.''
 
-\item An iteration in the source DNF regular expression annotated with
-  the source example string ``s'' must correspond to an iteration in
-  the target DNF regular expression with the corresponding target
-  example string ``t.''  The source and target iterations must iterate
-  the same number of times, and all invariants must hold for each
-  iterated part.
+%\item A user-defined regular expression in the source DNF regular
+%  expression annotated with string ``s'' must be mapped to the same
+%  user-defined regular expression in the target annotated
+%  with the exact same string ``s.'' 
+
+\item if an iterated DNF RE in the source is annotated with ``s'' then
+  a corresponding iterated DNF RE must appear in the target.  If that
+  RE breaks the source into $n$ pieces, then the target must also be
+ subdivided into $n$ pieces.  We recursively check that each piece satisfies
+ the necessary invariants.
+%% An iteration in the source DNF regular expression annotated with
+%%   the source example string ``s'' must correspond to an iteration in
+%%   the target DNF regular expression with the corresponding target
+%%   example string ``t.''  The source and target iterations must iterate
+%%   the same number of times, and all invariants must hold for each
+%%   iterated part.
 \end{enumerate*}
-We leverage these invariants to guide our search for aligning permutations.
+We exploit these invariants to guide our search for aligning permutations.
 
 
 After finding an appropriate permutation, $\sigma$,  we can
@@ -2391,26 +2408,26 @@ all $i$.
 \paragraph*{Importance of User-Defined Data Types}
 We note that user-defined data types are critical to the performance of
 the synthesis algorithm in a number of ways.  First, they help
-determine which expansions to perform.  Second, they reduce the
-number of sequences we must manage. \ksf{how?}  Third, they reduce the sizes of
+determine which expansions to perform.  Second, they reduce the sizes of
 the regular expression types we must consider because we do not expand
-user-defined data types during normalization.  Removing the ability to
-use previously defined lenses makes certain problems in our benchmark
-suite intractable, like \texttt{xml}.
+user-defined data types during normalization.  Indeed, certain problems
+in our benchmark suite (\EG the \texttt{xml} example)
+are tractable in the presence of user-defined data types intractable 
+when we substitute such definitions away.
 
-User-defined data types are also critical to the way we reuse
-previously defined lenses. Specifically, we restrict the application
-of previously-defined lenses to user-defined data types.  In the
-absence of a previously defined lens, a user-defined type in the
-source must map to the same user-defined type in the target, and all
-examples must have exactly the same string in both the source and
-target.  We can loosen this restriction when given a previously
-defined lens between user-defined data types.  
+%% User-defined data types are also critical to the way we reuse
+%% previously defined lenses. Specifically, we restrict the application
+%% of previously-defined lenses to user-defined data types.  In the
+%% absence of a previously defined lens, a user-defined type in the
+%% source must map to the same user-defined type in the target, and all
+%% examples must have exactly the same string in both the source and
+%% target.  We can loosen this restriction when given a previously
+%% defined lens between user-defined data types.  
 
-We have experimented with automatically creating named data types by
-giving names to recurring regular expressions.  To date, this process
-has not improved performance because the relatively large number of
-inferred types enlarges the search space too much.
+%We have experimented with automatically creating named data types by
+%giving names to recurring regular expressions.  To date, this process
+%has not improved performance because the relatively large number of
+%inferred types enlarges the search space too much.
 
 
 % end implementation
