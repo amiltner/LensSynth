@@ -2116,7 +2116,35 @@ user-defined regular expressions to have a rewriteless DNF lens
 between them.
 
 
-\paragraph*{\SynthRWLDNFLens}
+\paragraph*{\SynthRWLDNFLens(\DNFRegex,\DNFRegexAlt,\Examples)} 
+\ksf{This section is under revision; I'll work more on it Tuesday morning.}
+This function implements the core of our synthesis algorithm. 
+Intuitively, it aligns the structures of the source and target regular
+expressions by finding appropriate permutations of nested sequences
+and nested atoms while taking into account the information contained
+in the examples.  Once it finds an alignment, it generates the
+corresponding lens. 
+
+To capture the information in the examples, the function starts by
+annotating each node in the data structure representing the source DNF
+regular expression with the corresponding portion of each example, and
+similarly for the target. 
+
+Next, it orders the annotated DNF regular expressions, remembering
+the permutations used 
+to perform those orderings.  Next, it does a tree zip of the two
+ordered, exampled dnf regular expressions, to pair up subcomponents of
+the two dnf regular expressions.  
+
+Every subcomponent of one of the DNF regular expression is paired up
+with a single subcomponent of the other regular expression.  These
+dictate which subcomponent has a sublens between them.  However, we
+have only built a lens between the normalized regular expressions, not
+the original ones.  To make a lens between the original regular
+expressions, it uses the permutations generated for normalization to
+determine which permutations in the generated dnf lenses permit the
+matched subcomponents to still map to each other.
+
 
 While performing type directed synthesis on DNF regular expressions, both
 synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
@@ -2128,13 +2156,13 @@ $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
 processed.
 
 It is a better approach to recognize which subcomponents of types 
-recognize which subcomponents of the types can be mapped to each other, and
+recognize can be mapped to each other, and
 create the permutations based on those mappings, than to
 search through all possible permutations.  To handle finding which
 subcomponents can be mapped to each other, SynthRewritelessDNF further
 normalizes the input regular expressions.
-Ordering the sequence subcomponents of a DNF lens further normalizes it.
-Ordering the atom subcomponents of a DNF lens further normalizes it.
+Ordering the sequence components and atom subcomponents of a dnf
+regular expression further normalizes it
 After correctly ordering the sequences, we can synthesize a rewriteless DNF lens
 between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
 $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
