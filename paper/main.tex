@@ -244,7 +244,7 @@ classic ``view update problem'' \cite{Bancilhon81, Dayal82}.  A lens
 comprises two functions, called 
 \emph{get} and \emph{put}.  The \emph{get} function translates source data
 into a target format, or \emph{view}.  If the view is updated, the
-\emph{put} function can be used to translate the edited data back into the
+\emph{put} function can translate the edited data back into the
 source format.  The \emph{get} and \emph{put} functions are both represented
 by a single expression written in a domain-specific language whose
 primitives can be read in either direction.
@@ -278,12 +278,11 @@ bidirectional variants of
 relational algebra~\cite{BohannonPierceVaughan},
 spreadsheet formulas~\cite{DBLP:conf/vl/MacedoPSC14},
 graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
-and
 XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}, 
 %
 and many others.
 %
-However, these languages are typically based around unfamiliar collections
+However, these languages are typically based on unfamiliar collections
 of primitives, and they require thinking in two directions at the same
 time---a tricky task for most programmers.  In addition, the details are
 often fiddly.  For example, in Boomerang~\cite{boomerang, Matching10},
@@ -457,7 +456,7 @@ lenses with types $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and
 $C \Leftrightarrow C'$.  A straightforward syntax-directed search might try
 applying the rule for concatenation (from bottom to top) and looking for two
 simpler lenses with the types $A B \Leftrightarrow A'$ and
-$C \Leftrightarrow B' C'$.  Clearly, this is not going to get us far.
+$C \Leftrightarrow B' C'$.  Clearly, this approach is not going to get us far.
 
 We might next try introducing a type conversion rule like
 \[
@@ -475,7 +474,7 @@ into the synthesis procedure.
 This rule can be used to 
 convert the type $(A B) C \Leftrightarrow A' (B' C')$
 to the better-aligned $(A B) C \Leftrightarrow (A' B') C'$, from which two
-applications of concatenation rule generate subproblems 
+applications of the concatenation rule generate subproblems 
 $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
 $C \Leftrightarrow C'$,  which we know how to solve.
 
@@ -536,22 +535,24 @@ $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will first convert this
 type into $\DNFOf{A;B;C} \Leftrightarrow \DNFOf{A',B',C'}$.
 %\bcp{Maybe the latter should be presented in the DNF syntax.}
 
-Normalization to DNF eliminates, many, but not all, of the regular expression
-equivalences that may needed before applying a simple structural search that
-follows the syntax of types.
-Not all structural incongruities disappear because our normalized
-regular expressions are only \emph{pseudo-canonical}.
-For instance, our normal form
-does not automatically unify regular expressions such as
-$A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.  \afm{Attempting to normalize by putting
-the regular expressions in the smaller form on the left form prevents finding
-transformations between $\EmptyString \Or (\Regex \Concat \StarOf{\Regex})$ and
-$\EmptyString \Or (\Regex' \Concat \StarOf{\Regex})$, as the first form would be
-able to be transformed, while the second could not.  Attempting to put the
-regular expressions into the larger form on the right cannot be done, as that
-rule can be applied an arbitrarily large number of times.}\bcp{This
-explanation belongs in black!}
+Normalization to DNF eliminates many, but not all, of the regular
+expression equivalences that may be needed before we can apply a
+simple type-directed structural search.  Not all structural
+incongruities disappear because our normalized regular expressions are
+only \emph{pseudo-canonical}.  For instance, our normal form does not
+automatically unify regular expressions such as $A B*$ and $A
+(\epsilon + BB*)$ that result from the unrolling of a Kleene Star.
+Specifically, we cannot unify this pair of regular expressions by
+putting them into the form on the left because that form prevents
+finding transformations between types $\EmptyString \Or
+(\Regex \Concat \StarOf{\Regex})$ and $\EmptyString \Or
+(\Regex' \Concat \StarOf{\Regex})$ because we would be able to
+transform the first form but not the second.  We also cannot unify
+them by adopting the form on the right because the rule to perform
+that normalization could be applied an arbitrary number of times and
+would thus fail to produce a normal form.
+
+
 % \bcp{Why
 %     couldn't we have built our algorithm by following the structure of a
 %     proof of equivalence between the source and target types?  (I.e., why
@@ -577,7 +578,8 @@ outside of concatenations, and they use $n$-ary operators instead of binary
 ones, further reducing the search space.  The DNF syntax also omits the lens
 composition operator because (unlike the standard lens syntax) its other
 operators are already closed under composition (any program that can be
-written with composition can also be written without it).  This reduces the
+written with composition can also be written without it).  Omitting composition
+reduces the
 search space by an entire dimension because the synthesis algorithm no
 longer needs to search through possible intermediary regular expressions for
 compositions.
@@ -618,9 +620,9 @@ these translations sound and complete with respect to our high-level lens syntax
 \item We develop a type-directed algorithm for synthesizing DNF lenses (\S
 \ref{implementation}) and prove it correct and complete.
 \BCP{semi-complete, right?!} 
-\item We evaluate this algorithm on 23 benchmarks, including examples from
-FlashFill\bcp{explain what it is} and from the Augeas system for
-transforming linux file formats (\S \ref{evaluation}).  Our tool succeeds on
+\item We evaluate this algorithm on 25 benchmarks, including examples from
+FlashFill~\cite{gulwani-popl-2014} and from the Augeas~\cite{augeas}
+system (\S \ref{evaluation}).  Our tool succeeds on
 all of our benchmarks, with an average synthesis time of 0.134
 seconds\bcp{how many significant digits?}.
 \end{itemize}
