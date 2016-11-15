@@ -542,54 +542,33 @@ $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will first convert this
 type into $\DNFOf{A;B;C} \Leftrightarrow \DNFOf{A',B',C'}$, where
 $\DNFOf{\ldots}$ represents $n$-ary concatenation.
 
-Normalization to DNF eliminates many, but not all, of the regular
-expression equivalences that may be needed before we can apply a
-simple type-directed structural search.  Not all structural
-incongruities disappear because our normalized regular expressions are
-only \emph{pseudo-canonical}.  For instance, our normal form does not
-automatically unify regular expressions such as $A B*$ and $A
-(\epsilon + BB*)$ that result from the unrolling of a Kleene Star.
-Specifically, we cannot unify this pair of regular expressions by
-putting them into the form on the left because that form prevents
-finding transformations between types $\EmptyString \Or
-(\Regex \Concat \StarOf{\Regex})$ and $\EmptyString \Or
-(\Regex' \Concat \StarOf{\Regex})$ because we would be able to
-transform the first form but not the second.  We also cannot unify
-them by adopting the form on the right because the rule to perform
-that normalization could be applied an arbitrary number of times and
-would thus fail to produce a normal form.
-
-
-% \bcp{Why
-%     couldn't we have built our algorithm by following the structure of a
-%     proof of equivalence between the source and target types?  (I.e., why
-%     did we have to use Conway's axioms or worry about confluence, given that
-%     we know regular language equivalence is decidable?  Is it because that
-%     proof is automata-theoretic?)}
-%   \afm{The source and target types of lenses are not
-%   necessarily language equivalent, so we cannot use standard equivalence
-%   strategies to determine if lenses exist between them.  Furthermore, we cannot
-%   even approach this problem by generating transducers between the languages;
-%   lenses are able to swap data.  Commonly, data formats do not have all data in
-%   the same locations, and swapping is important for expressing data
-%   transformations between these formats.}
-% BCP: OK, that was a dumb question.  
-Consequently, we structure our synthesis algorithm in two parts.  The
-first is a syntax-directed search for a lens based on the structure of the given
-regular expression types. If that fails, the second is a search,
-using a subset of Conway's axioms~\cite{conway}, for 
-equivalent regular expression types that might allow a new search to succeed.
-
 Like DNF regular expressions, DNF lenses are stratified, with disjunctions
 outside of concatenations, and they use $n$-ary operators instead of binary
 ones, further reducing the search space.  The DNF syntax also omits the lens
 composition operator because (unlike the standard lens syntax) its other
 operators are already closed under composition (any program that can be
-written with composition can also be written without it).  Omitting composition
-reduces the
-search space by an entire dimension because the synthesis algorithm no
-longer needs to search through possible intermediary regular expressions for
-compositions.
+written with composition can also be written without it).  Omitting
+composition reduces the search space by an entire dimension because the
+synthesis algorithm no longer needs to search through possible intermediary
+regular expressions for compositions.
+
+Normalization to DNF eliminates many, but not all, of the regular expression
+equivalences that may be needed before we can apply a simple type-directed
+structural search---i.e., our normalized regular expressions are only
+\emph{pseudo-canonical}.  For instance, we do not regular expressions such
+as $B*$ and $\epsilon + BB*$ do not have the same normal form.  (Nor do we
+want them to: If we normalized $\epsilon + BB*$ to $B*$, we would have
+trouble with synthesizing lenses with types like $BB* \Leftrightarrow CD*$,
+where the first occurrence of $B$ on the left needs to be transformed into
+$C$ while the rest of the $B$s need to be transformed into $D$.)
+
+Consequently, we structure our synthesis algorithm in two phases.  Given a
+pair of types in pseudo-canonical DNF form, we first perform a
+syntax-directed search for a lens based on the structure of the given
+regular expression types. If that fails, we instead try to unfold *
+operators in one or both types, using a subset of Conway's
+axioms~\cite{conway}, obtaining equivalent (but larger) regular expression
+types; we then return to the first phase and try again with these types.
 
 \paragraph*{Challenge 2: Large Types}
 In practice, the regular expressions describing complex {\em ad hoc} data
