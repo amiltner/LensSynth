@@ -1391,39 +1391,46 @@ This parsing information means that the first \CF{Name} in \CF{DNFBib'} must map
 
 The first important step in our synthesis algorithm is to convert
 regular expression types into \emph{disjunctive normal form} (DNF).
-A DNF regular expression is, intuitively, a regular expression with
-all terms fully distributed, and with associativity information removed.
-Distributing terms and removing associativity information creates a mutually
-recursive data structure, consisting of the types of
-DNF regular expressions (\DNFRegex{},\DNFRegexAlt{}), 
-sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt).
+%% A DNF regular expression is, intuitively, a regular expression with
+%% all terms fully distributed, and with associativity information removed.
+%% Distributing terms and removing associativity information creates a mutually
+%% recursive data structure, consisting of the types of
+A DNF regular expression  is an n-ary disjunction of
+sequences, where a sequence alternates between concrete strings and
+atoms, and an atom is an iteration of DNF Regular expressions.
+The grammar below describes the syntax of 
+DNF regular expressions (\DNFRegex{},\DNFRegexAlt{}),
+sequences (\Sequence{},\SequenceAlt{}), and atoms (\Atom, \AtomAlt)
+formally.
 
 \begin{center}
   \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % DNF_REGEX
-    \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}} & \StarAtomType{}\\
+    \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}}
+% & \StarAtomType{}
+\\
     \Sequence{},\SequenceAlt{} & \GEq{} &
-                                                       $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ & \MultiConcatSequenceType{} \\
-    \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ & \MultiOrDNFRegexType{} 
+                                                       $\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}$ 
+%& \MultiConcatSequenceType{} 
+\\
+    \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ %& \MultiOrDNFRegexType{} 
   \end{tabular}
 \end{center}
 
-Intuitively, a DNF regular expression is an n-ary disjunction of
-sequences.  A sequence alternates between concrete strings and
-atoms.  Notice that it is straightforward to convert an abitrary series
-of atoms and strings into this form:  If there are multiple atoms between
+Notice that it is straightforward to convert an arbitrary series
+of atoms and strings into a sequence:  If there are multiple atoms between
 concrete strings, the atoms 
 may be separated by empty strings, and if there are multiple concrete strings 
 between atoms, the strings may be concatenated into a single string.
-The shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
-stands for
-$\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
-with every string in the sequence is the empty string.
 Notice also that a simple string with no atoms may be represented as
-a sequence.
-An atom is an iteration of DNF Regular expressions.
+a sequence containing just one concrete string.
 In our implementation, names of user-defined regular expressions
-are atoms; we elide such definitions from our theoretical analysis.
+are also atoms.  However, we elide such definitions from our theoretical analysis.
+In what follows, we often use
+the shorthand $\SequenceOf{\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n}$
+for
+$\SequenceOf{\EmptyString;\Atom_1;\ldots;\Atom_n;\EmptyString}$, the sequence
+where every concrete string in the sequence is the empty string.
 
 Intuitions about DNF regular expressions may confirmed
 by their semantics, which we give by defining the language (set of strings)
@@ -1694,8 +1701,8 @@ are semantically identical.
 %% rewritten regular expressions.  These rewrites are the ones used in
 %% \textbf{Step 2: Traversing Equivalences}.
 Figure~\ref{fig:dnf-regex-rewrites} defines a collection of rewrite rules on DNF regular expressions
-designed to search the space of equivalent DNF REs.  We write $\StarOf{\Rewrite}$ for
-    the reflexive, transitive closure of $\Rewrite{}$.
+designed to search the space of equivalent DNF REs.  
+%We write $\StarOf{\Rewrite}$ for the reflexive, transitive closure of $\Rewrite{}$.
 This directed rewrite system help us limit
 the search space more than the non-directional equivalence $\equiv_d$ relation.
 However, because the rewrite rules are confluent, we will show that it is just as powerful as the
@@ -1707,25 +1714,41 @@ $\equiv_d$ relation.
 %% \RewriteRegexLensRule{}, instead of having to try all equivalences, we are able
 %% to limit the fan-out and only traverse a few.
 
-These rewrite rules present ways for atoms to be rewritten to DNF regular
-expressions, with rules like \AtomUnrollstarLeftRule{} and
-\AtomUnrollstarRightRule{}.
-These rewrite rules are similar to the equivalence rules for DNF regular
-expressions, \UnrollstarLeftRule{} and \UnrollstarRightRule{}.
-With the atoms rewritten to DNF regular expressions, \DNFStructuralRewriteRule{}
-provides a way to combine the rewritten atom into the broader regular
-expression\afm{, through singling out the atom, expanding it, and recombining it into
-the regular expression}.
-Similarly, if a DNF regular expression is rewritten to a different
-DNF regular expression, the rewrite rule \AtomStructuralRewriteRule{} can extend
-this rewrite to rewriting atoms containing those regular expressions.
-The symbol $\StarOf{\Rewrite}$ is used to denote the transitive and reflexive
-closure of $\Rewrite$.  \afm{These correspond closely with the definitional
-equivalence rules.  Many of the semiring axioms are normalized in the regular
-expression into this form, and these rewrites correspond to applications of the
-rewrites associated with \StarRegexType{}.  This does not handle \OrRegexType{}
-commutativity -- this commutativity is handled in the typing of the DNF lenses,
-not in the rewrite rules, to make the search space narrower.}
+Because DNF normal form flattens a series of unions or concatenations
+into an n-ary sum-of-products,
+there is no need for rewriting rules that manage associativity or
+distributivity.  Moreover, the lens term language and synthesis algorithm itself manages out-of-order summands, so we also have no need of rewriting
+rules to handle commutativity of unions.  Hence, our rewriting system
+need only focus on rewrites that involve Kleene star.
+The rule \AtomUnrollstarLeftRule{} is a directed rewrite rule
+designed to mirror \UnrollstarLeftRule{}.  Inuitively, it unfolds any atom 
+$\StarOf{\DNFRegex{}}$ into $\RegexOr{\EmptyString{}}{(\RegexConcat{\DNFRegex{}}{\StarOf{{\DNFRegex{}}}})}$.  However, 
+$\RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})}$ is
+not a \emph{DNF} regular expression, so it uses DNF concatenation (\ConcatDNF)
+and union (\OrDNF) in place of regular expression concatenation and union
+to ensure a DNF regular expression is constructed.  The rule
+\AtomUnrollstarRightRule{} mirrors the rule \UnrollstarRightRule{} in 
+a similar way.
+
+The rules \AtomStructuralRewriteRule{} and \DNFStructuralRewriteRule{}
+make it possible to rewrite terms involving Kleene star that are
+nested deep within a DNF regular expression, while ensuring that the
+resulting term remains in DNF form.
+
+%% With the atoms rewritten to DNF regular expressions, \DNFStructuralRewriteRule{}
+%% provides a way to combine the rewritten atom into the broader regular
+%% expression\afm{, through singling out the atom, expanding it, and recombining it into
+%% the regular expression}.
+%% Similarly, if a DNF regular expression is rewritten to a different
+%% DNF regular expression, the rewrite rule \AtomStructuralRewriteRule{} can extend
+%% this rewrite to rewriting atoms containing those regular expressions.
+%% The symbol $\StarOf{\Rewrite}$ is used to denote the transitive and reflexive
+%% closure of $\Rewrite$.  \afm{These correspond closely with the definitional
+%% equivalence rules.  Many of the semiring axioms are normalized in the regular
+%% expression into this form, and these rewrites correspond to applications of the
+%% rewrites associated with \StarRegexType{}.  This does not handle \OrRegexType{}
+%% commutativity -- this commutativity is handled in the typing of the DNF lenses,
+%% not in the rewrite rules, to make the search space narrower.}
 
 \bcp{IMHO this section is needs some expansion---the rules are pretty
   complicated, and they need better explanation.}
