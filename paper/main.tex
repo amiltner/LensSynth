@@ -544,14 +544,13 @@ regular expressions are only \emph{pseudo-canonical}.
 For instance, our normal form
 does not automatically unify regular expressions such as
 $A B*$ and $A (\epsilon + BB*)$ that result from an
-unrolling of Kleene Star.  \afm{Attempting to normalize by putting
+unrolling of Kleene Star.  Attempting to normalize by putting
 the regular expressions in the smaller form on the left form prevents finding
 transformations between $\EmptyString \Or (\Regex \Concat \StarOf{\Regex})$ and
 $\EmptyString \Or (\Regex' \Concat \StarOf{\Regex})$, as the first form would be
 able to be transformed, while the second could not.  Attempting to put the
 regular expressions into the larger form on the right cannot be done, as that
-rule can be applied an arbitrarily large number of times.}\bcp{This
-explanation belongs in black!}
+rule can be applied an arbitrarily large number of times.
 % \bcp{Why
 %     couldn't we have built our algorithm by following the structure of a
 %     proof of equivalence between the source and target types?  (I.e., why
@@ -617,12 +616,14 @@ between ordinary regular expressions and lenses and the DNF forms, and prove
 these translations sound and complete with respect to our high-level lens syntax.
 \item We develop a type-directed algorithm for synthesizing DNF lenses (\S
 \ref{implementation}) and prove it correct and complete.
-\BCP{semi-complete, right?!} 
+\BCP{semi-complete, right?!}
+\afm{neither, we didn't prove the implementation to be complete or correct}
 \item We evaluate this algorithm on 23 benchmarks, including examples from
-FlashFill\bcp{explain what it is} and from the Augeas system for
+  FlashFill, an another automatic string transformation system,
+  and from the Augeas system for
 transforming linux file formats (\S \ref{evaluation}).  Our tool succeeds on
 all of our benchmarks, with an average synthesis time of 0.134
-seconds\bcp{how many significant digits?}.
+seconds\bcp{how many significant digits?}\afm{what does this mean?}.
 \end{itemize}
 % end introduction
 
@@ -1442,6 +1443,76 @@ formally.
     \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ %& \MultiOrDNFRegexType{} 
   \end{tabular}
 \end{center}
+\begin{figure*}
+  \begin{mathpar}
+    \inferrule[\AtomUnrollstarLeftRule{}]
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\RewriteAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}})}
+    }
+
+    \inferrule[\AtomUnrollstarRightRule{}]
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\RewriteAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\AtomToDNFOf{\StarOf{\DNFRegex}}}{\DNFRegex})}
+    }
+
+    \inferrule[\AtomStructuralRewriteRule{}]
+    {
+      \DNFRegex \Rewrite \DNFRegex'
+    }
+    {
+      \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
+    }
+
+    \inferrule[\DNFStructuralRewriteRule{}]
+    {
+      \Atom_j \RewriteAtom \DNFRegex
+    }
+    {
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
+      \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
+      \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
+      \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+    }
+    
+    % \inferrule[\ReflexivityRule{}]
+    % {
+    % }
+    % {
+    %   \DNFRegex \StarOf{\Rewrite} \DNFRegex
+    % }
+
+    % \inferrule[\BaseRule{}]
+    % {
+    %   \DNFRegex \Rewrite \DNFRegexAlt
+    % }
+    % {
+    %   \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
+    % }
+
+    % \inferrule[\TransitivityRule{}]
+    % {
+    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
+    %   \DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_3
+    % }
+    % {
+    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
+    % }
+
+  \end{mathpar}
+  \caption{DNF Regex Rewrite Rules}
+  \label{fig:dnf-regex-rewrites}
+\end{figure*}
+
 
 Notice that it is straightforward to convert an arbitrary series
 of atoms and strings into a sequence:  If there are multiple atoms between
@@ -1641,77 +1712,6 @@ DNF regular expressions via the following theorem.
 %% \end{restatable}
 
 % fig:dnf-regex-rewrites
-\begin{figure*}
-  \begin{mathpar}
-    \inferrule[\AtomUnrollstarLeftRule{}]
-    {
-    }
-    {
-      \StarOf{\DNFRegex}\RewriteAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}})}
-    }
-
-    \inferrule[\AtomUnrollstarRightRule{}]
-    {
-    }
-    {
-      \StarOf{\DNFRegex}\RewriteAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\AtomToDNFOf{\StarOf{\DNFRegex}}}{\DNFRegex})}
-    }
-
-    \inferrule[\AtomStructuralRewriteRule{}]
-    {
-      \DNFRegex \Rewrite \DNFRegex'
-    }
-    {
-      \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
-    }
-
-    \inferrule[\DNFStructuralRewriteRule{}]
-    {
-      \Atom_j \RewriteAtom \DNFRegex
-    }
-    {
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
-      \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
-      \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
-      \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
-      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
-    }
-    
-    % \inferrule[\ReflexivityRule{}]
-    % {
-    % }
-    % {
-    %   \DNFRegex \StarOf{\Rewrite} \DNFRegex
-    % }
-
-    % \inferrule[\BaseRule{}]
-    % {
-    %   \DNFRegex \Rewrite \DNFRegexAlt
-    % }
-    % {
-    %   \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
-    % }
-
-    % \inferrule[\TransitivityRule{}]
-    % {
-    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
-    %   \DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_3
-    % }
-    % {
-    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
-    % }
-
-  \end{mathpar}
-  \caption{DNF Regex Rewrite Rules.\saz{Dropped the star
-      relation. this figure still needs to be moved earlier}}
-  \label{fig:dnf-regex-rewrites}
-\end{figure*}
-
 
 \paragraph*{DNF Regular Expression Rewrites}
 
@@ -1776,17 +1776,6 @@ resulting term remains in DNF form.
 %% commutativity -- this commutativity is handled in the typing of the DNF lenses,
 %% not in the rewrite rules, to make the search space narrower.}
 
-\bcp{IMHO this section needs some expansion---the rules are pretty
-  complicated, and they need better explanation.}
-
-\BCP{Also, a technical point: Don't we need to show that these rules
-  correspond to (an oriented version of) the $\equiv_d$ relation?  We use
-  the latter in the example section, but our implementation uses the
-  former.  (I guess a proof of this must be buried in the proofs of 6.1 and
-  6.2 (right?).  But it needs to be called out explicitly.)} 
-
-\bcp{Did the previous point get dealt with?  I've lost track...}
-
 \section{DNF Lenses}
 \label{sec:dnf}
 
@@ -1794,7 +1783,7 @@ resulting term remains in DNF form.
 \begin{figure}
   \centering
   \begin{mathpar}
-    \inferrule[\AtomLensRule{}]
+    \inferrule[] %\AtomLensRule{}
     {
       \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
       \UnambigItOf{\DNFRegex}\\
@@ -1805,7 +1794,7 @@ resulting term remains in DNF form.
       \Leftrightarrow \StarOf{\DNFRegexAlt}
     }
 
-    \inferrule[\SequenceLensRule{}]
+    \inferrule[] %\SequenceLensRule{}
     {
       \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
       \ldots\\
@@ -1820,7 +1809,7 @@ resulting term remains in DNF form.
       \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
     }
 
-    \inferrule[\DNFLensRule{}]
+    \inferrule[] %\DNFLensRule{}
     {
       \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
       \ldots\\
@@ -1835,7 +1824,7 @@ resulting term remains in DNF form.
       \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
     }
 
-    \inferrule[\RewriteDNFRegexLensRule{}]
+    \inferrule[] %\RewriteDNFRegexLensRule{}
     {
       \DNFRegex' \StarOf{\Rewrite} \DNFRegex\\
       \DNFRegexAlt' \StarOf{\Rewrite} \DNFRegexAlt \\
@@ -1846,7 +1835,7 @@ resulting term remains in DNF form.
     }
 
   \end{mathpar}
-  \caption{DNF Lens Typing\bcp{We should drop the rule names, as we did before}}
+  \caption{DNF Lens Typing}
   \label{fig:dnf-lens-typing}
 \end{figure}
 
@@ -1868,12 +1857,13 @@ describe how these lenses act on data.
 
 A DNF lens contains a collection of sequence lenses and a permutation.
 As an example, consider a DNF lens between data with type 
-$\DNFRegex_{11} \OrDNF \DNFRegex_{12}$ and data with type
-$\DNFRegex_{21} \OrDNF \DNFRegex_{22}$.  In such a lens, 
-the permutation $\sigma$ 
-indicates whether data matching $\DNFRegex_{11}$ will be translated to
-data matching $\DNFRegex_{21}$ or $\DNFRegex_{22}$, and likewise for
-$\DNFRegex_{12}$.  As we will see in a moment, these permutations make
+$\DNFOf{\Sequence_{1};\Sequence_{2}}$
+and data with type
+$\DNFOf{\SequenceAlt_{1};\SequenceAlt_{2}}$.
+In such a lens, the permutation $\sigma$ 
+indicates whether data matching $\Sequence_{1}$ will be translated to
+data matching $\SequenceAlt_{1}$ or $\SequenceAlt_{2}$, and likewise for
+$\Sequence_{2}$.  As we will see in a moment, these permutations make
 it possible to construct a well-typed lens between two DNF regular expressions
 regardless of the order in which clauses in a DNF regular expression appear,
 thereby eliminating the need to consider equivalence modulo commutativity 
@@ -1883,8 +1873,8 @@ A DNF sequence lens includes (1) a series of atom lenses separated by pairs of
 strings, and (2) a permutation. If there are $n$ elements in the series then
 the DNF sequence lens divides an input string up into $n$ substrings.
 The $i^{th}$ such substring is transformed by the $i^{th}$ element of the series.
-More precisely, if that $i^th$ element is an atom lens, then the  $i^th$
-substring is transformed according to that atom lens.  If $i^th$ element
+More precisely, if that $i^{th}$ element is an atom lens, then the  $i^{th}$
+substring is transformed according to that atom lens.  If the $i^{th}$ element
 is a pair of strings $(s_1,s_2)$ then that pair of strings
 acts like a constant lens: when used from left-to-right, such a lens 
 translates string $s_1$ into $s_2$; when used from right-to-left, such a
