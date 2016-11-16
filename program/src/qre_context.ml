@@ -2,6 +2,7 @@ open Core.Std
 open Datastructures
 open Quotient_regex
 open Lang
+open Regexcontext
 
 (***** The main RegexContext module {{{ *****)
 
@@ -18,6 +19,8 @@ module type QuotientRegexContext_Sig = sig
     val autogen_id               : t -> quotient_regex -> id
     val autogen_fresh_id         : t -> id
     val merge_contexts_exn       : t -> t -> t
+    val to_whole_regex_context   : t -> RegexContext.t
+    val to_kernel_regex_context  : t -> RegexContext.t
 end
 
 module QuotientRegexContext_Struct (Dict : Dictionary) : QuotientRegexContext_Sig = struct
@@ -93,6 +96,17 @@ module QuotientRegexContext_Struct (Dict : Dictionary) : QuotientRegexContext_Si
     let merge_contexts_exn (rc1:t) (rc2:t) : t =
       let rc2_list = Dict.as_kvp_list rc2 in
       insert_list_exn rc1 (List.map ~f:(fun (n,(r,b)) -> (n,r,b)) rc2_list)
+
+    let to_whole_regex_context (rc : t) =
+      let rc_list = Dict.as_kvp_list rc in
+      List.fold_left ~f:(fun acc (n, (r,b)) -> RegexContext.insert_exn acc n (whole r) b)
+                     ~init:(RegexContext.empty) rc_list
+
+    let to_kernel_regex_context (rc : t) =
+      let rc_list = Dict.as_kvp_list rc in
+      List.fold_left ~f:(fun acc (n, (r,b)) -> RegexContext.insert_exn acc n (kernel r) b)
+                     ~init:(RegexContext.empty) rc_list
+
 end
 
 module QuotientRegexContext = QuotientRegexContext_Struct(ListDictionary)

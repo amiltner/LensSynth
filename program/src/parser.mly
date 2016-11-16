@@ -61,6 +61,10 @@ decl:
     { DeclQuotientRegexCreation d }
   | QUOTIENT s=quotient_specification
     { DeclQuotientSynthesizeLens s }
+  | QUOTIENT TEST r=quotient_regex MATCHES s=str SEMI SEMI
+    { DeclQuotientTestString (r,s) }
+  | QUOTIENT TEST n=LID exs=examples SEMI SEMI
+    { DeclQuotientTestLens (n, exs) }
 
 quotient_defn:
   | TYPEDEF u=UID EQ r=quotient_regex SEMI SEMI

@@ -164,6 +164,9 @@ type declaration =
   | DeclQuotientRegexCreation of (id * quotient_regex * bool)
   | DeclQuotientSynthesizeLens of quotient_specification
   | DeclQuotientLensCreation of id * quotient_regex * quotient_regex * lens
+  | DeclQuotientTestString of quotient_regex * string
+  | DeclQuotientTestLens of id * examples
+
 
 type program = declaration list
 

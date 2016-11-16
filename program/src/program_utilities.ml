@@ -53,6 +53,21 @@ let run_declaration
           (qc,rc,LensContext.insert_exn lc n l (kernel r1) (kernel r2),
           DeclQuotientLensCreation(n,r1,r2,l))
       end
+    | DeclQuotientTestString (r, s) ->
+        if fast_eval (QuotientRegexContext.to_whole_regex_context qc) (whole r) s then
+          (qc, rc, lc, d)
+        else
+          failwith (s ^ " does not match regex " ^ (regex_to_string (whole r)))
+    | DeclQuotientTestLens (n, exs) ->  
+        List.iter
+        ~f:(fun (lex,rex) ->
+            let ans = lens_putr (QuotientRegexContext.to_kernel_regex_context qc) lc (LensVariable n) lex in
+            if ans <> rex then
+              failwith ("expected:" ^ rex ^ "got:" ^ ans)
+            else
+              ())
+        exs;
+      (qc,rc,lc,d)
   end
 
 let synthesize_and_load_program
@@ -91,6 +106,8 @@ let remove_tests : program -> program =
           | DeclQuotientRegexCreation _ -> true
           | DeclQuotientSynthesizeLens _ -> true
           | DeclQuotientLensCreation _ -> false
+          | DeclQuotientTestString _ -> false
+          | DeclQuotientTestLens _ -> false
         end)
 
 let retrieve_last_synthesis_problem_exn

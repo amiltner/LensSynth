@@ -90,6 +90,8 @@ let expand_regexps (p:program) : program =
     | DeclQuotientRegexCreation _ -> (c, d)
     | DeclQuotientSynthesizeLens _ -> (c,d)
     | DeclQuotientLensCreation _ -> (c,d)
+    | DeclQuotientTestString _ -> (c,d)
+    | DeclQuotientTestLens _ -> (c, d)
     end
   in
   List.rev
