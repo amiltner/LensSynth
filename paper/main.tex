@@ -857,8 +857,8 @@ The simplest lens in the combinator language is the constant lens between
 strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
 The lens $\ConstLensOf{\String}{\StringAlt}$, when operated left-to-right,
 replaces the string $\String$ with $\StringAlt$, and when operated
-right-to-left, replaces string $\String_2$ with $\String_1$.  The identity lens
-on a on a regular expression, $\IdentityLensOf{\Regex}$, operates in both
+right-to-left, replaces string $\StringAlt$ with $\String$.  The identity lens
+on a regular expression, $\IdentityLensOf{\Regex}$, operates in both
 directions by applying the
 identity function to strings in $\LanguageOf{\Regex}$.  The composition
 combinator, 
@@ -972,12 +972,12 @@ applying $\Lens$ to subparts of a string.
 \end{figure}
 
 
-A typing judgement of lenses is of the form $\Lens \OfType \Regex
+The typing judgement for lenses has the form $\Lens \OfType \Regex
 \Leftrightarrow \RegexAlt$, which 
 means that $\Lens$ bijectively maps between
-$\LanguageOf{\Regex}$ and $\LanguageOf{\RegexAlt}$.  The typing relation is given in
-Figure~\ref{fig:lens-typing}.  Many of the typing derivations require side
-conditions about
+$\LanguageOf{\Regex}$ and $\LanguageOf{\RegexAlt}$.   
+Figure~\ref{fig:lens-typing} gives the typing relation.  Many of the
+typing derivations require side conditions about
 unambiguity.  These side conditions guarantee that the semantics of the language
 create a bijective function.  For example, if $\Lens_1 \OfType \Regex_1
 \Leftrightarrow \RegexAlt_1$, and $\Lens_2 \OfType \Regex_2 \Leftrightarrow
@@ -988,7 +988,7 @@ $\String_1\Concat\String_2 = \StringAlt_1\Concat\StringAlt_2$, but $\String_1
 \neq \StringAlt_1$, and $\String_2 \neq \StringAlt_2$.  The lens
 $\ConcatLensOf{\Lens_1}{\Lens_2}$ would no longer necessarily act as a function
 when applied from left to right, as
-$\Lens_1$ could be applied to both $\String_1$ and to $\String_2$.
+$\Lens_1$ could be applied to both $\String_1$ and to $\StringAlt_1$.
 
 For $\IdentityLensOf{\Regex}$, we require the lens being applied to be strongly
 unambiguous.  This unambiguity allows the identity lens to merely be syntactic sugar for
@@ -1009,15 +1009,15 @@ the full power of the Conway axiomatization $\equiv$, since that
 theory is complete for regular-expression equivalence.  However, for
 the purposes of our synthesis algorithm we use a finer, but more
 tractable notion of equivalence $\DefinitionalEquiv \subseteq \equiv$,
-as we next explain.  We have not found this restriction to be limit
+as we next explain.  We have not found this restriction to limit
 the expressivity of lenses in practice.
 
 \SUBSECTION{Definitional Equivalence and Rewriting}
 
 Type-directed synthesis seeks to construct a lens by searching for a
 well-formed typing derivation using the rules in Figure~\ref{fig:lens-typing}.
-The inputs to the algorithm include the intended source and target
-regular expression type, along with some examples, and search proceeds
+The inputs to the algorithm are the source and target
+regular expression types and some examples. The search proceeds
 bottom up.  
 
 Both composition and subsumption present obstacles 
@@ -1036,27 +1036,36 @@ $\Regex$ by turning the Conway axioms into (undirected) rewrite rules
 and then trying all possible combinations of rewrites.  Doing so would
 be problematic because the Conway axiomatization itself is both highly
 nondeterministic and infinitely branching (due to the choice of $n$ in
-the dyclicity axiom).  Furthermore, since we have chosen to eliminate
-composition in DNF lenses, we do not want the equivalences to make us no longer
-closed under composition. 
+the dyclicity axiom).  Furthermore, we must take care in adding
+equivalences: any equivalences that don't satisfy the properties
+outlined below could produce a language that is no longer closed under
+composition, requiring a more complex search procedure. 
 
 We have shown that two properties are sufficient to ensure that any
 equational theory of regular expressions implemented via rewrite rules $\to$
-on their associated DNF forms is compatible with our lens synthesis strategy.
+on their associated DNF forms is compatible with our lens synthesis
+strategy.
+These properties involve the DNF Lens typing judgement 
+$\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+defined later in Figure~\ref{fig:dnf-lens-typing}, that can be read
+``DNF lens $\DNFLens$ maps between data typed with source DNF regular 
+expression type $\DNFRegex$ and target type $\DNFRegexAlt$.
+We call the first property \textit{confluence}.  It says:
 Whenever $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
 if $\DNFRegex \Rewrite
 \DNFRegex'$ and $\DNFRegexAlt \Rewrite \DNFRegexAlt'$, there should exist $\DNFRegex''$,
 $\DNFRegexAlt''$, and $\DNFLens'$ such that $\DNFRegex' \Rewrite \DNFRegex''$, $\DNFRegexAlt'
 \Rewrite \DNFRegexAlt''$, and $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
-\DNFRegexAlt''$, where $\DNFLens'$ has the same semantics as $\DNFLens$.  We call this
-property \textit{confluence}.
-Second, whenever $\DNFLens \OfRewritelessType{} \DNFRegex \Leftrightarrow \DNFRegexAlt$ and 
+\DNFRegexAlt''$, where $\DNFLens'$ has the same semantics as
+$\DNFLens$.  
+We call the second property \textit{bisimilarity}.
+It says: Whenever $\DNFLens \OfRewritelessType{} \DNFRegex \Leftrightarrow \DNFRegexAlt$ and 
 $\DNFRegex \to \DNFRegex'$, there should exist $\DNFRegexAlt'$ and  $\DNFLens'$ such
 that $\DNFRegexAlt \to \DNFRegexAlt'$ using the \textit{same} rewrite rule, 
 $\DNFLens' \OfType{} \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and
 $\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$, and similarly for $\DNFRegexAlt \to
 \DNFRegexAlt'$.
-We call this property \textit{bisimilarity}.
+
 
 %  There are a large number of rules that can be
 % applied to some regular expressions,
@@ -1110,7 +1119,9 @@ We call this property \textit{bisimilarity}.
 % invariant that a lens maps between the languages of the regular expressions of
 % the type.
 
-For our purposes, we take the \textit{definitional equivalence rules} $\DefinitionalEquiv$ to
+Our solution for handling subsumption is to define
+ the \textit{definitional equivalence rules} 
+ $\DefinitionalEquiv$ to 
  be the semiring axioms, plus two ``unrolling'' rules that
  replace the Conway axioms \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}, and
  \DicyclicityRule{}:
@@ -1120,14 +1131,16 @@ For our purposes, we take the \textit{definitional equivalence rules} $\Definiti
   \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
 \end{tabular}
 \end{center}
-
-The corresponding rewriting relation on DNF regular expression, which orients these rules from
-left to right is both confluent and bisimilar.  
-This choice of definitional equivalence rules is the coarsest subset of the
-regular expression equivalence rules we could find has analogous rewrite rules that still are confluent
-and bisimilar.  We have not been able to prove that it is the coarsest
-such relation, but it is sufficient to cover all of the test cases that
-appeared in our experiments (see \S\ref{evaluation}).
+\noindent
+The corresponding rewriting relation on DNF regular expressions, which
+orients these rules from left to right, is both confluent and
+bisimilar and so is compatible with our lens synthesis strategy.  
+Definitional equivalence is the 
+coarsest subset of regular expression equivalence we could
+find that has analogous rewrite rules that are still confluent and
+bisimilar.  We have not been able to prove that it is the coarsest
+such relation possible, but it is sufficient to cover all of the test
+cases in our benchmark suite (see \S\ref{evaluation}).
 
 
 % In this subset, the full generality of \ProductstarRule{} is not present,
