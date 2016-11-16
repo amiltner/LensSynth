@@ -109,7 +109,7 @@
                                   % (paid open-access papers, 
                                   % short abstracts)
 
-\titlebanner{DRAFT---do not distribute}        % These are ignored unless
+%\titlebanner{DRAFT---do not distribute}        % These are ignored unless
 %\preprintfooter{to appear in POPL '16}   % 'preprint' option specified.
 
 \title{Synthesizing Bijective Lenses
@@ -210,7 +210,7 @@ microbenchmarks and realistic examples adapted from FlashFill, a tool
 for synthesizing string transformations in spreadsheets, and Augeas, a tool
 for bidirectional processing of Linux system configuration files based on
 Boomerang.  Our implementation infers lenses for all benchmark programs in
-an average of 280 milliseconds.
+an average of 283 milliseconds.
 \end{abstract}
 
 % \category{D.3.1}
@@ -602,7 +602,7 @@ these translations sound and complete with respect to our high-level lens syntax
 \item We evaluate this algorithm on 25 benchmarks, including examples from
 FlashFill~\cite{gulwani-popl-2014} and from the Augeas~\cite{augeas}
 system (\S \ref{evaluation}).  It succeeds on
-all benchmarks, with an average synthesis time of 280
+all benchmarks, with an average synthesis time of 283
 milliseconds.
 \end{itemize}
 We close with related work (\S \ref{sec:related}) and conclusions (\S
@@ -715,7 +715,7 @@ A regular expression $\Regex$ is \textit{strongly unambiguous} if one
 of the following holds: 
 \begin{enumerate*}[label=(\alph*) ]
 \item $\Regex = \String$,  or
-\item $\Regex = \emptyset$, or 
+\item $\LanguageOf{\Regex} = \SetOf{}$, or 
 \item $\Regex = \Regex_1 \Concat \Regex_2$ with $\Regex_1 \UnambigConcat
   \Regex_2$, or
 \item $\Regex = \Regex_1 \Or \Regex_2$ with $\Regex_1 \Intersect \Regex_2 =
@@ -852,7 +852,7 @@ $\String_2$.
   \end{tabular}
 \end{center}
 
-The simplest lens in the combinator language is the the constant lens between
+The simplest lens in the combinator language is the constant lens between
 strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
 The lens $\ConstLensOf{\String}{\StringAlt}$, when operated left-to-right,
 replaces the string $\String$ with $\StringAlt$, and when operated
@@ -1013,9 +1013,6 @@ the expressivity of lenses in practice.
 
 \SUBSECTION{Definitional Equivalence and Rewriting}
 
-\saz{It could be that this discussion belongs after the example and
-  closer to the definition of DNF lenses. In that case, we might want
-  to use $\equiv$ in Figure~\ref{fig:lens-typing}.}
 Type-directed synthesis seeks to construct a lens by searching for a
 well-formed typing derivation using the rules in Figure~\ref{fig:lens-typing}.
 The inputs to the algorithm include the intended source and target
@@ -1039,31 +1036,26 @@ and then trying all possible combinations of rewrites.  Doing so would
 be problematic because the Conway axiomatization itself is both highly
 nondeterministic and infinitely branching (due to the choice of $n$ in
 the dyclicity axiom).  Furthermore, since we have chosen to eliminate
-composition by using DNF lenses, we only want to find equivalent
-regular expressions that are themselves expressible as DNFs.  Clearly,
-unfettered use of rewrites based on Conway's axioms will not satisfy
-this latter property. 
+composition in DNF lenses, we do not want the equivalences to make us no longer
+closed under composition. 
 
-We have shown \saz{Anders: did we prove that these two properties are
-  sufficient?} \afm{I guess you are right that we didn't show those properties
-  alone are sufficient.  They are important properties in our proof, but we
-  prove its sufficient in the DNF case.  We don't make a statement about it in
-  the non DNF case; while it may be true, we aren't sure that it is.  Maybe
-  these two properties are important in ensuring?} that two properties are
-sufficient to ensure that any
+We have shown that two properties are sufficient to ensure that any
 equational theory of regular expressions implemented via rewrite rules $\to$
-is compatible with our lens synthesis strategy.
-Whenever $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, if $\Regex \Rewrite
-\Regex'$ and $\RegexAlt \Rewrite \RegexAlt'$, there should exist $\Regex''$,
-$\RegexAlt''$, and $\Lens'$ such that $\Regex' \Rewrite \Regex''$, $\RegexAlt'
-\Rewrite \RegexAlt''$, and $\Lens' \OfType \Regex'' \Leftrightarrow
-\RegexAlt''$, where $\Lens'$ has the same semantics as $\Lens$.  We call this
+on their associated DNF forms is compatible with our lens synthesis strategy.
+Whenever $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+if $\DNFRegex \Rewrite
+\DNFRegex'$ and $\DNFRegexAlt \Rewrite \DNFRegexAlt'$, there should exist $\DNFRegex''$,
+$\DNFRegexAlt''$, and $\DNFLens'$ such that $\DNFRegex' \Rewrite \DNFRegex''$, $\DNFRegexAlt'
+\Rewrite \DNFRegexAlt''$, and $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
+\DNFRegexAlt''$, where $\DNFLens'$ has the same semantics as $\DNFLens$.  We call this
 property \textit{confluence}.
-Second, whenever $\Lens \OfType{} \Regex \Leftrightarrow \RegexAlt$ and 
-$\Regex \to \Regex'$, there should exist $\RegexAlt'$ and  $\Lens'$ such
-that $\RegexAlt \to \RegexAlt'$ using the \textit{same} rewrite rule, 
-$\Lens' \OfType{} \Regex' \Leftrightarrow \RegexAlt'$, and
-$\SemanticsOf{\Lens} = \SemanticsOf{\Lens'}$.  We call this property \textit{bisimilarity}.
+Second, whenever $\DNFLens \OfRewritelessType{} \DNFRegex \Leftrightarrow \DNFRegexAlt$ and 
+$\DNFRegex \to \DNFRegex'$, there should exist $\DNFRegexAlt'$ and  $\DNFLens'$ such
+that $\DNFRegexAlt \to \DNFRegexAlt'$ using the \textit{same} rewrite rule, 
+$\DNFLens' \OfType{} \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and
+$\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$, and similarly for $\DNFRegexAlt \to
+\DNFRegexAlt'$.
+We call this property \textit{bisimilarity}.
 
 %  There are a large number of rules that can be
 % applied to some regular expressions,
@@ -1128,16 +1120,10 @@ For our purposes, we take the \textit{definitional equivalence rules} $\Definiti
 \end{tabular}
 \end{center}
 
-The corresponding rewriting relation, which orients these rules from
-left to right is both confluent and bisimilar.  \saz{What does the
-  rewrite relation do on the semiring axioms?}   \saz{Can we state
-  this as a lemma?} \afm{Darn, this is another case where we prove it in the DNF
-  case, but not really in the normal regular expression case.  This is why I
-  didn't discuss semiring axioms, because DNF form doesn't really care about
-  those axioms.  I'm not too sure how to proceed on this.}
-
+The corresponding rewriting relation on DNF regular expression, which orients these rules from
+left to right is both confluent and bisimilar.  
 This choice of definitional equivalence rules is the coarsest subset of the
-regular expression equivalence rules we could find that still is confluent
+regular expression equivalence rules we could find has analogous rewrite rules that still are confluent
 and bisimilar.  We have not been able to prove that it is the coarsest
 such relation, but it is sufficient to cover all of the test cases that
 appeared in our experiments (see \S\ref{evaluation}).
@@ -2440,7 +2426,7 @@ benchmark programs.  The rows are sorted in increasing order by the
 size of the source and target regular expression types.  The values
 presented are the arithmetic means of 10 test runs.  The tests were
 run on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
-running Mac OS X Yosemite.  On average, synthesis required 280 milliseconds
+running Mac OS X Yosemite.  On average, synthesis required 283 milliseconds
 and 0.98 user-supplied examples per lens.
 
 \paragraph*{Benchmark Suite Construction}
@@ -2535,7 +2521,7 @@ having held back approximately half of our example data for validation.
 Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
 benchmark suite. The column \textbf{Time} shows the runtime of the
 synthesis algorithm in microseconds; smaller numbers are better.
-Across all examples, the average synthesis time is 280 milliseconds;
+Across all examples, the average synthesis time is 283 milliseconds;
 the slowest example (\CF{aug/xml}) completes in just under four 
 seconds. 
 The results show that the synthesis time is not strongly correlated
