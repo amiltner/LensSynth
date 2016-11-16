@@ -13,6 +13,7 @@ open Language_equivalences
 open Consts
 open Quotient_regex
 open Lens_put
+open Qre_context
 
 (*let rec map_and_abstract (mc:mapsbetweencontext)
                          (r:ordered_exampled_dnf_regex)
@@ -356,4 +357,4 @@ let gen_quotient_lens rc qc lc r1 r2 exs : lens option =
   let kernel_r1 = kernel r1 in
   let kernel_r2 = kernel r2 in
   let exs = List.map ~f:(fun (l,r) -> (quotient_lens_canonize rc qc r1 l, quotient_lens_canonize rc qc r2 r)) exs in
-  gen_lens rc lc kernel_r1 kernel_r2 exs
+  gen_lens (QuotientRegexContext.to_kernel_regex_context qc) lc kernel_r1 kernel_r2 exs
