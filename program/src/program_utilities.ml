@@ -46,7 +46,7 @@ let run_declaration
     | DeclQuotientLensCreation (n,r1,r2,l) ->
       (qc,rc,LensContext.insert_exn lc n l (kernel r1) (kernel r2), d)
     | DeclQuotientSynthesizeLens (n,r1,r2,exs) ->
-      let lo = gen_quotient_lens rc qc lc r1 r2 exs in
+      let lo = gen_quotient_lens qc lc r1 r2 exs in
       begin match lo with
         | None -> failwith (n ^ " has no satisfying lens")
         | Some l ->

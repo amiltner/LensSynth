@@ -159,13 +159,19 @@ let lens_putl (rc:RegexContext.t)
     | Some exampled_sr -> lens_putl_internal rc lc l exampled_sr [0]
   end
 
+let fact x =
+  let rec fact' acc x =
+    if x = 0 then acc else fact' (x * acc) (x - 1) in
+  fact' 1 x
+
 (* Assuming e at the toplevel is a nested OR, pick out the regex that we matched. *)
-let rec get_matched_or e it index =
+let rec get_matched_or e it index n =
   match e with
   | ERegExOr (e1, e2, _) ->
       if took_regex e1 it then e1, index
-      else get_matched_or e2 it (index + 1)
-  | _ -> failwith "Failure to typecheck"
+      else get_matched_or e2 it (index + 1) n
+  | _ -> if index = fact n - 1 then (e, index)
+         else failwith "Failure to typecheck" (* This means we got to the end *)
 
 (* Permutation gives a series s1 sep s2 .. sep sn. Here we split s_i from the separators. *)
 let rec get_elems_and_seps e n =
@@ -174,21 +180,21 @@ let rec get_elems_and_seps e n =
       let (elems, seps) = get_elems_and_seps rest (n - 1) in
       e1 :: elems, e2 :: seps
   | x, 0 -> ([x], [])
-  | _ -> failwith "Failure to typecheck"
+  | _ -> failwith ("Failure to typecheck " ^ (exampled_regex_to_string e) ^ (string_of_int n))
 
 
-let rec quotient_lens_canonize_internal rc qc ql er it : string =
+let rec quotient_lens_canonize_internal qc ql er it : string =
   match (ql, er) with
   | QuotientRegExBase s, _ -> s
   | QuotientRegExMap (_, s), _ -> s
   | QuotientRegExConcat (q1, q2), ERegExConcat (e1, e2, _) ->
-      (quotient_lens_canonize_internal rc qc q1 e1 it) ^
-      (quotient_lens_canonize_internal rc qc q2 e2 it)
+      (quotient_lens_canonize_internal qc q1 e1 it) ^
+      (quotient_lens_canonize_internal qc q2 e2 it)
   | QuotientRegExOr (q1, q2), ERegExOr (e1, e2, _) ->
       if took_regex e1 it then
-        quotient_lens_canonize_internal rc qc q1 e1 it
+        quotient_lens_canonize_internal qc q1 e1 it
       else
-        quotient_lens_canonize_internal rc qc q2 e2 it
+        quotient_lens_canonize_internal qc q2 e2 it
   | QuotientRegExStar q, ERegExStar (e, _) ->
       let valid_iterations =
         List.rev
@@ -197,29 +203,31 @@ let rec quotient_lens_canonize_internal rc qc ql er it : string =
             (extract_iterations_consumed e)) in
       String.concat 
         (List.map 
-          ~f:(quotient_lens_canonize_internal rc qc q e)
+          ~f:(quotient_lens_canonize_internal qc q e)
           valid_iterations)
   | QuotientRegExPermute (l, _), r ->
-    let (matched_or, perm_index) = get_matched_or r it 0 in
-    let permutation = List.nth_exn (Permutation.create_all (List.length l)) perm_index in
-    let (elems, seps) = get_elems_and_seps matched_or (List.length l) in
+    let (matched_or, perm_index) = get_matched_or r it 0 (List.length l) in
+    let permutation = List.nth_exn (Permutation.create_all (List.length l)) (fact (List.length l) - 1 - perm_index) in
+    (* We need to subtract here because in the construction of the whole it's in the opposite order *)
+    let (elems, seps) = get_elems_and_seps matched_or (List.length l - 1) in
     let ordered_elems = Permutation.apply_inverse_to_list_exn permutation elems in
-    permutation_to_string l elems seps rc qc it
+    permutation_to_string l ordered_elems seps qc it
   | QuotientRegExVariable s, _ ->
-      let relevant_string = extract_string er it in
+      let relevant_string = extract_string er it in 
       let qre = QuotientRegexContext.lookup_exn qc s in
-      let exampled = Option.value_exn (regex_to_exampled_regex rc (whole qre) [relevant_string]) in
-      quotient_lens_canonize_internal rc qc qre exampled [0]
+      let rc_of_qc = QuotientRegexContext.to_whole_regex_context qc in
+      let exampled = Option.value_exn (regex_to_exampled_regex rc_of_qc (whole qre) [relevant_string]) in
+      quotient_lens_canonize_internal qc qre exampled [0]
   | _ -> failwith "Failure to typecheck"
 
-and permutation_to_string l elems seps rc qc it : string =
+and permutation_to_string l elems seps qc it : string =
   match l, elems, seps with
   | [], _, _ -> ""
-  | [h], [e], [] -> quotient_lens_canonize_internal rc qc h e it
+  | [h], [e], [] -> quotient_lens_canonize_internal qc h e it
   | h :: t, e :: es, sep :: seps ->
-      (quotient_lens_canonize_internal rc qc h e it) ^
+      (quotient_lens_canonize_internal qc h e it) ^
       (extract_string sep it) ^
-      (permutation_to_string t es seps rc qc it)
+      (permutation_to_string t es seps qc it)
   | _ -> failwith "Failure to typecheck"
   
 (* This should work since the kernel always is contained in the whole*)
@@ -229,9 +237,9 @@ let quotient_lens_choose (_ : RegexContext.t)
     (s : string) 
   : string = s
 
-let quotient_lens_canonize rc qc q s =
-  let exampled_sr_o = regex_to_exampled_regex rc (whole q) [s] in
+let quotient_lens_canonize qc q s =
+  let exampled_sr_o = regex_to_exampled_regex (QuotientRegexContext.to_whole_regex_context qc) (whole q) [s] in
   begin match exampled_sr_o with
     | None -> failwith "bad input to lens"
-    | Some exampled_sr -> quotient_lens_canonize_internal rc qc q exampled_sr [0]
+    | Some exampled_sr -> quotient_lens_canonize_internal qc q exampled_sr [0]
   end

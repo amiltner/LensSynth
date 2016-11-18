@@ -1231,7 +1231,6 @@ let test_canonize_base _ =
   assert_string_equal
     "hello"
     (quotient_lens_canonize
-      RegexContext.empty
       QuotientRegexContext.empty
       (QuotientRegExBase "hello")
       "hello")
@@ -1240,7 +1239,6 @@ let test_canonize_map _ =
   assert_string_equal
     " "
     (quotient_lens_canonize
-      RegexContext.empty
       QuotientRegexContext.empty
       (QuotientRegExMap (RegExStar (RegExBase " "), " "))
       "      ")
@@ -1249,7 +1247,6 @@ let test_canonize_perm _ =
   assert_string_equal
     "a,b"
     (quotient_lens_canonize
-      RegexContext.empty
       QuotientRegexContext.empty
       (QuotientRegExPermute ([QuotientRegExBase "a"; QuotientRegExBase "b"], RegExBase ","))
       "b,a")

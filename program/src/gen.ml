@@ -353,8 +353,8 @@ let gen_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
         % dnf_lens_to_lens)
     dnf_lens_option
 
-let gen_quotient_lens rc qc lc r1 r2 exs : lens option =
+let gen_quotient_lens qc lc r1 r2 exs : lens option =
   let kernel_r1 = kernel r1 in
   let kernel_r2 = kernel r2 in
-  let exs = List.map ~f:(fun (l,r) -> (quotient_lens_canonize rc qc r1 l, quotient_lens_canonize rc qc r2 r)) exs in
+  let exs = List.map ~f:(fun (l,r) -> (quotient_lens_canonize qc r1 l, quotient_lens_canonize qc r2 r)) exs in
   gen_lens (QuotientRegexContext.to_kernel_regex_context qc) lc kernel_r1 kernel_r2 exs
