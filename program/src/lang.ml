@@ -156,11 +156,6 @@ type quotient_specification = (string * quotient_regex * quotient_regex * exampl
 type specification = (string * regex * regex * (string * string) list)
 
 type declaration =
-  | DeclRegexCreation of (id * regex * bool)
-  | DeclTestString of (regex * string)
-  | DeclSynthesizeLens of specification
-  | DeclLensCreation of id * regex * regex * lens
-  | DeclTestLens of id * examples
   | DeclQuotientRegexCreation of (id * quotient_regex * bool)
   | DeclQuotientSynthesizeLens of quotient_specification
   | DeclQuotientLensCreation of id * quotient_regex * quotient_regex * lens

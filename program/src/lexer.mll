@@ -10,8 +10,7 @@ let reserved_words : (string * Parser.token) list =
   ; ("test", TEST)
   ; ("matches", MATCHES)
   ; ("perm", PERM) 
-  ; ("sep", SEP)
-  ; ("quotient", QUOTIENT)]
+  ; ("sep", SEP)]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)

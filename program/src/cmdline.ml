@@ -81,12 +81,6 @@ let expand_regexps (p:program) : program =
                           (d:declaration)
                           : (RegexContext.t * declaration) =
     begin match d with
-    | DeclRegexCreation (s,r,b) -> (RegexContext.insert_exn c s r b,d)
-    | DeclTestString _ -> (c,d)
-    | DeclSynthesizeLens (n,r1,r2,exs) ->
-      (c,DeclSynthesizeLens (n,expand_regexp r1 c,expand_regexp r2 c,exs))
-    | DeclLensCreation _ -> (c,d)
-    | DeclTestLens _ -> (c,d)
     | DeclQuotientRegexCreation _ -> (c, d)
     | DeclQuotientSynthesizeLens _ -> (c,d)
     | DeclQuotientLensCreation _ -> (c,d)

@@ -22,16 +22,6 @@ type boom_program = boom_statement list
 
 let statement_of_decl (d:declaration) : boom_statement list =
   begin match d with
-    | DeclRegexCreation(n,r,_) ->
-      [BoomStmtDefinition (n,BoomTypRegex,BoomExpRegex r)]
-    | DeclTestString (r,s) -> [BoomStmtTestRegex (r,s)]
-    | DeclSynthesizeLens _ -> failwith "no boom functionality for this"
-    | DeclLensCreation (n,r1,r2,l) ->
-      [BoomStmtDefinition (n,BoomTypLens(r1,r2),BoomExpLens l)]
-    | DeclTestLens (n,exs) ->
-      List.map
-        ~f:(fun (lex,rex) -> BoomStmtTestLens (LensVariable n, lex, rex))
-        exs
     | _ -> failwith "Unclear how to implement" (* Quotient cases *)
   end
 
@@ -74,9 +64,6 @@ let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
     (List.fold_left
        ~f:(fun acc d ->
            begin match d with
-             | DeclLensCreation (_,_,_,l) ->
-               acc @
-               (retrieve_inverses_of_lens_variables_in_lens_exn l)
              | _ -> acc
            end)
        ~init:[]
@@ -85,20 +72,11 @@ let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
 let add_inverted_lenses_after_original_lenses
     (lc:LensContext.t)
     (p:program)
-    (inverted_vars:id list)
+    (_:id list)
   : LensContext.t * program * (id * id) list =
   List.fold_right
     ~f:(fun d (lc,p,id_map) ->
         begin match d with
-          | DeclLensCreation (n,r1,r2,l) ->
-            if List.mem inverted_vars n then
-              let l_inv = simplify_lens (LensInverse l) in
-              let n_inv = LensContext.autogen_id_from_base lc (n ^ "_inv") in
-              let d_inv = DeclLensCreation(n_inv,r2,r1,l_inv) in
-              let lc = LensContext.insert_exn lc n_inv l_inv r2 r1 in
-              (lc,d::d_inv::p,(n,n_inv)::id_map)
-            else
-              (lc,d::p,id_map)
           | _ -> (lc,d::p,id_map)
         end)
     ~init:(lc,[],[])
@@ -129,9 +107,6 @@ let replace_inverted_lens_variables
     ~f:(fun d acc ->
         let d =
           begin match d with
-            | DeclLensCreation (n,r1,r2,l) ->
-              let l = replace_inverted_lens_variables_lens l in
-              DeclLensCreation (n,r1,r2,l)
             | _ -> d
           end
         in

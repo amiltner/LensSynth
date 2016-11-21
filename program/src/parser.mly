@@ -15,7 +15,6 @@ open Lang
 %token MATCHES    (* matches *)
 %token PERM       (* permutation *)
 %token SEP        (* separator *)
-%token QUOTIENT   (* quotient *)
 
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
@@ -49,21 +48,13 @@ program:
     { [] }
 
 decl:
-  | d=defn
-    { DeclRegexCreation d }
-  | s=specification
-    { DeclSynthesizeLens s}
-  | TEST r=regex MATCHES s=str SEMI SEMI
-    { DeclTestString (r,s) }
-  | TEST n=LID exs=examples SEMI SEMI
-    { DeclTestLens (n,exs) }
-  | QUOTIENT d=quotient_defn
+  | d=quotient_defn
     { DeclQuotientRegexCreation d }
-  | QUOTIENT s=quotient_specification
+  | s=quotient_specification
     { DeclQuotientSynthesizeLens s }
-  | QUOTIENT TEST r=quotient_regex MATCHES s=str SEMI SEMI
+  | TEST r=quotient_regex MATCHES s=str SEMI SEMI
     { DeclQuotientTestString (r,s) }
-  | QUOTIENT TEST n=LID exs=examples SEMI SEMI
+  | TEST n=LID exs=examples SEMI SEMI
     { DeclQuotientTestLens (n, exs) }
 
 quotient_defn:
@@ -71,16 +62,6 @@ quotient_defn:
     { (u, r, true) }
   | ABSTRACT u=UID EQ r=quotient_regex SEMI SEMI
     { (u, r, false) }
-
-defn:
-  | TYPEDEF u=UID EQ r=regex SEMI SEMI
-    { (u,r,true) }
-  | ABSTRACT u=UID EQ r=regex SEMI SEMI
-    { (u,r,false) }
-
-specification:
-  |  n=LID EQ LBRACKET r1=regex LEFTRIGHTFATARR r2=regex es=examples RBRACKET
-    { (n,r1,r2,es) }
 
 quotient_specification:
   | n=LID EQ LBRACKET q1=quotient_regex LEFTRIGHTFATARR q2=quotient_regex es=examples RBRACKET
@@ -92,8 +73,8 @@ regex:
   | r=base_regex_l0 {r}
 
 quotient_regex_list:
-  | LBRACKET RBRACKET { [] }
-  | LBRACKET l=quotient_regex_list_internal RBRACKET { l }
+  | LBRACKET RBRACKET { QuotientRegExPermute ([], RegExBase "") }
+  | LBRACKET l=quotient_regex_list_internal SEP s=regex RBRACKET { QuotientRegExPermute (l,s) }
 
 quotient_regex_list_internal:
   | r=quotient_regex { [r] }
@@ -116,7 +97,7 @@ quotient_regex_l2:
   | r = quotient_regex_l3 { r }
 
 quotient_regex_l3:
-  | PERM l=quotient_regex_list SEP LPAREN s=base_regex RPAREN { QuotientRegExPermute (l, s) }
+  | PERM l=quotient_regex_list { l }
   | s = base { QuotientRegExBase s }
   | LBRACKET r=base_regex ARROW s=base RBRACKET { QuotientRegExMap (r, s) }
   | LPAREN r=quotient_regex_l0 RPAREN { r }
