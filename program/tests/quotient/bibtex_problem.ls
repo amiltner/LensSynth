@@ -53,6 +53,14 @@ ti - Boomerang Resourceful Lenses For String Data
 jo - Principals Of Programming Languages"
 }]
 
+test bibtext_to_tagged_tester {
+"{author={Foster, Nathan},title={Boomerang},journal={Principals},}"
+<->
+"jo - Principals
+ti - Boomerang
+au - Nathan Foster"
+};;
+
 (*quotient test bibtext_to_tagged_tester
 {"{author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron},}"
 <->
