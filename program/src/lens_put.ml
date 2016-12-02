@@ -1,6 +1,7 @@
 open Core.Std
 open Regexcontext
 open Lenscontext
+open Quotientlenscontext
 open Lang
 open Eval
 open Qre_context
@@ -243,3 +244,9 @@ let quotient_lens_canonize qc q s =
     | None -> failwith "bad input to lens"
     | Some exampled_sr -> quotient_lens_canonize_internal qc q exampled_sr [0]
   end
+
+let quotient_lens_putr rc qlc n (lex, rex) =
+  let (ql, qr1, qr2) = QuotientLensContext.lookup_exn qlc n in
+  let s1 = quotient_lens_canonize rc qr1 lex in
+  let s2 = quotient_lens_canonize rc qr2 rex in
+  (lens_putr (QuotientRegexContext.to_kernel_regex_context rc) (QuotientLensContext.get_lens_context qlc) ql s1, s2)

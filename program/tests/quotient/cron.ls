@@ -46,7 +46,7 @@ typedef ENTRY = INDENT (PREFIX | . ) (TIME | SCHEDULE) INDENT_REQ USER INDENT_RE
 typedef CRON = ( "\n" | SHELLVAR | COMMENTLINE | ENTRY)*;;
 
 typedef PREFIX_DICT = "{\"prefix\"=" ("true" | "false") "}";;
-typedef TIME_DICT = "{\"minute\"=" NUMBER ",\"ws1\"=" INDENT_REQ ",\"hour\"=" NUMBER 
+typedef TIME_DICT = "{\"minute\"=" NUMBER ",\"hour\"=" NUMBER 
   ",\"dayofmonth\"=" NUMBER ",\"month\"=" RANGE ",\"dayofweek\"=" RANGE "}";;
 typedef SCHEDULE_DICT = "{\"schedule\"=\"" SCHEDULE_VALUE "\"}";;
 typedef ENTRY_DICT = PREFIX_DICT "," (TIME_DICT | SCHEDULE_DICT)
@@ -57,3 +57,6 @@ typedef CRON_DICT = ((EMPTYDICT | SHELL_DICT | COMMENT_DICT | ENTRY_DICT) "\n")*
 time_lens = [TIME_DICT <=> TIME {}]
 entry_lens = [ENTRY_DICT <=> ENTRY {}]
 cron_lens = [CRON_DICT <=> CRON {}]
+
+test time_lens { "{\"minute\"=45,\"hour\"=6,\"dayofmonth\"=3,\"month\"=8,\"dayofweek\"=0}" <-> "45    6   3  8 0" };;
+

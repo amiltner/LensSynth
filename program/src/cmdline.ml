@@ -3,6 +3,7 @@ open Pp
 open Lens_put
 open Regexcontext
 open Lenscontext
+open Quotientlenscontext
 open Gen_exs
 open Gen
 open Core.Std
@@ -143,7 +144,8 @@ let collect_time (p:program) : unit =
   print_endline (Float.to_string time)
 
 let collect_example_number (p:program) : unit =
-  let (_,rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let (_,rc,qlc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let lc = QuotientLensContext.get_lens_context qlc in
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let exs_required = fold_until_completion
       (fun acc ->
@@ -162,7 +164,7 @@ let collect_example_number (p:program) : unit =
 let print_outputs (p:program) : unit =
   print_endline "module Generated =";
   let (_,_,lc,p) = synthesize_and_load_program p in
-  let bp = boom_program_of_program lc p in
+  let bp = boom_program_of_program (QuotientLensContext.get_lens_context lc) p in
   print_endline (pp_program bp)
 
 let main () =
