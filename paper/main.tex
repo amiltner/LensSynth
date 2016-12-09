@@ -2,7 +2,7 @@
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
-\newif\ifappendices\appendicesfalse
+\newif\ifappendices\appendicestrue
 
 \documentclass[numbers,10pt,preprint\ifanon ,nocopyrightspace\fi]{sigplanconf}
 
@@ -301,26 +301,6 @@ This work continues a recent trend toward synthesizing programs in a variety
 of domain-specific languages, many guided by
 types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015}.  
 %
-\iffull
-\bcp{I think the rest of the paragraph can probably go, even in the long
-  version.} 
-For instance,
-to find an expression with type $A \rightarrow B$, such algorithms assume
-that the expression in question is a function of the form
-$\lambda x{:}A. e$.  These algorithms then search for an expression $e$ with
-type $B$ under the hypothesis that the parameter $x$ has type $A$.
-%
-In
-the case of the simply typed lambda calculus, such an approach reduces
-the complexity of the search for terms inhabiting the type without
-losing completeness.  This approach does not directly apply to the
-problem of lens synthesis, however, because
-lenses use a richer type system
-than the simply typed lambda calculus.
-Specifically, lenses use regular expression types, which means 
-there are many equivalent ways to express the same type and a simple
-syntax-directed algorithm will not work.
-\fi
 %
 %Specifically, we aim to create a version of the Boomerang
 %language~\cite{boomerang,MoreBoomerangCitesIfThereAreAny} in which lenses
@@ -378,9 +358,9 @@ any, examples.
 Name = [A-Z][a-z]*
 Names = ($\text{\textquotesingle{} \textquotesingle{}}$ Name)*
 
-(* BibTex definitions *)
+(* BibTeX definitions *)
 BNames = Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name Names
-BibTex = $\EmptyString$
+BibTeX = $\EmptyString$
        | $\text{\textquotesingle{}author=\{\textquotesingle{}}$ BNames ($\text{\textquotesingle{} and \textquotesingle{}}$ BNames)* $\text{\textquotesingle{}\},\textquotesingle{}}$
 
 (* EndNote definitions *)
@@ -388,17 +368,17 @@ ENames  = Name Names $\text{\textquotesingle{} \textquotesingle{}}$ Name
 EndNote = ($\text{\textquotesingle{}\%A \textquotesingle{}}$ ENames $\text{\textquotesingle{}}$\n$\text{\textquotesingle{}}$)*
 
 (* Synthesis Specification With 1 Example *)
-BibEnd : BibTex <=> EndNote = {
+BibEnd : BibTeX <=> EndNote = {
 $\text{\textquotesingle{}}$author={Conway, John and Kleene, Stephen Cole}$\text{\textquotesingle{}}$
 <-> $\text{\textquotesingle{}}$%A John Conway\n%A Stephen Cole Kleene$\text{\textquotesingle{}}$ }
 \end{lstlisting}
-  \caption{Synthesis Example: Idealized Bibtex to EndNote}
+  \caption{Synthesis Example: Idealized BibTeX to EndNote}
   \label{fig:bibend-spec}
 \end{figure}
 
 To explain our algorithm, we use a running example that converts between
-bibliographic citations in simplified fragments of BibTex and EndNote
-formats.  The BibTex format specifies (just) a list of authors on a single line:
+bibliographic citations in simplified fragments of BibTeX and EndNote
+formats.  The BibTeX format specifies (just) a list of authors on a single line:
 \begin{lstlisting}
    author={Conway, John and Kleene, Stephen Cole}
 \end{lstlisting}
@@ -410,7 +390,7 @@ a separate line:
    % A Stephen Cole Kleene
 \end{lstlisting}
 Figure~\ref{fig:bibend-spec} shows an example specification for a lens
-\CF{BibEnd} that converts between the \CF{Bibtex} and \CF{EndNote} formats.
+\CF{BibEnd} that converts between the \CF{BibTeX} and \CF{EndNote} formats.
 Giving names to intermediate regular expressions (\CF{Name}, \CF{Names},
 etc.) facilitates construction of complex formats; we will see that they
 also play an important role in the synthesis process.
@@ -529,7 +509,7 @@ form, where unions are fully distributed over concatenation and where binary
 operators are replaced by $n$-ary ones, eliminating associativity rules.
 For example, when presented with a synthesis problem with type
 $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will first convert this
-type into $\DNFOf{A;B;C} \Leftrightarrow \DNFOf{A',B',C'}$, where
+type into $\DNFOf{A;B;C} \Leftrightarrow \DNFOf{A';B';C'}$, where
 $\DNFOf{\ldots}$ represents $n$-ary concatenation.
 
 Like DNF regular expressions, DNF lenses are stratified, with disjunctions
@@ -546,9 +526,10 @@ Normalization to DNF eliminates many, but not all, of the regular expression
 equivalences that may be needed before we can apply a simple type-directed
 structural search---i.e., our normalized regular expressions are only
 \emph{pseudo-canonical}.  For instance, we do not regular expressions such
-as $B*$ and $\epsilon + BB*$ do not have the same normal form.  (Nor do we
-want them to: If we normalized $\epsilon + BB*$ to $B*$, we would have
-trouble with synthesizing lenses with types like $BB* \Leftrightarrow CD*$,
+as $B*$ and $\epsilon \Or BB*$ do not have the same normal form.  (Nor do we
+want them to: If we normalized $\epsilon \Or BB*$ to $B*$, we would have
+trouble with synthesizing lenses with types like $\EmptyString \Or BB*
+\Leftrightarrow \EmptyString \Or CD*$,
 where the first occurrence of $B$ on the left needs to be transformed into
 $C$ while the rest of the $B$s need to be transformed into $D$.)
 
@@ -1169,25 +1150,25 @@ cases in our benchmark suite (see \S\ref{evaluation}).
 \section{Lens Synthesis by Example}
 \label{example}
 
-Recall the previous example of synthesizing a lens between \CF{BibTex} and
+Recall the previous example of synthesizing a lens between \CF{BibTeX} and
 \CF{EndNote}, specified in Figure~\ref{fig:bibend-spec}.  Synthesizing a lens
-between \CF{BibTex} and \CF{EndNote} is done in three steps.
-\textbf{Step 1:
-  Inlining Definitions} uses some built in deductive techniques to infer when
+between \CF{BibTeX} and \CF{EndNote} is done in three steps.
+\textit{\textbf{Step 1:
+  Inlining Definitions}} uses built in deductive techniques to infer when
 user defined regular expressions must be replaced by their definitions.
-\textbf{Step 2: Traversing Equivalences} searches through various equivalences
+\textit{\textbf{Step 2: Traversing Equivalences}} searches through various equivalences
 of the regular expression types to find different representations of the types.
-Finally, \textbf{Step 3: Creating Lenses} applies type directed synthesis to the
+Finally, \textit{\textbf{Step 3: Creating Lenses}} applies type directed synthesis to the
 regular expression types to create the lenses.
 
 \paragraph*{Step 1:  Inlining Definitions.}
 
-There is no lens that goes between \CF{BibTex} and \CF{EndNote}, so one of them must
+There is no lens that goes between \CF{BibTeX} and \CF{EndNote}, so one of them must
 be expanded.
-Indeed, both of them must be expanded, as \CF{BibTex} will never be able to be
+Indeed, both of them must be expanded, as \CF{BibTeX} will never be able to be
 the source of any lens in this problem, nor will \CF{End} be able to be the
 target.
-This process can be generalized for the sub-expressions of \CF{BibTex} and \CF{EndNote},  
+This process can be generalized for the sub-expressions of \CF{BibTeX} and \CF{EndNote},  
 If any user defined data type does not exist in the possible types of the
 other side, it must be expanded.  We do
 not inline all definitions, as doing so in more complicated data formats can
@@ -1195,7 +1176,7 @@ create huge regular expressions.
 
 \begin{figure}
 \begin{lstlisting}[mathescape=true,columns=fixed]
-BibTex':
+BibTeX':
   $\EmptyString$  | ($\text{\textquotesingle{}author=\textquotesingle}$ { Name $\text{\textquotesingle,\textquotesingle}$ Name Names
        ($\text{\textquotesingle{} and \textquotesingle{}}$ (Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name Names))* $\text{\textquotesingle{}\},\textquotesingle{}}$)
 
@@ -1220,7 +1201,7 @@ DNFEndReplacement:
 \end{lstlisting}
   \label{fig:examples-expanded}
   \caption{
-    \CF{BibTex} and \CF{EndNotes} with various transformations performed.
+    \CF{BibTeX} and \CF{EndNote} with various transformations performed.
 % \bcp{All the double quotes make the examples quite hard to read.  Could we
 %   simplify the formats to eliminate them, for purposes of this
 %   example?}\saz{I can't interpet the syntax in this figure.  Why not
@@ -1233,13 +1214,13 @@ DNFEndReplacement:
   }
 \end{figure}
 After completing these necessary expansions, the problem becomes synthesizing a
-lens between the regular expressions \CF{BibTex'} and \CF{EndNote'} shown in
+lens between the regular expressions \CF{BibTeX'} and \CF{EndNote'} shown in
 Figure~\ref{fig:examples-expanded}.
 
 \paragraph*{Step 2:  Traversing Equivalences.}
 
 A basic type-directed synthesis approach from here will quickly fail.
-\CF{BibTex'} is of the form $\Regex_1\Or\Regex_2$, where \CF{EndNote'} is of the form
+\CF{BibTeX'} is of the form $\Regex_1\Or\Regex_2$, where \CF{EndNote'} is of the form
 $\StarOf{\Regex'}$.
 
 These issues can be handled by normalizing the regular expressions.
@@ -1266,11 +1247,11 @@ expressions have also not been handled. These can be applied to the star in
 \CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndReplacement}, shown in
 Figure~\ref{fig:examples-expanded}.
 
-However, now a single problem of finding a lens between regular expression has
-become two problems!  Furthermore, trying to find the lenses between either of these
-two regular expressions could create even more problems.  Because of this
+However, now a single problem of finding a lens between regular expressions has
+become two problems!  Furthermore, trying to find lenses satisfying either of these
+two specifications could create even more problems.  Because of this
 problem explosion, it is
-important to find a way to find which subproblem should be approached next.
+important to find a way to determine which subproblem should be approached next.
 Finding which subproblem should be approached next can be solved by using a
 priority queue, where the
 elements in the queue are regular expression specifications.  The priority of
@@ -1476,7 +1457,7 @@ formally.
     % }
 
   \end{mathpar}
-  \caption{DNF Regex Rewrite Rules}
+  \caption{DNF Regular Expression Rewrite Rules}
   \label{fig:dnf-regex-rewrites}
 \end{figure*}
 
@@ -1493,7 +1474,7 @@ are also atoms.  However, we elide such definitions from our theoretical analysi
 
 Intuitions about DNF regular expressions may be confirmed
 by their semantics, which we give by defining the language (set of strings)
-that each regular expression denotes:
+that each DNF regular expression denotes:
 
 \begin{trivlist}
 \item 
@@ -1604,7 +1585,7 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
   \AtomToDNF{} \OfType
   \ArrowTypeOf{\AtomType{}}{\DNFRegexType{}}\\
   $\AtomToDNFOf{\Atom} = \DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}$
-  \caption{DNF Regex Functions}
+  \caption{DNF Regular Expression Functions}
   \label{fig:dnf-regex-functions}
 \end{figure}
 
@@ -1678,7 +1659,7 @@ DNF regular expressions via the following theorem.
 \paragraph*{DNF Regular Expression Rewrites}
 
 There are many fewer DNF regular expressions than regular expressions, but there
-still remain pairs of DNF regular expressions that while syntactically different,
+still remain pairs of DNF regular expressions that, while syntactically different,
 are semantically identical.  
 %% In order to search the space of equivalent DNF 
 %% In our synthesis algorithm we need to allow for a rewrite system on DNF regular
@@ -1740,66 +1721,6 @@ resulting term remains in DNF form.
 
 \section{DNF Lenses}
 \label{sec:dnf}
-
-% fig:dnf-lens-typing
-\begin{figure}
-  \centering
-  \begin{mathpar}
-    \inferrule[] %\AtomLensRule{}
-    {
-      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
-      \UnambigItOf{\DNFRegex}\\
-      \UnambigItOf{\DNFRegexAlt}
-    }
-    {
-      \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
-      \Leftrightarrow \StarOf{\DNFRegexAlt}
-    }
-
-    \inferrule[] %\SequenceLensRule{}
-    {
-      \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
-      \ldots\\
-      \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
-      \sigma \in \PermutationSetOf{n}\\
-      \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
-      \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
-    }
-    {
-      (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
-      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
-      \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
-    }
-
-    \inferrule[] %\DNFLensRule{}
-    {
-      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
-      \ldots\\
-      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
-      \sigma \in \PermutationSetOf{n}\\
-      i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
-      i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
-    }
-    {
-      (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
-      \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
-    }
-
-    \inferrule[] %\RewriteDNFRegexLensRule{}
-    {
-      \DNFRegex' \StarOf{\Rewrite} \DNFRegex\\
-      \DNFRegexAlt' \StarOf{\Rewrite} \DNFRegexAlt \\
-      \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
-    }
-    {
-      \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
-    }
-
-  \end{mathpar}
-  \caption{DNF Lens Typing}
-  \label{fig:dnf-lens-typing}
-\end{figure}
 
 The syntax of DNF lenses (\DNFLens{}),
 sequence lenses (\SequenceLens{})
@@ -1908,6 +1829,66 @@ is defined formally below.
 %% user defined regular expressions atom lenses makes atom lenses a sum type
 %% in the implementation.
 
+% fig:dnf-lens-typing
+\begin{figure}
+  \centering
+  \begin{mathpar}
+    \inferrule[] %\AtomLensRule{}
+    {
+      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
+      \UnambigItOf{\DNFRegex}\\
+      \UnambigItOf{\DNFRegexAlt}
+    }
+    {
+      \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
+      \Leftrightarrow \StarOf{\DNFRegexAlt}
+    }
+
+    \inferrule[] %\SequenceLensRule{}
+    {
+      \AtomLens_1 \OfRewritelessType \Atom_1 \Leftrightarrow \AtomAlt_1\\
+      \ldots\\
+      \AtomLens_n \OfRewritelessType \Atom_n \Leftrightarrow \AtomAlt_n\\
+      \sigma \in \PermutationSetOf{n}\\
+      \UnambigConcat\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\\
+      \UnambigConcat\SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+    }
+    {
+      (\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma) \OfRewritelessType\\
+      \SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n}\Leftrightarrow
+      \SequenceOf{\StringAlt_0\SequenceSep\AtomAlt_{\sigma(1)}\SequenceSep\ldots\SequenceSep\AtomAlt_{\sigma(n)}\SequenceSep\StringAlt_n}
+    }
+
+    \inferrule[] %\DNFLensRule{}
+    {
+      \SequenceLens_1 \OfRewritelessType \Sequence_1 \Leftrightarrow \SequenceAlt_1\\
+      \ldots\\
+      \SequenceLens_n \OfRewritelessType \Sequence_n \Leftrightarrow \SequenceAlt_n\\\\
+      \sigma \in \PermutationSetOf{n}\\
+      i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
+      i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset\\
+    }
+    {
+      (\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep\SequenceLens_n},\sigma) \OfRewritelessType\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}
+      \Leftrightarrow \DNFOf{\SequenceAlt_{\sigma(1)}\DNFSep\ldots\DNFSep\SequenceAlt_{\sigma(n)}}
+    }
+
+    \inferrule[] %\RewriteDNFRegexLensRule{}
+    {
+      \DNFRegex' \StarOf{\Rewrite} \DNFRegex\\
+      \DNFRegexAlt' \StarOf{\Rewrite} \DNFRegexAlt \\
+      \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
+    }
+    {
+      \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
+    }
+
+  \end{mathpar}
+  \caption{DNF Lens Typing}
+  \label{fig:dnf-lens-typing}
+\end{figure}
+
 \paragraph*{Type Checking}
 Figure~\ref{fig:dnf-lens-typing} presents the type checking rules for
 DNF lenses.  In order to control where regular expression rewriting
@@ -1925,7 +1906,7 @@ It rewrites the source and target types, and then searches for a
 DNF lens with the rewritten types.
 
 One of the key differences between these typing judgements and the
-judgement for ordinary lenses are the permutations.  For example,
+judgements for ordinary lenses are the permutations.  For example,
 in the rule for typing DNF lenses, the permutation $\sigma$
 indicates how to match up 
 sequence types on in the domain 
@@ -2584,8 +2565,7 @@ between the source and target regular expressions, our tool rarely
 terminates.  Instead, it performs increasingly complicated regular
 expression transformations to try to find a bijective lens.  In
 practice, if the system takes more than 10 seconds, we abort and
-revise the regular expressions to make it easier to find a bijection.
-
+revise the regular expressions to have a bijective lens between them.
 
 \paragraph*{Importance of Examples}
 To evaluate how many user-supplied examples the algorithm requires in
@@ -2622,7 +2602,7 @@ always guesses the wrong mapping when multiple mappings are possible.
 Note these examples must be carefully selected to exercise all
 choices; a very large number of examples that all follow the same
 pattern are no more helpful than a single such example.  We see an
-example of this phenomenon in the example ff/extract-fname where the
+example of this phenomenon in the example \CF{ff/extract-fname}, where the
 average number of examples is greater than the Max number of examples
 because the system randomly generated redundant examples.
 
@@ -2714,7 +2694,7 @@ with nested iteration, whereas our system is able to handle
 such formats with relative ease.  Another well-known system,
 FlashExtract~\cite{le-pldi-2014} does not support general unions.
 We tried applying FlashExtract to the problem
-of extracting author names from BibTex examples where various fields
+of extracting author names from BibTeX examples where various fields
 appeared in different orders in different examples.  Even when we
 gave FlashExtract 30 examples, it was unable to correctly
 extract the desired fields.  By contrast, our system succeeds with no examples
@@ -2954,9 +2934,79 @@ and Nicolas.}
 %  \label{fig:definitional-equivalence-rules}
 \end{definition}
 
+The proof is split into separate subsections based on what is being done.  The
+overall goals are to prove soundness and completeness of DNF regular expressions
+with respect to regular expressions, and soundness and completeness of DNF
+lenses with respect to lenses.
 
+\begin{itemize}
+\item Subsection~\ref{confluence-proofs} defines
+  confluence with respect to a property, bisimilarity, and makes some general
+  proofs about those properties.  These are used later for the proof of
+  confluence of rewriting with respect to semantics, which is used in lens
+  completeness.
+
+\item Subsection~\ref{language-proofs} proves some general statements about
+  languages, relating to the relationship between nonintersection of pairs of
+  languages, and sets of languages, and the relationship between shared prefixes
+  and suffixes of pairs of languages.  These are used for proving statements
+  about unambiguity of DNF regular expressions from unambiguous regular
+  expressions, and vice-versa.
+
+\item Subsection~\ref{basic-property-proofs} proves some intuitive statements
+  about lenses and DNF lenses.  These statements are properties like inversion,
+  closure under composition for rewriteless DNF lenses, and proves that
+  bijective lenses and bijective DNF lenses actually express bijections between
+  the languages of their types.
+
+\item Subsection~\ref{dnf-regex} proves soundness and completeness of DNF
+  regular expressions to regular expressions.
+
+\item Subsection~\ref{language-rewriting-unambiguity} proves statements relating
+  to the retention of unambiguity across languages.  In particular, it proves
+  statements about $\ToDNFRegex$ and $\ToRegex$, and also proves statements
+  about the retention of unambiguity through rewrites.
+
+\item Subsection~\ref{rewrite-proofs} proves statements about the retention of
+  language through proofs, and the equivalences of expressibility of various
+  rewrite systems.
+
+\item Subsection~\ref{soundness} proves the soundness of DNF lenses to lenses,
+  using the machinery above.
+
+\item Subsection~\ref{dnf-lens-operators} defines operators on DNF lenses, which
+  provide combinators similar to the combinators of normal lenses.  This section
+  also proves statements about these combinators, like how the combinators act
+  similarly to normal lenses.
+
+\item Subsection~\ref{complex-lens-operators} proves more complex properties
+  about lens operators.  These more complex statements are needed because DNF
+  regular expressions don't have rewrites that order clauses.
+
+\item Subsection~\ref{rewrite-maintenence} proves statements about the ability
+  to build up rewrites on DNF regular expressions composed of less complex ones,
+  from the rewrites of those less complex DNF regular expressions.  It also
+  proves the proof of confluence of rewrites.
+
+\item Subsection~\ref{completeness} proves the completeness of dnf lenses with
+  respect to lenses.
+\end{itemize}
 
 \subsection{Confluence Proofs}
+\label{confluence-proofs}
+
+This section begins by defining confluence and bisimilarity.
+Next we prove that if a rewrite
+system is bisimilar with respect to a property, then the transitive and
+reflexive closure of that rewrite
+system is too.  Next, a similar statement about transitive and reflexive closure
+of rewrite systems for confluence is proven, under the conditions that the
+property confluence is defined with respect to is transitive.
+Next, propagators are defined, and used in if a rewrite system is confluent with
+respect to a property with left and right propagators, then
+the transitive and reflexive closures of that rewrite system is confluent with
+respect to the same property.
+
 \begin{definition}
   Let $\rightarrow$ and $\Property$ be two binary relations on a set $\Set$.
   We say that $\rightarrow$ is confluent with respect to
@@ -2970,7 +3020,7 @@ and Nicolas.}
 
 \begin{definition}
   Let $\rightarrow$ and $\Property$ be two binary relations on a set $\Set$.
-  We say that $rightarrow$ is bisimilar through $\Property$, written
+  We say that $\rightarrow$ is bisimilar through $\Property$, written
   $\IsBisimilarWithPropertyOf{\rightarrow}{\Property}$, if, given
   $x_1,x_2\in\Set$,
   where $\Property(x_1,x_2)$, if $x_1\rightarrow x_1'$ then there
@@ -3719,7 +3769,9 @@ and Nicolas.}
 
 
 \subsection{Language Proofs}
+\label{language-proofs}
 
+These proofs prove similar things to unambiguity, but on general languages.
 
 \begin{lemma}
   \label{lem:potentially-empty-concat-implication}
@@ -3971,6 +4023,13 @@ and Nicolas.}
 \end{proof}
 
 \subsection{Lens and DNF Basic Property Proofs}
+\label{basic-property-proofs}
+
+There are many intuitive facts about DNF lenses.  For example, without rewrites,
+they are closed under composition.  Furthermore, we can express the identity
+transformation on DNF lenses.  Well-typed DNF lenses and normal lenses express
+bijections between their types.  These properties are proven in this section,
+and used throughout the paper.
 
 \begin{lemma}[DNF Lens Inversion]
   \label{lem:dnf-lens-inversion}
@@ -5506,6 +5565,13 @@ and Nicolas.}
 \end{proof}
 
 \subsection{DNF Regular Expression and Regular Expression Proofs}
+\label{dnf-regex}
+
+This subsection is in the aims of proving that $\ToDNFRegex$ preserves language,
+and $\ToRegex$ is its left inverse.  We use this throughout.  These functions
+are built on the DNF regular expression operators of $\ConcatDNF$,
+$\OrDNF$, and $\ToDNFRegex$.  In this section, we prove that these operators do
+as we expect them to, and use these lemmas throughout the paper.
 
 \begin{lemma}[Equivalence of \ConcatSequence{} and \Concat{}]
   If $\LanguageOf{\Regex}=\LanguageOf{\Sequence}$,
@@ -6003,6 +6069,16 @@ and Nicolas.}
 \end{proof}
 
 \subsection{Unambiguity Property Proofs}
+\label{language-rewriting-unambiguity}
+
+Unambiguity is critical in the typing derivations, so unambiguity proofs are
+similarly critical.  In this section, we prove requirements for maintaining
+unambiguity.  The bulk of the work for many of these is proven in the language
+unambiguity proofs in Subsection~\ref{language-proofs}.  However, this combines
+these together to prove things like unambiguity is maintained through
+application of the
+definitional equivalence rules.
+
 \begin{lemma}
   \label{lem:strong_unambig_or}
   If $\Regex \Or \RegexAlt$ be strongly unambiguous, then
@@ -6114,7 +6190,7 @@ and Nicolas.}
     $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2 \Or \Regex_3} =
     \SetOf{}$.
     This means that $\LanguageOf{\Regex_1} \Intersect
-    (LanguageOf{\Regex_2} \Union \LanguageOf{\Regex_3}) = \SetOf{}$, so through
+    (\LanguageOf{\Regex_2} \Union \LanguageOf{\Regex_3}) = \SetOf{}$, so through
     distributivity, $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2}
     \Union \LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_3} = \SetOf{}$.
     This means $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2} =
@@ -6409,6 +6485,21 @@ and Nicolas.}
 
 
 \subsection{Rewrite Equivalence Proofs}
+\label{rewrite-proofs}
+
+This subsection goes through equivalence associated with the rewrites.  In this
+section, proofs of rewrites not altering the language are proven.  Furthermore,
+it is shown that the Definitional Equivalence Rules are finer than the base
+axioms.  We prove that both $\ToDNFRegex$ and $\ToRegex$ maintain unambiguity.
+Parallel Rewrites with Swap are shown to be equivalent to the definitional
+equivalence rules.
+We prove that the reflexive and transitive closure of rewrites is equivalent in
+expressibility to the reflexive and transitive closure of parallel rewrites.
+Lastly, we prove that if the DNF versions of two regular expressions are can be
+written to each other, then those two regular expressions are definitionally
+equivalent.
+
+
 \begin{lemma}[Single Rewrites Respecting Language]
   \label{lem:single-rrl}
   \leavevmode
@@ -10321,6 +10412,14 @@ and Nicolas.}
 \end{proof}
 
 \subsection{Lens Soundness}
+
+Using the above machinery, we prove the soundness of DNF lenses.  The unambiguity is
+guaranteed through prior unambiguity proofs.  The rewrite portion of DNF lenses
+are proven to be correct through the above subsection.  The bulk of this is
+showing that the lenses can be built up from their subcomponents, and that
+arbitrary permutations can be expressed.
+
+\label{soundness}
 \begin{lemma}[Expressibility of Safe Boilerplate Alterations]
   \label{lem:boilerplate-alterations}
   Suppose
@@ -10982,7 +11081,15 @@ and Nicolas.}
     }
   \]
 \end{proof}
-\subsection{Lens Operators}
+\subsection{DNF Lens Operators}
+\label{dnf-lens-operators}
+
+DNF lens operators are defined to give DNF lenses similar capabilities to
+lenses.  This allows the proof of many of the cases of completeness to be
+trivial, leaving only the complications of proving statements about rewrites,
+proving closure under composition, and proving the ability to use rewrites to
+express lens retyping.
+
 \begin{definition}[Permutation Functions]\leavevmode\\
   $\ConcatPermutation{} \OfType{}
   \ArrowTypeOf{\PermutationSetOf{n}}
@@ -12304,6 +12411,15 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \subsection{Complex Lens Operator Properties}
+\label{complex-lens-operators}
+
+The previous properties of lens operators were merely about the operators, and
+how they could be typed.  This portion writes about how lens operators have the
+same semantics as lenses with
+very complex properties, up to the existence of an identity lens.  Much of this
+complication comes from the fact that the DNF regular expression operators don't
+have right distributivity.  This also allows for an analogue to the
+commutativity of regular expression $\OrRegexType$ to be expressed.
 
 \begin{lemma}[Commutativity of $\OrDNF$]
   \label{lem:or-dnf-commutativity}
@@ -13147,6 +13263,15 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \subsection{Rewrite Property Maintenance}
+Here the proof of bisimilarity and confluence on parallel rewrites with respect
+to the property of having a lens's semantics is presented.
+First a proof must be presented on Parallel Rewrites' ability to be built up
+from smaller parts through concatenation.  Because of the lack of a
+distributivity rule, this is only maintained up to an identity lens, we cannot
+merely concatenate the two rewritten parts.  With this, bisimilarity is proven,
+as is confluence.
+
+\label{rewrite-maintenence}
 \begin{lemma}[$\ParallelRewrite$ Maintained Under $\ConcatDNF$ up to
   $\IdentityLens$]
   \label{lem:parallel-rewrite-concatenation-to-identity}
@@ -15116,6 +15241,11 @@ Done similarly to Lemma~\ref{lem:dnf-lens-concat-identity-left}.
 \end{proof}
 
 \subsection{Completeness}
+Finally, with all the above machinery, all parts of confluence can be proven.
+The final statement is a quick one, with the bulk of the work done by proving a
+lemma involving rewrites and lens expressibility.
+
+\label{completeness}
 
 \begin{lemma}
   \label{lem:parallelswapequiv-has-identity-lens}
