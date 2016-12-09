@@ -1,0 +1,790 @@
+\documentclass[a4paper,11pt] {article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage[pdftex] {graphicx}
+\usepackage{verbatim}
+\usepackage{fullpage, setspace}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\usepackage{extarrows}
+\usepackage{supertabular}
+\usepackage{units}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem*{theorem*}{Theorem}
+\newtheorem{definition}[theorem]{Definition}
+
+\newcommand{\negjoinrel}{\mathrel{\mkern3mu}}
+\newcommand{\rlaprel}[1]{\mathrel{\mathrlap{#1}}}
+\newcommand{\rel}{\rlaprel{\leftarrow}\negjoinrel\rightarrow}
+\newcommand{\trel}{\rlaprel{\leftarrow}\negjoinrel\rlaprel{\leftarrow}\rightarrow}
+\newcommand{\srel}{\rlaprel{\leftarrow}\rlaprel{\rightarrow}\negjoinrel\rightarrow}
+\newcommand{\tsrel}{\rlaprel{\leftarrow}\negjoinrel\rlaprel{\leftarrow}
+  \joinrel\rlaprel{\rightarrow}\negjoinrel\rightarrow}
+
+\newcommand{\lget}[1]{\textit{$#1$.get}}
+\newcommand{\lput}[1]{\textit{$#1$.put}}
+\newcommand{\lcreate}[1]{\textit{$#1$.create}}
+
+\newcommand{\lcopy}{\textit{copy}}
+\newcommand{\lconst}{\textit{const}}
+\newcommand{\lins}{\textit{ins}}
+\newcommand{\ldel}{\textit{del}}
+
+\newcommand{\lpermute}{\textit{permute}}
+
+\newcommand{\lqdel}{\textit{qdel}}
+\newcommand{\lqins}{\textit{qins}}
+\newcommand{\lqconst}{\textit{qconst}}
+\newcommand{\lqdup}{\textit{dup}}
+
+\newcommand{\lquot}{\textit{lquot}}
+\newcommand{\rquot}{\textit{rquot}}
+
+\newcommand{\lcanonize}[1]{\textit{$#1$.canonize}}
+\newcommand{\lchoose}[1]{\textit{$#1$.choose}}
+
+\newcommand{\lcanonizelens}{\textit{canonizer\_of\;}}
+\newcommand{\lnormalize}{\textit{normalize}}
+
+\newcommand{\lcolumnize}{\textit{columnize}}
+\newcommand{\lsort}{\textit{sort}}
+
+
+\newcommand{\canon}{\rlaprel{\longleftarrow}\rlaprel{\longrightarrow}
+  \negjoinrel\rightarrow\;\,}
+
+%\newcommand{\lensbetween}{\xLongleftrightarrow{}}
+\newcommand{\lensbetween}[1]{\xLongleftrightarrow{#1}}
+%\newcommand{\lensbetween}{\iff}
+\newcommand{\perm}{ \textbf{perm}\; }
+\newcommand{\with}{ \;\textbf{with}\; }
+
+\newcommand{\defn}[1]{\textbf{#1}}
+\newcommand{\name}[1]{\textsf{#1}}
+
+\newcommand{\niceFrac}[2]{%
+    \raise.5ex\hbox{$#1$}%
+    \kern-.1em/\kern-.15em%
+    \lower.25ex\hbox{$#2$}}
+
+\begin{document}
+\title{Lens Synthesis}
+\date{}
+\maketitle
+
+\input{qre.tex}
+
+\section{Definitions}
+\label{sec:definitions}
+Every regular expression $r$ denotes a regular language $\llbracket r \rrbracket$.
+A quotient regular expression (QRE) $q$ denotes a equivalence relation
+on its whole language $W(q)$ with a set of canonical representives
+$K(q) \subseteq W(q)$ called the kernel.
+Both $W(q)$ and $K(q)$ are regular
+languages, which we represent by regular expressions.
+
+The equivalence relation and canonical representives 
+can be described by a canonizer $c_q$
+consisting of two functions
+\begin{itemize}
+\item $\lcanonize{c}: W(q) \to K(q)$ and
+\item $\lchoose{c}: K(q) \to W(q)$
+\end{itemize}
+such that for every $s \in K(q)$,
+\begin{align*}
+  \lcanonize{c} \; (\lchoose{c} \; s) = s \, .
+\end{align*}
+We write $c_q: W(q) \canon K(q)$.
+As shall be seen, the syntax of QREs makes this associated canonizer obvious.
+
+Define $\sim_q$ on $W(q)$ by $w_1 \sim_q w_2$ iff
+$\lcanonize{c_q} \; w_1 = \lcanonize{c_q} \; w_2$.
+Then the canonizer $c_q$ for $q$ extends to a quotient lens
+$l_q: W(q)/\sim_q \lensbetween{} K(q)$ by having:
+\begin{gather*}
+  \lget{l_q} \; w = \lcanonize{c_q} \; w\\
+  \lput{l_q} \; k \; w = \lchoose{c_q} \; k 
+  %\lcreate{l_q} \; k = \lchoose{c_q} \; k
+\end{gather*}
+The functions satisfy the following lens laws:
+\begin{itemize}
+\item (\name{GetPut}): $\lput{l_q} \; (\lget{l_q} \; w) \; w \sim_q w$ 
+\item (\name{PutGet}): $\lget{l_q} \; (\lput{l_q} \; k \; w) = k$
+%\item (\name{CreateGet}): $\lget{l_q} \; (\lcreate{l_q} \; k) = k$
+\item (\name{GetEquiv}): If $w \sim_q w'$,
+  $\lget{l_q} \; w = \lget{l_q} \; w'$.
+\item (\name{PutEquiv}): If $w \sim_q w'$,
+  $\lput{l_q} \; k \; w \sim_q \lput{l_q} \; k \; w'$.
+  %\item (\name{CreateEquiv}) If $k \sim_q k'$, $\lcreate{l_q} \; k
+  %\sim_q \lcreate{l_q} \; k'$.
+\end{itemize}
+We say that $l_q$ is the lifting of $c_q$.
+
+Since $c_q$ and $l_q$ determine each other in this sense, the denotation of
+QREs can be given either way. But the final outcome of synthesis is a
+composite lens whose edge lenses satisfy the above lens laws.
+
+\begin{comment}
+The equivalence relation can be given by a canonizer $c_q$ consisting of two functions
+\begin{itemize}
+\item $\lcanonize{c}: W(q) \to K(q)$ and
+\item $\lchoose{c}: K(q) \to W(q)$
+\end{itemize}
+such that for every $s \in K(q)$,
+\begin{align*}
+  \lcanonize{c} \; (\lchoose{c} \; s) = s
+\end{align*}
+\end{comment}
+
+\begin{definition}
+A quotient regular expression (QRE) has its syntax defined by
+the following grammar. Below, $r$ ranges over the usual regular expressions,
+$q$ ranges over QREs, and $n \geq 1$.
+\begin{center}
+\ottgrammartabular{\ottr\ottinterrule}
+\end{center}
+
+\begin{center}
+\ottgrammartabular{\ottq\ottinterrule}
+\end{center}
+\end{definition}
+
+
+A QRE $r$ denotes the identity canonizer; $r \mapsto s$ denotes the
+canonizer which maps all strings matching $r$ to the ASCII string $s$,
+and just the identity map backwards; $\perm(q_1, \ldots, q_n) \with q$
+canonizes by re-ordering the substrings matching a permutation of
+$q_1$ through $q_n$ to form the string matching
+$q_1 \cdot \ldots \cdot q_n$, and is just the identity backwards;
+the others denote canonizers which are homomorphically extended.
+To define this formally, we first define $W(q)$ and $K(q)$ between
+which the canonizers map, and then state their well-formedness and
+validity conditions. 
+
+\begin{definition}
+  For $q \in \mathbb{Q}$, the whole language $W(q) \subseteq \Sigma^*$
+  is defined as follows:
+  \begin{itemize}
+  \item $W(r) = \llbracket r \rrbracket$
+  \item $W(r \mapsto s) = \llbracket r \rrbracket$
+  \item $W(\perm(q_1, \ldots, q_n) \with q) =
+    \bigcup_{\sigma \in S_n} \left( \left(\bigodot_{i=1}^{n-1} (W(q_{\sigma(i)})
+    \cdot W(q) \right)
+    \cdot W(q_{\sigma(n)}) \right)$
+  \item $W(q^*) = {W(q)}^*$
+  \item $W(q_1 \cdot q_2) = W(q_1) \cdot W(q_2)$
+  \item $W(q_1 ~|~ q_2) = W(q_1) ~|~ W(q_2)$
+  \end{itemize}
+  where Kleene star, concatenation and union for languages are defined
+  in the usual way.
+  
+  Its kernel $K(q) \subseteq W(q) \subseteq \Sigma^*$ is defined as follows:
+  \begin{itemize}
+  \item $K(r) = r$
+  \item $K(r \mapsto s) = \llbracket s \rrbracket$
+  \item $K(\perm (q_1, \ldots, q_n) \with q) =
+    K(q_1) \cdot K(q) \cdot \ldots \cdot
+    K(q) \cdot K(q_n)$  
+  \item $K(q^*) = {K(q)}^*$
+  \item $K(q_1 \cdot q_2) = K(q_1) \cdot K(q_2)$
+  \item $K(q_1 ~|~ q_2) = K(q_1) ~|~ K(q_2)$
+  \end{itemize}
+  
+\end{definition}
+
+The lenses that QREs denote are well-defined only when their whole
+language and kernel meet some semantic conditions.
+\begin{definition}
+The well-formed judgement on QREs is as follows.
+\begin{itemize}
+\item Every $r$ is well-formed.
+\item $r \mapsto s$ is well-formed if $s \in \llbracket r \rrbracket$.
+\item $\perm(q_1, \ldots, q_n) \with q$ is well-formed if every $q_i$ is
+  well-formed and:
+  \begin{itemize}
+  \item For every 
+    $s \in W(\perm(q_1, \ldots, q_n) \with q)$, there exists a unique
+    $\sigma \in S_n$, unique $s_i \in W(q_i)$ for $1 \leq i \leq n$,
+    and unique $t_j \in W(q)$ for $1 \leq j < n$ such that 
+    $s = s_{\sigma(1)} \cdot t_1 \cdot \ldots \cdot t_{n-1} \cdot
+    s_{\sigma(n)}$.
+    
+  \item For every $s' \in K(\perm(q_1, \ldots, q_n) \with q)$, there exists
+    unique $s_i' \in K(q_i)$, $1 \leq i \leq n$, and unique
+    $t_j' \in K(q)$, $1 \leq j < n$, 
+    such that $s' = s_1' \cdot t_1' \cdot \ldots \cdot t_{n-1}' \cdot s_n'$.
+  \end{itemize}
+  
+  
+\item $q^*$ is well-formed if $q$ is well-formed and:
+  \begin{itemize}
+  \item For every $s \in W(q^*)$, there exists a unique $n \geq 1$ and
+    $s_1, \ldots, s_n \in W(q)$ such that $s = s_1 \cdot \ldots \cdot
+    s_n$.
+  \item For every $s' \in K(q^*)$, there exists a unique $n \geq 1$ and
+    $s_1', \ldots, s_n' \in K(q^*)$ such that
+    $s' = s_1' \cdot \ldots \cdot s_n'$.
+  \end{itemize}
+\item $q_1 \cdot q_2$ is well-formed if $q_1$ and $q_2$ are both well-formed,
+  and:
+  \begin{itemize}
+  \item For every $s \in W(q_1 \cdot q_2)$ there exists unique $s_1 \in W(q_1)$
+    and unique $s_2 \in W(q_2)$ such that 
+    $s = s_1 \cdot s_2$.
+  \item For every $s' \in K(q_1 \cdot q_2)$, there exists unique $s_1' \in K(q_1)$
+    and unique $s_2' \in K(q_2)$ such that
+    $s' = s_1' \cdot s_2'$.
+  \end{itemize}
+  
+\item $q_1 ~|~ q_2$ is well-formed if both $q_1$ and $q_2$ are well-formed,
+  $W(q_1) \cap W(q_2) = \emptyset$, and $K(q_1) \cap K(q_2) = \emptyset$.
+\end{itemize}
+\end{definition}
+
+The definition of well-formed QREs is exactly such that the following
+denotation function is well-defined.
+\begin{definition}
+  For a well-formed QRE $q$, its denotation
+  $\llbracket q \rrbracket = c_q \in W(q) \canon K(q)$ is defined as follows:
+  \begin{itemize}
+  \item $\llbracket r \rrbracket = \mathit{id}_{\llbracket r \rrbracket}$.
+  \item For $q = r \mapsto s$, 
+    \begin{align*}
+      \lcanonize{c_q}(w) &= s \text{ for all
+        $w \in \llbracket r \rrbracket$} \\
+      \lchoose{c_q}(s) &= s
+    \end{align*}
+  \item For $q = \perm(q_1, \ldots, q_n) \with q'$, 
+    \begin{align*}
+      &~~\lcanonize{c_q}(w_{\sigma(1)} \cdot t_1 \cdot \ldots \cdot t_{n-1}
+      \cdot w_{\sigma(n)}) \\
+      =&~~ (\lcanonize{c_{q_1}}(w_1)) \cdot (\lcanonize{c_{q'}}(t_1)) \cdot
+      \ldots 
+      \cdot (\lcanonize{c_{q'}}(t_{n-1})) \cdot (\lcanonize{c_{q_n}}(w_n)) \\
+      &~~\lchoose{c_q}(k_1 \cdot t_1 \ldots \cdot t_{n-1} \cdot k_n) \\
+      =&~~ (\lchoose{c_{q_1}}(k_1)) \cdot (\lchoose{c_{q'}}(t_1)) \cdot
+      \ldots \cdot (\lchoose{c_{q'}}(t_{n-1})) \cdot (\lchoose{q_n}(k_n))
+    \end{align*}
+  \item $\llbracket q^* \rrbracket = \llbracket q \rrbracket^* = c$ where 
+    \begin{align*}
+      \lcanonize{c}(w_1 \cdot \ldots \cdot w_n) &=
+      \lcanonize{c_q}(w_1) \cdot \ldots \cdot
+      \lcanonize{c_q}(w_n) \\
+      \lchoose{c}(k_1 \cdot \ldots \cdot k_n) &=
+      \lchoose{c_q}(k_1) \cdot \ldots \cdot
+      \lchoose{c_q}(k_n)
+    \end{align*}
+    for all $n \geq 1$.
+  \item For $q = q_1 \cdot q_2$, $\llbracket q \rrbracket = c$ where 
+    \begin{align*}
+      \lcanonize{c}(w_1 \cdot w_2) &=
+      \lcanonize{c_{q_1}}(w_1) \cdot
+      \lcanonize{c_{q_2}}(w_2) \\
+      \lchoose{c}(k_1 \cdot k_2) &=
+      \lchoose{c_{q_1}}(k_1) \cdot
+      \lchoose{c_{q_2}}(k_2)
+    \end{align*}
+  \item For $q = q_1 ~|~ q_2$, $\llbracket q \rrbracket = c$ where
+    for all $w_1 \in W(q_1)$, $k_1 \in K(q_1)$, $w_2 \in W(q_2)$,
+    and $k_2 \in K(q_2)$,
+    \begin{align*}
+      \lcanonize{c}(w_1) &=
+      \lcanonize{c_{q_1}}(w_1) \\
+      \lcanonize{c}(w_2) &=
+      \lcanonize{c_{q_2}}(w_2) \\
+      \
+      \lchoose{c}(k_1) &=
+      \lchoose{c_{q_1}}(k_1) \\      
+      \lchoose{c}(k_2) &=
+      \lchoose{c_{q_2}}(k_2)
+    \end{align*}
+  \end{itemize}  
+\end{definition}
+We seek sufficient and efficiently decidable conditions for
+well-formedness. The cases for $r$, $r \mapsto s$ and union are trivial;
+for Kleene star and concatenation, we can use unambiguous iteration
+and unambiguous concatenation respectively. 
+
+\begin{theorem*}
+Let 
+\end{theorem*}
+
+
+\begin{theorem*}
+  For $\perm(q_1,\ldots, q_n) \with q$, the following are true:
+  \begin{itemize}
+  \item TODO
+  \end{itemize}
+\end{theorem*}
+\begin{proof}
+
+  
+
+\end{proof}
+
+The following validity judgement
+is sufficient for deciding well-formedness.
+\begin{definition}
+  The validity judgement is defined as follows:
+  \begin{itemize}
+  \item Every regular expression $r$ is valid.
+  \item $r \mapsto s$ is valid if $s$ matches $r$.
+  \item $\perm(q_1, \ldots, q_n) \with q$ is valid if all $q_i$ are
+    valid and:
+    \begin{itemize}
+    \item For all $\sigma_1, \sigma_2 \in S_n$,
+      \begin{align*}
+        (W(q_{\sigma_1(1)}) \cdot W(q) \cdot \ldots
+        \cdot W(q) \cdot W(q_{\sigma_1(n)})) \cap
+        (W(q_{\sigma_2(1)}) \cdot W(q) \cdot \ldots
+        \cdot W(q) \cdot W(q_{\sigma_2(n)})) = \emptyset
+      \end{align*}
+    \item For all $\sigma \in S_n$,
+      $W(q_{\sigma(1)}) \cdot^! W(q) \cdot^!
+      \ldots \cdot^! W(q) \cdot^! W(q_{\sigma(n)})$
+      is unambiguously concatenable.
+    \item $K(q_1) \cdot^! K(q) \cdot^! \ldots
+    \cdot^! K(q) \cdot^! K(q_n)$ is unambiguously
+    concatenable.
+    \end{itemize}
+  \item $q^*$ is valid if $q$ is valid and both
+    $\bigodot_{i=1}^{!n} W(q)$ and $\bigodot_{i=1}^{!n} K(q)$ are
+    unambiguously concatenable for all $n > 1$.
+  \item $q_1 \cdot q_2$ is valid if both $q_1$ and $q_2$ are valid,
+    $W(q_1) \cdot^{!} W(q_2)$ and $K(q_1) \cdot^{!} K(q_2)$ are unambiguously
+    concatenable.
+  \item $q_1 ~|~ q_2$ is valid if both $q_1$ and $q_2$ are valid,
+    $W(q_1) \cap W(q_2) = \emptyset$, and $K(q_1) \cap K(q_2) = \emptyset$.
+  \end{itemize}
+
+\end{definition}
+The language can be extended with a custom canonizer by specifying its
+denotation, well-formedness condition, and validity condition. Its
+validity condition must imply its well-formedness condition.
+
+\begin{theorem}
+  Every valid QRE is a well-formed QRE.
+\end{theorem}
+\begin{proof}
+  By induction on QREs.
+\end{proof}
+Hence every valid QRE $q$ denotes a canonizer $W(q) \canon K(q)$.
+Henceforth, all QREs are assumed to be well-formed.
+\begin{definition}
+  A synthesis goal is 
+  \begin{align*}
+    q_1 \lensbetween{?} q_2
+  \end{align*}
+  with examples
+  $E = \{(s_1^i, s_2^i)\}_{i=1}^N$, $N$ possibly $0$,
+  such that each $s_1^i \in W(q_1)$ and each $s_2^i \in W(q_2)$.
+  
+  A solution is a quotient lens
+  $l: \niceFrac{W(q_1)}{\sim_{q_1}} \lensbetween{} \niceFrac{W(q_2)}{\sim_{q_2}}$
+  such that $l = l_{q_1} ; l' ; l_{q_2}^{-1}$, i.e.
+  \begin{align*}
+    \niceFrac{W(q_1)}{\sim_{q_1}} \lensbetween{l} \niceFrac{W(q_2)}{\sim_{q_2}}
+    = \niceFrac{W(q_1)}{\sim_{q_1}} \lensbetween{l_{q_1}} K(q_1) \lensbetween{l'} K(q_2)
+    \lensbetween{l_{q_2}^{-1}} \niceFrac{W(q_2)}{\sim_{q_2}}
+  \end{align*}
+  for some bijective lens
+  $l': K(q_1) \lensbetween{} K(q_2)$, and 
+  $l$ is consistent with the examples.
+\end{definition}
+The lens synthesis algorithm just needs to synthesize $l'$
+because of the types. The solution $l$ satisfies the following laws:
+\begin{itemize}
+\item (\name{GetPut}): $\lput{l} \; (\lget{l} \; s_1) \; s_1 \sim_{q_1} s_1$ 
+\item (\name{PutGet}): $\lget{l} \; (\lput{l} \; s_2 \; s_1) \sim_{q_2} s_2$
+%\item (\name{CreateGet}): $\lget{l} \; (\lcreate{l} \; s_2) \sim_{q_2} s_2$
+\item (\name{GetEquiv}): If $s_1 \sim_{q_1} s_1'$, $\lget{l} \; s_1
+  \sim_{q_2} \lget{l} \; s_1'$.
+\item (\name{PutEquiv}): If $s_2 \sim_{q_2} s_2'$ and $s_1 \sim_{q_1} s_1'$,
+  $\lput{l} \; s_2 \; s_1 \sim_{q_1} \lput{l} \; s_2' \; s_1'$.
+%\item (\name{CreateEquiv}) If $s_2 \sim_{q_2} s_2'$, $\lcreate{l} \; s_2
+%  \sim_{q_2} \lcreate{l} \; s_2'$.
+\end{itemize}
+For brevity, we omit $\sim_{q}$ from $W(q)/\sim_{q}$ and just write
+$l: W(q_1) \lensbetween{} W(q_2)$ when this is clear.
+
+Synthesis goals of the above form give lenses which only canonize at
+the edges, so a question is whether ``all'' quotient lenses can be
+turned into this form.
+
+
+\section{Completeness of Synthesis}
+All QREs are taken to be well-formed.
+\begin{definition}
+  A quotient lens
+  $\niceFrac{A}{\sim_A} \lensbetween{l} \niceFrac{B}{\sim_B}$
+  is synthesizable if there exists QREs $q_1$ and $q_2$ such that
+  it is a solution to $q_1 \lensbetween{?} q_2$, i.e.
+  \begin{align*}
+    \niceFrac{A}{\sim_A} \lensbetween{l} \niceFrac{B}{\sim_B} =
+    \niceFrac{W(q_1)}{\sim_{q_1}} \lensbetween{l_{q_1}} K(q_1)
+    \lensbetween{l'}
+    K(q_2) \lensbetween{l_{q_2}} \niceFrac{W(q_2)}{\sim_{q_2}}
+  \end{align*}
+  In particular, $A = W(q_1)$, $\sim_A {} = {} \sim_{q_1}$,
+  $B = W(q_2)$ and $\sim_B {} = {} \sim_{q_2}$.
+\end{definition}
+For the following, we consider the semantic space of quotient
+lenses in the setting of QREs.
+Since QREs denote canonizers,
+we have the usual $\lquot$ and $\rquot$ operations:
+\begin{itemize}
+\item Let $l: \niceFrac{A}{\sim_A} \lensbetween{}
+  \niceFrac{B}{\sim_B}$ be a quotient lens and
+  $q$ be a QRE such that $K(q) = A$.
+  Then
+  $l' = \lquot \; q \; l: \niceFrac{W(q)}{\sim} \lensbetween{}
+  \niceFrac{B}{\sim_B}$
+  is defined by
+  \begin{align*}
+    \lget{l'} \; w &= \lget{l} \; (\lcanonize{c_q} \; w) \\
+    \lput{l'} \; b \; w &=
+    \lchoose{c_q} \; (\lput{l} \; b \; (\lcanonize{c_q} \; w)) \; w
+  \end{align*}
+  and $w \sim w'$ iff $\lcanonize{c_q}(w) \sim_A \lcanonize{c_q}(w')$.
+  
+\item Let $l: \niceFrac{A}{\sim_A} \lensbetween{}
+  \niceFrac{B}{\sim_B}$
+  be a quotient lens and
+  $q$ be a QRE such that $K(q) = B$.
+  Then $l' = \rquot \; l \; q: \niceFrac{A}{\sim_A} \lensbetween{}
+  \niceFrac{W(q)}{\sim}$
+  is defined by
+  \begin{align*}
+    \lget{l'} \; a &= \lchoose{c_q} \; (\lget{l} \; a) \\
+    \lput{l'} \; w \; a &= \lput{l} \; (\lcanonize{c_q} \; w) \; a
+  \end{align*}
+  and $w \sim w'$ iff $\lcanonize{c_q} \; w = \lcanonize{c_q} \; w'$.
+\end{itemize}
+Following the theory of quotient lenses, the operations produce
+well-defined quotient lenses; key to this is the fact that the
+quotient relation on $K(q)$ for QREs $q$ is always the equality
+relation, and this relation is the finest.
+
+Note that as defined, for a left quotient by $q$, the quotient
+relation $\sim$ on $W(q)$ is not necessarily the same as
+$\sim_q$, and similarly for a right quotient.
+
+For example, consider $q_1 = aa^* b (cc^* \mapsto c)$, for which
+we have
+\begin{align*}
+  l_{q_1}: \niceFrac{\llbracket aa^*bcc^* \rrbracket}{\sim_{q_1}} \lensbetween{}
+  \llbracket aa^*bc \rrbracket
+\end{align*}
+Take the left quotient of this by $q_0 = aa^* (bb^* \mapsto b) cc^*$
+This gives a lens
+\begin{align*}
+  l': \niceFrac{\llbracket aa^*bb^*cc^*\rrbracket}{\sim} \lensbetween{}
+  \llbracket aa^*bc \rrbracket
+\end{align*}
+where
+\begin{align*}
+  a^n b^{m_1} c^{k_1} \sim a^n b^{m_2} c^{k_2}
+\end{align*}
+for all $n, m_1, m_2, k_1, k_2 \geq 1$.
+This is different from $\sim_{q_0}$.
+
+\begin{definition}
+  The expressible quotient lenses are defined inductively
+  as follows.
+  \begin{itemize}
+  \item Every bijective lens
+    $\niceFrac{\llbracket r_1 \rrbracket}{=} \lensbetween{}
+    \niceFrac{\llbracket r_2 \rrbracket}{=}$
+    is expressible.
+  \item $l_q$ and $l_q^{-1}$ is expressible for every QRE $q$.
+  \item $\lquot \; q \; l$ is expressible if it is well-defined
+    and $l$ is expressible.
+  \item $\rquot \; l \; q$ is expressible if it is well-defined
+    and $l$ is expressible.
+  \item If $l = l_1; l_2$ is well-defined, it is expressible.
+  \end{itemize}
+\end{definition}
+Expressible lenses are the complete set of quotient lenses that can
+be expressed using the language.
+We want to check if all expressible lenses can be normalized to a
+synthesizable lens.
+
+\begin{theorem}
+  \label{thm:kernel-rep}
+  For every QRE $q$, $K(q) = \llbracket r \rrbracket$ for some
+  regular expression $r$.
+\end{theorem}
+\begin{proof}
+  By induction on QREs.
+\end{proof}
+
+\begin{theorem}
+  \label{thm:kq-subset-wq}
+  For every QRE $q$, $K(q) \subseteq W(q)$. 
+\end{theorem}
+\begin{proof}
+  By induction on QREs.
+\end{proof}
+
+\begin{theorem}
+  \label{thm:bijective-syn}
+  Every bijective lens
+  $\llbracket r_1 \rrbracket \lensbetween{l} \llbracket r_2
+  \rrbracket$
+  is equal to the lens
+  \begin{align*}
+    W(r_1) \lensbetween{\mathit{id}_{\llbracket r_1 \rrbracket}} K(r_1)
+    \lensbetween{l}
+    K(r_2) \lensbetween{\mathit{id}_{\llbracket r_2 \rrbracket}} W(r_2)
+  \end{align*}
+  Hence every bijective lens is synthesizable.
+\end{theorem}
+
+
+
+\begin{theorem}
+  \label{thm:basic-qre-syn}
+  For any QRE $q$, $l_q$ and $l_q^{-1}$ are synthesizable.
+\end{theorem}
+\begin{proof}
+  We just consider the two cases.
+
+  For $l_q$, by Theorem~\ref{thm:kernel-rep},
+  there exists RE $r$ such that
+  $K(q) = \llbracket r \rrbracket = K(r)$.
+  So $l$ is equal to 
+  \begin{align*}
+    \niceFrac{W(q)}{\sim_{q}} \lensbetween{l_q}
+    K(q) \lensbetween{\mathit{id}_{\llbracket r \rrbracket}} K(r)
+    \lensbetween{\mathit{id}_{\llbracket r \rrbracket}}
+    \niceFrac{W(r)}{=}
+  \end{align*}
+  The identity lens $\mathit{id}_{\llbracket r \rrbracket}$ is
+  clearly bijective.
+  
+  For $l_q^{-1}$, by Theorem~\ref{thm:kernel-rep},
+  there exists RE $r$ such that
+  $K(q) = \llbracket r \rrbracket = K(r)$.
+  Then $l$ is equal to 
+  \begin{align*}
+    \niceFrac{W(r)}{=}
+    \lensbetween{\mathit{id}_{\llbracket r \rrbracket}} K(r)
+    \lensbetween{\mathit{id}_{\llbracket r \rrbracket}}
+    K(q) \lensbetween{l_q} \niceFrac{W(q)}{\sim_q}
+  \end{align*}
+\end{proof}
+
+
+\begin{theorem}
+  \label{thm:lens-functor}
+  Let $q$ be a QRE and
+  let $l: W(q) \lensbetween{} \llbracket r' \rrbracket$ be a bijective lens.
+  Define
+  \begin{align*}
+    l\left(\niceFrac{W(q)}{\sim_q} \lensbetween{l_q} K(q)\right)
+    &= \niceFrac{l(W(q))}{\sim_{l(q)}} \lensbetween{l'} l(K(q)) \\
+    &= \niceFrac{\llbracket r' \rrbracket}{\sim_{l(q)}} \lensbetween{l'} l(K(q))
+  \end{align*}
+  such that for $w \in W(q)$, $w \sim_q w'$ iff $l(w) \sim_{l(q)} l(w')$,
+  and
+  \begin{align*}
+    \lcanonize{l'}(w)
+    &= l(\lcanonize{l_q}(l^{-1}(w))) \\
+    \lchoose{l'}(k)
+    &= l(\lchoose{l_q}(l^{-1}(k)))
+  \end{align*}
+  (Again, $l'$ is the lens extended from these canonizing equations.)
+  Note that when $l_q$ is a bijection, so is $l'$.
+  
+  Then there exists QRE $q'$ such that
+  \begin{align*}
+    \niceFrac{l(W(q))}{\sim} \lensbetween{l'} l(K(q))
+    = \niceFrac{W(q')}{\sim_{q'}} \lensbetween{l_{q'}} K(q')
+  \end{align*}
+  i.e.\ $l(W(q)) = W(q')$, $\sim{} = {}\sim_{q'}$, $l(K(q)) = K(q')$,
+  and $l' = l_{q'}$.
+\end{theorem}
+\begin{proof}
+  By induction on $q$.
+  For $q = r$, $W(q) = W(r) = \llbracket r \rrbracket = K(r) = K(q)$ and
+  $\sim_q$ is equality on $\llbracket r \rrbracket$.
+  Take $q' = r'$. Then
+  \begin{align*}
+    \niceFrac{W(r')}{=}
+    \lensbetween{\mathit{id}_{\llbracket r' \rrbracket}} K(r')
+  \end{align*}
+  satisfies the claim.
+
+  For $q = r \mapsto s$, take $q' = r' \mapsto l(s)$. Then
+  $W(q') = \llbracket r' \rrbracket$,
+  $K(q') = \llbracket l(s) \rrbracket = l(K(q))$,
+  and
+  \begin{align*}
+    \lcanonize{l_{r' \mapsto l(s)}}(w)
+    = l(s)
+    = l(\lcanonize{l_{r \mapsto s}}(l^{-1}(w)))
+    = \lcanonize{l'}(w)
+  \end{align*}
+  and similarly for $\lchoose{l_{r' \mapsto s}}$.
+
+  For $q = q_1 \cdot q_2$,
+  \begin{align*}
+    &l \left(\niceFrac{W(q)}{\sim_q} \lensbetween{l_q} K(q) \right) \\
+    =~& l\left(\niceFrac{W(q_1) \cdot W(q_2)}{\sim_{q_1}\sim_{q_2}}
+    \lensbetween{l_{q_1} \cdot l{q_2}}
+    K(q_1) \cdot K(q_2) \right)
+  \end{align*}
+  
+  
+  For $q = \perm(q_1, \ldots, q_n) \with q_0$,
+  we first let $W(q(\sigma))$ denote
+  \begin{align*}
+    W(q_{\sigma(1)}) \cdot W(q_0) \cdot \ldots \cdot W(q_0) \cdot
+    W(q_{\sigma(n)})
+  \end{align*}
+  for $\sigma \in S_n$.
+  Then 
+  \begin{align*}
+    l |_{W(q(\mathit{\sigma}))} :
+    W(q(\mathit{\sigma})) \lensbetween{}
+    l(W(q(\mathit{\sigma}))
+  \end{align*}
+  remains a well-defined bijective lens.
+  By the induction hypothesis, 
+  
+  \begin{align*}
+    l \left( W(\perm(q_1, \ldots, q_n) \with q_0) \lensbetween{}
+    K(\perm(q_1, \ldots, q_n) \with q_0) \right)
+  \end{align*}
+  take $q' = $
+    
+    
+\end{proof}
+
+\begin{theorem}
+  Let $l: \niceFrac{A}{\sim_A} \lensbetween{} \niceFrac{B}{\sim_B}$ be a
+  synthesizable lens. Let 
+  $l': \llbracket r' \rrbracket \lensbetween{} A$
+  be a bijective lens. Then the composition
+  $l'; l$ is well-defined and synthesizable.
+\end{theorem}
+\begin{proof}
+  The composition $l'; l$ is well-defined because
+  $l' \in \llbracket r \rrbracket \lensbetween{} \niceFrac{A}{=}$
+  and $=$ is the finest relation on $A$.
+
+  Since $l$ is synthesizable, there exists QREs $q_1$ and $q_2$ such
+  that
+  \begin{align*}
+    l = \niceFrac{W(q_1)}{\sim_{q_1}} \lensbetween{}
+    K(q_1) \lensbetween{l_0} K(q_2) \lensbetween{}
+    \niceFrac{W(q_2)}{\sim_{q2}}
+  \end{align*}
+  Consider the following cases:
+  \begin{itemize}
+  \item $q_1 = r$:
+    Then
+    \begin{align*}
+      &\niceFrac{W(q_1)}{\sim_{q_1}}
+      \lensbetween{l_{q_1}} K(q_1) \\
+      =~&\niceFrac{W(r)}{=}
+      \lensbetween{\mathit{id}_{\llbracket r \rrbracket}} K(r) 
+    \end{align*}
+    Then $l'; \, l$ is equal to
+    \begin{align*}
+      &\llbracket r' \rrbracket
+      \lensbetween{\mathit{id}_{\llbracket r' \rrbracket}}
+      \llbracket r' \rrbracket
+      \lensbetween{l'; l_0} K(q_2) \lensbetween{l_{q_2}}
+      \niceFrac{W(q_2)}{\sim_{q_2}} \\
+      =~&
+      W(r') \lensbetween{l_{r'}} K(r')
+      \lensbetween{l'; l_0} K(q_2) \lensbetween{l_{q_2}}
+      \niceFrac{W(q_2)}{\sim_{q_2}}
+    \end{align*}
+    Note that $l';\, l_0$ is bijective since both $l'$ and $l_0$ are.
+    
+  \item $q_1 = r \mapsto s$:
+    Then 
+    \begin{align*}
+      &\niceFrac{W(q_1)}{\sim_{q_1}}
+      \lensbetween{l_{q_1}} K(q_1) \\
+      =~& \niceFrac{\llbracket r \rrbracket}{\sim_\textit{tot}}
+      \lensbetween{l_{q_1}} \llbracket s \rrbracket \\
+    \end{align*}
+    Take $q' = r' \mapsto l'^{-1}(s)$.
+    The composition $l'; l$ can then be expressed as:
+    \begin{align*}
+      &\niceFrac{\llbracket r' \rrbracket}{\sim_{\textit{tot}}}
+        \lensbetween{}
+        l'^{-1}(s) \lensbetween{l' |_{l'^{-1}(s)} ; \, l_0} K(q_2)
+      \lensbetween{} W(q_2) \\
+      =~&
+      \niceFrac{W(q')}{\sim_{q'}} \lensbetween{}
+      K(q') \lensbetween{l' |_{l'^{-1}(s)} ; \, l_0} K(q_2)
+      \lensbetween{} W(q_2)
+    \end{align*}
+    Note that the lens $l' |_{l'^{-1}(s)}; \, l_0$ is a well-defined
+    bijective lens; the restriction is sound because
+    $l'^{-1}(s) \subseteq l'^{-1}(\llbracket r \rrbracket) =
+    \llbracket r' \rrbracket$.
+  \item $q_1 = \perm(q_{11}, \ldots, q_{1n}) \with q_{10}$:
+    We first note that $l^{-1}(W(q_1) \lensbetween{} K(q_1))$ is 
+
+    \begin{comment}
+    Let $q' = \perm(l^{-1}(W(q_{11})), \ldots, l^{-1}(q_{1n})) \with l^{-1}(q_{10})$.
+    \begin{align*}
+      \llbracket r \rrbracket
+      = W(\perm(l^{-1}(q_{11}), \ldots, l^{-1}(q_{1n})) \with l^{-1}(q_{10}))
+    \end{align*}
+    and 
+    \end{comment}
+
+  \end{itemize}
+\end{proof}
+
+
+
+The normalization algorithm is as follows. Given an expressible lens:
+\begin{itemize}
+\item If the expressible lens is a bijective lens, synthesize as per
+  Theorem~\ref{thm:bijective-syn}.
+\item If the expressible lens $l$ is $l_q$ or $l_q^{-1}$ for some QRE
+  $q$, synthesize as per Theorem~\ref{thm:basic-qre-syn}.
+\item If the expressible lens is $\lquot \; q \; l$ for some QRE $q$
+  and expressible lens $l$, first normalize $l$
+  to $l: \niceFrac{W(q_1^l)}{\sim_{q_1^l}} \lensbetween{}
+  \niceFrac{W(q_2^l)}{\sim_{q_2^l}}$. Then consider the
+  cases on $q$:
+  \begin{itemize}
+  \item If $q$ is a regular expression $r$, then
+    $c_q = \mathit{id}_{r}$ and there is nothing to do.
+  \item If $q = r \mapsto s$, then
+    \begin{align*}
+      l: \niceFrac{\llbracket s \rrbracket}{=} \lensbetween{}
+      W(q_2^l)/\sim_{q_2^l}
+    \end{align*}
+    since the only quotient relation on $s$ is equality.
+    Then we can simply quotient with $c_q$ on the left to get
+    a synthesizable lens.
+    
+  \item If $q = \perm(q_1, \ldots, q_n) \with q_0$,
+    
+    
+  \item If $q = q_0^*$,
+    normalize $l_{q_0}$ to
+    $l_{q_0}: \niceFrac{W(q_0')}{\sim_{q_0'}} \lensbetween{}
+    \niceFrac{W(q_0'')}{\sim_{q_0''}}$. 
+    The left-quotient is only well-defined if
+    $K(q) = K(q_0)^* = W(q_0'')^* = W(q_1^l)$, and
+    
+  \item If $q = q_1 \cdot q_2$,
+  \item If $q = q_1 | q_2$, 
+  \end{itemize}
+\item If the expressible lens is $l = l_1; l_2$,
+  we first normalize 
+\end{itemize}
+
+
+\end{document}
