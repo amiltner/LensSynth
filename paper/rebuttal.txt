@@ -1,20 +1,17 @@
 TARGET AUDIENCE
 
 Several reviewers asked who benefits from this technology.  Briefly, the
-technology is aimed at programmers [BCP: Do we really think the reviewers
-might not have got this??  Or do we mean something more focused?  E.g.,
-Review E is not really asking who the target audience is.  Nor is review F.
-Moreover, we don't really address review F's concern -- that providing
-regular expressions is already onerous.  Indeed, we agree with this, and
-ultimately we hope to synthesize those too; what we're reporting here is
-addressing what seemed like the hardest and most novel piece of the problem;
-inferring regularly expressions is a separable, and previously studied,
-issue.].  The central idea is to exploit something that most programmers
+technology is aimed at programmers, to be used as a code writing tool.
+Previous work on data wranglers works on easily transforming data, which
+can then be analyzed manually.  This work aims to provide a tool which can
+assist in writing product quality data transformers.
+
+For this work, the central idea is to exploit something that most programmers
 know well (regular expressions) to help them write significant programs in a
 language that they do not know well (lenses).  This help is particularly
 important because past experience has shown that lenses are often quite
 tricky to write.  For example, consider the following lens for translating
-between idealized bibtex and endnote author formats:
+between idealized BibTeX and EndNote author formats:
 
   let bibtex_to_endnote_au
     : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
@@ -28,8 +25,18 @@ between idealized bibtex and endnote author formats:
 
 Writing this lens from scratch is nontrivial (mainly because of all the
 swaps), and it is a relatively simple lens -- Augeas and Boomerang users
-regularly work with lenses XXX orders of magnitude [BCP: quantify, maybe
-with a couple examples.] this size.
+regularly work with lenses significantly larger than this.  For example,
+Boomerang's full version of an idealized BibTeX converter is over 300 lines of
+code, and all but 4 of the studied Augeas programs were over 50 lines of code,
+with 4 over 100 lines of code.
+
+Furthermore, we agree that providing regular expressions does require the
+programmers to do additional work.  While we would eventually like to find ways
+to encorporate our work with existing research on inferring regular
+expressions, we wanted to initially address the novel portion of this eventual
+goal.  We think that even without the inference of regular expressions, this
+work already is useful as a computer assisted bidirectional programming tool.
+
 
 FORMALIZATION
 
@@ -42,9 +49,15 @@ and inadvertently removed it from the extended version at the same time.  We
 will reinstate the full treatment in the extended report and find a good way
 to summarize it in the final paper.
 
-[BCP: Is there anything we can say about the formal description?  E.g., a
-few words about how large or complex it is?  Any theorems we've proved about
-it?]
+The formal description is not very complex, but takes a good amount of space to
+complete.  The formal description of RigidSynth first describes an ordering on
+atoms, sequences, and DNF regular expressions.  Next, this ordering is used to
+define a normalization procedure for DNF regular expressions.  Finally, a
+procedure for "zipping" two DNF regular expressions together is provided.
+If these two DNF regular expressions can be zipped, then there is a lens between
+them.  A transformation from zipped DNF regular expressions and the
+permutations that normalize them is then provided. These formalizations are not
+very complex, but they take up a lot of space.
 
 EVALUATION
 
@@ -56,13 +69,14 @@ Direct comparison with related tools is difficult because there aren't any
 tools that do the same task: this is the first attempt at bidirectional
 program synthesis.  Even performance comparisons to similar tools such as
 FlashFill and FlashExtract are difficult because they cannot express the
-rich set of permutations we tackle.  [BCP: This paragraph feels a bit
-argumentative.  Aren't there ANY quantitative comparisons that we could do,
-even if they didn't teach us too much?]
+rich set of permutations we tackle.  We recognize that a quantification of this
+increase in expressibility would be important for readers of our paper.  We
+think that we should provide an analysis detailing how many of our programs are
+inexpressible using other string synthesis tools.
 
-On the other hand, we agree that performance measurements quantifying the
+Furthermore, we strongly agree that performance measurements quantifying the
 importance of these aspects of the various heuristics used by the algorithm
-would improve the paper.  It will not be hard to instrument the
+would greatly improve the paper.  It will not be hard to instrument the
 implementation so that we can disable heuristics individually and gather
 these numbers.  (Anecdotally, we invented each of these heuristics when more
 naive approaches failed.  For example, our initial search procedure, which
@@ -72,18 +86,26 @@ searching for potential compositions!  Without a priority queue, we were
 able to synthesize complicated lenses when the source and target formats
 were similar, but not when the formats differed significantly.)
 
-MORE THINGS TO DISCUSS
+BIJECTIVE LENS RESTRICTION
 
-[BCP: Here are some other points in the reviews that I thought were
-important enough to deserve discussion in the "above the fold" part of the
-response...
+Our program is unable to synthesize general Boomerang lenses, but rather only
+those which express bijections.
+There certainly are limitations to restricting ourselves to bijective lenses.
+Indeed, while all existing Boomerang and Augeas lenses can be transformed into
+bijective lenses, few are bijective by default, often because of a lack of
+bijectivity guarantees on whitespace.
+We chose to restrict our domain to bijective programs as a simplification
+technique for this new research, but think there are many directions this work
+can be expanded to, and we feel this research is amenable to be expanded.
 
-* the current approach works for the subset of lenses that are bijective. It
-  would be good to give a sense about how much this limits its use among,
-  say, existing Augeas programs. And is there reason to believe that the
-  approach will or will not be amenable for larger subsets of Boomerang? 
-
-
+In particular, bijective quotient lenses, lenses which are bijective modulo an
+equivalence on the source and target languages, are an expansion to this work
+that already has shown promise.  Merely adding quotienting makes this tool more
+practical.  XSugar - an existing, powerful language for XML and string
+bidirectional transformations - expresses bijections modulo equivalences.
+While we have only seen preliminary results so far, it seems that only minor
+modifications were needed for our tool to generalize to bijective quotient
+lenses.
 
 
 We will clarify all these points in the next rewrite.
@@ -127,7 +149,7 @@ subexpression elimination.
 - The comparison and relationship to Flash Fill, clarified in the
   evaluation, is too broad in the motivating sections.
 
-Addressed above
+Discussed in the general section.
 
 
 - The prevalence and limitations of bijective lenses (compared to
@@ -163,7 +185,7 @@ importance.
 
 - algorithm only partially presented
 
-Addressed above
+Discussed in the general section.
 
 
 - I am not sure the remark about the implementation spanning '5515 lines' is as
@@ -172,8 +194,8 @@ pseudocode for the main part of the algorithm, a function called RigidSynth.
 This makes one wonder how complex it really is and, more worryingly, as a
 result, there is also no correctness proof and no complexity analysis.
 
-Addressed in part above.  Many of the lines go not to the core synthesis
-algorithm, but for language transformations, pretty printing, lens
+Discussed in the general section.  Many of the lines go not to the core
+synthesis algorithm, but for language transformations, pretty printing, lens
 simplification, and DFA operations.  The portion of our code corresponding to
 RigidSynth is just over 400 lines.
 
@@ -195,7 +217,7 @@ theorems.
   with these other results or a more detailed explanation of why they would not
   be applicable to their problem.
 
-Addressed above
+Discussed in the general section.
 
 
 
@@ -210,7 +232,7 @@ Review C:
   that are solving this specific variety of synthesis. However, you could do
   some internal comparisons, for various values of the design decisions.
 
-Discussed above
+Discussed in the general section.
 
 
 - The discussion of related work can be improved. It is true that there aren't
@@ -232,12 +254,7 @@ Review D:
 - The algorithmic contributions (particularly, type-directedness) are often
   unclear.
 
-Discussed in part above.
-
-[BCP: Do you mean "above" as in the very top section?  Or somewhere else in
-the specific review comments?  I doubt if anybody is going to read all our
-responses to all the reviews, so best to make the pointers more precise --
-"See response to review A..."]
+Discussed in part in the general section.
 
 RigidSynth is entirely type directed.  We use an ordering on the subcomponents
 of the types to find which subcomponents must be mapped to each other.  After
@@ -265,7 +282,7 @@ O(n*log(n)) time.
   contributions.  Similar to (a), what is the effect of type-directedness on
   the experimental results?
 
-Discussed in part above.
+Discussed in part in the general section.
 We did not ever try an approach that was not type-directed, as we do not think
 enumerative search followed by a pruning of ill typed terms would scale well.
 
@@ -277,7 +294,7 @@ enumerative search followed by a pruning of ill typed terms would scale well.
 
 We discuss why the average number of examples is so low in Importance of
 Examples in the evaluation section.  To highlight how complicated the input
-specifications can be, the specification for the BibTex to
+specifications can be, the specification for the BibTeX to
 EndNote conversion problem - one of our 10 least complex input formats - and the
 specification for cron - our most complex format - are given
 below.  We are happy to provide all our specifications.
@@ -410,24 +427,24 @@ Review E:
   should work well. I was wondering if the authors tried simpler enumerative
   solvers baselines for this problem?
 
-Addressed above
+Discussed in the general section.
 
 
 - The second big concern is that it was not obvious who is the target audience
   for this system. If we are expecting a user to provide the regular expressions
   for source and target formats, why can’t they also write the transformation as
-  well? Can the authors provide the Boomerang program for the Bibtex example and
+  well? Can the authors provide the Boomerang program for the BibTeX example and
   explain why it would be challenging for a user to write this Boomerang program
   if they can write regular expressions for the two formats.
 
-Addressed above
+Discussed in the general section.
 
 
-- For the Bibtex to EndNote transformation example, the paper presents an
+- For the BibTeX to EndNote transformation example, the paper presents an
   algorithmic way to align the regular expressions to find corresponding
   permutations of sub-expressions to match different fields. Why can’t the user
   provide regular expressions in first place that are aligned? For example,
-  there is an epsilon in the Bibtex regular expression, but there is no epsilon
+  there is an epsilon in the BibTeX regular expression, but there is no epsilon
   in the EndNote format. Wouldn’t it be a more clear and a better specification
   on user’s part to write a regular expression where EndNode format also has an
   epsilon with an Or in front. For finding permutations as well, it isn’t clear
@@ -439,7 +456,12 @@ We feel that requiring well aligned regular expressions is too large a burden on
 the user.  The user themselves needs to think through various equivalence rules,
 which we think is better suited to an automated tool.
 
-[BCP: Give an example!]
+This is very difficult when the equivalences that need to be exploited are
+nonobvious or hidden away.  Consider the two regular expressions (A|B)C*
+and (A|C(C*)A)|(B|B(C*)C).  It is nontrivial for a user to identify that the
+equivalences that must be applied to reach two well aligned lenses.
+Furthermore, the aligned regular expressions could become difficult to read and
+maintain: (A|B)(e+C+CC*C) is less understandable than (A|B)C*.
 
 The idea of adding in the ability to annotate fields is an interesting one.
 The way that examples are embedded in the regular expressions is similar to an
@@ -453,29 +475,24 @@ uses both annotations and examples to help differentiate similar fields.
   provides the regular expression for a format as Name* Name*, and the input is
   John Conway, would the system disallow such user inputs?
 
-There is such a restriction (though we allow for ambiguity when hidden under
-user defined regular expressions), but the tool does not currently check that
-this restriction is satisfied.
-
-[BCP: Really???  It should, but in any case I think we don't need to mention
-that it doesn't here!]
-
-Methods for performing these checks are well studied,
-and described in Boomerang as well as in Nate Foster's thesis.  An end goal for
-this tool is to be integrated with the Boomerang codebase, and used as part of
-the development for Boomerang programs.  Such a production quality version of
-this tool would certainly provide these capabilities.
-
-[BCP: Doesn't answer the question very clearly.]
+The regular expressions provided to the synthesis algorithm must be unambiguous.
+However, we provide machinery to allow ambiguous user-defined regular
+expressions to safely be subexpressions of the input format descriptors.
+Using the keyword "abstract" on the definition of a user-defined regular
+expression allows these abstract regular expressions to never be expanded into
+their subcomponents in the search procedure.  With this opacity, ambiguous
+regular expressions can safely be subexpressions of an input format descriptor,
+though only the identity transformation can act on them.
 
 - The synthesis algorithm section presents several heuristics to assign scores
   and pseudometric scores to a pair of DNF regular expressions. How were these
   heuristics chosen? What is the effect of these heuristics on the benchmark
   problems?
 
-Discussed in part above.  These heuristics were chosen in a way to leverage
-the abstractions that programmers use for their specifications, while also
-allowing enough breadth to the search space to not get stuck in local minima.
+Discussed in part in the general section. These heuristics were chosen in a way
+to leverage the abstractions that programmers use for their specifications,
+while also allowing enough breadth to the search space to not get stuck in
+local minima.
 
 
 
@@ -504,7 +521,7 @@ Review F:
   relational data model), but to me that doesn't quite justify the need for
   providing regular expressions as part of the input.
 
-Discussed above
+Discussed in part in the general section.
 
 
 - Second, the evaluations seem weak.  The examples from FlashFill and are those
@@ -514,11 +531,11 @@ Discussed above
   described using different semantically equivalent expressions, how do they
   affect the effectiveness of the synthesis process?
 
-Discussed in part above.  Semantically equivalent expressions can have an impact
-on the effectiveness of the synthesis process.  As we discuss in Speed of
-Synthesis, in the Evaluation section, the difference in the presentation of the
-regular expressions being mapped between is a stronger indicator of complexity
-for this system.
+Discussed in part in the general section. Semantically equivalent expressions
+can have an impact on the effectiveness of the synthesis process.  As we discuss
+in Speed of Synthesis, in the Evaluation section, the difference in the
+presentation of the regular expressions being mapped between is a stronger
+indicator of complexity for this system.
 
 
 - Finally, the real world contains many erroneous / dirty data. What happens if
