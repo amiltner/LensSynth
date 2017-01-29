@@ -1,0 +1,416 @@
+===========================================================================
+                           PLDI '17 Review #147A
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: Y. Knowledgeable
+                      Overall merit: B. OK paper, but I will not champion
+                                        it
+
+                           ===== Strengths =====
+
++ Beautiful formulation of DNF regular expression types and lenses,
+  a formulation of (the bijective subset of) lenses that is amenable
+  to type-and-example directed synthesis.
+
++ Tech report works through metatheory in great detail.
+
++ Theory forms the basis for a tool that is evaluated on a set of
+  benchmarks with results that seem to be promising.
+
+                          ===== Weaknesses =====
+
+- The implementation section, which describes choices and heuristics
+  of the search, is not as clear as earlier parts of the paper.
+
+- The synthesized lenses are not shown or discussed in much detail,
+  nor are they compared to hand-written ones (when possible).
+
+- The comparison and relationship to Flash Fill, clarified in the
+  evaluation, is too broad in the motivating sections.
+
+- The prevalence and limitations of bijective lenses (compared to
+  less well-behaved ones) is not discussed.
+
+                      ===== Comments to authors =====
+
+The need to convert between different data representations is
+ubiquitous. Language-based techniques like lenses have been developed
+for many domains, but the presence of unfamiliar features and
+low-level details to get things working just right are barriers to
+even wider adoption. The goal of this work --- to synthesize
+(bijective) lenses --- can help make bidirectional programming more
+broadly useful and, thus, is an important problem to tackle.
+
+This paper makes a significant technical contribution towards this
+goal. First, the paper identifies several obstacles in developing a
+type-directed synthesis algorithm for a typical lens language, and
+then presents a novel formulation of DNF regular expressions and
+lenses that are (a) equivalent in expressiveness to regular bijective
+lenses, and (b) amenable to synthesis. In verification, formulas are
+often converted to DNF or other normal forms to facilitate algorithmic
+analysis, so it's really neat and elegant to see a similar syntactic
+manipulation used to crack this problem. 
+
+This theory informs the design and implementation of tool that has
+been run on 25 lens tasks (many of which are adapted from prior
+projects), where correct solutions are synthesized for nearly all
+tasks and with very good performance. This work complements previous
+approaches (e.g. Flash Fill) that work well for different (e.g.
+non-bijective) kinds of tasks. Thus, this paper advances the
+state-of-the-art on synthesis for data manipulation tasks and would
+find broad interest among the PLDI community.
+
+Despite my enthusiasm, I believe several aspects of the paper could be
+stronger:
+
+(1) The implementation (Section 6) is not described as clearly as the
+theory that informs it. The search algorithm, particularly RigidSynth,
+is described almost completely in prose, rather than with inductively
+defined rules (like related type-directed synthesis algorithms). While
+certain details like particular heuristics and ranking criteria make
+sense to describe in prose, I think a more detailed definition of the
+overall structure of the algorithm would enable subsequent work to
+more easily build on the approach.
+
+(2) Although the benchmark results look promising, it's unfortunate
+that none of the example talks are described in detail. What do the
+type specifications look like? How do these compare to hand-written
+types/terms in Augeas? How do the inferred lenses compare to
+hand-written terms in Augeas (or Flash Fill, when appropriate)? The
+use case for this tool, as is finally described on the last page,
+requires more expertise from the user than Flash Fill. Accordingly,
+users of this tool may want to see and manipulate synthesized lenses,
+so it would be good to know about the size, structure, and readability
+of the inferred lenses.
+
+(3) I think the paper could have done a better job placing the
+strengths and limitations of the current approach into context. The
+Abstract and Introduction set an expectation that this approach will
+compare favorably to Flash Fill, but in truth this is not quite true.
+Only a few examples are adapted from Flash Fill because, indeed, the
+two approaches work well for different kinds of tasks. Unfortunately,
+there is not much discussion or comparison of the kinds of tasks that
+these two approaches are relatively better or worse at. Furthermore,
+the current approach works for the subset of lenses that are
+bijective. It would be good to give a sense about how much this limits
+its use among, say, existing Augeas programs. And is there reason to
+believe that the approach will or will not be amenable for larger
+subsets of Boomerang? I think the contribution of the paper is clear,
+but how it fits in to this bigger picture is not.
+
+Especially with improvements to these concerns, I think the paper is
+an excellent one to publish at PLDI.
+
+
+*** Additional Comments
+
+p.2: Right before Challenge 1, I expected that user-defined names for
+regular expression types would be used to help identify subproblems.
+But, instead, it turns out they're used in heuristics for guiding the
+search. Interesting!
+
+p.2: The use of subscripts 2 and 3 in the lens composition typing rule
+does not match the text below it, so change one or the other. (If the
+typing rule is changed, consider changing the subscripts in the lens
+composition denotation on p.4 to match.)
+
+p.2: The second syntactic change (n-ary operators) seems more of an
+incidental change, rather than a fundamental one like the first, to
+the previous lens language.
+
+p.3: The Contributions section is one opportunity to start delineating
+the tradeoffs between the current approach, Flash Fill, and other
+(e.g. [11]).
+
+Sec. 5: Do permutations appear in previous lens languages (i.e.
+matching lenses), or is this a completely new feature? And an example
+would help explain its use.
+
+Sec. 5 (Type Checking): Do the rules in Fig. 6 warrant more
+explanation? And where are the definitions for "ordinary" lenses
+(a paper, the appendix)?
+
+Fig. 7: What are the line or character counts for the type specs?
+
+p.12: More of the kind of comparison to Flash Fill found here would be
+helpful in the evaluation.
+
+p.12: There isn't really "a range of practical examples drawn from
+[...] FlashFill" in the evaluation.
+
+
+*** Minor Comments / Typos
+
+p.1: The BibTeX grammars in Fig. 1 and Fig. 3 have a trailing comma
+after the right curly brace, but the example on p.1 does not.
+
+p.2: "decideable" ==> "decidable"
+
+p.3: "we do not regular" is missing a word
+
+p.3: "with synthesizing" ==> "synthesizing"
+
+p.3: "\emptyset" ==> "\epsilon"
+
+Fig. 3: It would help to format, highlight, and sub-title the
+different code listings to make it clearer what has changed.
+Furthermore, the insertion of \epsilons is not clear until much later
+(p.6, Section 4), so some explanation here would help.
+
+p.6: "End'" ==> "DNFEnd'"
+
+p.6: "A DNF regex R" ==> "A DNF regex DR", and similarly afterwards
+
+p.6: Fig. 5 is referred to before Fig. 4.
+
+p.7: "help us" ==> "helps us"
+
+p.7: Mention atom lenses first to match the order of definitions at
+the beginning of Section 5 (and because it's brief).
+
+Sec. 4/5: These sections work well as is, but an alternative approach
+is to describe DNF types and DNF lenses in one section (because of the
+parallels in their discussion) and then describe the synthesis
+specific rewrite rules in another. This is a matter of taste; I think
+both approaches have benefits.
+
+p.8: "sql_i for some i" ==> "[[ (sql_i, \sigma) ]] for some i"
+
+p.8: "discreet" ==> "discrete"
+
+p.10: "linux" ==> "Linux"
+
+Footnote 2: "is regular" ==> "is not regular"
+
+p.13: [25] and [26] are redundant
+
+
+*** Questions for Author Response
+
+How do the inferred lenses compare to hand-written versions
+(when available)?
+
+How many of surveyed FlashFill examples were close to bijective?
+Were there only the 3 included in the evaluation?
+
+===========================================================================
+                           PLDI '17 Review #147B
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: Y. Knowledgeable
+                      Overall merit: C. Weak paper, though I will not fight
+                                        strongly against it
+
+                           ===== Strengths =====
+
+- interesting problem
+
+                          ===== Weaknesses =====
+
+- paper unclear in various (important) places
+- algorithm only partially presented
+- some proofs are missing
+
+                      ===== Comments to authors =====
+
+The paper presents an algorithm that synthesises a bijective lens (basically a pair of functions representing a set isomorphism) given two regular expressions and a list of examples.
+
+Everything is clear until page 5, where the authors say
+'We have shown that two properties are sufficient to ensure that any equational theory of regular expressions implemented via rewrite rules -> on their associated DNF forms is compatible with our lens synthesis strategy.'
+
+It is not clear to me what this is supposed to mean, and therefore I have no context for the subsequent definitions of confluence, bisimilarity, and 'definitional equivalence'. In particular this last one makes me wonder whether it is always possible to compute it... 
+
+The example in Section 3 is quite clear, and so are Sections 4 and 5.
+The algorithm is based on a disjunctive normal form for regular expressions, defined early in Section 4, that gets rid of some equivalences. To get from that normal form to something that is just as powerful as the definitional equivalence they have rewrite rules in Figure 4.
+Section 5 defines lenses for DNF expressions with typing rules in Figure 6, which are proved sound and complete for the existence of a lens between regular expressions in theorems 5.1 and 5.2.
+
+In Figure 4, the lower part of 'Atom Structural Rewrite' should probably read DR^* ->_A D(DR'^*) and the lower part of 'DNF Structural Rewrite' can be rewriteen to something like 'ER + <SQ> . D(A_j) . <TQ> + FR ->_A ER + <SQ> . DR . <TQ> + FR', where '+' is the circled plus and '.' the circled centered dot.
+
+No proofs are provided for the main theorems 5.1 and 5.2. This is quite disappointing. 
+
+I am not sure the remark about the implementation spanning '5515 lines' is as positive as you make it sound at the beginning of Section 6. There is no pseudocode for the main part of the algorithm, a function called RigidSynth. This makes one wonder how complex it really is and, more worryingly, as a result, there is also no correctness proof and no complexity analysis.
+
+In the abstract it is mentioned that the 'implementation infers lenses for all benchmark programs in an average of 283 milliseconds'. This means absolutely nothing without context, and I think the abstract should be independent to some extent.
+Even when the results are discussed in detail in Section 7 I am still not sure if this figure means much. Of the 25 benchmarks, there 20 that take 20 ms or less, but then there is one that takes 2310 ms and one that takes 4190 ms.
+
+It would be nicer if runtimes were compared with other programs. For example, the related work section mentions FlashFill as 'one of the most prominent recent string transformation systems', so since part of the benchmarks are adapted from FlashFill benchmarks, it would have been interesting to compare the performance here.
+The authors also say that 'there are many other recent results showing how to synthesize functions from type-based specifications' and that they 'found we needed new techniques to manage the multidimensional search space generated by regular expression equivalences and other aspects of lens combinator languages'. I am missing either an experimental comparison with these other results or a more detailed explanation of why they would not be applicable to their problem.
+
+===========================================================================
+                           PLDI '17 Review #147C
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: X. Expert
+                      Overall merit: A. Good paper, I will champion it
+
+                           ===== Strengths =====
+
++ Interesting problem statement
++ Novel solution method
+
+                          ===== Weaknesses =====
+
+- Experimental results can be improved
+
+                      ===== Comments to authors =====
+
+Summary:
+
+The paper gives a method to synthesize bijective string transformations between two different data formats. The method's inputs include specifications for the two formats in the form of regular expressions (types), as well as an optional set of input-output examples. Given these inputs, type-directed synthesis is used to produce a program that uses lenses: programming abstractions that allow the specification of two directions of a bidirectional transformation in the form of a single expression.
+
+The main technical idea is the use of a DNF syntax for regular expression types as well as lenses. Each iteration of the algorithm tries using a syntax-directed search to find a lens that matches a pair of disjuncts in the source and destination types. If this fails, then loops in one or both types is unrolled, and a matching is attempted again. 
+
+
+Evaluation:
+
+* The problem statement is appealing. Bidirectional programming has many applications, and this particular problem (generating a bidirectional mapping between two regular languages) hasn't been studied before, so far as I know. The lens abstraction is a natural choice for this kind of synthesis, and is an example of how high-level programming abstractions can benefit synthesis.
+
+* The experimental section could be stronger. I understand that comparisons with other tools is not feasible in this setting, as there aren't any other tools that are solving this specific variety of synthesis. However, you could do some internal comparisons, for various values of the design decisions.
+
+* The discussion of related work can be improved. It is true that there aren't other approaches that are solving the same exact problem. However, some aspects of your synthesis are shared with other approaches. For example, the idea of a cost-guided, type-directed enumerative search also appears in [11]. In general, it would be good to understand the specific techncial differences from other type-directed synthesis approaches.
+
+===========================================================================
+                           PLDI '17 Review #147D
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: X. Expert
+                      Overall merit: C. Weak paper, though I will not fight
+                                        strongly against it
+
+                           ===== Strengths =====
+
+The paper tackles an important and clear problem: automatically synthesizing invertible programs.
+
+The proposed approach -- DNF transformation and rewriting -- is interesting
+
+                          ===== Weaknesses =====
+
+The algorithmic contributions (particularly, type-directedness) are often unclear
+
+The experimental evaluation is limited and does not back the claimed contributions
+
+                      ===== Comments to authors =====
+
+--Summary---
+
+This paper addresses the problem of synthesizing string transductions between strings from two languages defined as regular expressions. The transductions are supposed to be invertible -- i.e., bijective functions -- enabling going back and forth between, say, different data representations.
+
+The proposed approach is type-directed, in the sense that it ensures that it finds a well typed function based on a lens type system, which ensures that well typed functions are bijective. As input, the user is expected to supply examples (source and target strings) and regular expressions defining the two languages. The approach proceeds by converting the regular expressions into a disjunctive normal form, and then trying to match the two regular expressions of the two languages so as to find a transformation. If no transformation is found, the regular expressions are rewritten by, for example, unrolling iteration.
+
+The approach is implemented and evaluated on 17 benchmarks; most benchmarks finish in less than a second.
+
+--Evaluation--
+
+Overall the paper addresses an important and interesting problem. My primary concern with the paper is while the technical development is somewhat thorough, the experimental evaluation does not back the claims made. The second issue has to do with the algorithmic details and their exposition.
+
+a. The algorithm is claimed to be "type-directed". It is unclear where the type-directness is in the search procedure. It is true that the final result is well typed, but how is type information used in guiding/pruning the search space. The function RigidSynth (which is the more interesting one, in my opinion) is described informally and I think it needs a formal treatment, since most of the work happens there.
+
+b. Converting a regular expression to DNF may incur an exponential explosion (as it is akin to determinizing an NFM). Have you encountered examples where that is the case? Please state this shortcoming.
+
+c. Have you considered using a SAT/SMT solver to search the space of permutations?
+
+d. In the evaluation, it is unclear to me what the baseline is. That is, while the paper presents a number of tricks, it is unclear whether they are necessary. For example, would a blind enumerative search finish in less than a second for the small benchmarks?
+
+e. Similar to (a), what is the effect of type-directedness on the experimental results?
+
+f. The motivation for converting to DNF is that otherwise it has to guess an arbitrary regular expression to deal with composition. Have you tried doing that? While the space is infinite, it can be enumerated systematically and fairly.
+
+g. The fact that the avg # of examples is often 0 seems to indicate that the benchmarks are simple. This is perhaps because the language is very restricted; i.e., there are no user-defined lenses, only the core ones. Could you comment on that?
+
+--Details--
+
+Please provide a simple Boomerang program and walk through it early on in the paper. This would clarify the goal; right now, typing judgements appear before an example program. 
+
+Page 2 first column: At the bottom you say "Clearly, this approach is not going to get us far". I didn't understand why.
+
+Page 5 first column: The paragraphs from "We have shown that two properties are sufficient..." seem out of place here. The information there is also very dense.
+
+Page 5 second column: "There is no lens that goes between...." why is there no lens?
+
+Page 5 second column: "where EndNote'" -> "while EndNote'"
+
+===========================================================================
+                           PLDI '17 Review #147E
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: X. Expert
+                      Overall merit: C. Weak paper, though I will not fight
+                                        strongly against it
+
+                           ===== Strengths =====
+
+An important problem for learning bidirectional transformations from one format to another
+
+The algorithm seems to work efficiently without needing many examples
+
+                          ===== Weaknesses =====
+
+The audience for the users of this system is not very well motivated
+
+The challenges in both users writing bidirectional transformations and for system to automatically learn are not clear
+
+                      ===== Comments to authors =====
+
+This paper presents a technique for synthesizing bidirectional bijective lenses for transformations data from one format to another. The system takes as input two regular expressions describing the source and target data formats, and a (optional) set of concrete examples, and it then learns a well-typed Boomerang program that performs the desired bidirectional data transformation. The key idea of the technique is to design a DNF based representation of regular expressions that allows for efficient structural matching of regular expressions. The DNF representation also allows for omitting compositions that helps prune the space of regular expression compositions. A type-directed synthesis algorithm is presented that uses a priority queue to prioritize matching of candidate source/target DNF sub-expressions (based on a heuristic score). The system is evaluated on 25 string transformation tasks taken from Augeas and FlashFill systems.
+
+I have two main concerns with the presented technique. First, the paper doesn’t articulate why this problem is challenging more explicitly and concretely, and second the application itself is not very well motivated.
+
+The current presentation doesn’t explain what are the difficult challenges for this problem. Given the source and target regular expressions, and especially with the strongly unambiguous constraint, it seems a simple enumerative search should work well. I was wondering if the authors tried simpler enumerative solvers baselines for this problem?
+
+The second big concern is that it was not obvious who is the target audience for this system. If we are expecting a user to provide the regular expressions for source and target formats, why can’t they also write the transformation as well? Can the authors provide the Boomerang program for the Bibtex example and explain why it would be challenging for a user to write this Boomerang program if they can write regular expressions for the two formats. 
+
+For the Bibtex to EndNote transformation example, the paper presents an algorithmic way to align the regular expressions to find corresponding permutations of sub-expressions to match different fields. Why can’t the user provide regular expressions in first place that are aligned? For example, there is an epsilon in the Bibtex regular expression, but there is no epsilon in the EndNote format. Wouldn’t it be a more clear and a better specification on user’s part to write a regular expression where EndNode format also has an epsilon with an Or in front. For finding permutations as well, it isn’t clear why can’t the user simply annotate or label different fields using some user interface, rather than the algorithm having to search over different matching of sub-expressions.
+
+Is there a restriction that the user-provided regular expressions need to parse the source and target formats unambiguously? For example, if a user provides the regular expression for a format as Name* Name *, and the input is John Conway, would the system disallow such user inputs? 
+
+The writing of the technical sections of the paper needs a lot of improvement. It would be good to provide a few more examples especially in the sections on Definitional Equivalence and rewriting, DNF regular expressions, and Synthesis section (Section 6) to clarify the key ideas. 
+
+The synthesis algorithm section presents several heuristics to assign scores and pseudometric scores to a pair of DNF regular expressions. How were these heuristics chosen? What is the effect of these heuristics on the benchmark problems? What is the time complexity of the synthesis algorithm?
+
+In the evaluation section, the paper should present more details about the benchmarks. Without more information about the benchmark tasks, it is hard to measure the difficulty of these tasks and understand the challenges in learning the bijective transformations for them. It would also be good to present some baseline results using enumerative or other type-based synthesis techniques, and also experiments for the motivation for different algorithmic choices taken in the paper.
+
+I think a lot of questions above can be answered by using more examples in the paper that clearly explain the challenges users face while writing Boomerang transformations, and the need for different choices for regular expression representation and the synthesis algorithm.
+
+===========================================================================
+                           PLDI '17 Review #147F
+---------------------------------------------------------------------------
+                 Paper #147: Synthesizing Bijective Lenses
+---------------------------------------------------------------------------
+
+                 Reviewer expertise: X. Expert
+                      Overall merit: C. Weak paper, though I will not fight
+                                        strongly against it
+
+                           ===== Strengths =====
+
+- well-written paper, easy to follow
+
+                          ===== Weaknesses =====
+
+- problem lacks motivation
+- weak experiment results
+
+                      ===== Comments to authors =====
+
+This paper presents a new tool for automatically generating translation programs from one data representation to another. The authors formulated this problem as finding a lens program that is bijective: one that can transform input data format, and vice versa. To use the tool, users first describe the input and output data formats using regular expressions, along with a concrete input/output examples. The proposed tool then solves the problem using program synthesis, essentially by formulating the problem as a type synthesis that searches for typing rules that will make the lens program typecheck. For evaluation, the authors evaluated the proposed tool using a number of benchmark programs from Augeas and FlashFill, along with a few manually constructed examples. The results show that the proposed tool can synthesize the required lens program within seconds (and milliseconds for most of the examples).
+
+Overall, I find the paper easy the read and follow. However, I have a number of concerns about the paper that make me unsure whether the present form is ready to be published in PLDI.
+
+- First, who are the intended users of the proposed tool? Are they end users who might not have technical knowledge about data transformation programs? Or are they technical users who are unfamiliar with lens programs? I initially thought the tool is intended for the first type of users, but as I read through the paper it seems apparent that the authors intend to target the second group, especially with the requirement that users need to provide a regular expression description of the input/output data format. The requirement to do so seems to be the weakest point of the paper, especially given that existing tools (such as FlashFill or Dataplay [1]) do not have such requirement. If the tool is indeed intended for users who are not familiar with lens programming, then can the authors justify why lens is the appropriate programming model for data transformation? Wouldn't it be easier to dump the input/output data into a common format (say CSV, spreadsheet, or JSON), and simply use FlashFill or TriFacta [2] to learn the desired transformation program rather than providing the ? I understand that it might be difficult for tools like FlashFill to learn nested constructs (given its relational data model), but to me that doesn't quite justify the need for providing regular expressions as part of the input.
+
+- Second, the evaluations seem weak.  The examples from FlashFill and are those that can already be synthesized using FlashFill by just providing input / output examples. Also, can the authors describe how complex are the regular expressions that users need to provide? Given that the same data format can be described using different semantically equivalent expressions, how do they affect the effectiveness of the synthesis process?
+
+- Finally, the real world contains many erroneous / dirty data. What happens if the user provide the incorrect regular expression or inconsistent input / output examples? Can the authors describe what kind of examples were needed to achieve the efficient synthesis results? In light of the "Importance of Examples" subsection on p.11, it seems that choosing "clever" examples is one of the key requirement for the tool to succeed in synthesizing a valid program. In addition, is there some way for the tool to identify the error and perform iterative synthesis? Also, what happens if multiple lens program are found for a given input?
+
+[1] http://db.cs.yale.edu/dataplay/DB/DataPlay.html
+[2] https://www.trifacta.com/
