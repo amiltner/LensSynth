@@ -1,5 +1,6 @@
 open Core.Std
-open Datastructures
+open Util
+open String_utilities
 open Lang
 
 (***** The main RegexContext module {{{ *****)
@@ -17,25 +18,40 @@ module type RegexContext_Sig = sig
     val autogen_id               : t -> regex -> id
     val autogen_fresh_id         : t -> id
     val merge_contexts_exn       : t -> t -> t
+    val compare                  : t -> t -> comparison
+    val to_string                : t -> string
+    val hash                     : t -> int
 end
 
-module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
-    type t = (id, (regex*bool)) Dict.t
+module RegexContext : RegexContext_Sig = struct
+  module D = Dict.Make(
+    struct
+      type key = id
+      type value = regex * bool
+      let compare_key = comparison_compare
+      let compare_value = pair_compare regex_compare comparison_compare
+      let key_to_string = ident
+      let value_to_string = string_of_pair regex_to_string string_of_bool
+    end)
+    type t = D.dict
 
-    let empty = Dict.empty (=)
+    let empty = D.empty
 
     let lookup_everything (rc:t) (name:id) : (regex*bool) option =
-      Dict.find name rc
+      D.lookup rc name
 
     let lookup (rc:t) (name:id) : regex option =
       Option.map ~f:fst (lookup_everything rc name)
 
     let lookup_exn (rc:t) (name:id) : regex =
-      fst (Dict.find_exn name rc)
+      begin match lookup rc name with
+        | None -> failwith "lookup_exn: key not found"
+        | Some v -> v
+      end
 
     let insert_exn (rc:t) (name:id) (r:regex) (is_abstract:bool) : t =
       begin match lookup_everything rc name with
-        | None -> Dict.set name (r,is_abstract) rc
+        | None -> D.insert rc name (r,is_abstract)
         | Some ra ->
             if ra = (r,is_abstract) then
               rc
@@ -56,7 +72,7 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
       let base = regex_to_string r in
       let rec fresh n =
         let x = Printf.sprintf "%s%d" base n in
-        begin match Dict.find x rc with
+        begin match D.lookup rc x with
           | Some (r',false) ->
             if r = r' then
               x
@@ -72,7 +88,7 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
       let base = "r" in
       let rec fresh n =
         let x = Printf.sprintf "%s%d" base n in
-        begin match Dict.find x rc with
+        begin match D.lookup rc x with
           | Some _ -> fresh (n+1)
           | _ -> x
         end
@@ -90,10 +106,25 @@ module RegexContext_Struct (Dict : Dictionary) : RegexContext_Sig = struct
       end
 
     let merge_contexts_exn (rc1:t) (rc2:t) : t =
-      let rc2_list = Dict.as_kvp_list rc2 in
+      let rc2_list = D.as_kvp_list rc2 in
       insert_list_exn rc1 (List.map ~f:(fun (n,(r,b)) -> (n,r,b)) rc2_list)
-end
 
-module RegexContext = RegexContext_Struct(ListDictionary)
+    let compare (rc1:t) (rc2:t) : comparison =
+      D.compare rc1 rc2
+
+    let to_string : t -> string = D.to_string
+
+    let hash (rc:t) : int =
+      let kvp_list = D.as_kvp_list rc in
+      List.foldi
+        ~f:(fun i acc (id,(r,abs)) ->
+            (regex_hash r)
+            lxor (Bool.hash abs)
+            lxor (String.hash id)
+            lxor (Int.hash i)
+            lxor acc)
+        ~init:(-25389029)
+        kvp_list
+end
 
 (***** }}} *****)

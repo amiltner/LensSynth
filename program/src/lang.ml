@@ -1,4 +1,5 @@
 open Core.Std
+open Util
 open Printf
 open String_utilities
 open Permutation
@@ -73,6 +74,18 @@ let rec regex_to_string (r:regex) : string =
   | RegExVariable s -> s
   end
 
+let regex_compare : regex -> regex -> comparison =
+  comparison_compare
+
+let rec regex_hash (r:regex) : int =
+  begin match r with
+    | RegExEmpty -> 234789
+    | RegExBase s -> 2390384 lxor (String.hash s)
+    | RegExConcat (r1,r2) -> 345890 lxor (regex_hash r1) lxor (regex_hash r2)
+    | RegExOr (r1,r2) -> 527039 lxor (regex_hash r1) lxor (regex_hash r2)
+    | RegExStar r' -> -128947 lxor (regex_hash r')
+    | RegExVariable s -> 14967827 lxor (String.hash s)
+  end
 (***** }}} *****)
 
 
@@ -125,10 +138,59 @@ let rec lens_to_string (l:lens) : string =
   | LensInverse l' -> "inverse(" ^ (lens_to_string l') ^ ")"
   | LensVariable n -> n
   | LensPermute (p,ls) -> "permute" ^
-                          ((String_utilities.string_of_double
+                          ((String_utilities.string_of_pair
                               Permutation.pp
                               (String_utilities.string_of_list lens_to_string))
                              (p,ls))
+  end
+
+let rec lens_size (l:lens) : int =
+  begin match l with
+    | LensConst _ -> 1
+    | LensConcat (l1,l2) ->
+      1 + (lens_size l1) + (lens_size l2)
+    | LensCompose (l1,l2) ->
+      1 + (lens_size l1) + (lens_size l2)
+    | LensSwap (l1,l2) ->
+      1 + (lens_size l1) + (lens_size l2)
+    | LensUnion (l1,l2) ->
+      1 + (lens_size l1) + (lens_size l2)
+    | LensIterate (l') ->
+      1 + (lens_size l')
+    | LensIdentity _ -> 1
+    | LensInverse l' ->
+      1 + (lens_size l')
+    | LensVariable _ -> 1
+    | LensPermute (_,ls) ->
+      1 + (List.fold_left
+             ~f:(fun acc l' -> acc + (lens_size l'))
+             ~init:0
+             ls)
+  end
+
+let lens_compare : lens -> lens -> comparison = comparison_compare
+
+let rec lens_hash (l:lens) : int =
+  begin match l with
+    | LensConst (s1,s2) -> 58129320 lxor (String.hash s1) lxor (String.hash s2)
+    | LensConcat (l1,l2) -> 912812382 lxor (lens_hash l1) lxor (lens_hash l2)
+    | LensSwap (l1,l2) -> -12899379 lxor (lens_hash l1) lxor (lens_hash l2)
+    | LensUnion (l1,l2) -> 18912899 lxor (lens_hash l1) lxor (lens_hash l2)
+    | LensCompose (l1,l2) -> -019092 lxor (lens_hash l1) lxor (lens_hash l2)
+    | LensIterate l' -> 212893489 lxor (lens_hash l')
+    | LensIdentity r -> 3828910 lxor (regex_hash r)
+    | LensInverse l -> 20920910 lxor (lens_hash l)
+    | LensVariable s -> 28945929 lxor (String.hash s)
+    | LensPermute (p,ls) ->
+      1390903
+      lxor (Permutation.hash p)
+      lxor (List.foldi
+              ~f:(fun i acc l ->
+                  (lens_hash l)
+                  lxor (Int.hash i)
+                  lxor acc)
+              ~init:1237662)
+        ls
   end
 
 (***** }}} *****)

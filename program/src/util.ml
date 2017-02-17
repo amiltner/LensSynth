@@ -1,5 +1,9 @@
 open Core.Std
 
+let random_char () =
+  let random_int = Random.int 256 in
+  Char.of_int_exn random_int
+
 let (%) (f:'b -> 'c) (g:'a -> 'b) : 'a -> 'c =
   Fn.compose f g
 
@@ -7,6 +11,12 @@ type comparison =
     EQ
   | LT
   | GT
+
+type partial_order_comparison =
+    PO_EQ
+  | PO_LT
+  | PO_GT
+  | PO_INCOMPARABLE
 
 let int_to_comparison (n:int) : comparison =
   if n = 0 then
@@ -23,13 +33,23 @@ let comparison_to_int (c:comparison) : int =
   | GT -> 1
   end
 
+let comparison_to_bool (c:comparison) : bool =
+  begin match c with
+    | EQ -> true
+    | _ -> false
+  end
+
 let comparer_to_int_comparer (f:'a -> 'a -> comparison) (x:'a) (y:'a)
   : int =
     comparison_to_int (f x y)
 
 let int_comparer_to_comparer (f:'a -> 'a -> int) (x:'a) (y:'a)
   : comparison =
-    int_to_comparison (f x y)
+  int_to_comparison (f x y)
+
+let comparer_to_equality_check (f:'a -> 'a -> comparison) (x:'a) (y:'a)
+  : bool =
+  comparison_to_bool (f x y)
 
 let comparison_compare = fun x y -> int_to_comparison (compare x y)
 
@@ -77,7 +97,7 @@ let range (i:int) (j:int) : int list =
   let rec aux n acc =
     if n < i then acc else aux (n-1) (n::acc)
   in
-  aux j []
+  aux (j-1) []
 
 let distribute_option (l:('a option) list) : 'a list option =
   (List.fold_left
@@ -193,7 +213,7 @@ let bucketize_pairs (num_buckets:int) (data_position_pairs:('a * int) list) : ('
                                          else
                                            None)
                         data_position_pairs)
-    (range 0 (num_buckets-1))
+    (range 0 (num_buckets))
 
 let bucketize (f:'a -> int) (num_buckets:int) (l:'a list) : ('a list) list =
   let data_position_pairs = List.map
@@ -253,6 +273,40 @@ let primes_between (n:int) (m:int) : int list =
   List.filter
   ~f:is_prime
   (range n m)
+
+let rec partitions (n:int) (k:int) : int list list =
+  if n <= 0 || k <= 0 then
+    []
+  else if k = 1 then
+    [[n]]
+  else
+    List.fold_left ~f:(fun res i ->
+      List.append res @@ List.map ~f:(fun t -> i::t) (partitions (n-i) (k-1)))
+      ~init:[] (List.map ~f:((+) 1) (range 0 (n-k+1)))
+
+let double_partitions (n:int) : (int * int) list =
+  let list_split_partitions = partitions n 2 in
+  List.map
+    ~f:(fun pl ->
+        begin match pl with
+          | [f;s] -> (f,s)
+          | _ -> failwith "bug in double_partitions"
+        end)
+    list_split_partitions
+
+let triple_partitions (n:int) : (int * int * int) list =
+  let list_split_partitions = partitions n 3 in
+  List.map
+    ~f:(fun tl ->
+        begin match tl with
+          | [f;s;t] -> (f,s,t)
+          | _ -> failwith "bug in triple_partitions"
+        end)
+    list_split_partitions
+
+let sort ~(cmp:('a -> 'a -> comparison)) (l:'a list) : 'a list =
+  let int_comparer = comparer_to_int_comparer cmp in
+  List.sort ~cmp:int_comparer l
 
 let rec sort_and_partition (f:'a -> 'a -> comparison) (l:'a list) : 'a list list =
   let rec merge_sorted_partitions (l1:'a list list) (l2:'a list list) : 'a list list =
@@ -366,6 +420,111 @@ let rec dictionary_order (f:'a -> 'a -> comparison)
         | x -> x
         end
     end
+
+let option_compare
+    (value_compare:'a -> 'a -> comparison)
+    (xo:'a option)
+    (yo:'a option)
+  : comparison =
+  begin match (xo,yo) with
+    | (None, None) -> EQ
+    | (None, Some _) -> LT
+    | (Some _, None) -> GT
+    | (Some x, Some y) -> value_compare x y
+  end
+
+let either_compare
+    (left_compare:'a -> 'a -> comparison)
+    (right_compare:'a -> 'a -> comparison)
+    (xe:('a,'b) either)
+    (ye:('a,'b) either)
+  : comparison =
+  begin match (xe,ye) with
+    | (Left xl, Left yl) ->
+      left_compare xl yl
+    | (Left _, _) ->
+      LT
+    | (Right xr, Right yr) ->
+      right_compare xr yr
+    | (Right _, _) -> GT
+  end
+
+let pair_compare
+    (fst_compare:'a -> 'a -> comparison)
+    (snd_compare:'b -> 'b -> comparison)
+    ((x1,x2):('a * 'b))
+    ((y1,y2):('a * 'b))
+  : comparison =
+  begin match fst_compare x1 y1 with
+    | EQ ->
+      snd_compare x2 y2
+    | c -> c
+  end
+
+let triple_compare
+    (fst_compare:'a -> 'a -> comparison)
+    (snd_compare:'b -> 'b -> comparison)
+    (trd_compare:'c -> 'c -> comparison)
+    ((x1,x2,x3):('a * 'b * 'c))
+    ((y1,y2,y3):('a * 'b * 'c))
+  : comparison =
+  begin match fst_compare x1 y1 with
+    | EQ ->
+      begin match snd_compare x2 y2 with
+        | EQ ->
+          trd_compare x3 y3
+        | c -> c
+      end
+    | c -> c
+  end
+
+let quad_compare
+    (fst_compare:'a -> 'a -> comparison)
+    (snd_compare:'b -> 'b -> comparison)
+    (trd_compare:'c -> 'c -> comparison)
+    (rth_compare:'d -> 'd -> comparison)
+    ((x1,x2,x3,x4):('a * 'b * 'c * 'd))
+    ((y1,y2,y3,y4):('a * 'b * 'c * 'd))
+  : comparison =
+  begin match fst_compare x1 y1 with
+    | EQ ->
+      begin match snd_compare x2 y2 with
+        | EQ ->
+          begin match trd_compare x3 y3 with
+            | EQ -> rth_compare x4 y4
+            | c -> c
+          end
+        | c -> c
+      end
+    | c -> c
+  end
+
+let quint_compare
+    (fst_compare:'a -> 'a -> comparison)
+    (snd_compare:'b -> 'b -> comparison)
+    (trd_compare:'c -> 'c -> comparison)
+    (rth_compare:'d -> 'd -> comparison)
+    (fth_compare:'e -> 'e -> comparison)
+    ((x1,x2,x3,x4,x5):('a * 'b * 'c * 'd * 'e))
+    ((y1,y2,y3,y4,y5):('a * 'b * 'c * 'd * 'e))
+  : comparison =
+  begin match fst_compare x1 y1 with
+    | EQ ->
+      begin match snd_compare x2 y2 with
+        | EQ ->
+          begin match trd_compare x3 y3 with
+            | EQ ->
+              begin match rth_compare x4 y4 with
+                | EQ -> fth_compare x5 y5
+                | c -> c
+              end
+            | c -> c
+          end
+        | c -> c
+      end
+    | c -> c
+  end
+
 
 let partition_dictionary_order (f:'a -> 'a -> comparison)
   : 'a list list -> 'a list list -> comparison =
@@ -643,3 +802,41 @@ let string_to_char_list (s:string) : char list =
   let rec exp i l =
     if i < 0 then l else exp (i - 1) (s.[i] :: l) in
   exp (String.length s - 1) [];;
+
+let hash_pair
+    (fst_hash:'a -> int)
+    (snd_hash:'b -> int)
+    ((a,b):'a * 'b)
+  : int =
+  (fst_hash a) lxor (snd_hash b)
+
+let hash_triple
+    (fst_hash:'a -> int)
+    (snd_hash:'b -> int)
+    (trd_hash:'c -> int)
+    ((a,b,c):'a * 'b * 'c)
+  : int =
+  (fst_hash a) lxor (snd_hash b) lxor (trd_hash c)
+
+let hash_quadruple
+    (fst_hash:'a -> int)
+    (snd_hash:'b -> int)
+    (trd_hash:'c -> int)
+    (rth_hash:'d -> int)
+    ((a,b,c,d):'a * 'b * 'c * 'd)
+  : int =
+  (fst_hash a) lxor (snd_hash b) lxor (trd_hash c) lxor (rth_hash d)
+
+let hash_quintuple
+    (fst_hash:'a -> int)
+    (snd_hash:'b -> int)
+    (trd_hash:'c -> int)
+    (rth_hash:'d -> int)
+    (fth_hash:'e -> int)
+    ((a,b,c,d,e):'a * 'b * 'c * 'd * 'e)
+  : int =
+  (fst_hash a)
+  lxor (snd_hash b)
+  lxor (trd_hash c)
+  lxor (rth_hash d)
+  lxor (fth_hash e)

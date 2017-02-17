@@ -75,6 +75,8 @@ module type Permutation_Sig = sig
   val pp : t -> string
 
   val to_int_list : t -> int list
+
+  val hash : t -> int
 end
 
 module Permutation : Permutation_Sig = struct
@@ -172,7 +174,7 @@ module Permutation : Permutation_Sig = struct
         invalid_parts) then
     None
   else
-    let available_parts = range 0 (len - 1) in
+    let available_parts = range 0 len in
     let (used_partsl,used_partsr) = List.unzip required_parts in
     let (unused_partsl,unused_partsr) = List.fold_left
       ~f:(fun (l,r) x ->
@@ -202,7 +204,7 @@ module Permutation : Permutation_Sig = struct
     | l -> List.fold_left ~f:(fun acc x -> acc @ List.map ~f:(fun p -> x::p)
              (permutations (rm x l))) ~init:[] l
     in
-    permutations (range 0 (n-1))
+    permutations (range 0 n)
 
   let inverse (p:t) : t =
     let mapped_doubles =
@@ -280,7 +282,7 @@ module Permutation : Permutation_Sig = struct
           | _ -> acc
           end)
         ~init:None
-        (range 1 ((List.length l)-1)) in
+        (range 1 (List.length l)) in
       begin match valid_split with
       | None ->
           let (_,i) =
@@ -314,4 +316,14 @@ module Permutation : Permutation_Sig = struct
       end
 
   let to_int_list : t -> int list = inverse
+
+  let hash (p:t) : int =
+    let l = to_int_list p in
+    List.foldi
+      ~f:(fun i acc n ->
+          (Int.hash n)
+          lxor (Int.hash i)
+          lxor acc)
+      ~init:509223028
+      l
 end

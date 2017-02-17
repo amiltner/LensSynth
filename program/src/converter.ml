@@ -6,6 +6,7 @@ open Util
 open Normalized_lang
 open Regexcontext
 open Lenscontext
+open Consts
 
 
 let rec clean_exampledness_atom
@@ -119,11 +120,16 @@ let rec exampled_regex_to_exampled_dnf_regex (rc:RegexContext.t) (lc:LensContext
         (EAStar (exampled_regex_to_exampled_dnf_regex rc lc r',ill))
         ill
     | ERegExVariable (s,ss,ill) ->
-      let (rep_type,converter) = LensContext.shortest_path_to_rep_elt lc s in
-      let ss = List.map ~f:(lens_putr rc lc converter) ss in
-      exampled_atom_to_exampled_dnf_regex
-        (EAVariable (rep_type,s,converter,ss,ill))
-        ill
+      if !use_lens_context then
+        let (rep_type,converter) = LensContext.shortest_path_to_rep_elt lc s in
+        let ss = List.map ~f:(lens_putr rc lc converter) ss in
+        exampled_atom_to_exampled_dnf_regex
+          (EAVariable (rep_type,s,converter,ss,ill))
+          ill
+      else
+        exampled_atom_to_exampled_dnf_regex
+          (EAVariable (s,s,LensIdentity (RegExVariable s),ss,ill))
+          ill
   end
 
 let regex_to_exampled_dnf_regex

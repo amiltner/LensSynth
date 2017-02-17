@@ -70,5 +70,3 @@ and gen_element_of_atom
         ""
   end
 
-
-let _ = Random.self_init()

@@ -13,7 +13,7 @@ import time
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
 BASE_FLAGS = ["-iterativedeepenstrategy"]
-TIMEOUT_TIME = 60
+TIMEOUT_TIME = 8
 GENERATE_EXAMPLES_TIMEOUT_TIME = 6000
 
 REPETITION_COUNT = 2
@@ -34,121 +34,69 @@ def find_tests(root):
     return tests
 
 def gather_datum(prog, path, base, additional_flags, timeout):
-    #print([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)])
     process_output = EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout)
     return (process_output.stdout,process_output.stderr)
 
+
 def gather_data(rootlength, prog, path, base):
     current_data = {"Test":join(path, base).replace("_","-")[rootlength:]}
-    run_data = []
-    timeout = False
-    error = False
-    for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-time'],TIMEOUT_TIME)
-	if datum == "":
-            if err == "":
-		timeout = True
+
+    def gather_col(flags, run_combiner, col_name, timeout_time):
+        run_data = []
+        timeout = False
+        error = False
+        for iteration in range(REPETITION_COUNT):
+    	    (datum,err) = gather_datum(prog, path, base,flags,timeout_time)
+            if datum == "":
+                if err == "":
+                    timeout = True
+                else:
+                    error = True
+                    break
             else:
-                error = True
-	    break
-	else:
-	    run_data.append(datum.split(","))
-    if error:
-        current_data["ComputationTime"]="Error"
-    elif timeout:
-	current_data["ComputationTime"]="Timeout"
-    else:
-        run_data_transpose = transpose(run_data)
-	computation_time_col = [float(x) for x in run_data_transpose[0]]
+	            run_data.append(datum.split(","))
+            if error:
+                current_data[col_name]="Error"
+            elif timeout:
+	            current_data[col_name]="Timeout"
+            else:
+                run_data_transpose = transpose(run_data)
+                current_data[col_name]=run_combiner(run_data_transpose)
+
+    def ctime_combiner(run_data_transpose):
+        computation_time_col = [float(x) for x in run_data_transpose[0]]
         ans = sum(computation_time_col)/len(computation_time_col)
         ans = (int)(ans * 100)
         ans = ans * 10
-	current_data["ComputationTime"]=ans if ans != 0 else "$<10$"
-    generate_exs_run_data = []
-    timeout = False
-    error = False
-    for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-generatedexamples'],GENERATE_EXAMPLES_TIMEOUT_TIME)
-	if datum == "":
-            if err == "":
-		timeout = True
-            else:
-                error = True
-	    break
-	else:
-	    generate_exs_run_data.append(datum.split(","))
-    if error:
-        current_data["ExamplesRequired"]="Error"
-    elif timeout:
-	current_data["ExamplesRequired"]="Timeout"
-    else:
-        generate_exs_run_data_transpose = transpose(generate_exs_run_data)
-	example_number_col = [float(x) for x in generate_exs_run_data_transpose[0]]
-	current_data["ExamplesRequired"]="{:.1f}".format(sum(example_number_col)/len(example_number_col))
-    expanded_run_data = []
-    timeout = False
-    error = False
-    for iteration in range(REPETITION_COUNT):
-    	(datum,err) = gather_datum(prog, path, base,['-forceexpand','-time'],TIMEOUT_TIME)
-	if datum == "":
-            if err == "":
-		timeout = True
-            else:
-                print("there was an error")
-                error = True
-	    break
-	else:
-	    expanded_run_data.append(datum.split(","))
-    if error:
-        current_data["ForceExpandTime"]="Error"
-    elif timeout:
-	current_data["ForceExpandTime"]="Timeout"
-    else:
-        expanded_run_data_transpose = transpose(expanded_run_data)
-	expanded_computation_time_col = [float(x) for x in expanded_run_data_transpose[0]]
-	current_data["ForceExpandTime"]="{:.5f}".format(sum(expanded_computation_time_col)/len(expanded_computation_time_col))
-    max_ex_run_data = []
-    timeout = False
-    error = False
-    (datum,err) = gather_datum(prog, path, base,['-max_to_specify'],TIMEOUT_TIME)
-    if datum == "":
-        if err == "":
-	    timeout = True
-        else:
-            print(err)
-            print("there was an error")
-            error = True
-    else:
-	max_ex_run_data=int(datum)
-    if error:
-        current_data["MaxExampleCount"]="Error"
-    elif timeout:
-	current_data["MaxExampleCount"]="Timeout"
-    else:
-	current_data["MaxExampleCount"]=max_ex_run_data
-    spec_size_run_data = []
-    timeout = False
-    error = False
-    (datum,err) = gather_datum(prog, path, base,['-spec_size'],TIMEOUT_TIME)
-    if datum == "":
-        if err == "":
-	    timeout = True
-        else:
-            print(err)
-            print("there was an error")
-            error = True
-    else:
-	spec_size_run_data=int(datum)
-    if error:
-        current_data["SpecSize"]="Error"
-    elif timeout:
-	current_data["SpecSize"]="Timeout"
-    else:
-	current_data["SpecSize"]=spec_size_run_data
+        return ans if ans != 0 else "$<10$"
+
+    def exs_reqd_combiner(run_data_transpose):
+	    example_number_col = [float(x) for x in run_data_transpose[0]]
+	    return "{:.1f}".format(sum(example_number_col)/len(example_number_col))
+
+    def max_exs_reqd_combiner(run_data_transpose):
+	    example_number_col = [float(x) for x in run_data_transpose[0]]
+	    return int(sum(example_number_col)/len(example_number_col))
+
+    def specsize_combiner(run_data_transpose):
+	    example_number_col = [float(x) for x in run_data_transpose[0]]
+	    return int(sum(example_number_col)/len(example_number_col))
+
+
+    gather_col(['-time'],ctime_combiner,"ComputationTime",TIMEOUT_TIME)
+    gather_col(['-forceexpand','-time'],ctime_combiner,"ForceExpandTime",TIMEOUT_TIME)
+    gather_col(['-naive_strategy','-time'],ctime_combiner,"NaiveStrategy",TIMEOUT_TIME)
+    gather_col(['-naive_pqueue','-time'],ctime_combiner,"NaivePQueue",TIMEOUT_TIME)
+    gather_col(['-no_short_circuit','-time'],ctime_combiner,"NoShortCircuit",TIMEOUT_TIME)
+    gather_col(['-no_lens_context','-time'],ctime_combiner,"NoLensContext",TIMEOUT_TIME)
+    gather_col(['-generatedexamples'],exs_reqd_combiner,"ExamplesRequired",TIMEOUT_TIME)
+    gather_col(['-max_to_specify'],max_exs_reqd_combiner,"MaxExampleCount",TIMEOUT_TIME)
+    gather_col(['-spec_size'],max_exs_reqd_combiner,"SpecSize",TIMEOUT_TIME)
+
     return current_data
 
 def specsize_compare(x,y):
-    return x["SpecSize"]-y["SpecSize"]
+    return int(x["SpecSize"])-int(y["SpecSize"])
 
 def sort_data(data):
     return sorted(data,cmp=specsize_compare)
@@ -186,8 +134,8 @@ def main(args):
             print_usage(args)
         elif os.path.exists(path) and os.path.isdir(path):
             for path, base in find_tests(path):
-		print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
-		current_data = gather_data(rootlength,prog, path, base)
+                print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
+                current_data = gather_data(rootlength,prog, path, base)
                 data.append(current_data)
             data = sort_data(data)
 	    print_data(data)

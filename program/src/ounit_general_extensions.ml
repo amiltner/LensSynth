@@ -33,12 +33,18 @@ let assert_not_equal_int (expected_not:int) (actual:int) =
 
 let assert_int_equal = assert_equal ~printer:string_of_int
 
+let assert_float_equal = assert_equal ~printer:Float.to_string
+
 let assert_int_option_equal =
   assert_equal
     ~printer:(fun int_option -> begin match int_option with
     | None -> "None"
     | Some x -> string_of_int x
-    end)
+      end)
+
+let assert_float_option_equal =
+  assert_equal
+    ~printer:(string_of_option Float.to_string)
 
 let assert_string_double_option_equal
   (expected:(string*string) option) (actual:(string*string) option) =

@@ -17,6 +17,8 @@ open Normalized_lang
 open Regex_utilities
 open Language_equivalences
 
+let _ = Random.self_init
+
 exception Arg_exception
 
 type driver_mode =
@@ -74,6 +76,22 @@ let args =
   ; ( "-spec_size"
     , Arg.Unit (fun _ -> set_opt SpecSize)
     , " Set to calculate the size of the user input specification size"
+    )
+  ; ( "-naive_strategy"
+    , Arg.Unit (fun _ -> naive_strategy := true)
+    , " Set to use a naive synthesis strategy"
+    )
+  ; ( "-naive_pqueue"
+    , Arg.Unit (fun _ -> naive_pqueue := true)
+    , " Set to use a naive priority queue"
+    )
+  ; ( "-no_short_circuit"
+    , Arg.Unit (fun _ -> short_circuit := false)
+    , " Short circuit when distance is 0"
+    )
+  ; ( "-no_lens_context"
+    , Arg.Unit (fun _ -> use_lens_context := false)
+    , " Short circuit when distance is 0"
     )
   ]
   |> Arg.align

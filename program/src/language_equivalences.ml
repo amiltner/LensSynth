@@ -55,7 +55,7 @@ and dnf_regex_to_regex (r:dnf_regex) : regex =
 
 
 type queue_element =
-  | QERegexCombo of regex * regex * int
+  | QERegexCombo of regex * regex * float * int
   | QEGenerator of (unit -> ((queue_element * float) list))
 
 

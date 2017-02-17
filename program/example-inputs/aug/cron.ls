@@ -40,6 +40,4 @@ typedef ENTRY_DICT = "{\"indent\"=\"" INDENT "\"," PREFIX_DICT "," (TIME_DICT | 
 typedef SHELL_DICT = "{\"varname\"=\"" SHELLVAR_NAME "\",\"value\"=\"" SHELLVALUE_NAME "\"}";;
 typedef CRON_DICT = ((EMPTYDICT | SHELL_DICT | COMMENT_DICT | ENTRY_DICT) "\n")*;;
 
-time_lens = [TIME_DICT <=> TIME {}]
-entry_lens = [ENTRY_DICT <=> ENTRY {}]
 cron_lens = [CRON_DICT <=> CRON {}]

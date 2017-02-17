@@ -1,24 +1,47 @@
 open Core.Std
-open Datastructures
+open Util
+open String_utilities
 
 (***** The main RegexContext module {{{ *****)
 
-module type DisjointSet_Sig = sig
-    type 'a t
-
-    val empty                    : ('a -> 'a -> bool) -> 'a t
-    val find_representative      : 'a t -> 'a -> 'a
-    val union_elements           : 'a t -> 'a -> 'a -> 'a t
-    val create_from_equivalences : ('a -> 'a -> bool) -> ('a * 'a) list -> 'a t
+module type DISJOINTSET =
+sig
+  type set
+  type elt
+    
+  val empty                    : set
+  val find_representative      : set -> elt -> elt
+  val union_elements           : set -> elt -> elt -> set
+  val create_from_equivalences : (elt * elt) list -> set
 end
 
-module DisjointSet_Struct (Dict : Dictionary) : DisjointSet_Sig = struct
-  type 'a t = ('a, 'a ref) Dict.t
+module type DISJOINTSET_ARG =
+sig
+  type elt
+  val compare_elt : elt -> elt -> comparison
+  val elt_to_string : elt -> string
+end
 
-  let empty comparer = Dict.empty comparer
+module DictDisjointSet (DA : DISJOINTSET_ARG)
+  : (DISJOINTSET with type elt = DA.elt) =
+struct
+  module D = Dict.Make(
+    struct
+      type key = DA.elt
+      type value = DA.elt ref
+      let compare_key = DA.compare_elt
+      let compare_value = comparison_compare
+      let key_to_string = DA.elt_to_string
+      let value_to_string = (string_of_ref DA.elt_to_string)
+    end)
 
-  let rec find_representative (ds:'a t) (e:'a) : 'a =
-    begin match Dict.find e ds with
+  type set = D.dict
+  type elt = DA.elt
+
+  let empty = D.empty
+
+  let rec find_representative (ds:set) (e:'a) : 'a =
+    begin match D.lookup ds e with
       | None -> e
       | Some pref ->
         let rep = find_representative ds !pref in
@@ -26,23 +49,24 @@ module DisjointSet_Struct (Dict : Dictionary) : DisjointSet_Sig = struct
         rep
     end
 
-  let union_elements (ds:'a t) (e1:'a) (e2:'a) : 'a t =
+  let union_elements (ds:set) (e1:elt) (e2:elt) : set =
     let e1rep = find_representative ds e1 in
     let e2rep = find_representative ds e2 in
     if (e1rep = e2rep) then
       ds
     else
-      Dict.set e1rep (ref e2rep) ds
+      D.insert ds e1rep (ref e2rep)
 
-  let create_from_equivalences (comparer:'a -> 'a -> bool)
-      (equivs:('a * 'a) list) : 'a t =
+  let create_from_equivalences
+      (equivs:(elt * elt) list) : set =
     List.fold_left
       ~f:(fun acc (e1,e2) ->
           union_elements acc e1 e2)
-      ~init:(empty (comparer))
+      ~init:(empty)
       equivs
 end
 
-module DisjointSet = DisjointSet_Struct(ListDictionary)
+module Make (D:DISJOINTSET_ARG) : (DISJOINTSET with type elt = D.elt) =
+  DictDisjointSet(D)
 
 (***** }}} *****)
