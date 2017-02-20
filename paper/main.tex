@@ -110,8 +110,8 @@
                                   % (paid open-access papers, 
                                   % short abstracts)
 
-%\titlebanner{DRAFT---do not distribute}        % These are ignored unless
-%\preprintfooter{to appear in POPL '16}   % 'preprint' option specified.
+\titlebanner{DRAFT---do not distribute}        % These are ignored unless
+\preprintfooter{DRAFT---do not distribute}   % 'preprint' option specified.
 
 \title{Synthesizing Bijective Lenses
 \ifanon\vspace*{-2cm}\fi
@@ -2144,6 +2144,117 @@ This pseudometric prioritizes candidates with similar distributions
 because two DNF regular expressions must have the same distribution of
 user-defined regular expressions to have a rewriteless DNF lens
 between them.
+
+
+
+
+\section{DNF Regular Expression Orderings}
+While performing type directed synthesis on DNF Regular Expressions, both
+synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
+the generation of a permutation.  Naively searching through all possible
+permutations is incredibly inefficient.  If naively searching through all the
+rewriteless DNF Lenses between
+the DNF regular expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
+processed.
+
+Instead of searching through all possible permutations, a better approach is to
+recognize which subcomponents of the types can be mapped to each other, and
+create the permutations based on those mappings.  The approach taken for this is
+one of further normalization.  A DNF Lens is normalized through ordering its
+sequence subcomponents, and a sequence is normalized through ordering its atom
+subcomponents.  Through the correct choice of ordering, a rewriteless DNF lens
+can be synthesized between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
+$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
+lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.  Similarly, through
+the correct choice of ordering, a a rewriteless Sequence lens can be synthesized
+between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
+$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$ through
+finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for all $i$.
+
+However, doing these normalizations can change the semantics of the regular
+expressions.  To get around this, the alterations taken for normalization can be
+remembered, and applied in reverse to the DNF lens to retrieve a lens between
+the original DNF regular expressions.
+
+\begin{definition}[Dictionary Ordering]
+  Given an ordering $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$,
+  the dictionary ordering on lists of $A$s is represented as $\ListOf{\leq}$.
+\end{definition}
+
+\afm{There's some overloading of syntax here, where [] is used for Sequences,
+  but also it's used for lists.  \#1: should I explicitly describe that [] is
+  used for the syntax of lists.  \#2: should one of them be changed for clarity?
+  Maybe I can use $\{\}$ for DNFs, and $\langle \rangle$ for Sequences, and []
+  for lists?}
+
+\begin{definition}[Sorting of a List]
+  Let $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$ be an ordering,
+  and $\ListOf{a_1;\ldots;a_n}\in \ListTypeOf{A}$.
+  The permutation that sorts the list according to $\leq$,
+  $\SortingOf{\leq}{\ListOf{a_1;\ldots;a_n}}$ is defined as
+  $\sigma \in \PermutationSetOf{n}$,
+  where if $i\leq j$, then $a_{\sigma(i)} \leq a_{\sigma(j)}$.
+\end{definition}
+
+\begin{definition}[Orderings on DNF Regular Expressions]\leavevmode
+  \begin{enumerate}
+  \item
+    $\DNFOf{\Sequence_1;\ldots\Sequence_n}
+    \DNFLeq
+    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$
+    if\\
+    $\ListOf{\Sequence_1;\ldots;\Sequence_n}\hspace*{.5em}
+    \ListOf{\SequenceLeq}\hspace*{.5em}
+    \ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
+  
+  \item
+    $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}
+    \SequenceLeq
+    \SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_m;\StringAlt_m}$
+    if\\
+    $\ListOf{\Atom_1;\ldots;\Atom_n}\hspace*{.5em}
+    \ListOf{\AtomLeq}\hspace*{.5em}
+    \ListOf{\AtomAlt_1\ldots;\AtomAlt_m}$.
+
+  \item
+    $\StarOf{\DNFRegex} \AtomLeq \StarOf{\DNFRegexAlt}$ if
+    $\DNFRegex \DNFLeq \DNFRegexAlt$
+  \end{enumerate}
+\end{definition}
+
+This provides the machinery for the DNF regular expression to become
+\textit{normalized}.
+
+\begin{definition}[Normalization of DNF Regular Expressions]
+  \leavevmode
+  \begin{enumerate}
+  \item $\NormalizeOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}} =
+    \DNFOf{\NormalizeOf{\Sequence_{\sigma(1)}};\ldots;\NormalizeOf{\Sequence_{\sigma(n)}}}$,
+    where
+    $\sigma=\SortingOf{\SequenceLeq}
+    {\ListOf{\NormalizeOf{\Sequence_1};\ldots;\NormalizeOf{\Sequence_n}}}$
+  \item $\NormalizeOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}} =
+    \SequenceOf{\String_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\String_n}$,
+    where
+    $\sigma=\SortingOf{\AtomLeq}
+    {\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}$
+  \item $\NormalizeOf{\StarOf{\DNFRegex}}=\StarOf{\NormalizeOf{\DNFRegex}}$
+  \end{enumerate}
+\end{definition}
+
+\begin{theorem}
+  $\NormalizeOf{\DNFRegex}\DNFLeq\NormalizeOf{\DNFRegexAlt}$ and
+  $\NormalizeOf{\DNFRegexAlt}\DNFLeq\NormalizeOf{\DNFRegex}$
+  if, and only
+  if, there exists some
+  $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
+\end{theorem}
+
+\afm{So this shows a nice theorem, but it doesn't actually show the construction
+of the DNF lens from the normalized forms.  Should I actually show the
+construction, or is that not worth going into / clear enough from the
+description?}
 
 
 \paragraph*{\RigidSynth} 
