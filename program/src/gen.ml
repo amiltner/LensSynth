@@ -157,10 +157,12 @@ struct
       begin match PQ.pop queue with
         | None -> None
         | Some ((r1,r2,distance,expansions_performed),_,q) ->
-          (*print_endline "mytest";
-           print_endline (regex_to_string r1);
-           print_endline "\n\n";
-             print_endline (regex_to_string r2));*)
+          if !verbose then
+            (print_endline "popped";
+             print_endline ("r1: " ^ Pp.boom_pp_regex r1);
+             print_endline "\n\n";
+             print_endline ("r2: " ^ Pp.boom_pp_regex r2);
+             print_endline ("\n\n\n"));
           if requires_expansions lc r1 r2 then
             let required_expansions =
               expand_real_required_expansions
@@ -273,6 +275,8 @@ let gen_lens
     (r2:regex)
     (exs:examples)
   : lens option =
+  if !verbose then
+    print_endline "Synthesis Start";
   let rc_orig = rc in
   let (r1,r2,rc) =
     if !use_iterative_deepen_strategy then
@@ -295,6 +299,8 @@ let gen_lens
      else
        UDEF_DISTANCE_DNF_SYNTHESIZER.gen_lens rc lc r1 r2 exs)
   in
+  if !verbose then
+    print_endline "Synthesis End";
   Option.map
     ~f:(simplify_lens % (make_lens_safe_in_smaller_context rc_orig rc))
     lens_option

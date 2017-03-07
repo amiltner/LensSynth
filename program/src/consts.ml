@@ -12,3 +12,5 @@ let naive_strategy : bool ref = ref false
 let naive_pqueue : bool ref = ref false
 let short_circuit : bool ref = ref true
 let use_lens_context : bool ref = ref true
+
+let verbose : bool ref = ref false

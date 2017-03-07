@@ -93,6 +93,10 @@ let args =
     , Arg.Unit (fun _ -> use_lens_context := false)
     , " Short circuit when distance is 0"
     )
+  ; ( "-verbose"
+    , Arg.Unit (fun _ -> verbose := true)
+    , " Print out information about synthesis"
+    )
   ]
   |> Arg.align
 
