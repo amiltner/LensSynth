@@ -299,3 +299,33 @@ let gen_lens
     ~f:(simplify_lens % (make_lens_safe_in_smaller_context rc_orig rc))
     lens_option
   
+let rec kernel (r:regex) (rc:RegexContext.t) : regex * RegexContext.t = 
+	match r with
+	| RegExEmpty -> RegExEmpty, rc
+  | RegExBase s -> RegExBase s, rc
+  | RegExConcat (r1, r2) -> 
+		let r1, rc = kernel r1 rc in
+		let r2, rc = kernel r2 rc in
+		RegExConcat (r1, r2), rc
+  | RegExOr (r1, r2) -> 
+		let r1, rc = kernel r1 rc in
+    let r2, rc = kernel r2 rc in
+		RegExOr (r1, r2), rc
+  | RegExStar r -> 
+		let r, rc = kernel r rc in RegExStar r, rc
+  | RegExVariable s -> 
+		let r, rc = kernel (RegexContext.lookup_exn rc s) rc in
+		let rc = RegexContext.insert_exn ?kerneling:(Some true) rc s r false in
+		RegExVariable s, rc
+  | RegExPermute (l, sep) ->
+		let rec helper (l : regex list) (sep : regex) (rc:RegexContext.t) : 
+		regex * RegexContext.t = 
+			match l with
+			| [s] -> kernel s rc
+			| s :: tl -> 
+				let s, rc = kernel s rc in
+				let x, y = helper tl sep rc in
+				RegExConcat(RegExConcat(s, sep), x), y
+			| _ -> failwith "Empty Permute is Lame!"
+		in let sep, rc = kernel sep rc in helper l sep rc
+  | RegExMap (_, s) -> RegExBase s, rc

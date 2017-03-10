@@ -29,7 +29,7 @@ let run_declaration_with_callback
       else
         failwith (s ^ " does not match regex " ^ (regex_to_string r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
-      let lo = gen_lens rc lc r1 r2 exs in
+			let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
         | None -> failwith (n ^ " has no satisfying lens")
         | Some l ->
@@ -64,7 +64,9 @@ let run_declaration
       else
         failwith (s ^ " does not match regex " ^ (regex_to_string r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
-      let lo = gen_lens rc lc r1 r2 exs in
+      let r1', rc' = kernel r1 rc in
+      let r2', rc' = kernel r2 rc' in
+      let lo = gen_lens rc' lc r1' r2' exs in
       begin match lo with
         | None -> failwith (n ^ " has no satisfying lens")
         | Some l ->

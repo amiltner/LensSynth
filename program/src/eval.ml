@@ -16,6 +16,7 @@ let rec to_empty_exampled_regex (r:regex) : exampled_regex =
          [])
   | RegExStar r' -> ERegExStar (to_empty_exampled_regex r',[])
   | RegExVariable t -> ERegExVariable (t,[],[])
+	| _ -> failwith "TODO"
   end
 
 type data = string * exampled_regex *
@@ -186,6 +187,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
             [(new_end_ref,(s,er,rc,is,so))]) in
       inner_end_ref := (State new_inner_end_fun);
       (ref new_start_state,new_end_ref)
+		| _ -> failwith "TODO"
   end
 
 let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :

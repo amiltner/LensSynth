@@ -8,7 +8,9 @@ let reserved_words : (string * Parser.token) list =
   [ ("typedef", TYPEDEF)
   ; ("abstract", ABSTRACT)
   ; ("test", TEST)
-  ; ("matches", MATCHES) ]
+  ; ("matches", MATCHES)
+	; ("perm", PERM)
+  ; ("with", WITH) ]
 
 let symbols : (string * Parser.token) list =
   [ ("<=>", LEFTRIGHTFATARR)
@@ -29,6 +31,7 @@ let symbols : (string * Parser.token) list =
   ; ("[", LBRACKET)
   ; ("]", RBRACKET)
   ; (";", SEMI)
+	; ("->", ARROW)
   ]
 
 let create_token lexbuf =

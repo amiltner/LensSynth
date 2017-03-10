@@ -28,7 +28,8 @@ let rec make_regex_safe_in_smaller_context
           let r = RegexContext.lookup_exn rc_larger rn in
           make_regex_safe_in_smaller_context rc_smaller rc_larger r
         | Some _ -> r
-      end
+			end
+		| _ -> failwith "TODO"
   end
 
 
@@ -140,6 +141,7 @@ let size (r:regex) : int =
       | RegExOr (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
       | RegExStar r' -> 1 + (size_internal r')
       | RegExVariable _ -> 1
+			| _ -> failwith "TODO"
     end
   in
   size_internal r

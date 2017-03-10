@@ -19,6 +19,7 @@ let rec to_dnf_regex (r:regex) : dnf_regex =
   | RegExOr (r1, r2) -> (to_dnf_regex r1) @ (to_dnf_regex r2)
   | RegExStar (r') -> atom_to_dnf_regex (AStar (to_dnf_regex r'))
   | RegExVariable s -> atom_to_dnf_regex (AUserDefined s)
+	| _ -> failwith "TODO"
   end
 
 
