@@ -13,6 +13,8 @@ open Lang
 %token ABSTRACT   (* abstract *)
 %token TEST       (* test *)
 %token MATCHES    (* matches *)
+%token PERM       (* permutation *)
+%token WITH        (* separator *)
 
 %token LEFTRIGHTFATARR (* <=> *)
 %token LEFTRIGHTARR    (* <-> *)
@@ -32,6 +34,8 @@ open Lang
 %token LBRACKET   (* [ *)
 %token RBRACKET   (* ] *)
 %token SEMI       (* ; *)
+%token ARROW      (* -> *)
+
 %token EOF
 
 %start <Lang.program> program
@@ -70,23 +74,35 @@ regex:
   | r=regex_l0 { r }
 
 regex_l0:
-  | r1=regex_l1 PIPE r2=regex_l0 { RegExOr (r1,r2) }
-  | r=regex_l1 { r }
+    | PERM LPAREN l=regex_list RPAREN WITH r=regex_l0 { RegExPermute (l, r) }
+    | r = regex_l1 { r }
+
+regex_list:
+  | { [] }
+  | r=regex_l0 { [r] }
+  | r=regex_l0 COMMA l=regex_list { r :: l }
 
 regex_l1:
-  | r1=regex_l2 r2=regex_l1 { RegExConcat (r1,r2) }
-  | r=regex_l2 { r }
+  | r1=regex_l2 ARROW s=base { RegExMap (r1, s) }
+  | r = regex_l2 { r }
 
 regex_l2:
-  | r=regex_l2 STAR { RegExStar r }
-  | r=regex_l2 PLUS { RegExConcat(r, RegExStar r) }
+  | r1=regex_l3 PIPE r2=regex_l2 { RegExOr (r1,r2) }
   | r=regex_l3 { r }
 
 regex_l3:
-  | s=base { RegExBase s }
-  | LPAREN r=regex_l0 RPAREN { r }
-  | u=UID { RegExVariable u }
+  | r1=regex_l4 r2=regex_l3 { RegExConcat (r1,r2) }
+  | r=regex_l4 { r }
 
+regex_l4:
+  | r=regex_l4 STAR { RegExStar r }
+  | r=regex_l4 PLUS { RegExConcat(r, RegExStar r) }
+  | r=regex_l5 { r }
+
+regex_l5:
+  | s=base { RegExBase s }
+  | LPAREN r=regex_l1 RPAREN { r }
+  | u=UID { RegExVariable u }
 
 base:
   | s=str { s }

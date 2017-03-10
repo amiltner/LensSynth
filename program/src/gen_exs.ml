@@ -29,6 +29,7 @@ let rec gen_element_of_regex_language
     gen_element_of_regex_language c rex
   | RegExEmpty ->
     failwith "no elements of this language"
+	| _ -> failwith "TODO"
   end
 
 let rec gen_element_of_dnf_regex

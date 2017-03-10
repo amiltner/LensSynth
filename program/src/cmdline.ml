@@ -107,6 +107,10 @@ let expand_regexps (p:program) : program =
     | RegExVariable t ->
       let r' = RegexContext.lookup_exn c t in
       expand_regexp r' c
+		| RegExMap (r, s) -> RegExMap ((expand_regexp r c), s)
+		| RegExPermute (l, sep) -> 
+			let l = List.map ~f:(fun r -> expand_regexp r c) l in 
+			RegExPermute (l, expand_regexp sep c)
     end
   in
   let expand_regexps_decl (c:RegexContext.t)
@@ -289,6 +293,7 @@ let specification_size (p:program) : unit =
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
       end)
+		| _ -> failwith "TODO"
     end
   in
   let all_userdefs = (retrieve_transitive_userdefs r1) @

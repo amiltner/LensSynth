@@ -22,6 +22,7 @@ let rec true_max_size (c:RegexContext.t) (r:regex) : int =
       | None -> 1
       | Some r' -> true_max_size c r'
       end
+	| _ -> failwith "TODO"
   end
 
 
@@ -77,6 +78,7 @@ float =
           counters_r2,width1*.width2)
       | RegExStar r' ->
           (fst (calculate_userdef_distribution_internal r' (depth+1)),1.0)
+			| _ -> failwith "TODO"
       end
   in
   calculate_userdef_distribution_internal r 0
@@ -238,6 +240,7 @@ let expand_stars (transformation:regex -> regex) (r:regex) : regex list =
         (transformation r')::
         (List.map ~f:(fun r'' -> RegExStar r'') (expand_stars_internal r'))
     | RegExVariable _ -> []
+		| _ -> failwith "TODO"
     end
   in
   expand_stars_internal r
@@ -276,6 +279,7 @@ let rec expand_userdefs (c:RegexContext.t) (r:regex)
       | Some rex -> [rex]
       | None -> []
       end
+	| _ -> failwith "TODO"
   end
 
 module RegexSet = Comparison_set.Make(
@@ -329,6 +333,7 @@ let rec get_current_level_user_defined_rep_set
         (get_rep_userdef
            lc
            v)
+		| _ -> failwith "TODO"
   end
 
 let expanded_form_po_compare
@@ -367,6 +372,7 @@ let rec force_expand_userdef
       (RegExStar r'_expanded, r'_exps)
     | RegExBase _ -> (r,0)
     | RegExEmpty -> (r,0)
+		| _ -> failwith "TODO"
   end
 
 let rec expose_userdef
@@ -418,6 +424,7 @@ let rec expose_userdef
          r'_exposes)
     | RegExEmpty -> []
     | RegExBase _ -> []
+		| _ -> failwith "TODO"
   end
 
 let requires_expansions
@@ -462,6 +469,7 @@ let expand_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) 
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
       end)
+		| _ -> failwith "TODO"
     end
   in
   let rec expand_required_expansions (bad_userdefs:string list)
@@ -492,6 +500,7 @@ let expand_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) 
           end
         else
           (r,0)
+			| _ -> failwith "TODO"
     end
   in
 
@@ -601,6 +610,7 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
       end)
+		| _ -> failwith "TODO"
     end
   in
   let rec expand_required_expansions (bad_userdefs:string list)
@@ -635,6 +645,7 @@ let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex)
           end
         else
           Some r
+		| _ -> failwith "TODO"
     end
   in
 
@@ -665,6 +676,7 @@ let retrieve_userdefs (r:regex) : id list =
       | RegExStar r' -> retrieve_userdefs_internal r'
       | RegExVariable u -> [u]
       | RegExEmpty -> []
+			| _ -> failwith "TODO"
     end
   in
   List.dedup (retrieve_userdefs_internal r)
@@ -938,6 +950,7 @@ let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
       (RegExVariable regex_variable,context)
   | RegExVariable _ ->
       (r,RegexContext.empty)
+	| _ -> failwith "TODO"
   end
 
 (*let rec ordered_exampled_dnf_regex_to_regex
