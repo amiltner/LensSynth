@@ -29,8 +29,12 @@ let rec make_regex_safe_in_smaller_context
           make_regex_safe_in_smaller_context rc_smaller rc_larger r
         | Some _ -> r
 			end
-		| _ -> failwith "TODO"
-  end
+		| RegExMap (r, s) -> 
+			RegExMap(make_regex_safe_in_smaller_context rc_smaller rc_larger r, s)
+		| RegExPermute (l, sep) ->
+			let l = List.map l ~f:(fun r -> make_regex_safe_in_smaller_context rc_smaller rc_larger r) in
+			RegExPermute (l, make_regex_safe_in_smaller_context rc_smaller rc_larger sep)
+		  end
 
 
 
@@ -141,7 +145,9 @@ let size (r:regex) : int =
       | RegExOr (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
       | RegExStar r' -> 1 + (size_internal r')
       | RegExVariable _ -> 1
-			| _ -> failwith "TODO"
+			| RegExMap (r, _)-> 1 + (size_internal r)
+			| RegExPermute (l, sep) ->
+				(List.fold_left l ~init:0 ~f:(fun n r -> n + (size_internal r))) + (size_internal sep)
     end
   in
   size_internal r

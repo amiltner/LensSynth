@@ -89,7 +89,10 @@ let rec regex_hash (r: regex) : int =
 		| RegExOr (r1, r2) -> 527039 lxor (regex_hash r1) lxor (regex_hash r2)
 		| RegExStar r' -> -128947 lxor (regex_hash r')
 		| RegExVariable s -> 14967827 lxor (String.hash s)
-		| _ -> failwith "TODO"
+		| RegExMap (r, s) -> 5844726 lxor (regex_hash r) lxor (String.hash s)
+		| RegExPermute (l, sep) ->
+			let n = List.fold_left l ~init:(-5547231) ~f:(fun n r -> n lxor (regex_hash r)) in
+			n lxor (regex_hash sep)
 	end
 (***** }}} *****)
 

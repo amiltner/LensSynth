@@ -293,7 +293,10 @@ let specification_size (p:program) : unit =
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
       end)
-		| _ -> failwith "TODO"
+		| RegExMap (r, _) -> retrieve_transitive_userdefs r
+    | RegExPermute (l, sep) ->
+      (List.fold_left l ~init:[] ~f:(fun l r -> (retrieve_transitive_userdefs r) @ l)) @
+      (retrieve_transitive_userdefs sep)
     end
   in
   let all_userdefs = (retrieve_transitive_userdefs r1) @

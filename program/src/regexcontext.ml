@@ -9,9 +9,10 @@ module type RegexContext_Sig = sig
     type t
 
     val empty                    : t
+    val lookup_everything        : t -> id -> (regex * bool) option
     val lookup                   : t -> id -> regex option
     val lookup_exn               : t -> id -> regex
-    val insert_exn               : ?kerneling:bool -> t -> id -> regex -> bool -> t
+    val insert_exn               : ?quotient:bool -> t -> id -> regex -> bool -> t
     val insert_list_exn          : t -> (id * regex * bool) list -> t
     val create_from_list_exn     : (id * regex * bool) list -> t
     val lookup_for_expansion_exn : t -> id -> regex option
@@ -49,11 +50,11 @@ module RegexContext : RegexContext_Sig = struct
         | Some v -> v
       end
 
-    let insert_exn ?kerneling:(kerneling=false) (rc:t) (name:id) (r:regex) (is_abstract:bool) : t =
+    let insert_exn ?quotient:(quotient=false) (rc:t) (name:id) (r:regex) (is_abstract:bool) : t =
       begin match lookup_everything rc name with
         | None -> D.insert rc name (r,is_abstract)
         | Some ra ->
-					if not kerneling then
+					if not quotient then
             if ra = (r,is_abstract) then
               rc
             else

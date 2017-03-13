@@ -840,3 +840,15 @@ let hash_quintuple
   lxor (trd_hash c)
   lxor (rth_hash d)
   lxor (fth_hash e)
+		 
+let rec permutations (l : 'a list) : ('a list) list = 
+    let rec helper (a:'a) (l:'a list) (left:'a list) (acc:('a list) list) : ('a list) list = 
+        match l with
+        | [] -> (left @ [a]) :: acc
+        | x :: xs -> helper a xs (left @ [x]) ((left @ [a] @ l) :: acc)
+    in match l with
+    | [] -> [[]]
+    | x :: xs -> 
+        List.fold_left (permutations xs) ~init:[]
+                ~f:(fun xss xs -> (helper x xs [] []) @ xss)
+		
