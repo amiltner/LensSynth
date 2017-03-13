@@ -11,9 +11,10 @@ module type PRIORITY_QUEUE = sig
   val singleton : element -> queue
   val push : queue -> element -> queue
   val push_all : queue -> element list -> queue
-  val pop : queue -> (element * float * queue) option
-  val pop_exn : queue -> (element * float * queue)
-  val pop_until_min_pri_greater_than : queue -> float -> ((element * float) list * queue)
+  val pop : queue -> (element * int * queue) option
+  val pop_exn : queue -> (element * int * queue)
+  val pop_until_min_pri_greater_than : queue -> int -> ((element * int) list * queue)
+  val all_remaining : queue -> (element * int) list
   val length : queue -> int
   val compare : queue -> queue -> comparison
   val to_string : queue -> string
@@ -23,7 +24,7 @@ module type PRIORITY_QUEUE_ARG =
 sig
   type element
   val compare : element -> element -> comparison
-  val priority : element -> float
+  val priority : element -> int
   val to_string : element -> string
 end
 
@@ -33,12 +34,12 @@ struct
   module QueueHeap =
     Comparison_heap.Make(
     struct
-      type element = (P.element * float)
+      type element = (P.element * int)
       let compare =
         (fun (_,f1) (_,f2) ->
            int_to_comparison
-             (Float.compare f1 f2))
-      let to_string = (string_of_pair P.to_string Float.to_string)
+             (compare_int f1 f2))
+      let to_string = (string_of_pair P.to_string string_of_int)
     end)
 
   module PushedSet =
@@ -75,19 +76,22 @@ struct
   let singleton (e:element) : queue =
     from_list [e]
 
-  let pop ((h,s):queue) : ('a * float * queue) option =
+  let pop ((h,s):queue) : ('a * int * queue) option =
     Option.map ~f:(fun ((e,p),h') -> (e,p,(h',s))) (QueueHeap.pop h)
 
-  let pop_exn (q:queue) : 'a * float * queue =
+  let pop_exn (q:queue) : 'a * int * queue =
     begin match pop q with
       | None -> failwith "failure: pop_exn"
       | Some e -> e
     end
 
+  let all_remaining ((h,_):queue) : ('a * int) list =
+    QueueHeap.to_list h
+
   let rec pop_until_min_pri_greater_than
       (q:queue)
-      (f:float)
-    : (element * float) list * queue =
+      (f:int)
+    : (element * int) list * queue =
       begin match pop q with
         | None -> ([],q)
         | Some (e,f',q') ->

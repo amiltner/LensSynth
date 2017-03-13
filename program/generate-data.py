@@ -12,7 +12,7 @@ import time
 
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
-BASE_FLAGS = ["-iterativedeepenstrategy"]
+BASE_FLAGS = ['-iterativedeepenstrategy']
 TIMEOUT_TIME = 8
 GENERATE_EXAMPLES_TIMEOUT_TIME = 6000
 

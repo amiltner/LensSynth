@@ -7,6 +7,8 @@ let random_char () =
 let (%) (f:'b -> 'c) (g:'a -> 'b) : 'a -> 'c =
   Fn.compose f g
 
+type 'a continuation = 'a -> 'a
+
 type comparison =
     EQ
   | LT
@@ -53,8 +55,8 @@ let comparer_to_equality_check (f:'a -> 'a -> comparison) (x:'a) (y:'a)
 
 let comparison_compare = fun x y -> int_to_comparison (compare x y)
 
-let compare_ints (n1:int) (n2:int) : comparison =
-  int_to_comparison (compare n1 n2)
+let int_compare (n1:int) (n2:int) : comparison =
+  int_to_comparison (n1 - n2)
 
 let pp_comparison (c:comparison) : string =
   begin match c with
@@ -66,6 +68,30 @@ let pp_comparison (c:comparison) : string =
 type ('a, 'b) either =
     Left of 'a
   | Right of 'b
+
+let split_by_either (l:('a,'b) either list) : ('a list) * ('b list) =
+  let rec split_by_either_internal
+      (l:('a,'b) either list)
+      (c:(('a list) * ('b list)) continuation)
+    : ('a list) * ('b list) =
+    begin match l with
+      | [] -> c ([],[])
+      | (Left x)::t ->
+        split_by_either_internal
+          t
+          (fun (ll,lr) -> c (x::ll,lr))
+      | (Right x)::t ->
+        split_by_either_internal
+          t
+          (fun (ll,lr) -> c (ll,x::lr))
+    end
+  in
+  split_by_either_internal l ident
+
+type ('a, 'b, 'c) of_three =
+    TLeft of 'a
+  | TMiddle of 'b
+  | TRight of 'c
 
 let rec fold_until_completion (f: 'a -> ('a,'b) either) (acc:'a) : 'b =
   begin match f acc with
@@ -391,13 +417,13 @@ let ordered_partition_order (f:'a -> 'a -> comparison)
                             : comparison =
   let p1 = sort_and_partition f l1 in
   let p2 = sort_and_partition f l2 in
-  begin match (compare_ints (List.length p1) (List.length p2)) with
+  begin match (int_compare (List.length p1) (List.length p2)) with
   | EQ ->
       List.fold_left
       ~f:(fun acc (l1',l2') ->
         begin match acc with
         | EQ ->
-            begin match (compare_ints (List.length l1') (List.length l2')) with
+            begin match (int_compare (List.length l1') (List.length l2')) with
             | EQ -> f (List.hd_exn l1') (List.hd_exn l2')
             | c -> c
             end

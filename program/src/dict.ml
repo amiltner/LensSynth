@@ -54,6 +54,7 @@ sig
 
   val as_kvp_list : dict -> (key * value) list
   val from_kvp_list : (key * value) list -> dict
+  val key_list : dict -> key list
 
   (* functions to convert our types to strings for debugging and logging *)
   val to_string : dict -> string
@@ -522,6 +523,13 @@ struct
       (fun k v l -> (k,v)::l)
       []
       d
+
+  let key_list
+      (d:dict)
+    : key list =
+    List.map
+      ~f:fst
+      (as_kvp_list d)
 
   let compare
       (d1:dict)

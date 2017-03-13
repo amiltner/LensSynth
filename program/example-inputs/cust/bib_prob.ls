@@ -48,6 +48,10 @@ bibtext_to_tagged_tester= [FULLBIBTEX <=> FULLTAGS {
  au - Aaron Bohannon
 ti - Boomerang Resourceful Lenses For String Data
 jo - Principals Of Programming Languages"
+,
+"{title={Boomerang Resourceful Lenses For String Data},}"
+<->
+"ti - Boomerang Resourceful Lenses For String Data"
 }]
 
 test bibtext_to_tagged_tester

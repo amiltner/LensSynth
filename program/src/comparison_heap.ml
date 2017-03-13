@@ -14,6 +14,7 @@ sig
   val pop : heap -> (element * heap) option
   val size : heap -> int
   val to_string : heap -> string
+  val to_list : heap -> element list
   val compare : heap -> heap -> comparison
 end
 

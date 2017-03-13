@@ -119,16 +119,16 @@ module ModTenPQueue = Priority_queue_two.Make(
   struct
     type element = int
     let compare = comparison_compare
-    let priority = (fun x -> Float.of_int (x mod 10))
+    let priority = (fun x -> (x mod 10))
     let to_string = string_of_int
   end)
 
-let assert_int_float_int_priority_queue_option_equal =
+let assert_int_int_int_priority_queue_option_equal =
   let printer =
     string_of_option
       (string_of_triple
          string_of_int
-         Float.to_string
+         string_of_int
          ModTenPQueue.to_string)
   in
   let comparer =

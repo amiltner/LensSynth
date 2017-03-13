@@ -77,6 +77,8 @@ module type Permutation_Sig = sig
   val to_int_list : t -> int list
 
   val hash : t -> int
+
+  val compare : t -> t -> comparison
 end
 
 module Permutation : Permutation_Sig = struct
@@ -326,4 +328,7 @@ module Permutation : Permutation_Sig = struct
           lxor acc)
       ~init:509223028
       l
+
+  let compare : t -> t -> comparison =
+    dictionary_order int_compare
 end

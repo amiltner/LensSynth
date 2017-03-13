@@ -12,7 +12,7 @@ open Consts
 open Naive_gen
 open String_utilities
 
-type new_queue_element = regex * regex * float * int
+type new_queue_element = regex * regex * int * int
 
 let new_queue_element_comparison =
   quad_compare
@@ -28,7 +28,7 @@ module UDEF_DISTANCE_PQUEUE = Priority_queue_two.Make(
 
     let priority
         ((_,_,d,exps_performed) : new_queue_element)
-      : float =
+      : int =
       retrieve_priority
         d
         exps_performed
@@ -37,7 +37,7 @@ module UDEF_DISTANCE_PQUEUE = Priority_queue_two.Make(
       string_of_quadruple
         regex_to_string
         regex_to_string
-        Float.to_string
+        string_of_int
         string_of_int
   end)
 
@@ -48,14 +48,14 @@ module EXPANDCOUNT_PQUEUE = Priority_queue_two.Make(
 
     let priority
         ((_,_,_,exps_performed) : new_queue_element)
-      : float =
-      Float.of_int exps_performed
+      : int =
+      exps_performed
 
     let to_string : new_queue_element -> string =
       string_of_quadruple
         regex_to_string
         regex_to_string
-        Float.to_string
+        string_of_int
         string_of_int
   end)
 
@@ -73,7 +73,7 @@ sig
   val from_list : element list -> queue
   val push : queue -> element -> queue
   val push_all : queue -> element list -> queue
-  val pop : queue -> (element * float * queue) option
+  val pop : queue -> (element * int * queue) option
   val length : queue -> int
   val compare : queue -> queue -> comparison
   val to_string : queue -> string
@@ -150,6 +150,7 @@ struct
       (r2:regex)
       (exs:examples)
     : dnf_lens option =
+    let count = ref 0 in
     let (lexs,rexs) = List.unzip exs in
     let rec gen_dnf_lens_zipper_queueing
         (queue:PQ.queue)
@@ -162,10 +163,17 @@ struct
              print_endline ("r1: " ^ Pp.boom_pp_regex r1);
              print_endline "\n\n";
              print_endline ("r2: " ^ Pp.boom_pp_regex r2);
+             print_endline "\n\n";
+             print_endline ("distance: " ^ (string_of_int distance));
+             print_endline "\n\n";
+             print_endline ("count: " ^ (string_of_int !count));
+             incr(count);
+             print_endline "\n\n";
+             print_endline ("exps: " ^ (string_of_int expansions_performed));
              print_endline ("\n\n\n"));
-          if requires_expansions lc r1 r2 then
+          if requires_full_expansions lc r1 r2 then
             let required_expansions =
-              expand_real_required_expansions
+              expand_deeper_required_expansions
                 rc
                 lc
                 r1
@@ -185,7 +193,7 @@ struct
           else
             let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc r1 lexs in
             let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc r2 rexs in
-            if distance = 0.0 || (not !short_circuit) then
+            if distance = 0 || (not !short_circuit) then
               begin match (exampled_r1_opt,exampled_r2_opt) with
                 | (Some exampled_r1,Some exampled_r2) ->
                   let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
@@ -240,7 +248,7 @@ struct
     in
     gen_dnf_lens_zipper_queueing
       (PQ.from_list
-         [((r1,r2,0.0,0))])
+         [((r1,r2,0,0))])
       
   
   let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)

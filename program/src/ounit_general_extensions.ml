@@ -67,7 +67,7 @@ let assert_string_list_option_equal
 let assert_ordered_string_assoc_list_equal =
   assert_equal
     ~printer:(fun counts ->     "[" ^ (String.concat ~sep:" ; " (List.map ~f:(fun (x,c) -> (x) ^ "->" ^
-    (Float.to_string c)) counts)) ^ "]")
+    (string_of_int c)) counts)) ^ "]")
 
 
 let assert_comparison_equal =

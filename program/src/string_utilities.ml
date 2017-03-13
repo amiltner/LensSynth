@@ -106,3 +106,6 @@ let string_of_comparison (c:comparison) : string =
 
 let string_of_ref (location_to_string:'a -> string) (r:'a ref) : string =
   (location_to_string !r) ^ " ref"
+
+let string_compare : string -> string -> comparison =
+  int_comparer_to_comparer String.compare

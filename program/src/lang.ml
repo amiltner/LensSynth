@@ -74,8 +74,47 @@ let rec regex_to_string (r:regex) : string =
   | RegExVariable s -> s
   end
 
-let regex_compare : regex -> regex -> comparison =
-  comparison_compare
+let rec regex_compare (r1:regex) (r2:regex) : comparison =
+  begin match (r1,r2) with
+    | (RegExEmpty,RegExEmpty) -> EQ
+    | (RegExEmpty,_) -> LT
+    | (_,RegExEmpty) -> GT
+
+    | (RegExBase s1, RegExBase s2) ->
+      string_compare s1 s2
+    | (RegExBase _, _) -> LT
+    | (_, RegExBase _) -> GT
+
+    | (RegExConcat(r11,r12),RegExConcat(r21,r22)) ->
+      pair_compare
+        regex_compare
+        regex_compare
+        (r11,r12)
+        (r21,r22)
+    | (RegExConcat _, _) -> LT
+    | (_, RegExConcat _) -> GT
+
+    | (RegExOr(r11,r12),RegExOr(r21,r22)) ->
+      pair_compare
+        regex_compare
+        regex_compare
+        (r11,r12)
+        (r21,r22)
+    | (RegExOr _, _) -> LT
+    | (_, RegExOr _) -> GT
+
+    | (RegExStar r1', RegExStar r2') ->
+      regex_compare
+        r1'
+        r2'
+    | (RegExStar _, _) -> LT
+    | (_, RegExStar _) -> GT
+
+    | (RegExVariable v1, RegExVariable v2) ->
+      string_compare
+        v1
+        v2
+  end
 
 let rec regex_hash (r:regex) : int =
   begin match r with
@@ -168,7 +207,89 @@ let rec lens_size (l:lens) : int =
              ls)
   end
 
-let lens_compare : lens -> lens -> comparison = comparison_compare
+
+let rec lens_compare (l1:lens) (l2:lens) : comparison =
+  begin match (l1,l2) with
+    | (LensConst (s11,s12),LensConst (s21,s22)) ->
+      pair_compare
+        string_compare
+        string_compare
+        (s11,s12)
+        (s21,s22)
+    | (LensConst _, _) -> LT
+    | (_, LensConst _) -> GT
+
+    | (LensConcat (l11,l12),LensConcat (l21,l22)) ->
+      pair_compare
+        lens_compare
+        lens_compare
+        (l11,l12)
+        (l21,l22)
+    | (LensConcat _, _) -> LT
+    | (_, LensConcat _) -> GT
+
+    | (LensSwap (l11,l12),LensSwap (l21,l22)) ->
+      pair_compare
+        lens_compare
+        lens_compare
+        (l11,l12)
+        (l21,l22)
+    | (LensSwap _, _) -> LT
+    | (_, LensSwap _) -> GT
+
+    | (LensUnion (l11,l12),LensUnion (l21,l22)) ->
+      pair_compare
+        lens_compare
+        lens_compare
+        (l11,l12)
+        (l21,l22)
+    | (LensUnion _, _) -> LT
+    | (_, LensUnion _) -> GT
+
+    | (LensCompose (l11,l12),LensCompose (l21,l22)) ->
+      pair_compare
+        lens_compare
+        lens_compare
+        (l11,l12)
+        (l21,l22)
+    | (LensCompose _, _) -> LT
+    | (_, LensCompose _) -> GT
+
+    | (LensIterate l1',LensIterate l2') ->
+      lens_compare
+        l1'
+        l2'
+    | (LensIterate _, _) -> LT
+    | (_, LensIterate _) -> GT
+
+    | (LensIdentity r1,LensIdentity r2) ->
+      regex_compare
+        r1
+        r2
+    | (LensIdentity _, _) -> LT
+    | (_, LensIdentity _) -> GT
+
+    | (LensInverse l1',LensInverse l2') ->
+      lens_compare
+        l1'
+        l2'
+    | (LensInverse _, _) -> LT
+    | (_, LensInverse _) -> GT
+
+    | (LensVariable v1,LensVariable v2) ->
+      string_compare
+        v1
+        v2
+    | (LensVariable _, _) -> LT
+    | (_, LensVariable _) -> GT
+
+    | (LensPermute (p1,ls1),LensPermute (p2,ls2)) ->
+      pair_compare
+        Permutation.compare
+        (dictionary_order lens_compare)
+        (p1,ls1)
+        (p2,ls2)
+  end
 
 let rec lens_hash (l:lens) : int =
   begin match l with

@@ -105,38 +105,38 @@ let _ = run_test_tt_main to_normalized_exp_suite
 
 let test_counters_add_same _ =
   assert_ordered_string_assoc_list_equal
-    [("a",2.0)]
+    [("a",2)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
     comparison_compare) "a") "a"))
 
 let test_counters_add_different _ =
   assert_ordered_string_assoc_list_equal
-    [("a",1.0);("b",1.0)]
+    [("a",1);("b",1)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
     comparison_compare) "a") "b"))
 
 let test_counters_add_different_rev _ =
   assert_ordered_string_assoc_list_equal
-    [("a",1.0);("b",1.0)]
+    [("a",1);("b",1)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
     comparison_compare) "b") "a"))
 
 let test_counters_merge_same _ =
   assert_ordered_string_assoc_list_equal
-    [("a",2.0)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+.y) (Counters.add (Counters.create comparison_compare) "a")
+    [("a",2)]
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
     (Counters.add (Counters.create comparison_compare) "a"))))
 
 let test_counters_merge_different _ =
   assert_ordered_string_assoc_list_equal
-    [("a",1.0);("b",1.0)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+.y) (Counters.add (Counters.create comparison_compare) "a")
+    [("a",1);("b",1)]
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
     (Counters.add (Counters.create comparison_compare) "b"))))
 
 let test_counters_merge_different_rev _ =
   assert_ordered_string_assoc_list_equal
-    [("a",1.0);("b",1.0)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+.y) (Counters.add (Counters.create comparison_compare) "b")
+    [("a",1);("b",1)]
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "b")
     (Counters.add (Counters.create comparison_compare) "a"))))
 
 let counters_suite = "compare_dnf_regexs Unit Tests" >:::
@@ -904,7 +904,7 @@ let test_sort_and_partition _ =
   assert_char_list_list_equal
     [['a';'a'];['b'];['c';'c';'c'];['z']]
     (sort_and_partition
-      (fun x y -> compare_ints (Char.to_int x) (Char.to_int y))
+      (fun x y -> int_compare (Char.to_int x) (Char.to_int y))
       ['a';'z';'b';'c';'c';'a';'c'])
 
 let util_suite = "Util Unit Tests" >:::
@@ -919,12 +919,12 @@ let util_suite = "Util Unit Tests" >:::
 let _ = run_test_tt_main util_suite
 
 let test_priority_queue_pop_empty _ =
-  assert_int_float_int_priority_queue_option_equal
+  assert_int_int_int_priority_queue_option_equal
     None
     (ModTenPQueue.pop (ModTenPQueue.empty))
 
 let test_priority_queue_pop_forward_backward _ =
-  assert_int_float_int_priority_queue_option_equal
+  assert_int_int_int_priority_queue_option_equal
     (ModTenPQueue.pop (ModTenPQueue.from_list [2;1]))
     (ModTenPQueue.pop (ModTenPQueue.from_list [1;2]))
 
@@ -935,8 +935,8 @@ let test_priority_queue_pop_values _ =
      Option.map ~f:(fun (x,_,_) -> (x)) vo)
 
 let test_priority_queue_pop_priority _ =
-  assert_float_option_equal
-    (Some 1.0)
+  assert_int_option_equal
+    (Some 1)
     (let vo = ModTenPQueue.pop (ModTenPQueue.from_list [2;1]) in
      Option.map ~f:(fun (_,y,_) -> (y)) vo)
 
