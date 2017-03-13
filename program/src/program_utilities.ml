@@ -56,24 +56,21 @@ let run_declaration
     (d:declaration)
   : RegexContext.t * LensContext.t * declaration =
   begin match d with
-    | DeclRegexCreation (n,r,b) ->
-      (RegexContext.insert_exn rc n r (not b),lc,d)
+    | DeclRegexCreation (n,r,b) -> RegexContext.insert_exn rc n r (not b),lc,d
     | DeclTestString (r,s) ->
-      if fast_eval rc r s then
-        (rc,lc,d)
-      else
-        failwith (s ^ " does not match regex " ^ (regex_to_string r))
+			let r, rc = whole r rc in
+      if fast_eval rc r s then (rc,lc,d)
+      else failwith (s ^ " does not match regex " ^ (regex_to_string r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
-      let r1', rc' = kernel r1 rc in
-      let r2', rc' = kernel r2 rc' in
-      let lo = gen_lens rc' lc r1' r2' exs in
+      let r1, rc = kernel r1 rc in
+      let r2, rc = kernel r2 rc in
+      let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
         | None -> failwith (n ^ " has no satisfying lens")
         | Some l ->
           (rc,LensContext.insert_exn lc n l r1 r2,DeclLensCreation(n,r1,r2,l))
       end
-    | DeclLensCreation (n,r1,r2,l) ->
-      (rc,LensContext.insert_exn lc n l r1 r2,d)
+    | DeclLensCreation (n,r1,r2,l) -> rc,LensContext.insert_exn lc n l r1 r2,d
     | DeclTestLens (n,exs) ->
       List.iter
         ~f:(fun (lex,rex) ->

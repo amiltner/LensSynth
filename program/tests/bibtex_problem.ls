@@ -18,13 +18,7 @@ typedef JOTAG = "jo - ";;
 
 typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
 
-bibtex_to_readable_au = [BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
-{"author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron}" <->
-"au - Nathan Foster
- au - Benjamin Pierce
- au - Aaron Bohannon"}]
- 
-(* typedef TITLE = NAME (WSP NAME)*;;
+typedef TITLE = NAME (WSP NAME)*;;
 typedef BIBTEXTITLE = "title={" TITLE "}";;
 typedef TAGGEDTITLE = TITAG TITLE;;
 
@@ -52,7 +46,7 @@ journal_to_readable_journal = [BIBTEXJOURNAL <=> TAGGEDJOURNAL
 {"journal={Principals Of Programming Languages}" <->
  "jo - Principals Of Programming Languages"}]
 
-bibtext_to_tagged_tester = [FULLBIBTEX <=> FULLTAGS {
+(*bibtext_to_tagged_tester = [FULLBIBTEX <=> FULLTAGS {
 "{author={Foster, Nathan and Pierce, Benjamin and Bohannon, Aaron},title={Boomerang Resourceful Lenses For String Data},journal={Principals Of Programming Languages},}"
 <->
 "au - Nathan Foster
@@ -84,4 +78,4 @@ quotient test bibtext_to_tagged_tester
 "{journal={Principals Of Programming Languages},}"
 <->
 "jo - Principals Of Programming Languages"
-};; *)
+};;*)

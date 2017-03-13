@@ -101,7 +101,7 @@ regex_l4:
 
 regex_l5:
   | s=base { RegExBase s }
-  | LPAREN r=regex_l1 RPAREN { r }
+  | LPAREN r=regex RPAREN { r }
   | u=UID { RegExVariable u }
 
 base:
