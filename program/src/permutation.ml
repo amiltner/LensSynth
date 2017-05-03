@@ -44,6 +44,36 @@ let rec pp_swap_concat_compose_tree (scct:swap_concat_compose_tree)
     | SCCTLeaf -> "."
     end
 
+let rec compare_swap_concat_compare_tree
+  (scct1:swap_concat_compose_tree)
+  (scct2:swap_concat_compose_tree)
+  : comparison =
+  let compare_scct_pair = 
+    pair_compare
+      compare_swap_concat_compare_tree
+      compare_swap_concat_compare_tree
+  in
+  begin match (scct1,scct2) with
+    | (SCCTSwap (scct11,scct12),SCCTSwap (scct21,scct22)) ->
+      compare_scct_pair
+        (scct11,scct12)
+        (scct21,scct22)
+    | (SCCTSwap _, _) -> LT
+    | (_, SCCTSwap _) -> GT
+    | (SCCTConcat (scct11,scct12),SCCTConcat (scct21,scct22)) ->
+      compare_scct_pair
+        (scct11,scct12)
+        (scct21,scct22)
+    | (SCCTConcat _, _) -> LT
+    | (_, SCCTConcat _) -> GT
+    | (SCCTCompose (scct11,scct12),SCCTCompose (scct21,scct22)) ->
+      compare_scct_pair
+        (scct11,scct12)
+        (scct21,scct22)
+    | (SCCTCompose _, _) -> LT
+    | (_, SCCTCompose _) -> GT
+    | (SCCTLeaf, SCCTLeaf) -> EQ
+  end
 
 
 module type Permutation_Sig = sig
@@ -330,5 +360,5 @@ module Permutation : Permutation_Sig = struct
       l
 
   let compare : t -> t -> comparison =
-    dictionary_order int_compare
+    compare_list ~cmp:int_compare
 end

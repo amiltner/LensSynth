@@ -82,7 +82,7 @@ let concat_exampled_dnf_regexs ((r1,_):exampled_dnf_regex)
   cartesian_map
     (fun (a1s,s1s,c1s) (a2s,s2s,c2s) ->
        let choices_taken = intersect_lose_order_no_dupes
-           (dictionary_order (int_comparer_to_comparer compare))
+           (compare_list ~cmp:(int_comparer_to_comparer compare))
            c1s
            c2s in
        (List.map ~f:(clean_exampledness_atom choices_taken)(a1s@a2s),

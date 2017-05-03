@@ -13,4 +13,8 @@ let naive_pqueue : bool ref = ref false
 let short_circuit : bool ref = ref true
 let use_lens_context : bool ref = ref true
 
+let infer_expansions : bool ref = ref true
+
+let generate_io_count : int ref = ref 0
+
 let verbose : bool ref = ref false

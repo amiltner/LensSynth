@@ -20,6 +20,13 @@ and boom_statement =
 
 type boom_program = boom_statement list
 
+let compare_boom_expression : boom_expression comparer = comparison_compare
+
+let compare_boom_statement : boom_statement comparer = comparison_compare
+
+let compare_boom_program : boom_program comparer =
+  compare_list ~cmp:compare_boom_statement
+
 let statement_of_decl (d:declaration) : boom_statement list =
   begin match d with
     | DeclRegexCreation(n,r,_) ->

@@ -2,7 +2,6 @@ open Core.Std
 open Util
 open String_utilities
 open Lang
-open Lens_utilities
 
 (***** The main LensContext module {{{ *****)
 
@@ -58,8 +57,8 @@ module LensContext : LensContext_Sig = struct
       type value = (lens * id) list
       let compare_key = comparison_compare
       let compare_value =
-        dictionary_order
-          (pair_compare
+        compare_list
+          ~cmp:(pair_compare
              lens_compare
              comparison_compare)
       let key_to_string = ident

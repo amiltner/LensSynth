@@ -26,7 +26,7 @@ debug: all cmdline.cma
 
 clean:
 	$(OCB) -clean
-	rm -rf generated_data
+	rm -rf {generated_data,generated_io_specs}
 
 top: cmdline.cma
 	utop
@@ -35,8 +35,18 @@ CHECK_WITH_BOOMERANG := python check-with-boomerang.py
 
 GENERATE_DATA := python generate-data.py
 
+GENERATE_IO_SPECS := python generate_IO_specs.py
+
+GENERATE_EXTRACTION_SPECS := python generate_extraction_specs.py
+
 generate-data: cmdline.native
 	$(GENERATE_DATA) ./cmdline.native example-inputs/
+
+generate-io-specs: cmdline.native
+	$(GENERATE_IO_SPECS) ./cmdline.native example-inputs/ 10100
+
+generate-extraction-specs: cmdline.native
+	$(GENERATE_EXTRACTION_SPECS) ./cmdline.native example-inputs/ 10100
 
 profile: cmdline.p.native
 	instruments -t "/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/Resources/templates/Time Profiler.tracetemplate" cmdline.p.native

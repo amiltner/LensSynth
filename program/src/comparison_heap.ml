@@ -100,8 +100,8 @@ struct
   let compare (h1:heap) (h2:heap) : comparison =
     let h1es = sort ~cmp:H.compare (to_list h1) in
     let h2es = sort ~cmp:H.compare (to_list h2) in
-    dictionary_order
-      H.compare
+    compare_list
+      ~cmp:H.compare
       h1es
       h2es
 end

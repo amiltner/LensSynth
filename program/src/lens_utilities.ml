@@ -4,6 +4,47 @@ open Lang
 open Regexcontext
 open Regex_utilities
 open Permutation
+open Lenscontext
+
+let retrieve_transitive_referenced_lenses
+    (lc:LensContext.t)
+    (l:lens)
+  : lens list =
+  let rec retrieve_transitive_referenced_lenses_internal
+      (l:lens)
+    : lens list =
+    begin match l with
+      | LensConst _ -> []
+      | LensConcat (l1,l2) ->
+        (retrieve_transitive_referenced_lenses_internal l1)
+        @ (retrieve_transitive_referenced_lenses_internal l2)
+      | LensSwap (l1,l2) ->
+        (retrieve_transitive_referenced_lenses_internal l1)
+        @ (retrieve_transitive_referenced_lenses_internal l2)
+      | LensUnion (l1,l2) ->
+        (retrieve_transitive_referenced_lenses_internal l1)
+        @ (retrieve_transitive_referenced_lenses_internal l2)
+      | LensCompose (l1,l2) ->
+        (retrieve_transitive_referenced_lenses_internal l1)
+        @ (retrieve_transitive_referenced_lenses_internal l2)
+      | LensIterate l' ->
+        retrieve_transitive_referenced_lenses_internal l'
+      | LensIdentity _ -> []
+      | LensInverse l' ->
+        retrieve_transitive_referenced_lenses_internal l'
+      | LensVariable v ->
+        let l' = LensContext.lookup_impl_exn lc v in
+        l'::
+        (retrieve_transitive_referenced_lenses_internal
+           l')
+      | LensPermute (_,ll) ->
+        List.concat_map
+          ~f:(retrieve_transitive_referenced_lenses_internal)
+          ll
+    end
+  in
+  l::
+  (retrieve_transitive_referenced_lenses_internal l)
 
 let rec apply_at_every_level_lens (f:lens -> lens) (l:lens) : lens =
   let l =
@@ -24,43 +65,6 @@ let rec apply_at_every_level_lens (f:lens -> lens) (l:lens) : lens =
     end
   in
   f l
-
-let rec is_sublens (sublens:lens) (suplens:lens) : bool =
-  if sublens = suplens then
-    true
-  else
-    begin match suplens with
-      | LensConcat (l1,l2) ->
-        (is_sublens sublens l1) || (is_sublens sublens l2)
-      | LensSwap (l1,l2) ->
-        (is_sublens sublens l1) || (is_sublens sublens l2)
-      | LensUnion (l1,l2) ->
-        (is_sublens sublens l1) || (is_sublens sublens l2)
-      | LensCompose (l1,l2) ->
-        (is_sublens sublens l1) || (is_sublens sublens l2)
-      | LensIterate l' ->
-        is_sublens sublens l'
-      | LensInverse l' ->
-        is_sublens sublens l'
-      | _ -> false
-    end
-
-let rec has_common_sublens (l1:lens) (l2:lens) : bool =
-  begin match l1 with
-    | LensConcat (l11,l12) ->
-      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
-    | LensSwap (l11,l12) ->
-      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
-    | LensUnion (l11,l12) ->
-      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
-    | LensCompose (l11,l12) ->
-      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
-    | LensIterate l1' ->
-      has_common_sublens l1' l2
-    | LensInverse l1' ->
-      has_common_sublens l1' l2
-    | _ -> is_sublens l1 l2
-    end
 
 let rec make_lens_safe_in_smaller_context
     (rc_smaller:RegexContext.t)

@@ -33,6 +33,15 @@ let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
 
 
 
+let get_rep_userdef
+    (lc:LensContext.t)
+    (ud:string)
+  : string =
+  if !use_lens_context then
+    (fst (LensContext.shortest_path_to_rep_elt lc ud))
+  else
+    ud
+
 let empty_string = RegExBase ""
 
 let rec exponentiate (r:regex) (n:int) : regex =
@@ -44,6 +53,56 @@ let rec exponentiate (r:regex) (n:int) : regex =
     RegExConcat
       (exponentiate r (n-1)
       ,r)
+
+let calculate_userdef_depth_count
+    (lc:LensContext.t)
+    (r:regex)
+    (v:id)
+    (depth:int)
+  : int =
+  let rec calculate_userdef_depth_count_internal
+      (r:regex)
+      (depth:int)
+    : int * int =
+    begin match r with
+      | RegExEmpty -> (0,0)
+      | RegExBase _ -> (0,1)
+      | RegExVariable s ->
+        if depth = 0 && get_rep_userdef lc v = get_rep_userdef lc s then
+          (1,1)
+        else
+          (0,1)
+      | RegExOr (r1,r2) ->
+        let (count1,width1) = calculate_userdef_depth_count_internal r1 depth in
+        let (count2,width2) = calculate_userdef_depth_count_internal r2 depth in
+        (count1+count2,width1+width2)
+      | RegExConcat (r1,r2) ->
+        let (count1,width1) = calculate_userdef_depth_count_internal r1 depth in
+        let (count2,width2) = calculate_userdef_depth_count_internal r2 depth in
+        (count1*width2 + count2*width1, width1*width2)
+      | RegExStar r' ->
+        let (count',_) = calculate_userdef_depth_count_internal r' (depth-1) in
+        (count',1)
+    end
+  in
+  fst (calculate_userdef_depth_count_internal r depth)
+
+let rec calculate_or_width (r:regex) : int =
+  begin match r with
+    | RegExEmpty -> 0
+    | RegExBase _ -> 1
+    | RegExVariable _ -> 1
+    | RegExOr (r1,r2) ->
+      let r1_width = calculate_or_width r1 in
+      let r2_width = calculate_or_width r2 in
+      r1_width+r2_width
+    | RegExConcat (r1,r2) ->
+      let r1_width = calculate_or_width r1 in
+      let r2_width = calculate_or_width r2 in
+      r1_width*r2_width
+    | RegExStar _ -> 1
+  end
+
 
 let calculate_userdef_distribution (lc:LensContext.t) (r:regex) : ((string * int) Counters.t) =
   let rec calculate_userdef_distribution_internal (r:regex) (depth:int)
@@ -332,15 +391,6 @@ module StringIntToIntDict = Dict.Make(
     let value_to_string = string_of_int
   end)
 
-let get_rep_userdef
-    (lc:LensContext.t)
-    (ud:string)
-  : string =
-  if !use_lens_context then
-    (fst (LensContext.shortest_path_to_rep_elt lc ud))
-  else
-    ud
-
 let rec get_current_level_user_defined_rep_set
     (lc:LensContext.t)
     (r:regex)
@@ -453,24 +503,6 @@ let rec expose_userdef
     | RegExBase _ -> []
   end
 
-let requires_expansions
-    (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
-  : bool =
-  let s1 = get_current_level_user_defined_rep_set lc r1 in
-  let s2 = get_current_level_user_defined_rep_set lc r2 in
-  let problem_elements =
-    (List.map
-       ~f:(fun e -> Left e)
-       (StringSet.as_list (StringSet.minus s1 s2)))
-    @
-    (List.map
-       ~f:(fun e -> Right e)
-       (StringSet.as_list (StringSet.minus s2 s1)))
-  in
-  (not (List.is_empty problem_elements))
-
 module ExpansionCountPQueue = Priority_queue_two.Make(
   struct
     type element = regex * regex * int
@@ -549,6 +581,56 @@ let requires_full_expansions (lc:LensContext.t) (r1:regex) (r2:regex)
        (StringIntSet.as_list (StringIntSet.minus s2 s1)))
   in
   not (List.is_empty problem_elements)
+
+let requires_simple_expansions
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (r1:regex)
+    (r2:regex)
+  : bool =
+  let rec retrieve_transitive_userdefs (r:regex) : string list =
+    begin match r with
+      | RegExEmpty -> []
+      | RegExBase _ -> []
+      | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
+                               (retrieve_transitive_userdefs r2)
+    | RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
+        (retrieve_transitive_userdefs r2)
+    | RegExStar r' -> retrieve_transitive_userdefs r'
+    | RegExVariable t -> (get_rep_userdef lc t)::
+      (begin match RegexContext.lookup_for_expansion_exn rc t with
+      | None -> []
+      | Some rex -> retrieve_transitive_userdefs rex
+      end)
+    end
+  in
+  let r1_transitive_userdefs = retrieve_transitive_userdefs r1 in
+  let r2_transitive_userdefs = retrieve_transitive_userdefs r2 in
+  let r1_userdefs = StringSet.as_list (get_current_level_user_defined_rep_set lc r1) in
+  let r2_userdefs = StringSet.as_list (get_current_level_user_defined_rep_set lc r2) in
+  let r1_not_in_r2trans = set_minus_lose_order comparison_compare
+      r1_userdefs
+      r2_transitive_userdefs in
+  let r2_not_in_r1trans = set_minus_lose_order comparison_compare
+      r2_userdefs
+      r1_transitive_userdefs in
+  not (List.is_empty (r1_not_in_r2trans@r2_not_in_r1trans))
+
+let requires_expansions
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (r1:regex)
+    (r2:regex)
+  : bool =
+  if (!infer_expansions) then
+    requires_full_expansions lc r1 r2
+  else
+    requires_simple_expansions
+      rc
+      lc
+      r1
+      r2
+
 
 let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
   : (regex * regex * int) =
@@ -831,6 +913,254 @@ let rec expose_full_userdef
     | RegExBase _ -> []
   end
 
+let rec shrink_count_of_regex_depth
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (r:regex)
+    (v:id)
+    (depth:int)
+  : (regex * int) list =
+  begin match r with
+    | RegExEmpty -> []
+    | RegExBase _ -> []
+    | RegExConcat (r1,r2) ->
+      let r1_shrinks = shrink_count_of_regex_depth rc lc r1 v depth in
+      let r2_shrinks = shrink_count_of_regex_depth rc lc r2 v depth in
+      (List.map
+         ~f:(fun (r1',exs) -> (RegExConcat(r1',r2),exs))
+         r1_shrinks)
+      @
+      (List.map
+         ~f:(fun (r2',exs) -> (RegExConcat(r1,r2'),exs))
+         r2_shrinks)
+    | RegExOr (r1,r2) ->
+      let r1_shrinks = shrink_count_of_regex_depth rc lc r1 v depth in
+      let r2_shrinks = shrink_count_of_regex_depth rc lc r2 v depth in
+      (List.map
+         ~f:(fun (r1',exs) -> (RegExOr(r1',r2),exs))
+         r1_shrinks)
+      @
+      (List.map
+         ~f:(fun (r2',exs) -> (RegExOr(r1,r2'),exs))
+         r2_shrinks)
+    | RegExStar r' ->
+      let r'_shrinks = shrink_count_of_regex_depth rc lc r' v (depth-1) in
+      List.map
+        ~f:(fun (r'',exs) -> (RegExStar(r''),exs))
+        r'_shrinks
+    | RegExVariable s ->
+      if depth = 0 && get_rep_userdef lc v = get_rep_userdef lc s then
+        begin match RegexContext.lookup_for_expansion_exn rc s with
+          | Some r -> [(r,1)]
+          | None -> []
+        end
+      else
+        []
+  end
+
+let expand_regex_once
+    (rc:RegexContext.t)
+    (r:regex)
+  : regex list =
+
+  let expanders =
+    [(expand_userdefs rc)
+    ;(expand_stars empty_or_not_star_expansion_right)
+    ;(expand_stars empty_or_not_star_expansion_left)]
+  in
+
+  List.concat_map
+    ~f:(fun exp -> exp r)
+    expanders
+
+let expand_count_of_regex_depth
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (r:regex)
+    (v:id)
+    (depth:int)
+  : (regex * int) list =
+  let rec expand_count_of_regex_depth_internal
+      (r:regex)
+      (depth:int)
+    : (regex * int) list =
+    begin match r with
+      | RegExEmpty -> []
+      | RegExBase _ -> []
+      | RegExConcat (r1,r2) ->
+        let expanded_r1_r =
+          if (calculate_userdef_depth_count lc r2 v depth > 0) then
+            let expanded_r1 =
+              expand_regex_once
+                rc
+                r1
+            in
+            List.map
+              ~f:(fun r1' -> (RegExConcat(r1',r2),1))
+              expanded_r1
+          else
+            []
+        in
+        let expanded_r2_r =
+          if (calculate_userdef_depth_count lc r1 v depth > 0) then
+            let expanded_r2 =
+              expand_regex_once
+                rc
+                r2
+            in
+            List.map
+              ~f:(fun r2' -> (RegExConcat(r1,r2'),1))
+              expanded_r2
+          else
+            []
+        in
+        let recursive_r1_r =
+          List.map
+            ~f:(fun (r1',exps) -> (RegExConcat(r1',r2),exps))
+            (expand_count_of_regex_depth_internal r1 depth)
+        in
+        let recursive_r2_r =
+          List.map
+            ~f:(fun (r2',exps) -> (RegExConcat(r1,r2'),exps))
+            (expand_count_of_regex_depth_internal r2 depth)
+        in
+        recursive_r1_r@recursive_r2_r@expanded_r1_r@expanded_r2_r
+      | RegExOr (r1,r2) ->
+        (List.map
+           ~f:(fun (r1',exps) -> (RegExOr(r1',r2),exps))
+           (expand_count_of_regex_depth_internal r1 depth))
+        @
+        (List.map
+           ~f:(fun (r2',exps) -> (RegExOr(r1,r2'),exps))
+           (expand_count_of_regex_depth_internal r2 depth))
+      | RegExStar r' ->
+        let r'_increase_with_unfold =
+          expand_count_of_regex_depth_internal
+            r'
+            depth
+        in
+        let r'_increase_underneath =
+          expand_count_of_regex_depth_internal
+            r'
+            (depth-1)
+        in
+        let star_r'_increase_underneath =
+          (List.map
+             ~f:(fun (r'e,exp) -> (RegExStar r'e,exp))
+             r'_increase_underneath)
+        in
+        let unrolled_r'_increase_left =
+          (List.map
+             ~f:(fun (r'e,exp) -> (RegExOr(RegExBase "", RegExConcat (r'e, RegExStar r'e)) ,exp+1))
+             r'_increase_with_unfold)
+        in
+        let unrolled_r'_increase_right =
+          (List.map
+             ~f:(fun (r'e,exp) -> (RegExOr(RegExBase "", RegExConcat (RegExStar r'e, r'e)) ,exp+1))
+             r'_increase_with_unfold)
+        in
+        star_r'_increase_underneath@unrolled_r'_increase_left@unrolled_r'_increase_right
+      | RegExVariable s ->
+        if depth = 0 && get_rep_userdef lc s = get_rep_userdef lc v then
+          [(RegExVariable s,0)]
+        else
+          begin match RegexContext.lookup_for_expansion_exn rc s with
+            | None -> []
+            | Some r' ->
+              List.map
+                ~f:(fun (x,exp) -> (x,exp+1))
+                (expand_count_of_regex_depth_internal
+                   r'
+                   depth)
+          end
+    end
+  in
+  List.filter
+    ~f:(fun (_,exps) -> exps <> 0)
+    (expand_count_of_regex_depth_internal r depth)
+
+
+let make_userdef_depth_same_size
+    (rc:RegexContext.t)
+    (lc:LensContext.t)
+    (r1:regex)
+    (r2:regex)
+    (v:id)
+    (depth:int)
+  : (regex * regex * int) list =
+  let make_userdef_depth_same_size_internal
+      (to_process:ExpansionCountPQueue.queue)
+    : (regex * regex * int) list =
+    let ((r1,r2,exs),_,to_process) = ExpansionCountPQueue.pop_exn to_process in
+    let (r1,r2,exs') = expand_full_outermost_required_expansions rc lc r1 r2 in
+    let exs = exs + exs' in
+    let count_left = calculate_userdef_depth_count lc r1 v depth in
+    let count_right = calculate_userdef_depth_count lc r2 v depth in
+    begin match int_compare count_left count_right with
+      | EQ ->
+        (r1,r2,exs)::
+        (List.filter_map
+           ~f:(fun ((r1,r2,exs),_) ->
+               let count_left = calculate_userdef_depth_count lc r1 v depth in
+               let count_right = calculate_userdef_depth_count lc r2 v depth in
+               begin match int_compare count_left count_right with
+                 | EQ -> Some (r1,r2,exs)
+                 | _ -> None
+               end)
+           (ExpansionCountPQueue.all_remaining to_process))
+      | LT ->
+        let expanded_r1s =
+          expand_count_of_regex_depth
+            rc
+            lc
+            r1
+            v
+            depth
+        in
+        let shrunk_r2s =
+          shrink_count_of_regex_depth
+            rc
+            lc
+            r2
+            v
+            depth
+        in
+        (List.map
+           ~f:(fun (r1',exps) -> (r1',r2,exps+exs))
+           expanded_r1s)
+        @
+        (List.map
+           ~f:(fun (r2',exps) -> (r1,r2',exps+exs))
+           shrunk_r2s)
+      | GT ->
+        let shrunk_r1s =
+          shrink_count_of_regex_depth
+            rc
+            lc
+            r1
+            v
+            depth
+        in
+        let expanded_r2s =
+          expand_count_of_regex_depth
+            rc
+            lc
+            r2
+            v
+            depth
+        in
+        (List.map
+           ~f:(fun (r1',exps) -> (r1',r2,exps+exs))
+           shrunk_r1s)
+        @
+        (List.map
+           ~f:(fun (r2',exps) -> (r1,r2',exps+exs))
+           expanded_r2s)
+    end
+  in
+  make_userdef_depth_same_size_internal (ExpansionCountPQueue.singleton (r1,r2,0))
+
+
 let expand_evening_required_expansions
     (rc:RegexContext.t)
     (lc:LensContext.t)
@@ -863,44 +1193,30 @@ let expand_evening_required_expansions
          @(StringIntToIntDict.key_list map2))
     in
     let all_tasks =
-      List.filter_map
+      List.filter
         ~f:(fun (v,depth) ->
-            let r1_count = StringIntToIntDict.lookup_exn map1 (v,depth) in
-            let r2_count = StringIntToIntDict.lookup_exn map2 (v,depth) in
+            let r1_count =
+              begin match StringIntToIntDict.lookup map1 (v,depth) with
+                | None -> 0
+                | Some i -> i
+              end
+            in
+            let r2_count =
+              begin match StringIntToIntDict.lookup map2 (v,depth) with
+                | None -> 0
+                | Some i -> i
+              end
+            in
             begin match int_compare r1_count r2_count with
-              | EQ -> None
-              | LT -> Some (Left (r2_count-r1_count))
-              | GT -> Some (Right (r1_count-r2_count))
+              | EQ -> false
+              | _  -> true
             end)
         (StringIntSet.as_list all_userdef_depths)
     in
     if List.is_empty all_tasks then
       let other_possibilities =
         List.filter
-          ~f:(fun (r1,r2,_) -> requires_full_expansions lc r1 r2)
-          (List.map
-             ~f:fst
-             (ExpansionCountPQueue.all_remaining to_process))
-      in
-      (r1,r2,exs)::other_possibilities
-    else
-      let new_problems = [] in
-      expand_real_required_expansions_internal
-        (ExpansionCountPQueue.push_all to_process new_problems)
-    
-    (*let problem_elements =
-      (List.map
-         ~f:(fun e -> Left e)
-         (StringIntSet.as_list (StringIntSet.minus s1 s2)))
-      @
-      (List.map
-         ~f:(fun e -> Right e)
-         (StringIntSet.as_list (StringIntSet.minus s2 s1)))
-    in
-    if List.is_empty problem_elements then
-      let other_possibilities =
-        List.filter
-          ~f:(fun (r1,r2,_) -> requires_full_expansions lc r1 r2)
+          ~f:(fun (r1,r2,_) -> retrieve_distance lc r1 r2 = 0)
           (List.map
              ~f:fst
              (ExpansionCountPQueue.all_remaining to_process))
@@ -909,42 +1225,18 @@ let expand_evening_required_expansions
     else
       let new_problems =
         List.concat_map
-          ~f:(fun se ->
-              begin match se with
-                | Left (v,star_depth) ->
-                  let exposes = expose_full_userdef rc lc v star_depth r2 in
-                  if List.is_empty exposes then
-                    let (r1_expanded,expcount) =
-                      force_expand_userdef
-                        rc
-                        lc
-                        v
-                        r1
-                    in
-                    [(r1_expanded,r2,expcount+exs)]
-                  else
-                    List.map ~f:(fun (e,exp) -> (r1,e,exs+exp)) exposes
-                | Right (v,star_depth) ->
-                  let exposes = expose_full_userdef rc lc v star_depth r1 in
-                  if List.is_empty exposes then
-                    failwith ("shoulda handled earlier  " ^ v ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
-                             ^ "\n\n" ^ (Pp.boom_pp_regex r2))
-                    (*let (r2_expanded,expcount) =
-                      force_expand_userdef
-                        r
-                      c
-                        lc
-                        v
-                        r2
-                    in
-                      [(r1,r2_expanded,expcount+exs)]*)
-                  else
-                    List.map ~f:(fun (e,exp) -> (e,r2,exs+exp)) exposes
-              end)
-          problem_elements
+          ~f:(fun (v,depth) ->
+              make_userdef_depth_same_size
+                rc
+                lc
+                r1
+                r2
+                v
+                depth)
+          all_tasks
       in
       expand_real_required_expansions_internal
-        (ExpansionCountPQueue.push_all to_process new_problems)*)
+        (ExpansionCountPQueue.push_all to_process new_problems)
   in
   expand_real_required_expansions_internal
     (ExpansionCountPQueue.singleton (r1,r2,0))
@@ -978,11 +1270,9 @@ let expand_deeper_required_expansions
     in
     if List.is_empty problem_elements then
       let other_possibilities =
-        List.filter
-          ~f:(fun (r1,r2,_) -> requires_full_expansions lc r1 r2)
-          (List.map
-             ~f:fst
-             (ExpansionCountPQueue.all_remaining to_process))
+        List.map
+          ~f:fst
+          (ExpansionCountPQueue.all_remaining to_process)
       in
       (r1,r2,exs)::other_possibilities
     else
@@ -1106,71 +1396,19 @@ let expand_real_required_expansions
     (ExpansionCountPQueue.singleton (r1,r2,0))
 
 let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
-  : (regex * regex) option =
-  let rec retrieve_transitive_userdefs (r:regex) : string list =
-    begin match r with
-      | RegExEmpty -> []
-      | RegExBase _ -> []
-      | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
-                               (retrieve_transitive_userdefs r2)
-    | RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
-        (retrieve_transitive_userdefs r2)
-    | RegExStar r' -> retrieve_transitive_userdefs r'
-    | RegExVariable t -> (fst (LensContext.shortest_path_to_rep_elt lc t))::
-      (begin match RegexContext.lookup_for_expansion_exn rc t with
-      | None -> []
-      | Some rex -> retrieve_transitive_userdefs rex
-      end)
-    end
-  in
-  let rec expand_required_expansions (bad_userdefs:string list)
-                                 (r:regex)
-    : regex option =
-    begin match r with
-    | RegExEmpty -> Some r
-    | RegExBase _ -> Some r
-    | RegExConcat (r1,r2) -> 
-        begin match (expand_required_expansions bad_userdefs r1,
-                     expand_required_expansions bad_userdefs r2) with
-        | (Some r1', Some r2') -> Some (RegExConcat (r1',r2'))
-        | _ -> None
-        end
-    | RegExOr (r1,r2) -> 
-        begin match (expand_required_expansions bad_userdefs r1,
-                     expand_required_expansions bad_userdefs r2) with
-        | (Some r1', Some r2') -> Some (RegExOr (r1',r2'))
-        | _ -> None
-        end
-    | RegExStar r' ->
-        begin match expand_required_expansions bad_userdefs r' with
-        | Some r'' -> Some (RegExStar r'')
-        | _ -> None
-        end
-    | RegExVariable t ->
-        if List.mem bad_userdefs t then
-          begin match RegexContext.lookup_for_expansion_exn rc
-                        (get_rep_userdef lc t) with
-          | None -> None
-          | Some r' -> expand_required_expansions bad_userdefs r'
-          end
-        else
-          Some r
-    end
-  in
-
-  let r1_transitive_userdefs = retrieve_transitive_userdefs r1 in
-  let r2_transitive_userdefs = retrieve_transitive_userdefs r2 in
-  let r1trans_not_in_r2trans = set_minus_lose_order comparison_compare
-      r1_transitive_userdefs
-      r2_transitive_userdefs in
-  let r2trans_not_in_r1trans = set_minus_lose_order comparison_compare
-      r2_transitive_userdefs
-      r1_transitive_userdefs in
-  begin match (expand_required_expansions r1trans_not_in_r2trans r1,
-               expand_required_expansions r2trans_not_in_r1trans r2) with
-  | (Some r1', Some r2') -> Some (r1',r2')
-  | _ -> None
-  end
+  : (regex * regex * int) list =
+  if (!infer_expansions) then
+    expand_deeper_required_expansions
+      rc
+      lc
+      r1
+      r2
+  else
+    [expand_outermost_required_expansions
+       rc
+       lc
+       r1
+       r2]
 
 let retrieve_userdefs (r:regex) : id list =
   let rec retrieve_userdefs_internal (r:regex) : id list =
@@ -1210,7 +1448,7 @@ let requires_userdef_expansions (r1:regex) (r2:regex) : bool =
   end
   
 
-let expand_once (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
+let expand_once_to_queue_elts (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
 (expansions_preformed:int)
                             : (queue_element * int) list =
   let retrieve_expansions_from_transform (transform:regex -> regex list):
@@ -1306,7 +1544,7 @@ let retrieve_transformation_queue_elements
         (r2:regex)
         (expansions_preformed:int)
   : (queue_element * int) list =
-  (expand_once max_size rc lc r1 r2 expansions_preformed)
+  (expand_once_to_queue_elts max_size rc lc r1 r2 expansions_preformed)
 
 
 let rec atom_lens_to_lens (a:atom_lens) : lens =
@@ -1464,9 +1702,6 @@ let rec iteratively_deepen (r:regex) : regex * RegexContext.t =
     (r:ordered_exampled_dnf_regex) : regex =
   dnf_regex_to_regex (ordered_exampled_dnf_regex_to_dnf_regex r)*)
 
-
-
-
 let expand_once
     (rc:RegexContext.t)
     (r1:regex)
@@ -1493,3 +1728,4 @@ let expand_once
   in
 
   all_immediate_expansions
+

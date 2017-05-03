@@ -17,6 +17,7 @@ open Gen
 open Lens_put
 open Boom_lang
 open Transform
+open Gen_exs
 
 let test_to_normalized_exp_base _ =
   assert_dnf_equal
@@ -723,7 +724,7 @@ let test_string_options (expected:string option) (actual:string option) =
 
 
 let test_int_list = assert_equal
-  ~printer:(fun is -> String.concat (List.map ~f:string_of_int is) ~sep:",")
+    ~printer:(fun is -> String.concat (List.map ~f:string_of_int is) ~sep:",")
 
 let test_permutation_create_invalid_0 _ =
   assert_raises
@@ -1754,3 +1755,226 @@ let expand_required_expansions_program_suite = "expand_required_expansions Unit 
   ]
 
 let _ = run_test_tt_main expand_required_expansions_program_suite
+
+
+
+let test_expand_count_unfold _ =
+  assert_expansions_equal
+    [((RegExOr(RegExBase "",
+               RegExConcat(RegExVariable "b",RegExStar(RegExVariable "b"))))
+     ,1)
+    ;((RegExOr(RegExBase "",
+               RegExConcat(RegExStar(RegExVariable "b"),RegExVariable "b")))
+     ,1)]
+    (expand_count_of_regex_depth
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExStar(RegExVariable "b"))
+       "b"
+       0)
+
+let test_expand_underneath_star _ =
+  assert_expansions_equal
+    [((RegExOr(RegExBase "",
+                         RegExConcat(RegExStar(RegExVariable "b"),
+                                     RegExStar(RegExStar(RegExVariable "b")))))
+     ,1)
+    ;((RegExOr(RegExBase "",
+               RegExConcat(RegExStar(RegExStar(RegExVariable "b")),
+                           RegExStar(RegExVariable "b"))))
+     ,1)
+    ;(RegExStar(RegExOr(RegExBase "",
+                        RegExConcat(RegExVariable "b",
+                                    RegExStar(RegExVariable "b"))))
+      ,1)
+    ;(RegExStar(RegExOr(RegExBase "",
+                        RegExConcat(RegExStar(RegExVariable "b"),
+                                    RegExVariable "b")))
+      ,1)
+    ]
+    (expand_count_of_regex_depth
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExStar(RegExStar(RegExVariable "b")))
+       "b"
+       1)
+
+let test_by_expanding_other _ =
+  assert_expansions_equal
+    [(RegExConcat(RegExVariable "b",
+                  RegExStar(RegExBase "c"))
+     ,1)
+    ;(RegExConcat(RegExVariable "b",
+                  (RegExOr(RegExBase "",
+                           RegExConcat(RegExVariable "c",
+                                       RegExStar(RegExVariable "c")))))
+     ,1)
+    ;(RegExConcat(RegExVariable "b",
+                  (RegExOr(RegExBase "",
+                           RegExConcat(RegExStar(RegExVariable "c"),
+                                       RegExVariable "c"))))
+     ,1)
+    ]
+    (expand_count_of_regex_depth
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       "b"
+       0)
+
+let expand_count_of_regex_depth_suite = "expand_count_of_regex_depth Unit Tests" >:::
+  [
+    "test_expand_count_unfold" >:: test_expand_count_unfold;
+    "test_expand_underneath_star" >:: test_expand_underneath_star;
+    "test_by_expanding_other" >:: test_by_expanding_other;
+  ]
+
+let _ = run_test_tt_main expand_count_of_regex_depth_suite
+
+
+let test_contraction_depth0 _ =
+  assert_expansions_equal
+    [(RegExConcat(RegExVariable "b",RegExBase "c")
+     ,1)
+    ]
+    (shrink_count_of_regex_depth
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExConcat(RegExVariable "b",RegExVariable "c"))
+       "c"
+       0)
+
+let test_contraction_depth1 _ =
+  assert_expansions_equal
+    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+     ,1)
+    ]
+    (shrink_count_of_regex_depth
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       "c"
+       1)
+
+let shrink_count_of_regex_depth_suite = "shrink_count_of_regex_depth Unit Tests" >:::
+  [
+    "test_contraction_depth0" >:: test_contraction_depth0;
+    "test_contraction_depth1" >:: test_contraction_depth1;
+  ]
+
+let _ = run_test_tt_main shrink_count_of_regex_depth_suite
+
+
+let test_even_through_shrink_left _ =
+  assert_double_expansions_equal
+    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")),
+      RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+     ,1)
+    ]
+    (make_userdef_depth_same_size
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       (RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")))
+       "c"
+       1)
+
+let test_even_through_shrink_right _ =
+  assert_double_expansions_equal
+    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")),
+      RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+     ,1)
+    ]
+    (make_userdef_depth_same_size
+       test_expand_regexcontext
+       test_expand_lenscontext
+       (RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")))
+       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       "c"
+       1)
+
+let make_userdef_depth_same_size_suite = "make_userdef_depth_same_size Unit Tests" >:::
+  [
+    "test_even_through_shrink_left" >:: test_even_through_shrink_left;
+    "test_even_through_shrink_right" >:: test_even_through_shrink_right;
+  ]
+
+let _ = run_test_tt_main make_userdef_depth_same_size_suite
+
+
+let _ = Random.init 0
+
+let gen_element_and_on_portions_of_flattened_or_userdef_regex_noints _ =
+  assert_string_int_int_pair_list_pair_equal
+    ("ab",[])
+    (gen_element_and_on_portions_of_flattened_or_userdef_regex
+       (false,(FRegExConcat ((false,FRegExBase "a"), (false,FRegExBase "b")))))
+
+let gen_element_and_on_portions_of_flattened_or_userdef_regex_leftint _ =
+  assert_string_int_int_pair_list_pair_equal
+    ("ab",[(0,1)])
+    (gen_element_and_on_portions_of_flattened_or_userdef_regex
+       (false,(FRegExConcat ((true,FRegExBase "a"), (false,FRegExBase "b")))))
+
+let gen_element_and_on_portions_of_flattened_or_userdef_regex_rightint _ =
+  assert_string_int_int_pair_list_pair_equal
+    ("ab",[(1,2)])
+    (gen_element_and_on_portions_of_flattened_or_userdef_regex
+       (false,(FRegExConcat ((false,FRegExBase "a"), (true,FRegExBase "b")))))
+
+let gen_element_and_on_portions_of_flattened_or_userdef_regex_bothint _ =
+  assert_string_int_int_pair_list_pair_equal
+    ("ab",[(1,2);(0,1)])
+    (gen_element_and_on_portions_of_flattened_or_userdef_regex
+       (false,(FRegExConcat ((true,FRegExBase "a"), (true,FRegExBase "b")))))
+
+let gen_element_and_on_portions_of_flattened_or_userdef_regex_topint _ =
+  assert_string_int_int_pair_list_pair_equal
+    ("ab",[(0,2)])
+    (gen_element_and_on_portions_of_flattened_or_userdef_regex
+       (true,(FRegExConcat ((false,FRegExBase "a"), (false,FRegExBase "b")))))
+
+let get_userdef_focused_flattened_regex_concats _ =
+  assert_flattened_or_userdef_regex_list_equal
+    [(false,
+      FRegExConcat((true,FRegExBase"a"),(true,FRegExBase"a")))
+    ;(false,
+      FRegExConcat((true,FRegExBase"a"),(true,FRegExBase"a")))]
+    (get_userdef_focused_flattened_regexs
+       (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
+       (RegExConcat(RegExVariable "A", RegExVariable "A")))
+
+let get_userdef_focused_flattened_regex_ors _ =
+  assert_flattened_or_userdef_regex_list_equal
+    [(false,
+      FRegExOr[(false,FRegExBase"c")
+              ;(true,FRegExBase"a")
+              ;(true,FRegExBase"b")])]
+    (get_userdef_focused_flattened_regexs
+       (RegexContext.create_from_list_exn ["A",(RegExOr (RegExBase "a",RegExBase "b")),true])
+       (RegExOr(RegExBase "c", RegExVariable "A")))
+
+let calculate_off_portions_easy _ =
+  assert_int_int_list_equal
+    [(0,1);(2,3)]
+    (calculate_off_portions 4 [(1,2);(3,4)])
+
+let calculate_off_portions_empty _ =
+  assert_int_int_list_equal
+    []
+    (calculate_off_portions 2 [(0,1);(1,2)])
+
+let gen_element_on_off_portions_suite = "gen_element_on_off_portions" >:::
+  [
+    "gen_element_and_on_portions_of_flattened_or_userdef_regex_noints" >:: gen_element_and_on_portions_of_flattened_or_userdef_regex_noints;
+    "gen_element_and_on_portions_of_flattened_or_userdef_regex_leftint" >:: gen_element_and_on_portions_of_flattened_or_userdef_regex_leftint;
+    "gen_element_and_on_portions_of_flattened_or_userdef_regex_rightint" >:: gen_element_and_on_portions_of_flattened_or_userdef_regex_rightint;
+    "gen_element_and_on_portions_of_flattened_or_userdef_regex_bothint" >:: gen_element_and_on_portions_of_flattened_or_userdef_regex_bothint;
+    "gen_element_and_on_portions_of_flattened_or_userdef_regex_topint" >:: gen_element_and_on_portions_of_flattened_or_userdef_regex_topint;
+    "get_userdef_focused_flattened_regex_concats" >:: get_userdef_focused_flattened_regex_concats;
+    "get_userdef_focused_flattened_regex_ors" >:: get_userdef_focused_flattened_regex_ors;
+    "calculate_off_portions_easy" >:: calculate_off_portions_easy;
+    "calculate_off_portions_empty" >:: calculate_off_portions_empty;
+  ]
+
+let _ = run_test_tt_main gen_element_on_off_portions_suite

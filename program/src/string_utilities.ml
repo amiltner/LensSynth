@@ -18,6 +18,21 @@ let delimit_string : string -> string =
   % (Str.global_replace (Str.regexp "\t") "\\\\t")
   % (Str.global_replace (Str.regexp "\\\\") "\\\\\\\\")
 
+let delimit_tabs : string -> string =
+  Str.global_replace (Str.regexp "\t") "\\t"
+
+let delimit_newlines : string -> string =
+  Str.global_replace (Str.regexp "\n") "\\n"
+
+let delimit_slashes : string -> string =
+  Str.global_replace (Str.regexp "\\") "\\\\"
+
+let delimit_commas : string -> string =
+  Str.global_replace (Str.regexp ",") "\\,"
+
+let undelimit_commas : string -> string =
+  Str.global_replace (Str.regexp "\\,") ","
+
 let string_of_option (inner_converter:'a -> string) (ao:'a option) : string =
   begin match ao with
     | None -> "None"
@@ -90,6 +105,8 @@ let string_of_int_list : int list -> string =
 
 let string_of_int_list_list : int list list -> string =
   string_of_list string_of_int_list
+
+let string_of_char : char -> string = Char.to_string
 
 let string_of_char_list : char list -> string =
   string_of_list Char.to_string

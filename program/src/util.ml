@@ -20,6 +20,8 @@ type partial_order_comparison =
   | PO_GT
   | PO_INCOMPARABLE
 
+type 'a comparer = 'a -> 'a -> comparison
+
 let int_to_comparison (n:int) : comparison =
   if n = 0 then
     EQ
@@ -55,8 +57,25 @@ let comparer_to_equality_check (f:'a -> 'a -> comparison) (x:'a) (y:'a)
 
 let comparison_compare = fun x y -> int_to_comparison (compare x y)
 
+let compare_comparison
+    (x1:comparison)
+    (x2:comparison)
+  : comparison =
+  begin match (x1,x2) with
+    | (LT,LT) -> EQ
+    | (LT,_ ) -> LT
+    | (_ ,LT) -> GT
+    | (EQ,EQ) -> EQ
+    | (EQ,_ ) -> LT
+    | (_ ,EQ) -> GT
+    | (GT,GT) -> EQ
+  end
+
 let int_compare (n1:int) (n2:int) : comparison =
   int_to_comparison (n1 - n2)
+
+let bool_compare : bool -> bool -> comparison =
+  int_comparer_to_comparer (compare_bool)
 
 let pp_comparison (c:comparison) : string =
   begin match c with
@@ -434,18 +453,21 @@ let ordered_partition_order (f:'a -> 'a -> comparison)
   | c -> c
   end
 
-let rec dictionary_order (f:'a -> 'a -> comparison)
-  (l1:'a list) (l2:'a list) : comparison =
+let rec compare_list
+    ~cmp:(cmp:'a comparer)
+  : ('a list) comparer =
+  fun l1 l2 ->
     begin match (l1,l2) with
-    | ([],[]) -> EQ
-    | (_::_,[]) -> GT
-    | ([],_::_) -> LT
-    | (h1::t1,h2::t2) ->
-        begin match f h1 h2 with
-        | EQ -> dictionary_order f t1 t2
-        | x -> x
+      | ([],[]) -> EQ
+      | (_::_,[]) -> GT
+      | ([],_::_) -> LT
+      | (h1::t1,h2::t2) ->
+        begin match cmp h1 h2 with
+          | EQ -> compare_list ~cmp:cmp t1 t2
+          | x -> x
         end
     end
+  
 
 let option_compare
     (value_compare:'a -> 'a -> comparison)
@@ -554,16 +576,16 @@ let quint_compare
 
 let partition_dictionary_order (f:'a -> 'a -> comparison)
   : 'a list list -> 'a list list -> comparison =
-    dictionary_order
-      (fun x y -> f (List.hd_exn x) (List.hd_exn y))
+    compare_list
+      ~cmp:(fun x y -> f (List.hd_exn x) (List.hd_exn y))
 
 let ordered_partition_dictionary_order (f:'a -> 'a -> comparison)
   : ('a * int) list list -> ('a * int) list list -> comparison =
-    dictionary_order
-      (fun x y ->
+  compare_list
+    ~cmp:(fun x y ->
         begin match int_to_comparison (compare (List.length x) (List.length y)) with
-        | EQ -> f (fst (List.hd_exn x)) (fst (List.hd_exn y))
-        | x -> x
+          | EQ -> f (fst (List.hd_exn x)) (fst (List.hd_exn y))
+          | x -> x
         end)
 
 let intersect_lose_order_no_dupes (cmp:'a -> 'a -> comparison)
@@ -828,6 +850,8 @@ let string_to_char_list (s:string) : char list =
   let rec exp i l =
     if i < 0 then l else exp (i - 1) (s.[i] :: l) in
   exp (String.length s - 1) [];;
+
+let char_compare : char comparer = int_comparer_to_comparer Char.compare
 
 let hash_pair
     (fst_hash:'a -> int)

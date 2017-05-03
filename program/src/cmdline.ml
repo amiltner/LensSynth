@@ -15,7 +15,8 @@ open Eval
 open Converter
 open Normalized_lang
 open Regex_utilities
-open Language_equivalences
+open String_utilities
+open Lens_utilities
 
 let _ = Random.self_init
 
@@ -29,6 +30,8 @@ type driver_mode =
   | GeneratedExamples
   | MaxSpecify
   | SpecSize
+  | GenerateIOSpec
+  | GenerateExtractionSpec
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -96,6 +99,19 @@ let args =
   ; ( "-verbose"
     , Arg.Unit (fun _ -> verbose := true)
     , " Print out information about synthesis"
+    )
+  ; ( "-no_inferred_expansions"
+    , Arg.Unit (fun _ -> infer_expansions := false)
+    , " Infer necessary expansions")
+  ; ( "-generate_io_spec"
+    , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateIOSpec)
+                 ;(Arg.Set_int generate_io_count)])
+    , " Synthesize (#) randomly generated examples"
+    )
+  ; ( "-generate_extraction_spec"
+    , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateExtractionSpec)
+                 ;(Arg.Set_int generate_io_count)])
+    , " Synthesize (#) randomly generated extraction problems"
     )
   ]
   |> Arg.align
@@ -190,7 +206,7 @@ let collect_example_number (p:program) : unit =
            if l' = l then
              Right (List.length acc)
            else
-             let leftex = gen_element_of_dnf_regex rc (to_dnf_regex r1) in
+             let leftex = gen_element_of_regex_language rc r1 in
              let rightex = lens_putr rc lc l leftex in
              let acc = (leftex,rightex)::acc in
              Left acc
@@ -276,6 +292,83 @@ let collect_max_example_number (p:program) : unit =
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let max_exs_required = max_examples_required rc lc l in
   print_endline (string_of_int max_exs_required)
+    
+let collect_extraction_spec (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let rec collect_extraction_spec_internal
+      (n:int)
+      ((r,(v,f)):regex * (string * flattened_or_userdef_regex))
+    : unit =
+    if (n <= 0) then
+      ()
+    else
+      let tsv_delimit = fun s -> delimit_tabs (delimit_newlines (delimit_slashes s)) in
+      let (s,on,off) = gen_element_and_on_off_portions_of_flattened_or_userdef_regex f in
+      if List.is_empty on then
+        collect_extraction_spec_internal (n-1) (r,(v,f))
+      else
+        let prob_userdef_for_tsv =
+          tsv_delimit (string_of_pair regex_to_string ident (r,v))
+        in
+        let s_for_tsv = tsv_delimit s in
+        let on_for_tsv =
+          String.concat
+            ~sep:";"
+            (List.map
+               ~f:(fun (i,j) -> (string_of_int i) ^ "," ^ (string_of_int j))
+               on)
+        in
+        let off_for_tsv =
+          String.concat
+            ~sep:";"
+            (List.map
+               ~f:(fun (i,j) -> (string_of_int i) ^ "," ^ (string_of_int j))
+               off)
+        in
+        let prob_s_on_off_for_tsv =
+          prob_userdef_for_tsv ^ "\t" ^
+          s_for_tsv ^ "\t" ^
+          on_for_tsv ^ "\t" ^
+          off_for_tsv
+        in
+        print_endline prob_s_on_off_for_tsv;
+        collect_extraction_spec_internal (n-1) (r,(v,f))
+  in
+  let all_relevant_lenses = retrieve_transitive_referenced_lenses lc l in
+  let all_relevant_inputtypes =
+    List.map
+      ~f:(fun l -> fst (type_lens lc l))
+      all_relevant_lenses
+  in
+  let all_ud_focusings =
+    List.concat_map
+      ~f:(fun it ->
+          List.map
+            ~f:(fun fr -> (it,fr))
+            (get_userdef_focused_flattened_regexs rc it))
+      all_relevant_inputtypes
+  in
+  List.iter
+    ~f:(collect_extraction_spec_internal !generate_io_count)
+    all_ud_focusings
+  
+    
+let collect_final_io_spec (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let rec collect_final_io_spec_internal
+      (n:int)
+    : unit =
+    if (n <= 0) then
+      ()
+    else
+      let leftex = gen_element_of_regex_language rc r1 in
+      let rightex = lens_putr rc lc l leftex in
+      print_endline (((delimit_tabs (delimit_newlines (delimit_slashes leftex))) ^ "\t" ^ ((delimit_tabs (delimit_newlines (delimit_slashes rightex))))));
+      collect_final_io_spec_internal (n-1)
+  in
+  collect_final_io_spec_internal !generate_io_count
 
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
@@ -351,6 +444,14 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> print_outputs
           | SpecSize ->
             parse_file f |> expand_regexps_if_necessary |> specification_size
+          | GenerateIOSpec ->
+            parse_file f
+            |> expand_regexps_if_necessary
+            |> collect_final_io_spec
+          | GenerateExtractionSpec ->
+            parse_file f
+            |> expand_regexps_if_necessary
+            |> collect_extraction_spec
         end
     end
 

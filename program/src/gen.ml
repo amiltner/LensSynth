@@ -171,9 +171,9 @@ struct
              print_endline "\n\n";
              print_endline ("exps: " ^ (string_of_int expansions_performed));
              print_endline ("\n\n\n"));
-          if requires_full_expansions lc r1 r2 then
+          if requires_expansions rc lc r1 r2 then
             let required_expansions =
-              expand_deeper_required_expansions
+              expand_required_expansions
                 rc
                 lc
                 r1

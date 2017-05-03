@@ -1,7 +1,15 @@
 open OUnit2
 open Core.Std
 open String_utilities
+open Util
 
+let assert_equal
+    ~printer:(printer:'a -> string)
+    ~cmp:(cmp:'a comparer)
+  : 'a -> 'a -> unit =
+  assert_equal
+    ~printer:printer
+    ~cmp:(comparer_to_equality_check cmp)
 
 let assert_not_equal (printer:'a -> string) (expectednot:'a) (actual:'a) =
   assert_bool
@@ -12,6 +20,7 @@ let assert_not_equal (printer:'a -> string) (expectednot:'a) (actual:'a) =
 let assert_bool_equal (expected:bool) (actual:bool) =
   assert_equal
     ~printer:string_of_bool
+    ~cmp:bool_compare
     expected
     actual
 
@@ -31,16 +40,14 @@ let assert_not_equal_bool (expected_not:bool) (actual:bool) =
 let assert_not_equal_int (expected_not:int) (actual:int) =
   assert_not_equal string_of_int expected_not actual
 
-let assert_int_equal = assert_equal ~printer:string_of_int
+let assert_int_equal = assert_equal ~printer:string_of_int ~cmp:int_compare
 
 let assert_float_equal = assert_equal ~printer:Float.to_string
 
 let assert_int_option_equal =
   assert_equal
-    ~printer:(fun int_option -> begin match int_option with
-    | None -> "None"
-    | Some x -> string_of_int x
-      end)
+    ~printer:(string_of_option string_of_int)
+    ~cmp:(option_compare int_compare)
 
 let assert_float_option_equal =
   assert_equal
@@ -64,20 +71,23 @@ let assert_string_list_option_equal
     expected
     actual
 
-let assert_ordered_string_assoc_list_equal =
-  assert_equal
-    ~printer:(fun counts ->     "[" ^ (String.concat ~sep:" ; " (List.map ~f:(fun (x,c) -> (x) ^ "->" ^
-    (string_of_int c)) counts)) ^ "]")
-
 
 let assert_comparison_equal =
   assert_equal
     ~printer:string_of_comparison
+    ~cmp:compare_comparison
 
 let assert_char_list_list_equal = assert_equal
     ~printer:string_of_char_list_list
+    ~cmp:(compare_list ~cmp:(compare_list ~cmp:char_compare))
 
-let assert_char_list_double_equal = assert_equal
+let assert_char_list_double_equal =
+  let char_list_printer = string_of_list string_of_char in
+  let char_list_comparer = compare_list ~cmp:char_compare in
+  assert_equal
+    ~printer:(string_of_pair char_list_printer char_list_printer)
+    ~cmp:(pair_compare char_list_comparer char_list_comparer)
 
 let assert_string_equal = assert_equal
-  ~printer:ident
+    ~printer:ident
+    ~cmp:string_compare

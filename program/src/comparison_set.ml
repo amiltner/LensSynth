@@ -116,8 +116,8 @@ struct
       (s1:set)
       (s2:set)
     : comparison =
-    dictionary_order
-      C.compare
+    compare_list
+      ~cmp:C.compare
       (sort ~cmp:C.compare (as_list s1))
       (sort ~cmp:C.compare (as_list s2))
 

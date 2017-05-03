@@ -17,9 +17,6 @@ type id = string
 (***** }}} *****)
 
 
-
-
-
 (**** Regex {{{ *****)
 
 type regex =
@@ -286,7 +283,7 @@ let rec lens_compare (l1:lens) (l2:lens) : comparison =
     | (LensPermute (p1,ls1),LensPermute (p2,ls2)) ->
       pair_compare
         Permutation.compare
-        (dictionary_order lens_compare)
+        (compare_list ~cmp:lens_compare)
         (p1,ls1)
         (p2,ls2)
   end
@@ -313,6 +310,43 @@ let rec lens_hash (l:lens) : int =
               ~init:1237662)
         ls
   end
+
+let rec is_sublens (sublens:lens) (suplens:lens) : bool =
+  if sublens = suplens then
+    true
+  else
+    begin match suplens with
+      | LensConcat (l1,l2) ->
+        (is_sublens sublens l1) || (is_sublens sublens l2)
+      | LensSwap (l1,l2) ->
+        (is_sublens sublens l1) || (is_sublens sublens l2)
+      | LensUnion (l1,l2) ->
+        (is_sublens sublens l1) || (is_sublens sublens l2)
+      | LensCompose (l1,l2) ->
+        (is_sublens sublens l1) || (is_sublens sublens l2)
+      | LensIterate l' ->
+        is_sublens sublens l'
+      | LensInverse l' ->
+        is_sublens sublens l'
+      | _ -> false
+    end
+
+let rec has_common_sublens (l1:lens) (l2:lens) : bool =
+  begin match l1 with
+    | LensConcat (l11,l12) ->
+      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
+    | LensSwap (l11,l12) ->
+      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
+    | LensUnion (l11,l12) ->
+      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
+    | LensCompose (l11,l12) ->
+      (has_common_sublens l11 l2) || (has_common_sublens l12 l2)
+    | LensIterate l1' ->
+      has_common_sublens l1' l2
+    | LensInverse l1' ->
+      has_common_sublens l1' l2
+    | _ -> is_sublens l1 l2
+    end
 
 (***** }}} *****)
 

@@ -197,8 +197,8 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
     begin match (a1,a2) with
     | (OEAUserDefined (s1,_,_,el1), OEAUserDefined (s2,_,_,el2)) ->
         begin match (int_to_comparison (compare s1 s2)) with
-        | EQ -> dictionary_order
-                  (int_comparer_to_comparer compare)
+        | EQ -> compare_list
+                  ~cmp:(int_comparer_to_comparer compare)
                   el1
                   el2
         | x -> x
@@ -216,8 +216,8 @@ and compare_ordered_exampled_clauses
                 compare_ordered_exampled_atoms
                 atoms_partitions1
                 atoms_partitions2 with
-  | EQ -> dictionary_order
-            (fun x y -> int_to_comparison (compare x y))
+  | EQ -> compare_list
+            ~cmp:(fun x y -> int_to_comparison (compare x y))
             ints1
             ints2
   | c -> c
@@ -294,6 +294,41 @@ let rec dnf_lens_to_string ((clause_lenses, permutation):dnf_lens) : string =
   paren (
     Permutation.pp permutation
   )
+
+let rec compare_dnf_lens
+    (dl1:dnf_lens)
+    (dl2:dnf_lens)
+  : comparison =
+  pair_compare
+    (compare_list ~cmp:compare_clause_lens)
+    Permutation.compare
+    dl1
+    dl2
+
+and compare_clause_lens
+    (cl1:clause_lens)
+    (cl2:clause_lens)
+  : comparison =
+  quad_compare
+    (compare_list ~cmp:compare_atom_lens)
+    Permutation.compare
+    (compare_list ~cmp:string_compare)
+    (compare_list ~cmp:string_compare)
+    cl1
+    cl2
+
+and compare_atom_lens
+    (al1:atom_lens)
+    (al2:atom_lens)
+  : comparison =
+  begin match (al1,al2) with
+    | (AtomLensIterate dl1, AtomLensIterate dl2) ->
+      compare_dnf_lens dl1 dl2
+    | (AtomLensIterate _, _) -> LT
+    | (_, AtomLensIterate _) -> GT
+    | (AtomLensVariable l1, AtomLensVariable l2) ->
+      lens_compare l1 l2
+  end
 
 (***** }}} *****)
 

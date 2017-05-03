@@ -140,7 +140,7 @@ let lens_putr (rc:RegexContext.t)
   let (sr,_) = type_lens lc l in
   let exampled_sr_o = regex_to_exampled_regex rc sr [s] in
   begin match exampled_sr_o with
-    | None -> failwith "bad input to lens"
+    | None -> failwith ("bad input to lens" ^ s)
     | Some exampled_sr -> lens_putr_internal rc lc l exampled_sr [0]
   end
 
@@ -152,6 +152,6 @@ let lens_putl (rc:RegexContext.t)
   let (_,tr) = type_lens lc l in
   let exampled_sr_o = regex_to_exampled_regex rc tr [s] in
   begin match exampled_sr_o with
-    | None -> failwith "bad input to lens"
+    | None -> failwith ("bad input to lens: " ^ s)
     | Some exampled_sr -> lens_putl_internal rc lc l exampled_sr [0]
   end

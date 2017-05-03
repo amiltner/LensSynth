@@ -536,8 +536,8 @@ struct
       (d2:dict)
     : comparison =
     let comparer = (pair_compare D.compare_key D.compare_value) in
-    dictionary_order
-      comparer
+    compare_list
+      ~cmp:comparer
       (sort ~cmp:comparer (as_kvp_list d1))
       (sort ~cmp:comparer (as_kvp_list d2))
 end
