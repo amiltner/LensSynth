@@ -2,7 +2,7 @@
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
-\newif\ifappendices\appendicestrue
+\newif\ifappendices\appendicesfalse
 
 \documentclass[numbers,10pt,preprint\ifanon ,nocopyrightspace\fi]{sigplanconf}
 
@@ -18,8 +18,8 @@
 \let\proof\relax
 \let\endproof\relax
 
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage{amsmath}
-\usepackage[table]{xcolor}
 \usepackage{mathtools}
 \usepackage{bussproofs}
 \usepackage{amsthm}
@@ -52,8 +52,11 @@
 \usepackage[noend]{algpseudocode}
 \usepackage{graphicx}
 \usepackage{textcomp}
+\usepackage{tabularx}
+\usepackage{stackengine}
+\usepackage{caption}
 
-\usetikzlibrary{matrix,shapes,arrows,positioning}
+\usetikzlibrary{er,matrix,shapes,arrows,positioning,fit,calc,pgfplots.groupplots}
 
 %%%% Hyperlinks – must come late!
 \usepackage[pdftex,%
@@ -282,6 +285,7 @@ graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
 XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}, 
 %
 and many others.
+
 %
 However, these languages are typically based on unfamiliar collections
 of primitives, and they require thinking in two directions at the same
@@ -312,8 +316,8 @@ types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015}.
 %% examples of source and target data.  In this paper, we address the first
 %% step, leaving the second to future work.
 %
-Specifically, our system supports the synthesis of \emph{bijective lenses}, a useful 
-subset of Boomerang.
+Specifically, our system supports the synthesis of \emph{bijective lenses}, a
+useful subset of Boomerang.
 %%  that convert
 %% back and forth between text files.  These bijective lenses represent a core
 %% fragment of Boomerang.  Boomerang also supports more general {\em asymmetric}
@@ -353,89 +357,258 @@ any, examples.
 % examples, our algorithm will synthesize a well-typed lens whose behavior
 % matches the examples.
 
+Despite the benefits of such informative types, certain features of
+existing bidirection languages make them ill
+suited to synthesis in their raw form.  These languages have many equivalences
+on their types -- Boomerang's types are regular expression pairs, and there are
+infinite equivalent regular expressions.  To synthesize terms from these, we
+must be able to traverse these equivalences.  Furthermore, composition is not
+admissible in Boomerang, making it necessary to search through possible
+central types.
+
+To resolve these issues, we introduce new languages of ``DNF (Disjunctive Normal
+Form) Lenses'' and ``DNF
+Regular Expressions''.  These
+lenses and regular expressions loosely correspond to fully distributed lenses
+and regular expressions.
+Similarly to how lenses have pairs of regular expressions as types, DNF lenses
+have pairs of DNF regular expressions as types.
+Furthermore, the typing derivation of a DNF lens fixes where and how
+equivalences on DNF regular expressions can be processed with
+a two-phase typing derivation.  In the first
+phase of the typing derivation, equivalences on the languages are handled, and
+in the second phase of the typing derivation, the terms are aligned with
+the types.
+We have then proven this language equivalent to our bijective fragment of
+Boomerang.
+
 \begin{figure}
-\begin{lstlisting}[mathescape=true,columns=fixed]
-Name = [A-Z][a-z]*
-Names = ($\text{\textquotesingle{} \textquotesingle{}}$ Name)*
+  \centering
+  \begin{tikzpicture}[auto,node distance=1.5cm]
+    \node[align=center] (spec) { Spec };
+    % Now place a relation (ID=rel1)
+    \node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
+    \node (below-gen) [below=.5cm of sketch-gen] {};
+    \node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
+         [right = .25cm of sketch-gen] {\RigidSynth{}};
+    \node (below-compl) [below=.5cm of sketch-compl] {};
+    \node[align=center] (lens) [right = .75cm of sketch-compl] {Lens};
+    % Draw an edge between rel1 and node1; rel1 and node2
+    \path[->] (spec) edge node (start-alg) {} (sketch-gen);
+    \path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
+    \path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
+    \draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
 
-(* BibTeX definitions *)
-BNames = Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name Names
-BibTeX = $\EmptyString$
-       | $\text{\textquotesingle{}author=\{\textquotesingle{}}$ BNames ($\text{\textquotesingle{} and \textquotesingle{}}$ BNames)* $\text{\textquotesingle{}\},\textquotesingle{}}$
-
-(* EndNote definitions *)
-ENames  = Name Names $\text{\textquotesingle{} \textquotesingle{}}$ Name
-EndNote = ($\text{\textquotesingle{}\%A \textquotesingle{}}$ ENames $\text{\textquotesingle{}}$\n$\text{\textquotesingle{}}$)*
-
-(* Synthesis Specification With 1 Example *)
-BibEnd : BibTeX <=> EndNote = {
-$\text{\textquotesingle{}}$author={Conway, John and Kleene, Stephen Cole}$\text{\textquotesingle{}}$
-<-> $\text{\textquotesingle{}}$%A John Conway\n%A Stephen Cole Kleene$\text{\textquotesingle{}}$ }
-\end{lstlisting}
-  \caption{Synthesis Example: Idealized BibTeX to EndNote}
-  \label{fig:bibend-spec}
+    \node (synth-name) [above=.5cm of middle] {\SynthLens{}};
+    
+    \node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
+  \end{tikzpicture}
+  \caption{Schematic Diagram for Synthesis Algorithm}
+  \label{fig:schematic-diagram}
 \end{figure}
 
-To explain our algorithm, we use a running example that converts between
-bibliographic citations in simplified fragments of BibTeX and EndNote
-formats.  The BibTeX format specifies (just) a list of authors on a single line:
-\begin{lstlisting}
-   author={Conway, John and Kleene, Stephen Cole}
-\end{lstlisting}
-The EndNote format contains the same information, but uses different separators,
-rearranges the order of first and last names, and puts each author on
-a separate line:
-\begin{lstlisting}
-   % A John Conway
-   % A Stephen Cole Kleene
-\end{lstlisting}
-Figure~\ref{fig:bibend-spec} shows an example specification for a lens
-\CF{BibEnd} that converts between the \CF{BibTeX} and \CF{EndNote} formats.
-Giving names to intermediate regular expressions (\CF{Name}, \CF{Names},
-etc.) facilitates construction of complex formats; we will see that they
-also play an important role in the synthesis process.
+The typing rules of DNF lenses lend themselves to a two-phased synthesis
+algorithm.  A schematic diagram of this two phased algorithm is given in
+Figure~\ref{fig:schematic-diagram}.
+Our algorithm takes as input specifications given as a pair of regular
+expressions describing the data formats, as well as a list of input/output
+examples.
+By searching through the first phase of the typing derivation, \TypeProp{}
+proposes a pair of DNF regular expressions.
+These DNF regular expressions are then given as input to \RigidSynth{}, which
+efficiently searches through the second phase of the typing derivation.
+If \RigidSynth{} successfully generates a DNF lens (\Success{}), this DNF lens is
+then converted into Boomerang lens, and returned to the user.  If \RigidSynth{} fails to
+generate a DNF lens (\Failure{}), then this failure is provided to \TypeProp{},
+which then proposes another DNF regular expression pair.  This loop continues
+until \RigidSynth{} successf completes.
+Two-phased synthesis algorithms are present in many other
+systems~\cite{?,?,?}, but we are the first that ties this two-phased synthesis
+algorithm to a two-phased typing derivation.
 
-\paragraph*{Challenge 1: Multi-dimensional Search Space.}
-A central challenge facing our synthesis algorithm is illustrated by
-Boomerang's concatenation operator, $\ConcatLensOf{\Lens_1}{\Lens_2}$.  The
-\emph{get} function of this lens divides an input string $\String$ into two
-substrings $\String_1$ and $\String_2$ and applies the sub-lens $\Lens_1$ to
-the first and $\Lens_2$ to the second to yield $t_1$ and $t_2$.  The
-\emph{put} function maps from strings $t$ to strings $s$ in an analogous
-way.  The type system ensures that these functions form a bijection by
-imposing this typing rule:
+\paragraph*{Contributions.}  Our synthesis algorithm is intended to make
+bidirectional programming more accessible.  We begin by motivating our problem
+with an extended, real-world example (\S\ref{motivation}).
+After we briefly recapitulate some background on regular expressions and core
+lens combinators (\S\ref{background}) and illustrate
+the essential features of our algorithm with our extended example
+(\S\ref{example}), we offer the following technical contributions:
+
+\begin{itemize}
+\item We introduce pseudo-canonical DNF regular expressions (\S
+\ref{sec:dnfre}) and DNF lenses, a variant of standard lenses designed
+specifically for synthesis (\S\ref{sec:dnf}).  We show how to convert
+between ordinary regular expressions and lenses and the DNF forms, and prove
+these translations sound and complete with respect to our high-level lens syntax.
+
+\item We present a sound and complete type-directed algorithm for synthesizing
+  DNF lenses (\S\ref{algorithm}).
+
+\item We evaluate our core algorithm, its optimizations, and synthesis tools in
+  a similar domain on 26 benchmarks, including examples derived from
+Flash Fill~\cite{gulwani-popl-2014} and the Augeas~\cite{augeas}
+system (\S \ref{evaluation}).  Our full algorithm succeeds on
+all benchmarks in under 5 seconds.
+\end{itemize}
+We close with related work (\S \ref{sec:related}) and conclusions (\S
+\ref{sec:conc}). 
+
+% end introduction
+
+\section{Motivation}
+\label{motivation}
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[auto,node distance=1.5cm]
+    %clients
+    \node[align=center,draw,rectangle,minimum width=2cm,minimum height = .9cm, text width=2cm, fill=lightyellow] (old-clients) {Legacy Clients};
+    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, text width=2cm, fill=lightgreen] (new-clients) [right = 1cm of old-clients] {Modern Clients};
+
+    %server apis
+    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightyellow] (old-server-api) [below = .6cm of old-clients] {Legacy Server API};
+    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (new-server-api) [below = .6cm of new-clients] {Modern Server API};
+
+    %server stack
+    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (server-stack) [below = .3cm of new-server-api] {Server Stack};
+    
+    % Draw an edge between rel1 and node1; rel1 and node2
+    \path[<->] (old-clients) edge node {} (old-server-api);
+    \path[<->] (new-clients) edge node {} (new-server-api);
+    \path[<->] (new-server-api) edge node {} (server-stack);
+    
+    \draw[<->] (old-server-api.south)
+    -- ($(old-server-api.south)+(0,-.15)$)
+    -| ($(old-server-api.south)+(1.13,-.15)$) node[below] {Lens} 
+    -| ($(new-server-api.north)+(-1.63,.15)$)
+    -| ($(new-server-api.north)+(-.50,.15)$)
+    -- ($(new-server-api.north)+(-.50,0)$);
+    \node[fit=(old-server-api) (new-server-api) (server-stack) ,draw, inner sep=.8em] (server) {};
+    %\node (synth-name) [below=0cm of surrounding] (name) {\SynthLens{}};
+  \end{tikzpicture}
+  \caption{VSTS Architecture Using Lenses}
+  \label{fig:vsts-arch}
+\end{figure}
+
+\begin{figure}
+
+%https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
+\setbox0=\hbox{%
+\begin{minipage}{1.9in}
+\begin{lstlisting}[
+tabsize=1,
+language={xml},
+]
+<WorkItem>
+ <Field Id=1>Bug</Field>
+ <Field Id=2>Return 400 on bad PUT request</Field>
+ <Field Id=5>J Smith</Field>
+</WorkItem>
+\end{lstlisting}
+\end{minipage}
+}
+\savestack{\listingA}{\box0}
+
+\setbox0=\hbox{%
+\begin{minipage}{1.9in}
+\begin{lstlisting}[
+tabsize=1,
+]
+{
+  Title: Return 400 on bad PUT request,
+  Type: Bug,
+  AssignedTo: J Smith,
+}
+\end{lstlisting}
+\end{minipage}
+}
+\savestack{\listingB}{\box0}
+  \centering
+  \resizebox{\columnwidth}{!}{%
+    \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
+      \hline
+      Legacy Task Representation & Modern Task Representation \\
+      \hline
+      \listingA & \listingB \\
+      \hline
+    \end{tabular}
+  }
+  \caption{Idealized Task representations from legacy and modern web service endpoints}
+  \label{fig:idealized-representations}
+\end{figure}
+
+Visual Studio Team Services is a web service for
+team management -- providing a unified location for source control (e.g. a Git
+server), task management (i.e. providing a means to keep track of
+tasks and bugs), and more.
+In 2014, to increase third party developer interaction, Visual Studio Online
+released new web service endpoints~\cite{bharry}.  However, despite introducing
+new, modernized APIs, the old, legacy APIs must be maintained for continued
+support of legacy
+clients~\cite{team-explorer}.  Instead of keeping server code for each client,
+our proposed architecture provides a lens that converts between resources of
+the old form into resources of the new form, as shown in
+Figure~\ref{fig:vsts-arch}.  Because of the large number of existing service
+endpoints, writing these converters will be a pain, so we would like to be able
+to synthesize them.
+
+Consider a ``Task'', a resource that represents a piece of work given to a
+team.  Idealized versions of the representations of tasks from the new and
+old apis are given in Figure~\ref{fig:idealized-representations}.  If an old client GETs a work
+item, it first retrieves that task using the modern API, and then uses the
+lens to convert this task into the legacy format.  Similarly, if an old
+client PUTs a task, it converts that task into the new format, and
+then inputs that task through the modern APIs.  The two representations
+contain the same information, but they are presented differently.
+
+For simplicity, let's consider only finding the mapping between the ``Title''
+field of the task.
+
+The Legacy client allows for inputs of the form
+\begin{lstlisting}
+   !legacy_title! =
+      @"<Field Id=2>"@ !text_char!* @"</Field>"@
+\end{lstlisting}
+while the modern client allows for inputs of the form
+\begin{lstlisting}
+   !modern_title! =
+      (@"Title="@ !text_char!+ @","@) | @""@
+\end{lstlisting}
+
+We would like to be able to synthesize a lens that maps between the legacy
+representation and the modern representation.
+Because the modern api omits the title field if it's blank, we must do different
+actions depending on the number of text characters present.  This performing of
+different actions is achieved through the use of an \OrLensType{} lens.  The typing
+derivation for an \OrLensType{} lens is:
 \[
   \inferrule
   {
     \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
     \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-    \UnambigConcatOf{\Regex_1}{\Regex_2}\\
-    \UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}
+    \UnambigOrOf{\Regex_1}{\Regex_2}\\
+    \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
   }
   {
-    \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Concat\Regex_2
-    \Leftrightarrow \RegexAlt_1\Concat\RegexAlt_2
+    \OrLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Or\Regex_2
+    \Leftrightarrow \RegexAlt_1\Or\RegexAlt_2
   }
 \]
-The hypothesis $\UnambigConcatOf{\Regex_1}{\Regex_2}$ asserts that
-$\Regex_1$ and $\Regex_2$ are \textit{unambiguously concatenable}, meaning
-there is exactly one way to divide any string $\String$ in
-$\LanguageOf{\Regex_1\Concat\Regex_2}$, the language of
-$\Regex_1\Concat\Regex_2$, into $\String_1$ and $\String_2$ such that
-$\String_1$ is in $\LanguageOf{\Regex_1}$ and $\String_2$ is in
-$\LanguageOf{\Regex_2}$.  These constraints guarantee that the \emph{get}
-and \emph{put} of $\Lens$ form a bijective pair if $\Lens_1$ and $\Lens_2$
-are themselves bijective.
 
-Consider searching for a lens with the type
-$(A B) C \Leftrightarrow A' (B' C')$ assuming we know how to construct
-lenses with types $A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and
-$C \Leftrightarrow C'$.  A straightforward syntax-directed search might try
-applying the rule for concatenation (from bottom to top) and begin looking for two
-simpler lenses with the types $A B \Leftrightarrow A'$ and
-$C \Leftrightarrow B' C'$.  Clearly, this approach is not going to get us far.
+An \OrLensType{} lens applies one of two lenses, depending on which of the
+regular expressions the input string is in.
+The hypothesis that $\UnambigOrOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$
+and $\Regex_2$ are \emph{disjoint}.  These constraints guarantee that the
+\emph{get} and \emph{put} operations of $\OrLensOf{\Lens_1}{\Lens_2}$ form a
+bijective pair if $\Lens_1$ and $\Lens_2$ are themselves bijective.
 
-We might next try introducing a type conversion rule like
+However, our types do not fit within this framework.  While
+\CF{\color{darkbrown} modern\_title} is a regular expression with an
+\OrRegexType{} as its outermost operation, \CF{\color{darkbrown} legacy\_title}
+is a regular expression with an outermost \ConcatRegexType{}, so an
+\OrLensType{} lens would not be well typed.  To handle this problem, Boomerang
+allows for replacing regular expressions with regular expressions which are
+equivalent to them.  This is done by a type-conversion rule:
 \[
   \inferrule
   {
@@ -447,14 +620,20 @@ We might next try introducing a type conversion rule like
     \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
   }
 \]
-into the synthesis procedure.  
-This rule can be used to 
-convert the type $(A B) C \Leftrightarrow A' (B' C')$
-to the better-aligned $(A B) C \Leftrightarrow (A' B') C'$, from which two
-applications of the concatenation rule generate subproblems 
-$A \Leftrightarrow A'$, $B \Leftrightarrow B'$, and 
-$C \Leftrightarrow C'$,  which we know how to solve.
 
+With this rule, we can convert \CF{\color{darkbrown} legacy\_title} into
+\begin{lstlisting}
+   !legacy_title'! =
+      @"<Field Id=2></Field>"@
+      | (@"<Field Id=2>"@ !text_char!+ @"</Field>"@)
+\end{lstlisting}
+
+Now, the \OrLensType{} rule applies, and the two cases of an empty and a
+nonempty number of text characters can be handled separately.  However, the need
+to find this equivalent type highlights a signficant challenge in synthesizing
+boomerang lenses.
+
+\paragraph*{Challenge 1: Multi-dimensional Search Space.}
 Since regular-expression equivalence is decideable, 
 it is easy to \emph{check} whether a given lens $\Lens$ with type 
 $\Regex_1 \Leftrightarrow \Regex_2$
@@ -464,20 +643,24 @@ $\Regex_1' \Leftrightarrow \Regex_2'$.
 During synthesis, however, deciding when and how to use type conversion is
 difficult because there are infinitely many regular expressions that are
 equivalent to the source and target regular expressions.  Do we need to
-consider all of them?  In what order?
+consider all of them?  In what order?  To convert from
+\CF{\color{darkbrown} legacy\_title} to \CF{\color{darkbrown} legacy\_title'},
+we must first unroll \CF{{\color{darkbrown} text\_char}*} into
+\CF{{\color{blue} ""} | {\color{darkbrown} text\_char}+}, and then we must
+distribute this \OrRegexType{} on the left and the right.
 
 A related challenge arises from Boomerang's composition operator,
 $\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
-$$
-    \inferrule[]%\ComposeLensRule{}
-    {
-      \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-      \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
-    }
-    {
-      \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
-    }
-$$
+\[
+\inferrule[]%\ComposeLensRule{}
+{
+  \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+  \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+}
+{
+  \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
+}
+\]
 requires that the target type of $l_1$ be the source
 type of $l_2$.  To synthesize a composition lens between
 $\Regex_1$ and $\Regex_2$, we must find an intermediate type $\Regex_3$
@@ -524,22 +707,24 @@ regular expressions for compositions.
 
 Normalization to DNF eliminates many, but not all, of the regular expression
 equivalences that may be needed before we can apply a simple type-directed
-structural search---i.e., our normalized regular expressions are only
-\emph{pseudo-canonical}.  For instance, we do not regular expressions such
+structural search---i.e., DNF regular expressions are only
+\emph{pseudo-canonical}.  For instance, regular expressions such
 as $B*$ and $\epsilon \Or BB*$ do not have the same normal form.  (Nor do we
 want them to: If we normalized $\epsilon \Or BB*$ to $B*$, we would have
 trouble with synthesizing lenses with types like $\EmptyString \Or BB*
-\Leftrightarrow \EmptyString \Or CD*$,
+\Leftrightarrow \EmptyString \Or CD*$
 where the first occurrence of $B$ on the left needs to be transformed into
 $C$ while the rest of the $B$s need to be transformed into $D$.)
 
-Consequently, we structure our synthesis algorithm in two phases.  Given a
-pair of types in pseudo-canonical DNF form, we first perform a
-syntax-directed search for a lens based on the structure of the given
-regular expression types. If that fails, we instead try to unfold *
-operators in one or both types, using a subset of Conway's
-axioms~\cite{conway}, obtaining equivalent (but larger) regular expression
-types; we then return to the first phase and try again with these types.
+Consequently, we structure our synthesis algorithm in two phases.
+In the first phase, \SynthLens{} searches through equivalent DNF regular
+expressions.  By unfolding * operators in one or both types, using the axioms of
+a star semiring, we obtain equivalent (but larger) DNF regular expression types.
+In the second phase, \SynthLens{} perform a syntax-directed search based on the
+structure of the provided DNF regular expression.
+If the second phase fails, we return to the first phase, to find different
+representations of the regular expressions which hopefully will succeed in the
+second phase.
 
 \paragraph*{Challenge 2: Large Types}
 In practice, the regular expressions describing complex {\em ad hoc} data
@@ -553,44 +738,11 @@ $A$ appears just once in both the source and the target types, the system
 hypothesizes that the identity lens can be used to convert between
 occurrences of $A$.  On the other hand, if the name $A$ appears in the
 source but not in the target, the system replaces the name $A$ with its
-definition.  Similarly, differing numbers of occurrences of the same name
+definition.  In this way, differing  of occurrences of the same name
 can serve as a guide for applying equivalence axioms in the synthesis
 algorithm.  We guide the transformation of regular expression types during
-search using a pseudometric based on counting occurrences of names---this
-heuristic turns out to perform much better than a simple breadth-first
-search.
-
-\paragraph*{Contributions.}  Our synthesis algorithm is intended to make
-bidirectional programming more accessible to non-expert programmers.  After
-briefly recapitulating some required background on regular expressions and a
-simple set of core lens combinators based on a bijective subset of Boomerang
-(\S\ref{background}) and working through an extended example illustrating
-the essential features of our algorithm (\S\ref{example}), we offer the
-following technical contributions:
-
-\begin{itemize}
-\item We introduce pseudo-canonical DNF regular expressions (\S
-\ref{sec:dnfre}) and DNF lenses, a variant of standard lenses designed
-specifically for synthesis (\S \ref{sec:dnf}).  We show how to convert
-between ordinary regular expressions and lenses and the DNF forms, and prove
-these translations sound and complete with respect to our high-level lens syntax.
-
-\item We propose a type-directed algorithm for synthesizing DNF lenses (\S
-\ref{implementation}).
-\ifanon\else
-\BCP{Talk about soundness and completeness!}
-\fi
-
-\item We evaluate this algorithm on 25 benchmarks, including examples from
-FlashFill~\cite{gulwani-popl-2014} and from the Augeas~\cite{augeas}
-system (\S \ref{evaluation}).  It succeeds on
-all benchmarks, with an average synthesis time of 283
-milliseconds.
-\end{itemize}
-We close with related work (\S \ref{sec:related}) and conclusions (\S
-\ref{sec:conc}). 
-
-% end introduction
+search by deducing when certain expansions must be taken, or when one of a class
+of expansions must be taken.
 
 % begin background
 \section{Background}
@@ -647,12 +799,12 @@ We close with related work (\S \ref{sec:related}) and conclusions (\S
 $\Sigma$ is the alphabet of individual characters; $s$ and $t$ range over
 strings in $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, over $\Sigma$ are: 
 \begin{center}
-\begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l@{\hspace*{5mm}}>{\itshape\/}l}
-& \Regex{},\RegexAlt{} & \GEq{} & \hspace{1.06em}s & \BaseRegexType{} \\
-          & & & \GBar{} $\emptyset$ & \EmptyRegexType{} \\
-          & & & \GBar{} \Regex{}* & \StarRegexType{} \\
-          & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ & \ConcatRegexType{} \\
-          & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ & \OrRegexType{} \\
+\begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l}
+& \Regex{},\RegexAlt{} & \GEq{} & \hspace{1.06em}s \\
+          & & & \GBar{} $\emptyset$ \\
+          & & & \GBar{} \Regex{}* \\
+          & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ \\
+          & & & \GBar{} $\RegexOr{\Regex_1}{\Regex_2}$ \\
 \end{tabular}
 \end{center}
 $\LanguageOf{R}\subseteq \StarOf{\Sigma}$, the language of $R$, is
@@ -784,15 +936,15 @@ bijections created from the Boomerang lens combinators, mapping between
 languages of regular expressions.
 The syntax for these bijective lenses is given by:
 \begin{center}
-  \begin{tabular}{l@{\ }l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+  \begin{tabular}{l@{\ }l@{\ }c@{\ }l}
     % REGEX
-    & \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ & Const \\
-            & & & \GBar{} $\IterateLensOf{\Lens}$ & Iterate \\
-            & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ & Concat \\
-            & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ & Swap\\
-            & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ & Or\\
-            & & & \GBar{} $\ComposeLensOf{\Lens_2}{\Lens_1}$ & Compose\\
-            & & & \GBar{} $\IdentityLensOf{\Regex}$ & Identity
+    & \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ \\
+            & & & \GBar{} $\IterateLensOf{\Lens}$ \\
+            & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
+            & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
+            & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ \\
+            & & & \GBar{} $\ComposeLensOf{\Lens_2}{\Lens_1}$ \\
+            & & & \GBar{} $\IdentityLensOf{\Regex}$ 
   \end{tabular}
 \end{center}
 
@@ -881,7 +1033,6 @@ applying $\Lens$ to subparts of a string.
       \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
     }
 
-\iffull
     \inferrule[]%\ConcatLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
@@ -892,7 +1043,6 @@ applying $\Lens$ to subparts of a string.
     {
       \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
     }
-\fi
 
     \inferrule[]%\SwapLensRule{}
     {
@@ -904,7 +1054,7 @@ applying $\Lens$ to subparts of a string.
     {
       \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
     }
-
+\iffull
     \inferrule[]%\OrLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
@@ -917,8 +1067,7 @@ applying $\Lens$ to subparts of a string.
       \Regex_1 \Or \Regex_2
       \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
     }
-
-\iffull
+    
     \inferrule[]%\ComposeLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
@@ -940,15 +1089,15 @@ applying $\Lens$ to subparts of a string.
     \inferrule[]%\RewriteRegexLensRule{}
     {
       \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-      \Regex_1 \DefinitionalEquiv \Regex_1'\\
-      \Regex_2 \DefinitionalEquiv \Regex_2'
+      \Regex_1 \SSREquiv \Regex_1'\\
+      \Regex_2 \SSREquiv \Regex_2'
     }
     {
       \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
     }
   \end{mathpar}
 
-  \caption{Lens Typing Rules \iffull\else (except $\mathit{concat}$ and $;$) \fi}
+  \caption{Lens Typing Rules \iffull\else (except $\mathit{or}$ and $;$) \fi}
   \label{fig:lens-typing}
 \end{figure}
 
@@ -984,12 +1133,12 @@ The last rule in Figure~\ref{fig:lens-typing} is a subsumption rule
 that lets us consider a lens
 $\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2$ to have type
 $\Regex_1' \Leftrightarrow \Regex_2'$ so long as
-$\Regex_1 \DefinitionalEquiv \Regex_1$ and
-$\Regex_2 \DefinitionalEquiv \Regex_2'$.  Ideally, this rule would use
+$\Regex_1 \SSREquiv \Regex_1$ and
+$\Regex_2 \SSREquiv \Regex_2'$.  Ideally, this rule would use
 the full power of the Conway axiomatization $\equiv$, since that
 theory is complete for regular-expression equivalence.  However, for
 the purposes of our synthesis algorithm we use a finer, but more
-tractable notion of equivalence $\DefinitionalEquiv \subseteq \equiv$,
+tractable notion of equivalence $\SSREquiv \subseteq \equiv$,
 as we next explain.  We have not found this restriction to limit
 the expressivity of lenses in practice.
 
@@ -1022,30 +1171,26 @@ equivalences: any equivalences that don't satisfy the properties
 outlined below could produce a language that is no longer closed under
 composition, requiring a more complex search procedure. 
 
-We have shown that two properties are sufficient to ensure that any
-equational theory of regular expressions implemented via rewrite rules $\to$
-on their associated DNF forms is compatible with our lens synthesis
-strategy.
-These properties involve the DNF Lens typing judgement 
-$\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-defined later in Figure~\ref{fig:dnf-lens-typing}, that can be read
-``DNF lens $\DNFLens$ maps between data typed with source DNF regular 
-expression type $\DNFRegex$ and target type $\DNFRegexAlt$.
+To be compatible with our lens synthesis strategy, we require that our retyping
+equivalence relation is the equivalence closure of a set of rewrite rules that
+satisfies two properties.
+These properties involve the ability to be well typed with no use of the the
+retyping rule (which we will write as $\Lens \OfRewritelessType \Regex
+\Leftrightarrow \RegexAlt$).
 We call the first property \textit{confluence}.  It says:
-Whenever $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
-if $\DNFRegex \Rewrite
-\DNFRegex'$ and $\DNFRegexAlt \Rewrite \DNFRegexAlt'$, there should exist $\DNFRegex''$,
-$\DNFRegexAlt''$, and $\DNFLens'$ such that $\DNFRegex' \Rewrite \DNFRegex''$, $\DNFRegexAlt'
-\Rewrite \DNFRegexAlt''$, and $\DNFLens' \OfRewritelessType \DNFRegex'' \Leftrightarrow
-\DNFRegexAlt''$, where $\DNFLens'$ has the same semantics as
-$\DNFLens$.  
+Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$,
+if $\Regex_1 \Rewrite
+\Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there should exist $\Regex_3$,
+$\RegexAlt_3$, and $\Lens_3$ such that $\Regex_2 \Rewrite \Regex_3$, $\RegexAlt_2
+\Rewrite \RegexAlt_3$, and $\Lens_3 \OfRewritelessType \Regex_3 \Leftrightarrow
+\RegexAlt_3$, where $\SemanticsOf{\Lens_3} = \SemanticsOf{\Lens_1}$.  
 We call the second property \textit{bisimilarity}.
-It says: Whenever $\DNFLens \OfRewritelessType{} \DNFRegex \Leftrightarrow \DNFRegexAlt$ and 
-$\DNFRegex \to \DNFRegex'$, there should exist $\DNFRegexAlt'$ and  $\DNFLens'$ such
-that $\DNFRegexAlt \to \DNFRegexAlt'$ using the \textit{same} rewrite rule, 
-$\DNFLens' \OfType{} \DNFRegex' \Leftrightarrow \DNFRegexAlt'$, and
-$\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$, and similarly for $\DNFRegexAlt \to
-\DNFRegexAlt'$.
+It says: Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$ and 
+$\Regex_1 \to \Regex_2$, there should exist $\RegexAlt_2$ and  $\DNFLens_2$ such
+that $\RegexAlt_1 \to \RegexAlt_2$,
+$\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2$, and
+$\SemanticsOf{\Lens_2} = \SemanticsOf{\Lens_1}$,
+and similarly for $\RegexAlt_1 \to \RegexAlt_2$.
 
 
 %  There are a large number of rules that can be
@@ -1100,25 +1245,26 @@ $\SemanticsOf{\DNFLens} = \SemanticsOf{\DNFLens'}$, and similarly for $\DNFRegex
 % invariant that a lens maps between the languages of the regular expressions of
 % the type.
 
-Our solution for handling subsumption is to define
- the \textit{definitional equivalence rules} 
- $\DefinitionalEquiv$ to 
- be the semiring axioms, plus two ``unrolling'' rules that
- replace the Conway axioms of \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}, and
- \DicyclicityRule{}:
+Our solution for handling subsumption is to use
+the \textit{star semiring axioms},
+$\SSREquiv$.  These axioms are
+the semiring axioms, plus two ``unrolling'' rules that
+replace the Conway axioms of \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}, and
+\DicyclicityRule{}:
 \begin{center}
-\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
-  \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
-  \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
-\end{tabular}
+  \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
+    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
+    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
+  \end{tabular}
 \end{center}
 \noindent
-The corresponding rewriting relation on DNF regular expressions, which
-orients these rules from left to right, is both confluent and
-bisimilar and so is compatible with our lens synthesis strategy.  
-Definitional equivalence is the 
-coarsest subset of regular expression equivalence we could
-find that has analogous rewrite rules that are still confluent and
+This equivalence relation is compatible with our lens synthesis strategy, as
+orienting these rules from left to right presents us with a rewrite relation
+that is both confluent and bisimilar, and whose equivalence closure is
+$\SSREquiv$.
+The star semiring axioms are the 
+coarsest subset of regular expression equivalences we could
+find that is generated by a rewrite relation that are still confluent and
 bisimilar.  We have not been able to prove that it is the coarsest
 such relation possible, but it is sufficient to cover all of the test
 cases in our benchmark suite (see \S\ref{evaluation}).
@@ -1150,125 +1296,61 @@ cases in our benchmark suite (see \S\ref{evaluation}).
 \section{Lens Synthesis by Example}
 \label{example}
 
-Recall the previous example of synthesizing a lens between \CF{BibTeX} and
-\CF{EndNote}, specified in Figure~\ref{fig:bibend-spec}.  Synthesizing a lens
-between \CF{BibTeX} and \CF{EndNote} is done in three steps.
-\textit{\textbf{Step 1:
-  Inlining Definitions}} uses built in deductive techniques to infer when
-user defined regular expressions must be replaced by their definitions.
-\textit{\textbf{Step 2: Traversing Equivalences}} searches through various equivalences
-of the regular expression types to find different representations of the types.
-Finally, \textit{\textbf{Step 3: Creating Lenses}} applies type directed synthesis to the
-regular expression types to create the lenses.
+Recall the previous example of synthesizing a lens between the two regular
+expressions:
+\begin{align*}
+  \Regex_0 &= \VarCF{legacy\_title}\\
+  \RegexAlt_0 &= \VarCF{modern\_title}
+\end{align*}
+This synthesis is done in two major phases.
+\textit{\textbf{Phase 1: Traversing Equivalences}} uses built in deductive
+techniques, and breadth first search when those techniques fail, to infer which
+equivalence rules to apply.
+For the regular expression pairs generated through the equivalence traversal,
+\textit{\textbf{Phase 2: Generating DNF Lenses}} applies type directed synthesis to
+the regular expression types to create the DNF lenses.
 
-\paragraph*{Step 1:  Inlining Definitions.}
+\paragraph*{Phase 1: Traversing Equivalences.}
 
-There is no lens that goes between \CF{BibTeX} and \CF{EndNote}, so one of them must
-be expanded.
-Indeed, both of them must be expanded, as \CF{BibTeX} will never be able to be
-the source of any lens in this problem, nor will \CF{End} be able to be the
-target.
-This process can be generalized for the sub-expressions of \CF{BibTeX} and \CF{EndNote},  
-If any user defined data type does not exist in the possible types of the
-other side, it must be expanded.  We do
-not inline all definitions, as doing so in more complicated data formats can
-create huge regular expressions.
+At the start of phase one, the input regular expressions are put into DNF form
+by being fully distributed, and having their associativity information removed.
+Immediately, the synthesis algorithm knows that no lens can be generated between
+$\Regex_0$ and $\RegexAlt_0$, as only the identity lens can
+be applied to variables.  Through looking at the variables reachable from
+\VarCF{legacy\_title} and \VarCF{modern\_title}, our synthesis algorithm
+recognizes that both \VarCF{legacy\_title} in $\Regex_0$ and
+\VarCF{modern\_title} in $\RegexAlt_0$ must be replaced by their definitions.
 
-\begin{figure}
-\begin{lstlisting}[mathescape=true,columns=fixed]
-BibTeX':
-  $\EmptyString$  | ($\text{\textquotesingle{}author=\textquotesingle}$ { Name $\text{\textquotesingle,\textquotesingle}$ Name Names
-       ($\text{\textquotesingle{} and \textquotesingle{}}$ (Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name Names))* $\text{\textquotesingle{}\},\textquotesingle{}}$)
+Upon doing this, the synthesis task now becomes finding a lens between:
+\begin{align*}
+\Regex_1 &= \CF{\textcolor{blue}{"<Field Id=2>"}
+  \textcolor{darkbrown}{text\_char}* \textcolor{blue}{"</Field>"}}\\
+\RegexAlt_1 &= \CF{\textcolor{blue}{""} | (\textcolor{blue}{"Title="}
+  \textcolor{darkbrown}{text\_char} \textcolor{darkbrown}{text\_char}*
+  \textcolor{blue}{","})}
+\end{align*}
+While these may look similar, we can deduce another
+expansion that must be taken.  There is an instance of \VarCF{text\_char} under
+no stars in the expansion of \VarCF{modern\_title} but there is no such
+\VarCF{text\_char} for the expansion of \VarCF{legacy\_title}.  Our deduction
+engine recognizes one of the following 3 expansions must occur
+\begin{enumerate}
+\item \CF{\VarCF{text\_char}*} must be unrolled on the right in the expansion
+  of \VarCF{legacy\_title}
+\item \CF{\VarCF{text\_char}*} must be unrolled on the left in the expansion
+  of \VarCF{legacy\_title}
+\item \VarCF{text\_char} must be replaced by its definition in the expansion
+  of \VarCF{modern\_title}
+\end{enumerate}
 
-EndNote':
-  ($\text{\textquotesingle{}\%A \textquotesingle{}}$ (Name Names $\text{\textquotesingle{} \textquotesingle{}}$ Name) $\text{\textquotesingle{}}$\n$\text{\textquotesingle}$)*
+At this point, the deduction system no longer knows that an expansion must
+occur, and the generated pairs of regular expressions are sent to \RigidSynth{}
+to synthesize a lens.  If \RigidSynth{} cannot find any lenses between these
+regular expressions, then single expansions on these regular expressions are
+performed, and given back to the synthesis engine.
 
-DNFBib':
-  $\EmptyString$
-  | $\text{\textquotesingle{}author=\{\textquotesingle{}}$ Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name $\EmptyString$ Names $\EmptyString$
-    ($\text{\textquotesingle{} and \textquotesingle{}}$ Name $\text{\textquotesingle{}, \textquotesingle{}}$ Name $\EmptyString$ Names $\EmptyString$)* $\text{\textquotesingle{}\},\textquotesingle{}}$
-
-DNFEnd':
-  $\EmptyString$ ($\text{\textquotesingle{}\%A \textquotesingle{}}$ Name $\EmptyString$ Names $\text{\textquotesingle{} \textquotesingle{}}$ Name $\text{\textquotesingle{}}$\n$\text{\textquotesingle}$)* $\EmptyString$
-
-DNFEndUnroll:
-  $\EmptyString$
-  | $\text{\textquotesingle{}\%A \textquotesingle{}}$ Name $\EmptyString$ Names $\text{\textquotesingle{} \textquotesingle{}}$ Name $\text{\textquotesingle{}}$\n$\text{\textquotesingle}$
-    ($\text{\textquotesingle{}\%A \textquotesingle{}}$ Name $\EmptyString$ Names $\text{\textquotesingle{} \textquotesingle{}}$ Name $\text{\textquotesingle{}}$\n$\text{\textquotesingle}$)* $\EmptyString$
-
-DNFEndReplacement:
-  ($\text{\textquotesingle{}\%A \textquotesingle{}}$ Name $\EmptyString$ ($\text{\textquotesingle{} \textquotesingle{}}$ Name)* $\text{\textquotesingle{} \textquotesingle{}}$ Name $\text{\textquotesingle{}}$\n$\text{\textquotesingle}$)* $\EmptyString$
-\end{lstlisting}
-  \label{fig:examples-expanded}
-  \caption{
-    \CF{BibTeX} and \CF{EndNote} with various transformations performed.
-% \bcp{All the double quotes make the examples quite hard to read.  Could we
-%   simplify the formats to eliminate them, for purposes of this
-%   example?}\saz{I can't interpet the syntax in this figure.  Why not
-%   keep string constants in tt font?}\bcp{I think my suggestion pushed us in
-%   the wrong direction: quotes (maybe single quotes) around the literal
-%   strings in the definitions
-%   would be much easier to read than all the underlining.}
-%\bcp{The single quotes are better, but let's use the straight up and down
-%  one, not the slanty ones.  Easier to read, IMHO.}
-  }
-\end{figure}
-After completing these necessary expansions, the problem becomes synthesizing a
-lens between the regular expressions \CF{BibTeX'} and \CF{EndNote'} shown in
-Figure~\ref{fig:examples-expanded}.
-
-\paragraph*{Step 2:  Traversing Equivalences.}
-
-A basic type-directed synthesis approach from here will quickly fail.
-\CF{BibTeX'} is of the form $\Regex_1\Or\Regex_2$, where \CF{EndNote'} is of the form
-$\StarOf{\Regex'}$.
-
-These issues can be handled by normalizing the regular expressions.
-We put them in a form that normalizes away the equivalences involving
-associativity, distributivity, and \EmptyString{}, shown in
-Figure~\ref{fig:examples-expanded}
-
-With those equivalences handled, one might think it is now possible to
-synthesize the lens.
-Unfortunately, we are still unable to perform any synthesis because the types
-on the left and right are quite different, and the lens connectives require
-similar types of the left and right.
-For example, as \CF{DNFBib'} has an outer $\OrRegexType$, we know an $\OrLens$ lens must be
-synthesized.
-However, an $\OrLens$ lens requires an outer $\OrRegexType$ on both sides, and \CF{DNFEnd'} does
-not have any outer $\OrRegexType$.
-
-While, with normalization, certain equivalences have been handled, there are
-still many equivalences that haven't been handled.
-For example, the equivalences resulting from \StarRegexType{}s, like
-$\StarOf{A}=\EmptyString \Or A\StarOf{A}$, have not been handled.
-The equivalences resulting from the definitions of user defined regular
-expressions have also not been handled. These can be applied to the star in
-\CF{End'}, resulting in \CF{DNFEndUnroll} and \CF{DNFEndReplacement}, shown in
-Figure~\ref{fig:examples-expanded}.
-
-However, now a single problem of finding a lens between regular expressions has
-become two problems!  Furthermore, trying to find lenses satisfying either of these
-two specifications could create even more problems.  Because of this
-problem explosion, it is
-important to find a way to determine which subproblem should be approached next.
-Finding which subproblem should be approached next can be solved by using a
-priority queue, where the
-elements in the queue are regular expression specifications.  The priority of
-each specification is a combination of how many equivalence rewrites have been
-applied,
-and how different the two regular expressions in the specification are.  This
-priority calculation is described in greater detail in
-\S\ref{implementation}.
-\CF{DNFEndUnroll} and \CF{DNFBib'} are very similar, in that they have the same
-number of instances of \CF{Name} and \CF{Names}.  However, \CF{DNFEndReplacement} is
-very different, with a different number of \CF{Name}, \CF{Names}, and a
-different number of \StarRegexType{}s.  Because of this large difference, the
-specification of \CF{DNFBib' <=> DNFEndUnroll} would get popped, instead of the
-specification of \CF{DNFBib' <=> DNFEndReplacement}.
-
-\paragraph*{Step 3: Creating Lenses.}
-Because the regular expressions of  \CF{DNFBib'} and \CF{DNFEndUnroll} are so
+\paragraph*{Phase 2: Synthesizing Lenses.}
+Because the regular expressions of \CF{DNFBib'} and \CF{DNFEndUnroll} are so
 similar, type-directed synthesis applies.
 Following the types, the outer $\EmptyString$s
 would get mapped to each other, and the sides of the disjunct with
@@ -1979,10 +2061,8 @@ types that were discovered in the first step.
 % end formalisms
 
 % begin implementation
-\section{Implementation}
-\label{implementation}
-We have implemented the lens synthesis algorithm in 5515 lines
-of OCaml code. 
+\section{Algorithm}
+\label{algorithm}
 
 \paragraph*{Synthesis Overview}
 Algorithm~\ref{alg:synthlens} gives an overview of the 
@@ -1998,7 +2078,7 @@ on $\DNFRegex_0$, $\DNFRegexAlt_0$, and the examples
 to create a DNF lens $\DNFLens$.  
 Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
 
-%finally tweaked for readability with \Beautify{}.
+% finally tweaked for readability with \Beautify{}.
 
 \begin{algorithm}
   \caption{\SynthLens}
@@ -2007,24 +2087,21 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
     \Function{SynthDNFLens}{$\DNFRegex_0,\DNFRegexAlt_0,\Examples$}
     \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex_0,\DNFRegexAlt_0),0}$
     \While{$\True$}
-    \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}$
-    \State $((\DNFRegex,\DNFRegexAlt),\ExpCount) \gets \QueueElement$
+    \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}$ \Comment{\TypeProp{}}
+    \State $(\DNFRegex,\DNFRegexAlt,\ExpCount) \gets \QueueElement$
     \State $\DNFLensOption \gets
     \Call{\RigidSynth}{\DNFRegex,\DNFRegexAlt,\Examples}$
     \Switch{\DNFLensOption}
-    \Case {\SomeOf{\DNFLens}}
-    \State $\ReturnVal{\DNFLens}$
-    \EndCase
-    \SecondCase {\None}
-    \State $\DNFRegexs \gets \Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt}$
-    \State $\ExpCount \gets \ExpCount+1$
-    \State $\QueueElements \gets \Call{\Map}{\lambda x.(x,\ExpCount),\DNFRegexs}$
+    \CaseTwo {\SomeOf{\DNFLens}}{\ReturnVal{\DNFLens}}
+    \EndCaseTwo
+    \Case {\None}
+    \State $\QueueElements \gets \Call{\Expand}{\DNFRegex,\DNFRegexAlt,\ExpCount}$
     \State $\Queue \gets \Call{\EnqueueMany}{\QueueElements,\Queue}$
-    \EndSecondCase
-
+    \EndCase
     \EndSwitch
     \EndWhile
     \EndFunction
+    
     \Statex
     \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
     \State $(\DNFRegex_0,\DNFRegexAlt_0) \gets
@@ -2033,245 +2110,225 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
     \State $\ReturnVal{\Call{ToLens}{\DNFLens}}$
     \EndFunction
   \end{algorithmic}
-% \bcp{Larger comment: Is this seriously using {\em null} to
-%   represent a failure result from a subroutine??  The reviewers are going to
-%   laugh at us.}\afm{is $\bot$ better?}\bcp{Still a bit horrible.}\afm{match
-%   statement?}
-% BCP: Much better!
 \end{algorithm}
 
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
-  the search for a DNF lens.  Each element in the queue
-  $\QueueElement$ is a pair of source and target DNF regular
-  expressions $\DNFRegex$ and $\DNFRegexAlt$ and a count of the number
-  of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
-name for its definition used)  $\ExpCount$
-required to obtain these regular
-  expressions from the originals, $\DNFRegex_0$ and
-  $\DNFRegexAlt_0$. The algorithm initializes the queue with
-  $\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
-  zero.  The algorithm then proceeds by iteratively examining the
-  highest priority element from the queue, using the
-  function \RigidSynth{} to try to find a rewriteless DNF lens
-  between the source and target DNF regular expressions that satisfy
-  the examples \Examples.  If successful, the algorithm returns the
-  DNF lens $\DNFLens$.  Otherwise, the function \ExpandOnce{} produces
-  the set of all source/target DNF regular expression pairs that can
-  be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by applying a single
-  rewrite to either the source or target DNF regular expression or by
-  replacing a user-defined name by its definition.  
-%In
-%  other words, $\PCF{ExpandOnce}(\DNFRegex,\DNFRegexAlt) =
-%\SetOf{(\DNFRegex',\DNFRegexAlt) \SuchThat \DNFRegex \Rewrite \DNFRegex'}
-%\Union
-%\SetOf{(\DNFRegex,\DNFRegexAlt') \SuchThat \DNFRegexAlt \Rewrite \DNFRegexAlt'}$.
-  The algorithm associates an incremented expansion count with each
-  resulting source/target pair and enqueues them to continue the search.
+the search for a DNF lens.  Each element in the queue
+$\QueueElement$, is a tuple of source and target DNF regular
+expressions $\DNFRegex$ and $\DNFRegexAlt$ and a count of the number
+of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
+name for its definition used) $\ExpCount$ required to obtain these regular
+expressions from the originals, $\DNFRegex_0$ and
+$\DNFRegexAlt_0$. This value is used for the priority of the queue element.
+The algorithm initializes the queue with
+$\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
+zero.  The algorithm then proceeds by iteratively examining the
+highest priority element from the queue, using the
+function \RigidSynth{} to try to find a rewriteless DNF lens
+between the source and target DNF regular expressions that satisfy
+the examples \Examples.  If successful, the algorithm returns the
+DNF lens $\DNFLens$.  Otherwise, the function \ExpandOnce{} produces
+the set of all source/target DNF regular expression pairs that can
+be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by applying a single
+rewrite to either the source or target DNF regular expression or by
+replacing a user-defined name by its definition.  
+The algorithm associates an incremented expansion count with each
+resulting source/target pair and enqueues them to continue the search.
+Specifics of the orderings likely only in full version.
 
-\paragraph*{Priority Queue}
-We use heuristics to prioritize candidate source/target DNF
-regular expressions that seem more likely to quickly lead to DNF
-lenses.  Specifically, we give higher priority to candidates that have
-undergone fewer rewrites and for which the source and target DNF
-regular expressions are more similar.  To assign a priority to a queue
-element, we calculuate its score; lower scores correspond to higher
-priorities. 
+\paragraph*{\Expand}
+\begin{algorithm}
+  \caption{\Expand}
+  \label{alg:synthlens}
+  \begin{algorithmic}[1]
+    \Function{ExpandRequired}{$\DNFRegex,\DNFRegexAlt$,$\ExpCount$}
+    \State $\CurrentSet_{\DNFRegex} \gets \Call{\GetCurrentSet}{\DNFRegex}$
+    \State $\CurrentSet_{\DNFRegexAlt} \gets \Call{\GetCurrentSet}{\DNFRegexAlt}$
+    \State $\TransitiveSet_{\DNFRegex} \gets \Call{\GetTransitiveSet}{\DNFRegex}$
+    \State $\TransitiveSet_{\DNFRegexAlt} \gets
+    \Call{\GetTransitiveSet}{\DNFRegexAlt}$
+    \State $r \gets \False$
+    \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegex} \setminus
+      \TransitiveSet_{\DNFRegexAlt}$}
+    \State $r \gets \True$
+    \State $(\DNFRegex,\ExpCount) \gets \Call{\ForceExpand}{\DNFRegex,\UserDef,\Int,\ExpCount}$
+    \EndForEach
+    \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegexAlt} \setminus
+      \TransitiveSet_{\DNFRegex}$}
+    \State $r \gets \True$
+    \State $(\DNFRegexAlt,\ExpCount) \gets \Call{\ForceExpand}{\DNFRegexAlt,\UserDef,\Int,\ExpCount}$
+    \EndForEach
+    \If {$r$}
+    \State $\ReturnVal{\Call{\ExpandRequired}{\DNFRegex,\DNFRegexAlt,\ExpCount}}$
+    \EndIf
+    \State $\ReturnVal{(\DNFRegex,\DNFRegexAlt,\ExpCount)}$
+    \EndFunction
 
-We define the score of a pair of DNF regular expressions
-$(\DNFRegex{},\DNFRegexAlt{})$ with expansion count $\ExpCount$ to be
-$8*\ExpCount+ \Distance(\DNFRegex{},\DNFRegexAlt{})$, where
-$\Distance$ is a pseudometric that captures the level of difference
-between two DNF regular expressions.  Including the expansion count in
-the score allows lower priority expansions to eventually reach the
-front of the queue. It prevents the algorithm from getting stuck
-exploring incorrect and increasingly deep expansions of DNF regular
-expressions that have a low distance between them.  We determined
-experimentally that eight is an effective weight for the expansion
-count.
+    \Statex
+    
+    \Function{FixProblemElts}{$\DNFRegex,\DNFRegexAlt$,$\ExpCount$}
+    \State $\CurrentSet_{\DNFRegex} \gets \Call{\GetCurrentSet}{\DNFRegex}$
+    \State $\CurrentSet_{\DNFRegexAlt} \gets
+    \Call{\GetCurrentSet}{\DNFRegexAlt}$
+    \State $\QueueElements \gets []$
+      \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegexAlt} \setminus
+      \CurrentSet_{\DNFRegex}$}
+    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegex,\UserDef,\Int,\ExpCount,\DNFRegexAlt}$
+    \EndForEach
+    \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegex} \setminus
+      \CurrentSet_{\DNFRegexAlt}$}
+    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegexAlt,\UserDef,\Int,\ExpCount,\DNFRegex}$
+    \EndForEach
+    \State $\ReturnVal{\Types}$
+    \EndFunction
 
-We define the pseudometric $\Distance$ to be the sum of two simpler
-pseudometrics: $\Distance(\DNFRegex,\DNFRegexAlt)
-= \Distance_{size}(\DNFRegex,\DNFRegexAlt)+\Distance_{dist}(\DNFRegex,\DNFRegexAlt)$.
-This distance is a pseudometric (rather than a metric) because it
-satisfies the triangle property, it is symmetric, and
-$\Distance(\DNFRegex,\DNFRegex) = 0$, but
-$\Distance(\DNFRegex,\DNFRegexAlt) = 0$ does not imply $\DNFRegex =
-\DNFRegexAlt$. 
+    \Statex
+    
+    \Function{Expand}{$\DNFRegex,\DNFRegexAlt$,$\ExpCount$}
+    \State $(\DNFRegex,\DNFRegexAlt,\ExpCount) \gets
+    \Call{ExpandRequired}{\DNFRegex,\DNFRegexAlt,\ExpCount}$
+    \State $\QueueElements \gets
+    \Call{FixProblemElts}{\DNFRegex,\DNFRegexAlt,\ExpCount}$
+    \Switch{\QueueElements}
+    \CaseTwo {[]}{$\ReturnVal{\Call{\ExpandOnce}{\DNFRegex,\DNFRegexAlt,\ExpCount}}$}
+    \EndCaseTwo
+    \CaseTwo {\_}{$\ReturnVal{\QueueElements}$}
+    \EndCaseTwo
+    \EndSwitch
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
 
-The size distance $\Distance_{size}(\DNFRegex,\DNFRegexAlt)$ measures
-the difference in the sizes between two DNF regular expressions.
-We consider the size of a DNF regular expression to be the
-sum of the lengths of all lists in the DNF regular expression data
-structure.  Formally, we define
-$\Distance_{size}(\DNFRegex,\DNFRegexAlt)=\AbsOf{\Size(\DNFRegex)-\Size(\DNFRegexAlt)}$. 
-This pseudometric prioritizes
-candidates that are close in size because
-two DNF regular expressions must have the same size to have a
-rewriteless DNF lens between them.
+The inference of expansions is much of what allows our synthesis algorithm to be
+efficient.  \Expand{} has three parts: \ExpandRequired{}, \FixProblemElts{}, and
+\ExpandOnce{}.  The locations of where user defined data types, in terms of
+\emph{star depth} is critical to how \Expand{} works.
 
-The distribution distance $\Distance_{dist}(\DNFRegex,\DNFRegexAlt)$
-measures the difference in the distributions of user-defined regular
-expressions in the two input regular expressions.  The distribution of
-user-defined regular expressions can be viewed as an infinite
-dimensional vector space over the reals, which we call
-$\VectorSpace{}$.  Intuitively, we give each dimension a name
-of the form $(\RegexVariable,n)$.  We write $1*(\RegexVariable,n)$
-to denote the unit vector in the dimension named $(\RegexVariable,n)$.
-We map DNF
-regular expressions with variables into this vector space using a
-function $\GetDist{}$ that counts the number of user-defined regular
-expressions $\RegexVariable$ present at a given level:
-\begin{trivlist}
-\item 
-\begin{tabular}{@{}L@{}L@{}}
-  \GetDist(\RegexVariable)&=1*(\RegexVariable,1)\\
-  \GetDist(\DNFOf{\Sequence_1;\ldots;\Sequence_n}) &
-                                                     =\GetDist(\Sequence_1)+\ldots+\GetDist(\Sequence_n)\\
-  \GetDist(\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}) &
-                                                                      =\GetDist(\Atom_1)+\ldots+\GetDist(\Atom_n)\\
-  \GetDist(\IterateLensOf{\DNFLens})&=\phi(\GetDist(\DNFLens))
-\end{tabular}
-\end{trivlist}
-The linear map $\phi$, 
-defined as $\phi(a*(\RegexVariable,n)) = a*(\RegexVariable,n+1)$,
-increments the number of nested stars.
+\ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
+if a user defined data type $\UserDef$, at star depth $\Int$ is impossible to be
+reached through any number of expansions on the opposite side, then that user
+defined data type \emph{must} be replaced by its definition at that depth.
+This is apparent
+in trying to find a lens between \VarCF{legacy\_title} and
+\VarCF{modern\_title}.  No matter how many expansions are taken on
+\VarCF{modern\_title}, it is impossible to expose \VarCF{legacy\_title} in
+\VarCF{modern\_title}.  This is because the set of possible reachable pairs of
+data types and star depths in \VarCF{modern\_title} is $\SetOf{(\ModernTitle,0),
+(\TextChar,0),(\TextChar,1)}$.  Because no number of expansions can reach
+$\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.  This is
+procedure continues calling itself until no more expansions can be forced.
 
-Given $\GetDist$, we define the distribution distance to be
-$\Distance_{dist}(\DNFRegex,\DNFRegexAlt)=
-\LOneNorm(\GetDist(\DNFRegex),\GetDist(\DNFRegexAlt))$
-where $\LOneNorm$ computes the Manhattan distance on $\VectorSpace$.
-This pseudometric prioritizes candidates with similar distributions
-because two DNF regular expressions must have the same distribution of
-user-defined regular expressions to have a rewriteless DNF lens
-between them.
+\ExpandRequired{} find a lot of necessary expansions, but it only does a bit of
+the work.  There are still times when it is easy to identify that an expansion of
+some form must be performed.  For any pair of types that have a rewriteless lens
+between them, for each $(\UserDef,\Int)$ pair, on one regular expression, that
+same pair must be present on the other regular expression.  \FixProblemElts{}
+identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
+expression.  After these problem elements have been identified, it then calls
+\Reveal{} to find the expansions which will reveal this element.  For example,
+after \LegacyTitle{} and \ModernTitle{} have been expanded into
+\CF{\textcolor{blue}{"<Field Id=2>"}
+  \textcolor{darkbrown}{text\_char}* \textcolor{blue}{"</Field>"}} and
+\CF{(\textcolor{blue}{"Title="}
+  \textcolor{darkbrown}{text\_char} \textcolor{darkbrown}{text\_char}*
+  \textcolor{blue}{","}) | \textcolor{blue}{""}}, respectively, we can see that the modern expansion
+has an instance of \TextChar{} at depth 0, where the legacy one does not.  This
+means that we will try to reveal $(\TextChar,0)$ in the legacy expansion.
+Revealing this will give back 2 DNF regular expressions, one from an application of
+\AtomUnrollstarLeftRule{}, and one from an application of
+\AtomUnrollstarRightRule{}.
 
-
-
-
-\section{DNF Regular Expression Orderings}
-While performing type directed synthesis on DNF Regular Expressions, both
-synthesizing a rewriteless DNF lens and synthesizing a Sequence lens requires
-the generation of a permutation.  Naively searching through all possible
-permutations is incredibly inefficient.  If naively searching through all the
-rewriteless DNF Lenses between
-the DNF regular expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$, there would be $n!$ permutations
-processed.
-
-Instead of searching through all possible permutations, a better approach is to
-recognize which subcomponents of the types can be mapped to each other, and
-create the permutations based on those mappings.  The approach taken for this is
-one of further normalization.  A DNF Lens is normalized through ordering its
-sequence subcomponents, and a sequence is normalized through ordering its atom
-subcomponents.  Through the correct choice of ordering, a rewriteless DNF lens
-can be synthesized between $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
-$\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ merely through finding a sequence
-lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$.  Similarly, through
-the correct choice of ordering, a a rewriteless Sequence lens can be synthesized
-between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
-$\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n}$ through
-finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for all $i$.
-
-However, doing these normalizations can change the semantics of the regular
-expressions.  To get around this, the alterations taken for normalization can be
-remembered, and applied in reverse to the DNF lens to retrieve a lens between
-the original DNF regular expressions.
-
-\begin{definition}[Dictionary Ordering]
-  Given an ordering $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$,
-  the dictionary ordering on lists of $A$s is represented as $\ListOf{\leq}$.
-\end{definition}
-
-\afm{There's some overloading of syntax here, where [] is used for Sequences,
-  but also it's used for lists.  \#1: should I explicitly describe that [] is
-  used for the syntax of lists.  \#2: should one of them be changed for clarity?
-  Maybe I can use $\{\}$ for DNFs, and $\langle \rangle$ for Sequences, and []
-  for lists?}
-
-\begin{definition}[Sorting of a List]
-  Let $\leq : A \rightarrow A \rightarrow \SetOf{-1,0,1}$ be an ordering,
-  and $\ListOf{a_1;\ldots;a_n}\in \ListTypeOf{A}$.
-  The permutation that sorts the list according to $\leq$,
-  $\SortingOf{\leq}{\ListOf{a_1;\ldots;a_n}}$ is defined as
-  $\sigma \in \PermutationSetOf{n}$,
-  where if $i\leq j$, then $a_{\sigma(i)} \leq a_{\sigma(j)}$.
-\end{definition}
-
-\begin{definition}[Orderings on DNF Regular Expressions]\leavevmode
-  \begin{enumerate}
-  \item
-    $\DNFOf{\Sequence_1;\ldots\Sequence_n}
-    \DNFLeq
-    \DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$
-    if\\
-    $\ListOf{\Sequence_1;\ldots;\Sequence_n}\hspace*{.5em}
-    \ListOf{\SequenceLeq}\hspace*{.5em}
-    \ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}$.
-  
-  \item
-    $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}
-    \SequenceLeq
-    \SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_m;\StringAlt_m}$
-    if\\
-    $\ListOf{\Atom_1;\ldots;\Atom_n}\hspace*{.5em}
-    \ListOf{\AtomLeq}\hspace*{.5em}
-    \ListOf{\AtomAlt_1\ldots;\AtomAlt_m}$.
-
-  \item
-    $\StarOf{\DNFRegex} \AtomLeq \StarOf{\DNFRegexAlt}$ if
-    $\DNFRegex \DNFLeq \DNFRegexAlt$
-  \end{enumerate}
-\end{definition}
-
-This provides the machinery for the DNF regular expression to become
-\textit{normalized}.
-
-\begin{definition}[Normalization of DNF Regular Expressions]
-  \leavevmode
-  \begin{enumerate}
-  \item $\NormalizeOf{\DNFOf{\Sequence_1;\ldots;\Sequence_n}} =
-    \DNFOf{\NormalizeOf{\Sequence_{\sigma(1)}};\ldots;\NormalizeOf{\Sequence_{\sigma(n)}}}$,
-    where
-    $\sigma=\SortingOf{\SequenceLeq}
-    {\ListOf{\NormalizeOf{\Sequence_1};\ldots;\NormalizeOf{\Sequence_n}}}$
-  \item $\NormalizeOf{\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}} =
-    \SequenceOf{\String_0;\Atom_{\sigma(1)};\ldots;\Atom_{\sigma(n)};\String_n}$,
-    where
-    $\sigma=\SortingOf{\AtomLeq}
-    {\ListOf{\NormalizeOf{\Atom_1};\ldots;\NormalizeOf{\Atom_n}}}$
-  \item $\NormalizeOf{\StarOf{\DNFRegex}}=\StarOf{\NormalizeOf{\DNFRegex}}$
-  \end{enumerate}
-\end{definition}
-
-\begin{theorem}
-  $\NormalizeOf{\DNFRegex}\DNFLeq\NormalizeOf{\DNFRegexAlt}$ and
-  $\NormalizeOf{\DNFRegexAlt}\DNFLeq\NormalizeOf{\DNFRegex}$
-  if, and only
-  if, there exists some
-  $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
-\end{theorem}
-
-\afm{So this shows a nice theorem, but it doesn't actually show the construction
-of the DNF lens from the normalized forms.  Should I actually show the
-construction, or is that not worth going into / clear enough from the
-description?}
-
+While \FixProblemElts{} is able to get a huge number of expansions, there are
+certain edge cases which it doesn't handle.  This typically appears in very
+large data formats when irregular transformations are applied.  A minimal
+example can be seen in trying to synthesize the identity transformation between
+\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
+  \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
+\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)}.
+Another expansion must be applied, but the pairs of user defined data types at
+certain depth is the same.  When this situation arises, we perform all possible
+single expansions for a random search.  Typically, this situation doesn't arise
+and we have sufficient information to use our more informed search strategies.
 
 \paragraph*{\RigidSynth} 
-This function implements the core of our synthesis algorithm.
+This function implements the portion of our synthesis algorithm that generates
+the lens from the types and examples.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
 and nested atoms, taking into account the information contained in the
 examples.  Once it finds an alignment, it generates the
 corresponding lens. 
 
-To incorporate the example information, \RigidSynth{} annotates each
-node in the data structure representing the source DNF regular
-expression with the corresponding portion of each example, and
-similarly for the target.  For example, we would annotate
-different occurrences of \CF{Name} in the source 
-regular expression with ``\CF{Stephen}'' or ``\CF{Kleene},'' as
-determined by how the regular expression would parse the example. 
+\begin{algorithm}
+  \caption{\RigidSynth}
+  \label{alg:rigidsynth}
+  \begin{algorithmic}[1]
+    \Function{\RigidSynthAtom}{$\StarOf{\DNFRegex},\StarOf{\DNFRegexAlt}$}
+    \Switch{$\RigidSynth(\DNFRegex,\DNFRegexAlt)$}
+    \Case {\SomeOf{\DNFLens}}
+    \State $\ReturnVal{\IterateLensOf{\DNFLens}}$
+    \EndCase
+    \Case {\None}
+    \State $\ReturnVal{\None}$
+    \EndCase
+    \EndSwitch
+    \EndFunction
+
+    \Statex
+
+    \Function{\RigidSynthSequence}{$\Sequence,\SequenceAlt$}
+    \State $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \gets
+    \Sequence$
+    \State $\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_m;\StringAlt_m} \gets
+    \Sequence$
+    \If {$n \neq m$}
+    \State $\ReturnVal{\None}$
+    \EndIf
+    \State $\sigma_1 \gets \SortingOf{\AtomLeq}{\ListOf{\Atom_1;\ldots;\Atom_n}}$
+    \State $\sigma_2 \gets \SortingOf{\AtomLeq}{\ListOf{\AtomAlt_1;\ldots;\AtomAlt_n}}$
+    \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
+    \State $\mathit{ABs} \gets
+    \Call{Zip}{\ListOf{\Atom_1;\ldots;\Atom_n},\ListOf{\AtomAlt_{\sigma(1)};\ldots;\AtomAlt_{\sigma(n)}}}$
+    \State $\mathit{alos} \gets
+    \Call{\Map}{\RigidSynthAtom,\mathit{ABs}}$
+    \Switch{$\Call{AllSome}{\mathit{alos}}$}
+    \Case {\SomeOf{\ListOf{\AtomLens_1;\ldots;\AtomLens_n}}}
+    \State $\ReturnVal{\SomeOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma)}}$
+    \EndCase
+    \Case {\None}
+    \State $\ReturnVal{\None}$
+    \EndCase
+    \EndSwitch
+    \EndFunction
+
+    \Statex
+
+    \Function{\RigidSynth}{$\DNFRegex,\DNFRegexAlt$}
+    \State $\DNFOf{\Sequence_1;\ldots;\Sequence_n} \gets
+    \DNFRegex$
+    \State $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m} \gets
+    \DNFRegexAlt$
+    \If {$n \neq m$}
+    \State $\ReturnVal{\None}$
+    \EndIf
+    \State $\sigma_1 \gets \SortingOf{\SequenceLeq}{\ListOf{\Sequence_1;\ldots;\Sequence_n}}$
+    \State $\sigma_2 \gets \SortingOf{\SequenceLeq}{\ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}$
+    \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
+    \State $\mathit{STQs} \gets
+    \Call{Zip}{\ListOf{\Sequence_1;\ldots;\Sequence_n},\ListOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}}$
+    \State $\mathit{sqlos} \gets
+    \Call{\Map}{\RigidSynthSequence,\mathit{STQs}}$
+    \Switch{$\Call{AllSome}{\mathit{sqlos}}$}
+    \Case {\SomeOf{\ListOf{\SequenceLens_1;\ldots;\SequenceLens_n}}}
+    \State $\ReturnVal{\SomeOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}}$
+    \EndCase
+    \Case {\None}
+    \State $\ReturnVal{\None}$
+    \EndCase
+    \EndSwitch
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
 
 Searching for aligning permutations requires care, as naively
 considering all permutations between two DNF regular
@@ -2279,70 +2336,48 @@ expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
 $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ would require time
 proportional to $n!$.  A better approach is to identify elements of
 the source and target DNF regular expressions that match and to
-leverage that information to create candidate permutations.  To find
-such matching elements, the function considers both the structure of
-the nested components and the example annotations.  
+leverage that information to create candidate permutations.
 
-To see how we use the example annotations, consider synthesizing a
-lens between two formats that both contain two instances of the \CF{Name}
-type.  If the first occurrence of \CF{Name} in the source
-and the second of occurrence of \CF{Name} in the target are both
-annotated with ``\CF{Kleene}'' then data may have been copied between those 
-occurrences of \CF{Name}.  More generally, the annotations
-help determine which instance of a user-defined type in the source corresponds 
-to which instance of a user-defined type in the target, thereby
-reducing the number of permutations we need to consider.
+This identification is done through finding intelligent orderings.  For
+example, between two sequences, $\Sequence$ and $\SequenceAlt$, there is a lens
+$\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$ if,
+and only if, $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt
+\SequenceLeq \Sequence$.  Utilizing these orderings, aligning the components
+becomes merely sorting and zipping them.  Furthermore, through composing the
+permutations required to sort the sequences, we can discover the permutation
+used in the lens.
 
-Continuing, several invariants must hold in order
-for a DNF lens to be able to process a set of examples correctly. 
-For instance:
-\begin{enumerate*}[label=(\arabic*) ]
-\item If a disjunct of the source DNF RE is annotated with
-  ``s'' then the synthesized lens permutation $\sigma$ must identify the
-  target DNF RE with the corresponding example string, and
+Furthermore, through incorporating how examples are parsed in the orderings, we
+can guarantee not only that there will be a lens between the two, but also that
+the lens will satisfy the examples!
 
-%\item A sequence source DNF regular expression annotated with
-%  source example string ``s'' must be sent to the sequence in the
-%  target DNF regular expression annotated with the corresponding
-%  target example string ``t.''
-
-%\item A user-defined regular expression in the source DNF regular
-%  expression annotated with string ``s'' must be mapped to the same
-%  user-defined regular expression in the target annotated
-%  with the exact same string ``s.'' 
-
-\item if an iterated DNF RE in the source is annotated with ``s'' then
-  a corresponding iterated DNF RE must appear in the target.  If that
-  RE breaks the source into $n$ pieces, then the target must also be
- subdivided into $n$ pieces.  We recursively check that each piece satisfies
- the necessary invariants.
-%% An iteration in the source DNF regular expression annotated with
-%%   the source example string ``s'' must correspond to an iteration in
-%%   the target DNF regular expression with the corresponding target
-%%   example string ``t.''  The source and target iterations must iterate
-%%   the same number of times, and all invariants must hold for each
-%%   iterated part.
-\end{enumerate*}
-We exploit these invariants to guide our search for aligning permutations.
-
-
-After finding an appropriate permutation, $\sigma$,  we can
-synthesize a rewriteless DNF lens between
-$\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and the aligned DNF regular expression
-$\DNFOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}$ simply by finding a
-sequence lens between $\Sequence_i$ and $\SequenceAlt_i$ for all $i$. 
-Similarly, after finding an appropriate permutation to align the
-atoms, $\sigma$,  we can synthesize a rewriteless sequence lens
-between $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n}$ and
-the aligned sequence
-$\SequenceOf{\StringAlt_0;\AtomAlt_{\sigma(1)};\ldots;\AtomAlt_{\sigma(n)};\StringAlt_n}$
-simply by finding atom lenses between $\Atom_i$ and $\AtomAlt_i$ for
-all $i$.
-
-
-
-
-
+As an example, consider trying to find a lens between
+\begin{lstlisting}
+ @"<Field Id=2></Field>"@
+ | @"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@
+\end{lstlisting}
+and
+\begin{lstlisting}
+ @"Title="@ !text_char! !text_char!* @","@
+ | @""@
+\end{lstlisting}
+As it passes to \RigidSynth{}, the two clauses of legacy get ordered in the same
+order they are right now, first \CF{\StringCF{"<Field Id=2></Field>"}}, then
+\CF{\StringCF{"<Field Id=2>"} \VarCF{text\_char} \VarCF{text\_char}*
+  \StringCF{"</Field>"}}.  However, the two clauses of the modern version get
+reordered, into \CF{\StringCF{""}} first, followed by \CF{\StringCF{"Title="}
+  \VarCF{text\_char} \VarCF{text\_char}* \StringCF{","}}.  This generates the
+overall permutation of swapping the clause ordering.  Then, the clause lens
+between \StringCF{"<Field Id=2></Field>"} and \StringCF{""} is attempted to be
+found (and would quickly be found as \CF{const(\StringCF{"<Field
+    Id=2></Field>"},\StringCF{""})}).  Next the clause lens between
+\CF{\StringCF{"<Field Id=2>"} \VarCF{text\_char} \VarCF{text\_char}*
+  \StringCF{"</Field>"}} and \CF{\StringCF{"Title="}
+  \VarCF{text\_char}} $ $ \CF{\VarCF{text\_char}* \StringCF{","}} would be attempted to
+be found.  In this, the atoms would not be reordered, and their lenses would
+quickly be found.  Then, the generated atom lenses could be combined into a
+clause lens.  Finally these two generated clause lenses would be combined into a
+final DNF lens.
 
 %\begin{figure}
 %  \label{fig:lens-synth-ordering-ex}
@@ -2464,18 +2499,6 @@ all $i$.
 %the permutations required for the lens between unordered BibTex and unordered
 %EndNote.
 
-
-
-\paragraph*{Importance of User-Defined Data Types}
-User-defined data types are critical to the performance of
-the synthesis algorithm in a number of ways.  First, they help
-determine which expansions to perform.  Second, they reduce the sizes of
-the regular expression types we must consider because we do not expand
-user-defined data types during normalization.  Indeed, certain
-benchmark problems (\EG{} the \CF{xml} example)
-are tractable in the presence of user-defined data types but intractable 
-when we substitute such definitions away.
-
 %% User-defined data types are also critical to the way we reuse
 %% previously defined lenses. Specifically, we restrict the application
 %% of previously-defined lenses to user-defined data types.  In the
@@ -2490,6 +2513,9 @@ when we substitute such definitions away.
 %has not improved performance because the relatively large number of
 %inferred types enlarges the search space too much.
 
+\paragraph*{Implementation}
+We have implemented the lens synthesis algorithm in 5515 lines
+of OCaml code. 
 
 % end implementation
 
@@ -2497,6 +2523,65 @@ when we substitute such definitions away.
 % begin evaluation
 \section{Evaluation}
 \label{evaluation}
+
+
+% https://tex.stackexchange.com/questions/46422/axis-break-in-pgfplots
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+    \begin{groupplot}[
+      group style={
+        group name=my fancy plots,
+        group size=1 by 2,
+        xticklabels at=edge bottom,
+        vertical sep=0pt
+      },
+      width=8.5cm,
+      xmin=-6, xmax=6
+      ]
+
+      \nextgroupplot[ymin=120,ymax=125,
+      ytick={125},
+      yticklabels={$>120$},
+      axis x line=top, 
+      axis y discontinuity=parallel,
+      height=2.1cm]
+
+      \nextgroupplot[ymin=0,ymax=60,
+      axis x line=bottom,
+      height=4.0cm]
+      \addplot {x*0}; 
+      \addplot {x^2+50};                 
+    \end{groupplot}
+  \end{tikzpicture}
+  \label{fig:time-plot}
+  \caption{This will be used for time plot.}
+\end{figure}
+
+
+\begin{figure}
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar,
+      symbolic x coords={Naive,FF,FE,DNF,DNFEI,Full},
+      ylabel=Tests Completed in 2 Minutes,
+      xlabel=Algorithm,
+      grid=major,
+      xmajorgrids=false,
+      ymin=0,
+      ymax=26,
+      ]
+      \addplot 
+      coordinates {(Naive,0) (FF,3) (FE,4) (DNF,12) (DNFEI,25) (Full, 26)};
+    \end{axis}
+  \end{tikzpicture}
+  \label{fig:optimization-impact}
+  \caption{Impact of optimizations and comparison against other tools.}
+\end{figure}
+
+
+
+
 
 \begin{figure}
   \centering
@@ -2524,16 +2609,9 @@ when we substitute such definitions away.
 \end{figure}
 
 We evaluated our synthesis algorithm by applying it to 25
-benchmark programs derived from practice.  We investigated the
-correctness of the inferred lenses, how long it took to synthesize
-each lens, and how many user-supplied examples synthesis required.
-Figure~\ref{fig:evaluation-data} shows the results for each of our
-benchmark programs.  The rows are sorted in increasing order by the
-size of the source and target regular expression types.  The values
-presented are the arithmetic means of 10 test runs.  The tests were
-run on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
-running Mac OS X Yosemite.  On average, synthesis required 283 milliseconds
-and 0.98 user-supplied examples per lens.
+benchmark programs derived from practice.  We investigated (TODO: Fill in).
+The tests were run on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
+running Mac OS X Yosemite.
 
 \paragraph*{Benchmark Suite Construction}
 We constructed our benchmarks by adapting examples from
@@ -2566,16 +2644,6 @@ which are more general than the bijective lenses we can synthesize.
 We adapted these examples by adding extra fields to the
 target to make the transfomations bijective and thus suitable
 for our study.
-
-% KSF: I believe this paragraph is no longer relevant because we are
-% not including Boomerang benchmarks.
-%Just like Augeas, Boomerang has combinators that go beyond the basic
-%lens combinators, including keyed data and quotienting.  Keyed data
-%has little impact on the output format, but merely changes how the
-%invertibility laws behave.  Because we have bijective lenses, keyed
-%data has no impact.  We treat quotienting similarly to non-bijective
-%lenses.  Any part of the string that would be quotiented, instead is
-%included in a different area of the string, to maintain bijectivity.
 
 FlashFill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
@@ -2738,7 +2806,7 @@ read. We expect that most users would do the same.
 %% For example, the only places where synthesis
 %% used \StarRegexType{} equivalences were in varying the number
 %% of iterations and in placing separators, both of 
-%% which we accounted for in $\DefinitionalEquiv$.
+%% which we accounted for in $\SSREquiv$.
 
 %We believe the full generality is not necessary because 
 %This lack of impact is likely because, when the languages of two
@@ -3028,18 +3096,18 @@ and Nicolas.}
 \begin{definition}[Definitional Regular Expression Equivalences]
   \centering
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-    \RegexOr{\Regex}{\emptyset} & $\DefinitionalEquiv$ & \Regex{} & \OrIdentityRule{} \\
-    $\RegexConcat{\Regex}{\emptyset}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
-    $\RegexConcat{\emptyset}{\Regex}$ & $\DefinitionalEquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
-    \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\DefinitionalEquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
-    \RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\DefinitionalEquiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
-    \RegexOr{\Regex{}}{\RegexAlt{}} & $\DefinitionalEquiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
-    \RegexConcat{\Regex{}}{(\RegexOr{\Regex{}'}{\Regex{}''})} & $\DefinitionalEquiv$ & \RegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})} & \DistributivityLeftRule{} \\
-    \RegexConcat{(\RegexOr{\Regex{}'}{\Regex{}''})}{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})} & \DistributivityRightRule{} \\
-    \RegexConcat{\Regex{}}{\EmptyString{}} & $\DefinitionalEquiv$ & \Regex{} & \ConcatIdentityLeftRule{} \\
-    \RegexConcat{\Regex{}}{\EmptyString{}} & $\DefinitionalEquiv$ & \Regex{} & \ConcatIdentityRightRule{} \\
-    \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
-    \StarOf{\Regex{}} & $\DefinitionalEquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
+    \RegexOr{\Regex}{\emptyset} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} \\
+    $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
+    $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
+    \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
+    \RegexOr{(\RegexOr{\Regex}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexOr{\Regex}{(\RegexOr{\Regex'}{\Regex''})} & \OrAssociativityRule{}  \\
+    \RegexOr{\Regex{}}{\RegexAlt{}} & $\SSREquiv$ & \RegexOr{\RegexAlt{}}{\Regex{}} & \OrCommutativityRule{}\\
+    \RegexConcat{\Regex{}}{(\RegexOr{\Regex{}'}{\Regex{}''})} & $\SSREquiv$ & \RegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})} & \DistributivityLeftRule{} \\
+    \RegexConcat{(\RegexOr{\Regex{}'}{\Regex{}''})}{\Regex{}} & $\SSREquiv$ & \RegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})} & \DistributivityRightRule{} \\
+    \RegexConcat{\Regex{}}{\EmptyString{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityLeftRule{} \\
+    \RegexConcat{\Regex{}}{\EmptyString{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityRightRule{} \\
+    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
+    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
   \end{tabular}
 %  \caption{Definitional Regular Expression Equivalences}
 %  \label{fig:definitional-equivalence-rules}
@@ -6212,7 +6280,7 @@ definitional equivalence rules.
 \end{proof}
 
 \begin{lemma}
-  Let $\Regex \DefinitionalEquiv \RegexAlt$.
+  Let $\Regex \SSREquiv \RegexAlt$.
   If $\Regex$ is strongly unambiguous, then $\RegexAlt$ is strongly unambiguous.
 \end{lemma}
 \begin{proof}
@@ -6223,7 +6291,7 @@ definitional equivalence rules.
   induction on the derivation of equivalence of $\Regex$ and $\RegexAlt$.
   \begin{case}[\OrIdentityRule{} left to right]
     Let the last step of the derivation be \OrIdentityRule{} left to right.
-    $\Regex \DefinitionalEquiv \Regex \Or \emptyset$.
+    $\Regex \SSREquiv \Regex \Or \emptyset$.
 
     $\emptyset$ is strongly unambiguous, as its language is empty.
     $\Regex$ is strongly unambiguous by assumption
@@ -6234,7 +6302,7 @@ definitional equivalence rules.
 
   \begin{case}[\OrIdentityRule{} right to left]
     Let the last step of the derivation be \OrIdentityRule{} right to left.
-    $\RegexAlt \Or \emptyset \DefinitionalEquiv \RegexAlt$.
+    $\RegexAlt \Or \emptyset \SSREquiv \RegexAlt$.
 
     If $\LanguageOf{\RegexAlt \Or \emptyset} = SetOf{}$ then
     $\LanguageOf{\RegexAlt} = \SetOf{}$, so $\RegexAlt$ is strongly unambiguous.
@@ -6257,7 +6325,7 @@ definitional equivalence rules.
   \begin{case}[\ConcatAssocRule{} left to right]
     Let the last step of the derivation be \ConcatAssocRule{} left to right.
     $\RegexConcat{(\RegexConcat{\Regex_1}{\Regex_2})}{\Regex_3}
-    \DefinitionalEquiv
+    \SSREquiv
     \RegexConcat{\Regex_1}{(\RegexConcat{\Regex_2}{\Regex_3})}$
 
     Because \Regex is strongly unambiguous.
@@ -6295,7 +6363,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\OrAssociativityRule{} left to right]
-    $\Regex_1 \Or (\Regex_2 \Or \Regex_3) \DefinitionalEquiv
+    $\Regex_1 \Or (\Regex_2 \Or \Regex_3) \SSREquiv
     (\Regex_1 \Or \Regex_2) \Or \Regex_3$.
 
     $\LanguageOf{\Regex_1} \Intersect \LanguageOf{\Regex_2 \Or \Regex_3} =
@@ -6322,7 +6390,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\OrCommutativityRule{}]
-    $\Regex_1 \Or \Regex_2 \DefinitionalEquiv \Regex_2 \Or \Regex_1$
+    $\Regex_1 \Or \Regex_2 \SSREquiv \Regex_2 \Or \Regex_1$
     So if the languages are empty, then they are both empty.
 
     Otherwise, $\Regex_1$ is strongly unambiguous, and $\Regex_2$ is strongly
@@ -6334,7 +6402,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\DistributivityLeftRule{} left to right]
-    $\Regex_1 \Concat (\Regex_2 \Or \Regex_3) \DefinitionalEquiv
+    $\Regex_1 \Concat (\Regex_2 \Or \Regex_3) \SSREquiv
     (\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)$.
 
     If $\LanguageOf{\Regex_1 \Concat (\Regex_2 \Or \Regex_3)} = \SetOf{}$, then
@@ -6387,7 +6455,7 @@ definitional equivalence rules.
 
   \begin{case}[\DistributivityLeftRule{} right to left]
     $(\Regex_1 \Concat \Regex_2) \Or (\Regex_1 \Concat \Regex_3)
-    \DefinitionalEquiv \Regex_1 \Concat (\Regex_2 \Or \Regex_3)$.
+    \SSREquiv \Regex_1 \Concat (\Regex_2 \Or \Regex_3)$.
 
     If $\LanguageOf{\Regex_1} = \SetOf{}$, then the language of the entire
     $\Regex$ is empty, and we are done.  Otherwise assume
@@ -6426,7 +6494,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\ConcatIdentityLeftRule{} left to right]
-    $\EmptyString \Concat \Regex' \DefinitionalEquiv \Regex'$
+    $\EmptyString \Concat \Regex' \SSREquiv \Regex'$
 
     If they have empty languages, we are done.
 
@@ -6434,7 +6502,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\ConcatIdentityLeftRule{} right to left]
-    $\Regex' \DefinitionalEquiv \EmptyString \Concat \Regex'$
+    $\Regex' \SSREquiv \EmptyString \Concat \Regex'$
 
     Both $\Regex'$ and $\EmptyString$ are strongly unambiguous, by assumption
     and definition, respectively.
@@ -6451,7 +6519,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\UnrollstarLeftRule{} left to right]
-    $\StarOf{\Regex'} \DefinitionalEquiv \EmptyString \Or (\Regex' \Concat
+    $\StarOf{\Regex'} \SSREquiv \EmptyString \Or (\Regex' \Concat
     \StarOf{\Regex'})$
 
     Let $\String \in \LanguageOf{\EmptyString} \Intersect \LanguageOf{\Regex'
@@ -6488,7 +6556,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[\UnrollstarLeftRule{} right to left]
-    $\EmptyString \Or (\Regex' \Concat \StarOf{\Regex'}) \DefinitionalEquiv
+    $\EmptyString \Or (\Regex' \Concat \StarOf{\Regex'}) \SSREquiv
     \StarOf{\Regex'}$
 
     If $\LanguageOf{\Regex'} = \SetOf{}$, then it is vacuously unambiguously
@@ -6518,7 +6586,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[All structural cases]
-    As $\DefinitionalEquiv$ is finer than $\equiv$, the subparts will have
+    As $\SSREquiv$ is finer than $\equiv$, the subparts will have
     the same languages.  If the language of $\Regex$ is empty, then we are done,
     otherwise, each subpart will be strongly unambiguous, by the induction
     hypothesis.  As the top
@@ -6528,7 +6596,7 @@ definitional equivalence rules.
   \end{case}
 
   \begin{case}[Transitivity of Equational Theory]
-    If $\Regex \DefinitionalEquiv \Regex'$ and $\Regex \DefinitionalEquiv
+    If $\Regex \SSREquiv \Regex'$ and $\Regex \SSREquiv
     \RegexAlt$, then by IH,
     $\Regex'$ is strongly unambiguous, and by IH again, $\RegexAlt$ is strongly
     unambiguous.
@@ -6775,12 +6843,12 @@ equivalent.
   \end{case}
 \end{proof}
 
-\begin{lemma}[$\DefinitionalEquiv$ is finer than $\equiv$]
+\begin{lemma}[$\SSREquiv$ is finer than $\equiv$]
   \label{lem:defequiv-finer-equiv}
-  If $\Regex \DefinitionalEquiv \RegexAlt$, then $\Regex \equiv \RegexAlt$
+  If $\Regex \SSREquiv \RegexAlt$, then $\Regex \equiv \RegexAlt$
 \end{lemma}
 \begin{proof}
-  By induction on the derivation of $\DefinitionalEquiv$
+  By induction on the derivation of $\SSREquiv$
   
   \begin{case}[\OrIdentityRule{}]
     Through the use of $\equiv$'s \OrIdentityRule{}.
@@ -6823,7 +6891,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\UnrollstarLeftRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$ through an application of
+    Let $\Regex \SSREquiv \RegexAlt$ through an application of
     \UnrollstarLeftRule{}.
 
     So, without loss of generality, from symmetry, we can say
@@ -6914,7 +6982,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\UnrollstarRightRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$ through an application of
+    Let $\Regex \SSREquiv \RegexAlt$ through an application of
     \UnrollstarLeftRule{}.
 
     So, without loss of generality, from symmetry, we can say
@@ -7760,20 +7828,20 @@ equivalent.
 
 \begin{lemma}[Equivalence of $\ToRegex \Compose \ToDNFRegex$]
   \label{lem:there-and-back-equiv}
-  $(\ToRegex \Compose \ToDNFRegex) \Regex \DefinitionalEquiv \Regex$
+  $(\ToRegex \Compose \ToDNFRegex) \Regex \SSREquiv \Regex$
 \end{lemma}
 \begin{proof}
   By induction on the structure of $\Regex$
   \begin{case}[\BaseRegexType{}]
     $(\ToRegex \Compose \ToDNFRegex)\String =
     \ToRegexOf{\DNFOf{\SequenceOf{\String}}} = \emptyset \Or \String$
-    $\emptyset \Or \String \DefinitionalEquiv \String$.
+    $\emptyset \Or \String \SSREquiv \String$.
   \end{case}
 
   \begin{case}[\EmptyRegexType{}]
     $(\ToRegex \Compose \ToDNFRegex)\emptyset =
     \ToRegexOf{\DNFOf{}} = \emptyset$
-    $\emptyset \DefinitionalEquiv \emptyset$.
+    $\emptyset \SSREquiv \emptyset$.
   \end{case}
 
   \begin{case}[\StarRegexType{}]
@@ -7783,10 +7851,10 @@ equivalent.
     \Concat \EmptyString)$
     Then, through application of equational theory transitivity,
     \OrIdentityRule{}, \ConcatIdentityLeftRule{}, and \ConcatIdentityRightRule{},
-    We get $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \DefinitionalEquiv
+    We get $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \SSREquiv
     \StarOf{((\ToRegex \Compose \ToDNFRegex)\Regex')}$.
     By application of the IH, and transitivity, we get
-    $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \DefinitionalEquiv
+    $(\ToRegex \Compose \ToDNFRegex)\StarOf{\Regex'} \SSREquiv
     \StarOf{\Regex'}$
   \end{case}
 
@@ -7796,30 +7864,30 @@ equivalent.
     Let $\ToDNFRegexOf{\Regex_1} = \DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
     $\ToDNFRegexOf{\Regex_2} = \DNFOf{\SequenceAlt_1;\ldots;\Sequence_m}$.
 
-    $\Regex_1 \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_1) =
+    $\Regex_1 \SSREquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_1) =
     (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
-    (\ToRegexOf{\Sequence_n})\ldots))) \DefinitionalEquiv
+    (\ToRegexOf{\Sequence_n})\ldots))) \SSREquiv
     \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}$
     and
-    $\Regex_2 \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_2) =
+    $\Regex_2 \SSREquiv (\ToRegex \Compose \ToDNFRegex)(\Regex_2) =
     (\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
-    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \SSREquiv
     \ToRegexOf{\SequenceAlt_1} \Or \ldots \Or \ToRegexOf{\SequenceAlt_m}$.
 
     So by structural \ConcatRegexType{} identity, and transitivity,
-    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    $\Regex_1 \Concat \Regex_2 \SSREquiv
     (\ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n})
     \Concat
     (\ToRegexOf{\SequenceAlt_1} \Or \ldots \Or \ToRegexOf{\SequenceAlt_m})$.
 
     Through repeated application of \DistributivityLeftRule{} and
     \DistributivityRightRule{},
-    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    $\Regex_1 \Concat \Regex_2 \SSREquiv
     (\ToRegexOf{\Sequence_1}\Concat\ToRegexOf{\SequenceAlt_1} \Or \ldots \Or
     \ToRegexOf{\Sequence_n}\Concat\ToRegexOf{\SequenceAlt_m})$.
 
     Now, I want to show $\ToRegexOf{\Sequence_i} \Concat \ToRegexOf{\SequenceAlt_j}
-    \DefinitionalEquiv \ToRegexOf{(\Sequence_i \ConcatDNF \SequenceAlt_j)}$.
+    \SSREquiv \ToRegexOf{(\Sequence_i \ConcatDNF \SequenceAlt_j)}$.
     Let $\Sequence_i =
     \SequenceOf{\String_{i,0};\Atom_{i,1};\ldots;\Atom_{i,n_i};\String_{i,n_i}}$,
     and $\SequenceAlt_j =
@@ -7832,18 +7900,18 @@ equivalent.
     \Concat \StringAlt_{j,0} \Concat (\AtomAlt_{j,1} \Concat (\ldots \Concat
     (\Atom_{j,n_j} \Concat \String_{j,n_j})\ldots))\ldots))$
     So through repeated application of \ConcatAssocRule{},
-    $\ToRegexOf{(\Sequence_i \ConcatDNF \Sequence_j)} \DefinitionalEquiv
+    $\ToRegexOf{(\Sequence_i \ConcatDNF \Sequence_j)} \SSREquiv
     (\String_{i,0} \Concat (\Atom_{i,1} \Concat (\ldots \Concat (\Atom_{i,n_i}
     \Concat \String_{i,n_i})\ldots))) \Concat (\StringAlt_{j,0} \Concat
     (\AtomAlt_{j,1} \Concat (\ldots \Concat (\AtomAlt_{j,n_j} \Concat
     \String_{j,n_j})\ldots)))$.
 
     Because of this 
-    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    $\Regex_1 \Concat \Regex_2 \SSREquiv
     \ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots \Or
     \ToRegexOf{(\Sequence_n\ConcatDNF\SequenceAlt_n)}$.
     Through repeated application of \OrAssociativityRule{}, and \OrIdentityRule{},
-    $\Regex_1 \Concat \Regex_2 \DefinitionalEquiv
+    $\Regex_1 \Concat \Regex_2 \SSREquiv
     \emptyset \Or (\ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots
     (\ToRegexOf{(\Sequence_n\ConcatDNF\SequenceAlt_m)})\ldots)$.
     Furthermore, $\emptyset \Or (\ToRegexOf{(\Sequence_1\ConcatDNF\SequenceAlt_1)} \Or \ldots
@@ -7881,10 +7949,10 @@ equivalent.
     (\ToRegex \Compose \ToDNFRegex)\Regex_2$, so by IH
     $(\ToRegex \Compose \ToDNFRegex)(\Regex_1 \Or \Regex_2) =
     (\emptyset \Or (\ToRegexOf{\Sequence_1} \Or (\ldots \Or
-    (\ToRegexOf{\Sequence_n})\ldots))) \DefinitionalEquiv
+    (\ToRegexOf{\Sequence_n})\ldots))) \SSREquiv
     \Regex_1$
     and $(\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
-    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \SSREquiv
     \Regex_2$.
 
     Through an application of structural \OrRegexType{} equality,
@@ -7892,7 +7960,7 @@ equivalent.
     (\ToRegexOf{\Sequence_n})\ldots)))
     \Or
     (\emptyset \Or (\ToRegexOf{\SequenceAlt_1} \Or (\ldots \Or
-    (\ToRegexOf{\SequenceAlt_m})\ldots))) \DefinitionalEquiv
+    (\ToRegexOf{\SequenceAlt_m})\ldots))) \SSREquiv
     \Regex_1 \Or \Regex_2$, as desired.
   \end{case}
 \end{proof}
@@ -7900,24 +7968,24 @@ equivalent.
 \begin{lemma}[Equivalence of Preimage of $\ToDNFRegex$]
   \label{lem:preimage-equiv}
   If $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$, then $\Regex
-  \DefinitionalEquiv \RegexAlt$.
+  \SSREquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
   $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$, so $(\ToRegex \Compose
   \ToDNFRegex) \Regex = (\ToRegex \Compose \ToDNFRegex) \RegexAlt$.
   By Lemma~\ref{lem:there-and-back-equiv},
-  $\Regex \DefinitionalEquiv (\ToRegex \Compose \ToDNFRegex) \RegexAlt
-  \DefinitionalEquiv \RegexAlt$
+  $\Regex \SSREquiv (\ToRegex \Compose \ToDNFRegex) \RegexAlt
+  \SSREquiv \RegexAlt$
 \end{proof}
 
 \begin{lemma}[Equivalence of Adjacent Swapping Permutation of \OrRegexType{}]
   \label{lem:adj-swap-or}
   Let $\Regex_1 \Or \ldots \Or \Regex_n$.  Let $\sigma_i$ be an adjacent
-  swapping permutation.  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv
+  swapping permutation.  $\Regex_1 \Or \ldots \Or \Regex_n \SSREquiv
   \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$.
 \end{lemma}
 \begin{proof}
-  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv (\Regex_1 \Or \ldots \Or
+  $\Regex_1 \Or \ldots \Or \Regex_n \SSREquiv (\Regex_1 \Or \ldots \Or
   \Regex_{i-1}) \Or (\Regex_{i} \Or \Regex_{i+1}) \Or (\Regex_{i+2} \Or \ldots
   \Or \Regex_n)$ by repeated application of associativity.
   
@@ -7925,32 +7993,32 @@ equivalent.
   commutativity, so by \OrRegexType{} structural equality,
   $(\Regex_1 \Or \ldots \Or
   \Regex_{i-1}) \Or (\Regex_{i} \Or \Regex_{i+1}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n) \DefinitionalEquiv
+  \Or \Regex_n) \SSREquiv
   (\Regex_1 \Or \ldots \Or
   \Regex_{i-1}) \Or (\Regex_{i+1} \Or \Regex_{i}) \Or (\Regex_{i+2} \Or \ldots
   \Or \Regex_n)$
   
   $(\Regex_1 \Or \ldots \Or
   \Regex_{i-1}) \Or (\Regex_{i+1} \Or \Regex_{i}) \Or (\Regex_{i+2} \Or \ldots
-  \Or \Regex_n) \DefinitionalEquiv
+  \Or \Regex_n) \SSREquiv
   \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$ by repeated
   application of associativity.
   
   So, by the transitivity of equational theories,
-  $\Regex_1 \Or \ldots \Or \Regex_n \DefinitionalEquiv
+  $\Regex_1 \Or \ldots \Or \Regex_n \SSREquiv
   \Regex_{\sigma_i(1)} \Or \ldots \Or \Regex_{\sigma_i(n)}$.
 \end{proof}
 
-\begin{lemma}[Expressibility of $\ParallelRewriteSwap$ in $\DefinitionalEquiv$
+\begin{lemma}[Expressibility of $\ParallelRewriteSwap$ in $\SSREquiv$
   Up To Preimage]
   \label{lem:express-swap-in-equiv}
   \leavevmode
   \begin{enumerate}
   \item If $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$, then
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \item If $\ToDNFRegexOf{\Regex} = \DNFOf{\SequenceOf{\Atom}}$ and
     $\Atom \ParallelRewriteSwapAtom \ToDNFRegexOf{\RegexAlt}$ then
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \end{enumerate}
 \end{lemma}
 \begin{proof}By mutual induction on the derivation of $\ParallelRewriteSwap$ and
@@ -7967,19 +8035,19 @@ equivalent.
     As $\ToDNFRegexOf{\StarOf{\Regex'}} =
     \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
     Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
-    \DefinitionalEquiv \Regex$.
+    \SSREquiv \Regex$.
     Similarly, as $\ToDNFRegexOf{(\EmptyString \Or
       (\Regex'\Concat\StarOf{\Regex'}))} =
     \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
     {(\ConcatDNFOf{\DNFRegex}{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}})}$,
     then from
     Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
-    (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$.
+    (\Regex'\Concat\StarOf{\Regex'}) \SSREquiv \RegexAlt$.
 
     So, through an application of UnrollstarLeftRule{},
-    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    $\Regex \SSREquiv \StarOf{\Regex'} \SSREquiv
     \EmptyString \Or
-    (\Regex'\Concat\StarOf{\Regex'}) \DefinitionalEquiv \RegexAlt$, as desired.
+    (\Regex'\Concat\StarOf{\Regex'}) \SSREquiv \RegexAlt$, as desired.
   \end{case}
 
   \begin{case}[\AtomUnrollstarRightRule{}]
@@ -7994,19 +8062,19 @@ equivalent.
     As $\ToDNFRegexOf{\StarOf{\Regex'}} =
     \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, then from
     Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'}
-    \DefinitionalEquiv \Regex$.
+    \SSREquiv \Regex$.
     Similarly, as $\ToDNFRegexOf{(\EmptyString \Or
       (\StarOf{\Regex'}\Concat\Regex'))} =
     \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}
     {(\ConcatDNFOf{\DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}}{\DNFRegex})}$,
     then from
     Lemma~\ref{lem:preimage-equiv}, $\EmptyString \Or
-    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$.
+    (\StarOf{\Regex'}\Concat\Regex') \SSREquiv \RegexAlt$.
   
     So, through an application of UnrollstarRightRule{},
-    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
+    $\Regex \SSREquiv \StarOf{\Regex'} \SSREquiv
     \EmptyString \Or
-    (\StarOf{\Regex'}\Concat\Regex') \DefinitionalEquiv \RegexAlt$, as desired.
+    (\StarOf{\Regex'}\Concat\Regex') \SSREquiv \RegexAlt$, as desired.
   \end{case}
   
   \begin{case}[\ParallelSwapAtomStructuralRewriteRule{}]
@@ -8019,19 +8087,19 @@ equivalent.
 
     Let $\ToRegexOf{\DNFRegex} = \Regex'$ and
     $\ToRegexOf{\DNFRegexAlt} = \RegexAlt'$.  By induction assumption, $\Regex'
-    \DefinitionalEquiv \RegexAlt'$.  By structural equivalence,
+    \SSREquiv \RegexAlt'$.  By structural equivalence,
     $\StarOf{\Regex'} = \StarOf{\RegexAlt'}$.
     As $\ToDNFRegexOf{\StarOf{\Regex'}} =
     \DNFOf{\SequenceOf{\StarOf{\DNFRegex}}}$, from
-    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'} \DefinitionalEquiv
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\Regex'} \SSREquiv
     \Regex$.
     As $\ToDNFRegexOf{\StarOf{\RegexAlt'}} =
     \DNFOf{\SequenceOf{\StarOf{\DNFRegexAlt}}}$, from
-    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\RegexAlt'} \DefinitionalEquiv
+    Lemma~\ref{lem:preimage-equiv}, $\StarOf{\RegexAlt'} \SSREquiv
     \RegexAlt$.
 
-    $\Regex \DefinitionalEquiv \StarOf{\Regex'} \DefinitionalEquiv
-    \StarOf{\RegexAlt'} \DefinitionalEquiv \RegexAlt$, as desired.
+    $\Regex \SSREquiv \StarOf{\Regex'} \SSREquiv
+    \StarOf{\RegexAlt'} \SSREquiv \RegexAlt$, as desired.
   \end{case}
 
   \begin{case}[\DNFReorderRule{}]
@@ -8063,7 +8131,7 @@ equivalent.
           \inferrule*[vdots=1.5em]
           {
             \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
-            \DefinitionalEquiv
+            \SSREquiv
             \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
           }
           {
@@ -8072,7 +8140,7 @@ equivalent.
         {
           \ToRegexOf{\Sequence_{\sigma_{i_m}(1)}} \Or \ldots \Or
           \ToRegexOf{\Sequence_{\sigma_{i_m}(n)}}
-          \DefinitionalEquiv
+          \SSREquiv
           \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
         }
       }
@@ -8080,19 +8148,19 @@ equivalent.
         \ToRegexOf{\Sequence_{(\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m})(1)}}
         \Or \ldots \Or
         \ToRegexOf{\Sequence_{(\sigma_{i_1}\Compose\ldots\Compose\sigma_{i_m})(n)}}
-        \DefinitionalEquiv
+        \SSREquiv
         \ToRegexOf{\Sequence_1} \Or \ldots \Or \ToRegexOf{\Sequence_n}
       }
     \]
 
     So, by Lemma~\ref{lem:preimage-equiv},
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$ and
-    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$ and
+    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \SSREquiv \RegexAlt$.
     Furthermore,
-    $\ToRegexOf{\ToDNFRegexOf{\Regex}} \DefinitionalEquiv
+    $\ToRegexOf{\ToDNFRegexOf{\Regex}} \SSREquiv
     \ToRegexOf{\ToDNFRegexOf{\RegexAlt}}$.
     So by the transitivity of an equational theory,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \end{case}
 
   \begin{case}[\IdentityRewriteRule{}]
@@ -8103,8 +8171,8 @@ equivalent.
     
     So, by Lemma~\ref{lem:preimage-equiv},
     That means that
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}
-    \DefinitionalEquiv \RegexAlt$
+    $\Regex \SSREquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}
+    \SSREquiv \RegexAlt$
   \end{case}
 
   \begin{case}[\ParallelSwapDNFStructuralRewriteRule{}]
@@ -8133,7 +8201,7 @@ equivalent.
     $\ToDNFRegexOf{\ToRegexOf{\AtomToDNFOf{\Atom_{i,j}}}} =
     \AtomToDNFOf{\Atom_{i,j}}$, and
     $\ToDNFRegexOf{\ToRegexOf{\DNFRegex_{i,j}}} = \DNFRegex_{i,j}$, so by IH,
-    $\ToRegexOf{\AtomToDNFOf{\Atom_{i,j}}} \DefinitionalEquiv
+    $\ToRegexOf{\AtomToDNFOf{\Atom_{i,j}}} \SSREquiv
     \ToRegexOf{\DNFRegex_{i,j}}$.
 
     Consider the regular expressions
@@ -8149,7 +8217,7 @@ equivalent.
     \ToRegexOf{\DNFRegex_{i,n_i}} \Concat \String_{i,n_i}$.
 
     By structural equality of $\ConcatRegexType$,
-    $\Regex_i \DefinitionalEquiv \RegexAlt_i$.
+    $\Regex_i \SSREquiv \RegexAlt_i$.
 
     Consider the regular expression
     $\Regex' = \Regex_1 \OrDNF \ldots \OrDNF \Regex_n$ and the regular
@@ -8157,7 +8225,7 @@ equivalent.
     $\RegexAlt' = \RegexAlt_1 \Or \ldots \Or \RegexAlt_n$.
 
     By structural equality of $\OrRegexType$,
-    $\Regex' \DefinitionalEquiv \RegexAlt'$
+    $\Regex' \SSREquiv \RegexAlt'$
 
     $\ToDNFRegexOf{\Regex_i} =
     \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \AtomToDNFOf{\Atom_{i,1}}
@@ -8173,7 +8241,7 @@ equivalent.
     \DNFOf{\Sequence_1} \OrDNF \ldots \OrDNF \DNFOf{\Sequence_n} =
     \DNFOf{\Sequence_1 ; \ldots ; \Sequence_n}$.
     This means, by Lemma~\ref{lem:preimage-equiv}, that
-    $\Regex \DefinitionalEquiv \Regex'$
+    $\Regex \SSREquiv \Regex'$
 
     $\ToDNFRegexOf{\RegexAlt_i} =
     \DNFOf{\SequenceOf{\String_{i,0}}} \ConcatDNF \DNFRegex_{i,1}
@@ -8185,20 +8253,20 @@ equivalent.
     \ToDNFRegexOf{\RegexAlt_1} \OrDNF \ldots \OrDNF \ToDNFRegexOf{\RegexAlt_n} =
     \DNFRegex_1 \OrDNF \ldots \OrDNF \DNFRegex_n$.
     This means, by Lemma~\ref{lem:preimage-equiv}, that
-    $\RegexAlt' \DefinitionalEquiv \RegexAlt$
+    $\RegexAlt' \SSREquiv \RegexAlt$
     
-    So, $\Regex \DefinitionalEquiv \Regex' \DefinitionalEquiv \RegexAlt'
-    \DefinitionalEquiv \RegexAlt$, so by transitivity of equational theories,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    So, $\Regex \SSREquiv \Regex' \SSREquiv \RegexAlt'
+    \SSREquiv \RegexAlt$, so by transitivity of equational theories,
+    $\Regex \SSREquiv \RegexAlt$.
   \end{case}
 \end{proof}
 
 \begin{lemma}[Expressibility of $\EquivalenceOf{\ParallelRewriteSwap}$ in
-  $\DefinitionalEquiv$]
+  $\SSREquiv$]
   \label{lem:express-equiv-swap-in-equiv}
   If $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
   \ToDNFRegexOf{\RegexAlt}$, then
-  $\Regex \DefinitionalEquiv \RegexAlt$.
+  $\Regex \SSREquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
   By induction on the typing derivation of
@@ -8211,11 +8279,11 @@ equivalent.
     This means $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\RegexAlt}$.  That means
     $\ToRegexOf{\ToDNFRegexOf{\Regex}} = \ToRegexOf{\ToDNFRegexOf{\RegexAlt}}$.
     By Lemma~\ref{lem:preimage-equiv},
-    $\Regex \DefinitionalEquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$.
+    $\Regex \SSREquiv \ToRegexOf{\ToDNFRegexOf{\Regex}}$.
     By Lemma~\ref{lem:preimage-equiv},
-    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \DefinitionalEquiv = \RegexAlt$.
+    $\ToRegexOf{\ToDNFRegexOf{\RegexAlt}} \SSREquiv = \RegexAlt$.
     By the transitivity of equational theories,
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \end{case}
 
   \begin{case}[\BaseRule{}]
@@ -8227,7 +8295,7 @@ equivalent.
     \ToDNFRegexOf{\RegexAlt}$.
 
     By Lemma~\ref{lem:express-swap-in-equiv},
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \end{case}
 
   \begin{case}[\SymmetryRule{}]
@@ -8239,7 +8307,7 @@ equivalent.
     \ToDNFRegexOf{\RegexAlt}$.
 
     By Lemma~\ref{lem:express-swap-in-equiv},
-    $\Regex \DefinitionalEquiv \RegexAlt$.
+    $\Regex \SSREquiv \RegexAlt$.
   \end{case}
 \end{proof}
 
@@ -8845,18 +8913,18 @@ equivalent.
   \end{case}
 \end{proof}
 
-\begin{lemma}[Expressibility of $\DefinitionalEquiv$ in
+\begin{lemma}[Expressibility of $\SSREquiv$ in
   $\EquivalenceOf{\ParallelRewriteSwap}$]
   \label{lem:express-equiv-in-equiv-swap}
-  If $\Regex \DefinitionalEquiv \RegexAlt$, then
+  If $\Regex \SSREquiv \RegexAlt$, then
   $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
   \ToDNFRegexOf{\RegexAlt}$.
 \end{lemma}
 \begin{proof}
-  Assume $\Regex \DefinitionalEquiv \RegexAlt$.
-  Prove by induction on the deduction of $\DefinitionalEquiv$
+  Assume $\Regex \SSREquiv \RegexAlt$.
+  Prove by induction on the deduction of $\SSREquiv$
   \begin{case}[Structural Equality Rule]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of structural equality rule.
     That means that $\RegexAlt
     = \Regex$.  Through reflexivity, $\ToDNFRegexOf{\Regex}
@@ -8865,7 +8933,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\OrIdentityRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \OrIdentityRule{}.  Without loss of
     generality, from symmetry, $\RegexAlt = \Regex \Or \emptyset$.
   
@@ -8877,7 +8945,7 @@ equivalent.
   \end{case}
   
   \begin{case}[\EmptyProjectionRightRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \EmptyProjectionRightRule{}.  Without
     loss of generality, from symmetry, $\Regex = \Regex' \Concat \emptyset$, and
     $\RegexAlt = \emptyset$.
@@ -8885,12 +8953,12 @@ equivalent.
     $\ToDNFRegexOf{\Regex' \Concat \emptyset} = \ToDNFRegexOf{\Regex} \ConcatDNF
     \ToDNFRegexOf{\emptyset} = \ToDNFRegexOf{\Regex} \ConcatDNF \DNFOf{} =
     \DNFOf{}$.  Through reflexivity, $\ToDNFRegexOf{\Regex} =
-    \ToDNFRegexOf{\emptyset} \DefinitionalEquiv \ToDNFRegexOf{\emptyset} =
+    \ToDNFRegexOf{\emptyset} \SSREquiv \ToDNFRegexOf{\emptyset} =
     \ToDNFRegexOf{\RegexAlt}$.
   \end{case}
   
   \begin{case}[\EmptyProjectionLeftRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \EmptyProjectionRightRule{}.  Without
     loss of generality, from symmetry, $\Regex = \emptyset \Concat \Regex'$, and
     $\RegexAlt = \emptyset$.
@@ -8903,7 +8971,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\ConcatAssocRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \ConcatAssocRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \Regex_1 \Concat (\Regex_2 \Concat \Regex_3)$, and
@@ -8923,7 +8991,7 @@ equivalent.
   \end{case}
   
   \begin{case}[\OrAssociativityRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \OrAssociativityRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \Regex_1 \Or (\Regex_2 \Or \Regex_3)$, and
@@ -8943,7 +9011,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\OrCommutativityRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \OrCommutativityRule{}.
     $\Regex = \Regex_1 \Or \Regex_2$, and
     $\RegexAlt = \Regex_2 \Or \Regex_1$.
@@ -9011,7 +9079,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\DistributivityLeftRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \DistributivityLeftRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \Regex_1 \Concat (\Regex_2 \Or \Regex_3)$, and
@@ -9077,7 +9145,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\DistributivityRightRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \DistributivityRightRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = (\Regex_1 \Or \Regex_2) \Concat \Regex_3$, and
@@ -9097,7 +9165,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\ConcatIdentityLeftRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \DistributivityRightRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \Regex' \Concat \EmptyString$, and
@@ -9115,7 +9183,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\ConcatIdentityRightRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \DistributivityRightRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \EmptyString \Concat \Regex'$, and
@@ -9133,7 +9201,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\UnrollstarLeftRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \UnrollstarLeftRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \StarOf{\Regex'}$, and
@@ -9153,7 +9221,7 @@ equivalent.
   \end{case}
 
   \begin{case}[\UnrollstarRightRule{}]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, and the last step of the
+    Let $\Regex \SSREquiv \RegexAlt$, and the last step of the
     deduction is an application of \UnrollstarRightRule{}.  Without loss of
     generality, from symmetry,
     $\Regex = \StarOf{\Regex'}$, and
@@ -9174,12 +9242,12 @@ equivalent.
   \end{case}
 
   \begin{case}[Structural \OrRegexType{} Equality]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, through structural equality of
+    Let $\Regex \SSREquiv \RegexAlt$, through structural equality of
     \OrRegexType{}.
     $\Regex = \Regex_1 \Or \Regex_2$, and
     $\RegexAlt = \RegexAlt_1 \Or \RegexAlt_2$,
-    $\Regex_1 \DefinitionalEquiv \RegexAlt_1$, and
-    $\Regex_2 \DefinitionalEquiv \RegexAlt_2$.
+    $\Regex_1 \SSREquiv \RegexAlt_1$, and
+    $\Regex_2 \SSREquiv \RegexAlt_2$.
 
     By induction assumption,
     $\ToDNFRegexOf{\Regex_1} \EquivalenceOf{\ParallelRewriteSwap}
@@ -9198,12 +9266,12 @@ equivalent.
   \end{case}
 
   \begin{case}[Structural \ConcatRegexType{} Equality]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, through structural equality of
+    Let $\Regex \SSREquiv \RegexAlt$, through structural equality of
     \ConcatRegexType{}.
     $\Regex = \Regex_1 \Concat \Regex_2$, and
     $\RegexAlt = \RegexAlt_1 \Concat \RegexAlt_2$,
-    $\Regex_1 \DefinitionalEquiv \RegexAlt_1$, and
-    $\Regex_2 \DefinitionalEquiv \RegexAlt_2$.
+    $\Regex_1 \SSREquiv \RegexAlt_1$, and
+    $\Regex_2 \SSREquiv \RegexAlt_2$.
 
     By induction assumption,
     $\ToDNFRegexOf{\Regex_1} \EquivalenceOf{\ParallelRewriteSwap}
@@ -9222,11 +9290,11 @@ equivalent.
   \end{case}
 
   \begin{case}[Structural \StarRegexType{} Equality]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$, through structural equality of
+    Let $\Regex \SSREquiv \RegexAlt$, through structural equality of
     \StarRegexType{}.
     $\Regex = \StarOf{\Regex'}$,
     $\RegexAlt = \StarOf{\RegexAlt'}$, and
-    $\Regex' \DefinitionalEquiv \RegexAlt'$.
+    $\Regex' \SSREquiv \RegexAlt'$.
 
     By induction assumption,
     $\ToDNFRegexOf{\Regex'} \EquivalenceOf{\ParallelRewriteSwap}
@@ -9243,9 +9311,9 @@ equivalent.
   \end{case}
 
   \begin{case}[Transitivity of Equational Theory]
-    Let $\Regex \DefinitionalEquiv \RegexAlt$ through the transitivity of an
+    Let $\Regex \SSREquiv \RegexAlt$ through the transitivity of an
     equational theory.  This means there exists a $\Regex'$ such that $\Regex
-    \DefinitionalEquiv \Regex'$ and $\Regex' \DefinitionalEquiv \RegexAlt$.
+    \SSREquiv \Regex'$ and $\Regex' \SSREquiv \RegexAlt$.
     
     By induction assumption,
     $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
@@ -9271,9 +9339,9 @@ equivalent.
 \end{proof}
 
 \begin{theorem}[Equivalence of $\EquivalenceOf{\ParallelRewriteSwap}$ and
-  $\DefinitionalEquiv$]
+  $\SSREquiv$]
   \label{thm:defequiv-equiv-parallelswapequiv}
-  $\Regex \DefinitionalEquiv \RegexAlt$ if, and only if $\ToDNFRegexOf{\Regex}
+  $\Regex \SSREquiv \RegexAlt$ if, and only if $\ToDNFRegexOf{\Regex}
   \EquivalenceOf{\ParallelRewriteSwap} \ToDNFRegexOf{\RegexAlt}$
 \end{theorem}
 \begin{proof}
@@ -10488,23 +10556,23 @@ equivalent.
   so a straightforward induction using those rules can prove this.
 \end{proof}
 
-\begin{lemma}[$\ParallelRewrite$ can be expressed in $\DefinitionalEquiv$]
+\begin{lemma}[$\ParallelRewrite$ can be expressed in $\SSREquiv$]
   \label{lem:pr-in-de}
   If $\ToDNFRegexOf{\Regex} \ParallelRewrite \ToDNFRegexOf{\RegexAlt}$,
-  then $\Regex \DefinitionalEquiv \RegexAlt$.
+  then $\Regex \SSREquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
   By Lemma~\ref{parallelrewrite-in-parallelrewriteswap},
   $\ToDNFRegexOf{\Regex} \ParallelRewriteSwap \ToDNFRegexOf{\RegexAlt}$, then
   by Lemma~\ref{lem:express-swap-in-equiv},
-  $\Regex \DefinitionalEquiv \RegexAlt$.
+  $\Regex \SSREquiv \RegexAlt$.
 \end{proof}
 
 \begin{lemma}[$\StarOf{\ParallelRewrite}$ can be expressed in
-  $\DefinitionalEquiv$]
+  $\SSREquiv$]
   \label{lem:star-pr-in-de}
   If $\ToDNFRegexOf{\Regex} \StarOf{\ParallelRewrite} \ToDNFRegexOf{\RegexAlt}$, then
-  $\Regex \DefinitionalEquiv \RegexAlt$.
+  $\Regex \SSREquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
   By straightforward induction, using for base rule, Lemma~\ref{lem:pr-in-de},
@@ -10512,10 +10580,10 @@ equivalent.
   the reflexivity of equational theories.
 \end{proof}
 
-\begin{lemma}[$\StarOf{\Rewrite}$ can be expressed in $\DefinitionalEquiv$]
+\begin{lemma}[$\StarOf{\Rewrite}$ can be expressed in $\SSREquiv$]
   \label{lem:star-rw-in-de}
   If $\ToDNFRegexOf{\Regex} \StarOf{\Rewrite} \ToDNFRegexOf{\RegexAlt}$, then
-  $\Regex \DefinitionalEquiv \RegexAlt$.
+  $\Regex \SSREquiv \RegexAlt$.
 \end{lemma}
 \begin{proof}
   By Lemma~\ref{lem:star-pr-in-de} and
@@ -11176,18 +11244,18 @@ arbitrary permutations can be expressed.
   \ToDNFRegexOf{\ToRegexOf{\DNFRegex'}}$, and
   $\ToDNFRegexOf{\ToRegexOf{\DNFRegexAlt}} \StarOf{\Rewrite}
   \ToDNFRegexOf{\ToRegexOf{\DNFRegexAlt'}}$, from Lemma~\ref{lem:star-rw-in-de},
-  $\ToRegexOf{\DNFRegex} \DefinitionalEquiv \ToRegexOf{\DNFRegex'}$, and
-  $\ToRegexOf{\DNFRegexAlt} \DefinitionalEquiv \ToRegexOf{\DNFRegexAlt'}$.
+  $\ToRegexOf{\DNFRegex} \SSREquiv \ToRegexOf{\DNFRegex'}$, and
+  $\ToRegexOf{\DNFRegexAlt} \SSREquiv \ToRegexOf{\DNFRegexAlt'}$.
   \[
     \inferrule*
     {
       \Lens \OfType \ToRegexOf{\DNFRegex'} \Leftrightarrow
       \ToRegexOf{\DNFRegexAlt'}\\
-      \ToRegexOf{\DNFRegex} \DefinitionalEquiv \ToRegexOf{\DNFRegex'}\\
-      \ToRegexOf{\DNFRegexAlt} \DefinitionalEquiv \ToRegexOf{\DNFRegexAlt'}
+      \ToRegexOf{\DNFRegex} \SSREquiv \ToRegexOf{\DNFRegex'}\\
+      \ToRegexOf{\DNFRegexAlt} \SSREquiv \ToRegexOf{\DNFRegexAlt'}
     }
     {
-      \Lens \OfType \ToRegexOf{\DNFRegex} \DefinitionalEquiv
+      \Lens \OfType \ToRegexOf{\DNFRegex} \SSREquiv
       \ToRegexOf{\DNFRegexAlt}
     }
   \]
@@ -15420,7 +15488,7 @@ lemma involving rewrites and lens expressibility.
       \String \in \LanguageOf{\DNFRegexAlt}}$.
 
     Because $\EquivalenceOf{\ParallelRewriteSwap}$ is equivalent to
-    $\DefinitionalEquiv$, $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$
+    $\SSREquiv$, $\LanguageOf{\DNFRegex} = \LanguageOf{\DNFRegexAlt}$
 
     By Lemma~\ref{lem:closure-inversion}, there exists
     $\DNFLens' \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'$,
@@ -15507,7 +15575,7 @@ lemma involving rewrites and lens expressibility.
 
 \begin{lemma}
   \label{lem:identity-definitional-equivalence}
-  Let $\Regex \DefinitionalEquiv \RegexAlt$, and let $\Regex$ be strongly
+  Let $\Regex \SSREquiv \RegexAlt$, and let $\Regex$ be strongly
   unambiguous.  There exists $\DNFLens$, $\DNFRegex$, $\DNFRegexAlt$ such that
   $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
   $\ToDNFRegexOf{\Regex} \StarOf{\Rewrite} \DNFRegex$,
@@ -15517,7 +15585,7 @@ lemma involving rewrites and lens expressibility.
 \end{lemma}
 \begin{proof}
   From Lemma~\ref{thm:defequiv-equiv-parallelswapequiv}, as 
-  $\Regex \DefinitionalEquiv \RegexAlt$,
+  $\Regex \SSREquiv \RegexAlt$,
   $\ToDNFRegexOf{\Regex} \EquivalenceOf{\ParallelRewriteSwap}
   \ToDNFRegexOf{\RegexAlt}$.
   Because $\Regex$ is strongly unambiguous, by
@@ -15973,7 +16041,7 @@ lemma involving rewrites and lens expressibility.
     \SemanticsOf{\DNFLens} = \SemanticsOf{\Lens}
   \end{gather*}
 
-  As $\Regex' \DefinitionalEquiv \Regex$, and $\Regex$ is strongly unambiguous,
+  As $\Regex' \SSREquiv \Regex$, and $\Regex$ is strongly unambiguous,
   from Lemma~\ref{lem:identity-definitional-equivalence} there exists a
   rewriteless DNF lens $\DNFLens_{\Regex',\Regex}
   \OfRewritelessType \overline{\DNFRegex'} \Leftrightarrow
@@ -15983,7 +16051,7 @@ lemma involving rewrites and lens expressibility.
   $\SemanticsOf{\DNFLens_{\Regex',\Regex}} = \SetOf{(\String,\String)
     \SuchThat \String \in \LanguageOf{\ToDNFRegexOf{\Regex}}}$.
   
-  As $\RegexAlt \DefinitionalEquiv \RegexAlt'$, and $\RegexAlt$ is strongly unambiguous,
+  As $\RegexAlt \SSREquiv \RegexAlt'$, and $\RegexAlt$ is strongly unambiguous,
   from Lemma~\ref{lem:identity-definitional-equivalence} there exists a
   rewriteless DNF lens $\DNFLens_{\RegexAlt,\RegexAlt'}
   \OfRewritelessType \overline{\DNFRegexAlt} \Leftrightarrow

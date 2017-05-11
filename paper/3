@@ -442,7 +442,7 @@ between ordinary regular expressions and lenses and the DNF forms, and prove
 these translations sound and complete with respect to our high-level lens syntax.
 
 \item We present a sound and complete type-directed algorithm for synthesizing
-  DNF lenses (\S\ref{algorithm}).
+  DNF lenses (\S\ref{implementation}).
 
 \item We evaluate our core algorithm, its optimizations, and synthesis tools in
   a similar domain on 26 benchmarks, including examples derived from
@@ -572,7 +572,7 @@ The Legacy client allows for inputs of the form
 while the modern client allows for inputs of the form
 \begin{lstlisting}
    !modern_title! =
-      (@"Title="@ !text_char!+ @","@) | @""@
+      @""@ | (@"Title="@ !text_char!+ @","@)
 \end{lstlisting}
 
 We would like to be able to synthesize a lens that maps between the legacy
@@ -2061,8 +2061,10 @@ types that were discovered in the first step.
 % end formalisms
 
 % begin implementation
-\section{Algorithm}
-\label{algorithm}
+\section{Implementation}
+\label{implementation}
+We have implemented the lens synthesis algorithm in 5515 lines
+of OCaml code. 
 
 \paragraph*{Synthesis Overview}
 Algorithm~\ref{alg:synthlens} gives an overview of the 
@@ -2137,6 +2139,13 @@ resulting source/target pair and enqueues them to continue the search.
 Specifics of the orderings likely only in full version.
 
 \paragraph*{\Expand}
+The inference of expansions is much of what allows our synthesis algorithm to be
+efficient.  \Expand{} has three parts: \ExpandRequired{}, \FixProblemSets{}, and
+\ExpandOnce{}.
+
+\ExpandRequired{} takes expansions that \emph{must} be taken.  
+
+
 \begin{algorithm}
   \caption{\Expand}
   \label{alg:synthlens}
@@ -2145,22 +2154,15 @@ Specifics of the orderings likely only in full version.
     \State $\CurrentSet_{\DNFRegex} \gets \Call{\GetCurrentSet}{\DNFRegex}$
     \State $\CurrentSet_{\DNFRegexAlt} \gets \Call{\GetCurrentSet}{\DNFRegexAlt}$
     \State $\TransitiveSet_{\DNFRegex} \gets \Call{\GetTransitiveSet}{\DNFRegex}$
-    \State $\TransitiveSet_{\DNFRegexAlt} \gets
-    \Call{\GetTransitiveSet}{\DNFRegexAlt}$
-    \State $r \gets \False$
+    \State $\TransitiveSet_{\DNFRegexAlt} \gets \Call{\GetTransitiveSet}{\DNFRegexAlt}$
     \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegex} \setminus
       \TransitiveSet_{\DNFRegexAlt}$}
-    \State $r \gets \True$
     \State $(\DNFRegex,\ExpCount) \gets \Call{\ForceExpand}{\DNFRegex,\UserDef,\Int,\ExpCount}$
     \EndForEach
     \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegexAlt} \setminus
       \TransitiveSet_{\DNFRegex}$}
-    \State $r \gets \True$
     \State $(\DNFRegexAlt,\ExpCount) \gets \Call{\ForceExpand}{\DNFRegexAlt,\UserDef,\Int,\ExpCount}$
     \EndForEach
-    \If {$r$}
-    \State $\ReturnVal{\Call{\ExpandRequired}{\DNFRegex,\DNFRegexAlt,\ExpCount}}$
-    \EndIf
     \State $\ReturnVal{(\DNFRegex,\DNFRegexAlt,\ExpCount)}$
     \EndFunction
 
@@ -2173,11 +2175,11 @@ Specifics of the orderings likely only in full version.
     \State $\QueueElements \gets []$
       \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegexAlt} \setminus
       \CurrentSet_{\DNFRegex}$}
-    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegex,\UserDef,\Int,\ExpCount,\DNFRegexAlt}$
+    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegex,\UserDef,\Int,\ExpCount}$
     \EndForEach
     \ForEach{$(\UserDef, \Int)$}{$\CurrentSet_{\DNFRegex} \setminus
       \CurrentSet_{\DNFRegexAlt}$}
-    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegexAlt,\UserDef,\Int,\ExpCount,\DNFRegex}$
+    \State $\QueueElements \gets \QueueElements \Append \Call{\Reveal}{\DNFRegexAlt,\UserDef,\Int,\ExpCount}$
     \EndForEach
     \State $\ReturnVal{\Types}$
     \EndFunction
@@ -2199,60 +2201,8 @@ Specifics of the orderings likely only in full version.
   \end{algorithmic}
 \end{algorithm}
 
-The inference of expansions is much of what allows our synthesis algorithm to be
-efficient.  \Expand{} has three parts: \ExpandRequired{}, \FixProblemElts{}, and
-\ExpandOnce{}.  The locations of where user defined data types, in terms of
-\emph{star depth} is critical to how \Expand{} works.
-
-\ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
-if a user defined data type $\UserDef$, at star depth $\Int$ is impossible to be
-reached through any number of expansions on the opposite side, then that user
-defined data type \emph{must} be replaced by its definition at that depth.
-This is apparent
-in trying to find a lens between \VarCF{legacy\_title} and
-\VarCF{modern\_title}.  No matter how many expansions are taken on
-\VarCF{modern\_title}, it is impossible to expose \VarCF{legacy\_title} in
-\VarCF{modern\_title}.  This is because the set of possible reachable pairs of
-data types and star depths in \VarCF{modern\_title} is $\SetOf{(\ModernTitle,0),
-(\TextChar,0),(\TextChar,1)}$.  Because no number of expansions can reach
-$\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.  This is
-procedure continues calling itself until no more expansions can be forced.
-
-\ExpandRequired{} find a lot of necessary expansions, but it only does a bit of
-the work.  There are still times when it is easy to identify that an expansion of
-some form must be performed.  For any pair of types that have a rewriteless lens
-between them, for each $(\UserDef,\Int)$ pair, on one regular expression, that
-same pair must be present on the other regular expression.  \FixProblemElts{}
-identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
-expression.  After these problem elements have been identified, it then calls
-\Reveal{} to find the expansions which will reveal this element.  For example,
-after \LegacyTitle{} and \ModernTitle{} have been expanded into
-\CF{\textcolor{blue}{"<Field Id=2>"}
-  \textcolor{darkbrown}{text\_char}* \textcolor{blue}{"</Field>"}} and
-\CF{(\textcolor{blue}{"Title="}
-  \textcolor{darkbrown}{text\_char} \textcolor{darkbrown}{text\_char}*
-  \textcolor{blue}{","}) | \textcolor{blue}{""}}, respectively, we can see that the modern expansion
-has an instance of \TextChar{} at depth 0, where the legacy one does not.  This
-means that we will try to reveal $(\TextChar,0)$ in the legacy expansion.
-Revealing this will give back 2 DNF regular expressions, one from an application of
-\AtomUnrollstarLeftRule{}, and one from an application of
-\AtomUnrollstarRightRule{}.
-
-While \FixProblemElts{} is able to get a huge number of expansions, there are
-certain edge cases which it doesn't handle.  This typically appears in very
-large data formats when irregular transformations are applied.  A minimal
-example can be seen in trying to synthesize the identity transformation between
-\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
-  \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
-\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)}.
-Another expansion must be applied, but the pairs of user defined data types at
-certain depth is the same.  When this situation arises, we perform all possible
-single expansions for a random search.  Typically, this situation doesn't arise
-and we have sufficient information to use our more informed search strategies.
-
 \paragraph*{\RigidSynth} 
-This function implements the portion of our synthesis algorithm that generates
-the lens from the types and examples.
+This function implements the core of our synthesis algorithm.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
 and nested atoms, taking into account the information contained in the
@@ -2330,47 +2280,23 @@ corresponding lens.
   \end{algorithmic}
 \end{algorithm}
 
+To incorporate the example information, \RigidSynth{} annotates each
+node in the data structure representing the source DNF regular
+expression with the corresponding portion of each example, and
+similarly for the target.  For example, we would annotate
+different occurrences of \CF{Name} in the source 
+regular expression with ``\CF{Stephen}'' or ``\CF{Kleene},'' as
+determined by how the regular expression would parse the example. 
+
 Searching for aligning permutations requires care, as naively
 considering all permutations between two DNF regular
 expressions $\DNFOf{\Sequence_1;\ldots;\Sequence_n}$ and
 $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}$ would require time
 proportional to $n!$.  A better approach is to identify elements of
 the source and target DNF regular expressions that match and to
-leverage that information to create candidate permutations.
-
-This identification is done through finding intelligent orderings.  For
-example, between two sequences, $\Sequence$ and $\SequenceAlt$, there is a lens
-$\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$ if,
-and only if, $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt
-\SequenceLeq \Sequence$.  Utilizing these orderings, aligning the components
-becomes merely sorting and zipping them.  Furthermore, through composing the
-permutations required to sort the sequences, we can discover the permutation
-used in the lens.
-
-Furthermore, through incorporating how examples are parsed in the orderings, we
-can guarantee not only that there will be a lens between the two, but also that
-the lens will satisfy the examples!
-
-As an example, consider trying to find a lens between
-\begin{lstlisting}
- @"<Field Id=2></Field>"@
- | @"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@
-\end{lstlisting}
-and
-\begin{lstlisting}
-  @"Title="@ !text_char!* @","@
-  | 
-\end{lstlisting}
-
-
-\CF{\textcolor{blue}{"<Field Id=2>"}
-  \textcolor{darkbrown}{text\_char text\_char}* \textcolor{blue}{"</Field>"} |
-  \textcolor{blue}{"<Field Id=2></Field>"}}
-and
-\CF{\textcolor{blue}{""} | (\textcolor{blue}{"Title="}}
-\CF{\textcolor{darkbrown}{text\_char} \textcolor{darkbrown}{text\_char}*
-  \textcolor{blue}{","})}\\
-asdf
+leverage that information to create candidate permutations.  To find
+such matching elements, the function considers both the structure of
+the nested components and the example annotations.  
 
 To see how we use the example annotations, consider synthesizing a
 lens between two formats that both contain two instances of the \CF{Name}
@@ -2579,9 +2505,6 @@ when we substitute such definitions away.
 %has not improved performance because the relatively large number of
 %inferred types enlarges the search space too much.
 
-\paragraph*{Implementation}
-We have implemented the lens synthesis algorithm in 5515 lines
-of OCaml code. 
 
 % end implementation
 
