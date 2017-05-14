@@ -191,7 +191,7 @@ functions that are intended to be inverses---is tedious and error prone.
 %
 A better approach is to use a domain-specific language in
 which both directions can be written as a single expression, but this
-requires learning a new notation.
+requires learning a new language and paradigm.
 
 We present an algorithm for {\em type-directed synthesis} of bijective
 string transformers in Boomerang, a bidirectional language based on the
@@ -209,12 +209,12 @@ search to a different space where both regular expressions and lenses are
 constrained to a ``disjunctive normal form,'' and by treating user-defined
 names for regular expressions semi-opaquely.
 
-We evaluate our algorithm on a benchmark suite of 25 examples including
+We evaluate our algorithm on a benchmark suite of 26 examples including
 microbenchmarks and realistic examples adapted from FlashFill, a tool
 for synthesizing string transformations in spreadsheets, and Augeas, a tool
 for bidirectional processing of Linux system configuration files based on
 Boomerang.  Our implementation infers lenses for all benchmark programs in
-an average of 283 milliseconds.
+under 5 seconds.
 \end{abstract}
 
 % \category{D.3.1}
@@ -328,11 +328,11 @@ As inputs, it takes specifications of the source and target formats, plus
 transformation.  Format specifications are supplied as regular expressions.
 Because regular expressions are so widely understood, we anticipate such
 inputs will be substantially easier for everyday programmers to work with
-than the syntax of lenses.  These format descriptions make it possible to
-communicate a great deal of information to the synthesis system.  Hence, this
+than the syntax of lenses.  Including these format descriptions communicates a
+great deal of information to the synthesis system.  Hence, this
 design choice appears to make synthesis very robust, helps the system scale
 to handle large and complex data sources (including those with nested
-iteration that other synthesis algorithms preclude), and to constrain the
+iteration that other synthesis algorithms preclude), and constrains the
 search space sufficiently that the user typically needs to give very few, if
 any, examples.
 
@@ -358,10 +358,10 @@ any, examples.
 % matches the examples.
 
 Despite the benefits of such informative types, certain features of
-existing bidirection languages make them ill
-suited to synthesis in their raw form.  These languages have many equivalences
-on their types -- Boomerang's types are regular expression pairs, and there are
-infinite equivalent regular expressions.  To synthesize terms from these, we
+Boomerang make it ill
+suited to synthesis in their raw form.  Boomerang's types are regular expression
+pairs, and there are infinite equivalent regular expressions.
+To synthesize all Boomerang terms, we
 must be able to traverse these equivalences.  Furthermore, composition is not
 admissible in Boomerang, making it necessary to search through possible
 central types.
@@ -371,13 +371,12 @@ Form) Lenses'' and ``DNF
 Regular Expressions''.  These
 lenses and regular expressions loosely correspond to fully distributed lenses
 and regular expressions.
-Similarly to how lenses have pairs of regular expressions as types, DNF lenses
+Just as string lenses have pairs of regular expressions as types, DNF lenses
 have pairs of DNF regular expressions as types.
-Furthermore, the typing derivation of a DNF lens fixes where and how
-equivalences on DNF regular expressions can be processed with
-a two-phase typing derivation.  In the first
-phase of the typing derivation, equivalences on the languages are handled, and
-in the second phase of the typing derivation, the terms are aligned with
+Furthermore, DNF lenses have a \emph{two-phased} typing derivation which fixes
+where and how equivalences on DNF regular expressions can be processed.
+The first phase of the typing derivation handles equivalences on the types, and
+the second phase of the typing derivation aligns the terms with
 the types.
 We have then proven this language equivalent to our bijective fragment of
 Boomerang.
@@ -392,7 +391,7 @@ Boomerang.
     \node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
          [right = .25cm of sketch-gen] {\RigidSynth{}};
     \node (below-compl) [below=.5cm of sketch-compl] {};
-    \node[align=center] (lens) [right = .75cm of sketch-compl] {Lens};
+    \node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
     % Draw an edge between rel1 and node1; rel1 and node2
     \path[->] (spec) edge node (start-alg) {} (sketch-gen);
     \path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
@@ -410,9 +409,8 @@ Boomerang.
 The typing rules of DNF lenses lend themselves to a two-phased synthesis
 algorithm.  A schematic diagram of this two phased algorithm is given in
 Figure~\ref{fig:schematic-diagram}.
-Our algorithm takes as input specifications given as a pair of regular
-expressions describing the data formats, as well as a list of input/output
-examples.
+\SynthLens{} takes a pair of regular expressions describing the data formats
+as well as a list of input/output examples as input specifications.
 By searching through the first phase of the typing derivation, \TypeProp{}
 proposes a pair of DNF regular expressions.
 These DNF regular expressions are then given as input to \RigidSynth{}, which
@@ -421,18 +419,17 @@ If \RigidSynth{} successfully generates a DNF lens (\Success{}), this DNF lens i
 then converted into Boomerang lens, and returned to the user.  If \RigidSynth{} fails to
 generate a DNF lens (\Failure{}), then this failure is provided to \TypeProp{},
 which then proposes another DNF regular expression pair.  This loop continues
-until \RigidSynth{} successf completes.
+until \RigidSynth{} successfully completes.
 Two-phased synthesis algorithms are present in many other
-systems~\cite{?,?,?}, but we are the first that ties this two-phased synthesis
+systems~\cite{?,?,?}, but \SynthLens{} is the first that ties this two-phased synthesis
 algorithm to a two-phased typing derivation.
 
 \paragraph*{Contributions.}  Our synthesis algorithm is intended to make
 bidirectional programming more accessible.  We begin by motivating our problem
 with an extended, real-world example (\S\ref{motivation}).
 After we briefly recapitulate some background on regular expressions and core
-lens combinators (\S\ref{background}) and illustrate
-the essential features of our algorithm with our extended example
-(\S\ref{example}), we offer the following technical contributions:
+lens combinators (\S\ref{background}),
+we offer the following technical contributions:
 
 \begin{itemize}
 \item We introduce pseudo-canonical DNF regular expressions (\S
@@ -540,12 +537,12 @@ tabsize=1,
 Visual Studio Team Services is a web service for
 team management -- providing a unified location for source control (e.g. a Git
 server), task management (i.e. providing a means to keep track of
-tasks and bugs), and more.
+projects and bugs), and more.
 In 2014, to increase third party developer interaction, Visual Studio Online
 released new web service endpoints~\cite{bharry}.  However, despite introducing
 new, modernized APIs, the old, legacy APIs must be maintained for continued
 support of legacy
-clients~\cite{team-explorer}.  Instead of keeping server code for each client,
+clients~\cite{team-explorer}.  Instead of maintaining server code for each client,
 our proposed architecture provides a lens that converts between resources of
 the old form into resources of the new form, as shown in
 Figure~\ref{fig:vsts-arch}.  Because of the large number of existing service
@@ -554,16 +551,17 @@ to synthesize them.
 
 Consider a ``Task'', a resource that represents a piece of work given to a
 team.  Idealized versions of the representations of tasks from the new and
-old apis are given in Figure~\ref{fig:idealized-representations}.  If an old client GETs a work
-item, it first retrieves that task using the modern API, and then uses the
-lens to convert this task into the legacy format.  Similarly, if an old
-client PUTs a task, it converts that task into the new format, and
-then inputs that task through the modern APIs.  The two representations
-contain the same information, but they are presented differently.
+old apis are given in Figure~\ref{fig:idealized-representations}.  If an old
+client performs a GET request on a task, it first retrieves that task using the
+modern API, and then uses the
+lens's \PutLeft{} function to convert this task into the legacy format.  Similarly,
+if an old client performs a PUT request a task, it first uses the lens's
+\PutRight{} function to convert that task into the
+new format, and then inputs that task through the modern APIs.  The two
+representations contain the same information, but they are presented differently.
 
 For simplicity, let's consider only finding the mapping between the ``Title''
 field of the task.
-
 The Legacy client allows for inputs of the form
 \begin{lstlisting}
    !legacy_title! =
@@ -574,13 +572,12 @@ while the modern client allows for inputs of the form
    !modern_title! =
       (@"Title="@ !text_char!+ @","@) | @""@
 \end{lstlisting}
-
 We would like to be able to synthesize a lens that maps between the legacy
 representation and the modern representation.
 Because the modern api omits the title field if it's blank, we must do different
-actions depending on the number of text characters present.  This performing of
-different actions is achieved through the use of an \OrLensType{} lens.  The typing
-derivation for an \OrLensType{} lens is:
+actions depending on the number of text characters present.  We can perform
+different actions depending on the structure of the input through the use of an
+\OrLens{} lens.  The typing derivation for an \OrLens{} lens is:
 \[
   \inferrule
   {
@@ -595,18 +592,18 @@ derivation for an \OrLensType{} lens is:
   }
 \]
 
-An \OrLensType{} lens applies one of two lenses, depending on which of the
-regular expressions the input string is in.
+An \OrLens{} lens applies one of two lenses, depending on which of the
+regular expressions matches the input string.
 The hypothesis that $\UnambigOrOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$
 and $\Regex_2$ are \emph{disjoint}.  These constraints guarantee that the
 \emph{get} and \emph{put} operations of $\OrLensOf{\Lens_1}{\Lens_2}$ form a
 bijective pair if $\Lens_1$ and $\Lens_2$ are themselves bijective.
 
-However, our types do not fit within this framework.  While
+However, we cannot immediately make an \OrLens{} lens using our types.  While
 \CF{\color{darkbrown} modern\_title} is a regular expression with an
-\OrRegexType{} as its outermost operation, \CF{\color{darkbrown} legacy\_title}
-is a regular expression with an outermost \ConcatRegexType{}, so an
-\OrLensType{} lens would not be well typed.  To handle this problem, Boomerang
+outermost or operation, \CF{\color{darkbrown} legacy\_title}
+is a regular expression with an outermost concatenation, so an
+\OrLens{} lens would not be well typed.  To handle this problem, Boomerang
 allows for replacing regular expressions with regular expressions which are
 equivalent to them.  This is done by a type-conversion rule:
 \[
@@ -628,7 +625,7 @@ With this rule, we can convert \CF{\color{darkbrown} legacy\_title} into
       | (@"<Field Id=2>"@ !text_char!+ @"</Field>"@)
 \end{lstlisting}
 
-Now, the \OrLensType{} rule applies, and the two cases of an empty and a
+Now, we can make a well typed \OrLens{} lens, and the two cases of an empty and a
 nonempty number of text characters can be handled separately.  However, the need
 to find this equivalent type highlights a signficant challenge in synthesizing
 boomerang lenses.
@@ -663,11 +660,11 @@ $\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
 \]
 requires that the target type of $l_1$ be the source
 type of $l_2$.  To synthesize a composition lens between
-$\Regex_1$ and $\Regex_2$, we must find an intermediate type $\Regex_3$
-and lenses with types $\Regex_1 \Leftrightarrow \Regex_3$ and
-$\Regex_3 \Leftrightarrow \Regex_2$.  Searching for the correct
-regular expression $\Regex_3$ is again problematic because
-the search space is infinite.  
+$\Regex_1$ and $\Regex_3$, we must find an intermediate type $\Regex_2$
+and lenses with types $\Regex_1 \Leftrightarrow \Regex_2$ and
+$\Regex_2 \Leftrightarrow \Regex_3$.  Searching for the correct
+regular expression $\Regex_2$ is again problematic because
+the search space is infinite.   
 
 
 %Furthermore, Boomerang has a composition operator to compose multiple
@@ -718,8 +715,8 @@ $C$ while the rest of the $B$s need to be transformed into $D$.)
 
 Consequently, we structure our synthesis algorithm in two phases.
 In the first phase, \SynthLens{} searches through equivalent DNF regular
-expressions.  By unfolding * operators in one or both types, using the axioms of
-a star semiring, we obtain equivalent (but larger) DNF regular expression types.
+expressions.  By using the axioms of a star semiring to unfold * operators in
+one or both types, we obtain equivalent (but larger) DNF regular expression types.
 In the second phase, \SynthLens{} perform a syntax-directed search based on the
 structure of the provided DNF regular expression.
 If the second phase fails, we return to the first phase, to find different
@@ -738,7 +735,7 @@ $A$ appears just once in both the source and the target types, the system
 hypothesizes that the identity lens can be used to convert between
 occurrences of $A$.  On the other hand, if the name $A$ appears in the
 source but not in the target, the system replaces the name $A$ with its
-definition.  In this way, differing  of occurrences of the same name
+definition.  In this way, where names occur
 can serve as a guide for applying equivalence axioms in the synthesis
 algorithm.  We guide the transformation of regular expression types during
 search by deducing when certain expansions must be taken, or when one of a class
@@ -931,7 +928,7 @@ why, we need to see how the equational theory is used to type lenses.
 
 % fig:lens-semantics
 
-All bijections between languages are lenses.  We define Bijective Lenses to be
+All bijections between languages are lenses.  We define \emph{Bijective Lenses} to be
 bijections created from the Boomerang lens combinators, mapping between
 languages of regular expressions.
 The syntax for these bijective lenses is given by:
@@ -1593,7 +1590,8 @@ DNF regular expressions via the following theorem.
 
 \paragraph*{DNF Regular Expression Rewrites}
 
-There are many fewer DNF regular expressions than regular expressions, but there
+There are many fewer equivalences on DNF regular expressions than there are on
+regular expressions, but there
 still remain pairs of DNF regular expressions that, while syntactically different,
 are semantically identical.  
 %% In order to search the space of equivalent DNF 
@@ -1918,18 +1916,17 @@ types that were discovered in the first step.
 \label{algorithm}
 
 \paragraph*{Synthesis Overview}
-Algorithm~\ref{alg:synthlens} gives an overview of the 
-algorithm, \SynthLens{}, which takes as input source $\Regex$ and
-target $\RegexAlt$ regular expressions and a list of examples
-$\Examples$.
-The algorithm converts
+An overview of the full synthesis algorithm, \SynthLens{}, is given in
+Algorithm~\ref{alg:synthlens}.  \SynthLens{} takes the source and target regular
+expressions $\Regex$ and $\RegexAlt$, and a list of examples $\Examples$, as
+input. The algorithm first converts
 $\Regex$ and $\RegexAlt$ into DNF regular expressions
 $\DNFRegex_0$ and $\DNFRegexAlt_0$
 using the $\ToDNFRegex$ operator.
 It then calls \SynthDNFLens{}
 on $\DNFRegex_0$, $\DNFRegexAlt_0$, and the examples
 to create a DNF lens $\DNFLens$.  
-Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
+Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 
 % finally tweaked for readability with \Beautify{}.
 
@@ -1968,26 +1965,25 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a regular lens.
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
 the search for a DNF lens.  Each element in the queue
 $\QueueElement$, is a tuple of source and target DNF regular
-expressions $\DNFRegex$ and $\DNFRegexAlt$ and a count of the number
+expressions $\DNFRegex$ and $\DNFRegexAlt$, and a count of the number
 of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
 name for its definition used) $\ExpCount$ required to obtain these regular
 expressions from the originals, $\DNFRegex_0$ and
-$\DNFRegexAlt_0$. This value is used for the priority of the queue element.
+$\DNFRegexAlt_0$. The priority of each queue element is $\ExpCount$; DNF regular
+expressions which have undergone fewer expansions will get popped earlier.
 The algorithm initializes the queue with
 $\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
 zero.  The algorithm then proceeds by iteratively examining the
-highest priority element from the queue, using the
+highest priority element from the queue (\TypeProp{} in
+Figure~\ref{fig:schematic-diagram}), using the
 function \RigidSynth{} to try to find a rewriteless DNF lens
 between the source and target DNF regular expressions that satisfy
-the examples \Examples.  If successful, the algorithm returns the
-DNF lens $\DNFLens$.  Otherwise, the function \ExpandOnce{} produces
-the set of all source/target DNF regular expression pairs that can
-be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by applying a single
-rewrite to either the source or target DNF regular expression or by
-replacing a user-defined name by its definition.  
-The algorithm associates an incremented expansion count with each
-resulting source/target pair and enqueues them to continue the search.
-Specifics of the orderings likely only in full version.
+the examples \Examples{}.  If successful, the algorithm returns the
+DNF lens $\DNFLens$.  Otherwise, the function \Expand{} produces
+a new set of candidate DNF regular expression pairs that can
+be obtained from $\DNFRegex$ and $\DNFRegexAlt$ by
+applying various expansions to the source and target DNF regular
+expressions.
 
 \paragraph*{\Expand}
 \begin{algorithm}
@@ -2055,7 +2051,8 @@ Specifics of the orderings likely only in full version.
 The inference of expansions is much of what allows our synthesis algorithm to be
 efficient.  \Expand{} has three parts: \ExpandRequired{}, \FixProblemElts{}, and
 \ExpandOnce{}.  The locations of where user defined data types, in terms of
-\emph{star depth} is critical to how \Expand{} works.
+\emph{star depth} (the number of nested \Star{}s the data type occurs beneath),
+occur, is critical for \Expand{}.
 
 \ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
 if a user defined data type $\UserDef$, at star depth $\Int$ is impossible to be
@@ -2064,16 +2061,17 @@ defined data type \emph{must} be replaced by its definition at that depth.
 This is apparent
 in trying to find a lens between \VarCF{legacy\_title} and
 \VarCF{modern\_title}.  No matter how many expansions are taken on
-\VarCF{modern\_title}, it is impossible to expose \VarCF{legacy\_title} in
-\VarCF{modern\_title}.  This is because the set of possible reachable pairs of
-data types and star depths in \VarCF{modern\_title} is $\SetOf{(\ModernTitle,0),
-(\TextChar,0),(\TextChar,1)}$.  Because no number of expansions can reach
-$\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.  This is
-procedure continues calling itself until no more expansions can be forced.
+\VarCF{modern\_title}, \VarCF{legacy\_title} will not be exposed at depth 0 (or
+any other depth).  This is because the set of possible reachable pairs of
+data types and star depths in \VarCF{modern\_title} is $\{(\ModernTitle,0),
+$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reach
+$\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.
+\ExpandRequired{} continues until no more expansions can be forced.
 
-\ExpandRequired{} find a lot of necessary expansions, but it only does a bit of
-the work.  There are still times when it is easy to identify that an expansion of
-some form must be performed.  For any pair of types that have a rewriteless lens
+\ExpandRequired{} finds all the expansions that MUST be performed, but doesn't
+perform any other expansions.  However, there are many situations where it is
+possible to infer that one of a set of expansions must be performed.
+For any pair of types that have a rewriteless lens
 between them, for each $(\UserDef,\Int)$ pair, on one regular expression, that
 same pair must be present on the other regular expression.  \FixProblemElts{}
 identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
@@ -2084,24 +2082,26 @@ after \LegacyTitle{} and \ModernTitle{} have been expanded into
   \textcolor{darkbrown}{text\_char}* \textcolor{blue}{"</Field>"}} and
 \CF{(\textcolor{blue}{"Title="}
   \textcolor{darkbrown}{text\_char} \textcolor{darkbrown}{text\_char}*
-  \textcolor{blue}{","}) | \textcolor{blue}{""}}, respectively, we can see that the modern expansion
+  \textcolor{blue}{","}) | \textcolor{blue}{""}}, we can see that the modern expansion
 has an instance of \TextChar{} at depth 0, where the legacy one does not.  This
-means that we will try to reveal $(\TextChar,0)$ in the legacy expansion.
-Revealing this will give back 2 DNF regular expressions, one from an application of
+means that \TextChar{} must be revealed at star depth 0 in the legacy expansion.
+Revealing this will give back 2 DNF regular expressions,
+one from an application of
 \AtomUnrollstarLeftRule{}, and one from an application of
 \AtomUnrollstarRightRule{}.
 
-While \FixProblemElts{} is able to get a huge number of expansions, there are
-certain edge cases which it doesn't handle.  This typically appears in very
-large data formats when irregular transformations are applied.  A minimal
-example can be seen in trying to synthesize the identity transformation between
-\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
+While \FixProblemElts{} and \ExpandRequired{} are able to infer a huge number
+of expansions, there are still situations where they can't infer all necessary
+expansions. This typically appears in data formats with large amounts
+of similar information.  For example, in trying to synthesize the identity
+transformation between \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
   \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
-\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)}.
-Another expansion must be applied, but the pairs of user defined data types at
-certain depth is the same.  When this situation arises, we perform all possible
-single expansions for a random search.  Typically, this situation doesn't arise
-and we have sufficient information to use our more informed search strategies.
+\CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)},
+\ExpandRequired{} and \FixProblemElts{} infer no expansions.
+While another expansion must be applied, but the set of pairs
+($\SetOf{(\VarCF{U},0),(\VarCF{U},1)}$) is the same.  When this situation
+arises, \ExpandOnce{} performs a random search by performing all single-step
+expansions.
 
 \paragraph*{\RigidSynth} 
 This function implements the portion of our synthesis algorithm that generates
@@ -2116,8 +2116,8 @@ corresponding lens.
   \caption{\RigidSynth}
   \label{alg:rigidsynth}
   \begin{algorithmic}[1]
-    \Function{\RigidSynthAtom}{$\StarOf{\DNFRegex},\StarOf{\DNFRegexAlt}$}
-    \Switch{$\RigidSynth(\DNFRegex,\DNFRegexAlt)$}
+    \Function{\RigidSynthAtom}{$\StarOf{\DNFRegex},\StarOf{\DNFRegexAlt},\Examples$}
+    \Switch{$\RigidSynth(\DNFRegex,\DNFRegexAlt,\Examples)$}
     \Case {\SomeOf{\DNFLens}}
     \State $\ReturnVal{\IterateLensOf{\DNFLens}}$
     \EndCase
@@ -2129,7 +2129,7 @@ corresponding lens.
 
     \Statex
 
-    \Function{\RigidSynthSequence}{$\Sequence,\SequenceAlt$}
+    \Function{\RigidSynthSequence}{$\Sequence,\SequenceAlt,\Examples$}
     \State $\SequenceOf{\String_0;\Atom_1;\ldots;\Atom_n;\String_n} \gets
     \Sequence$
     \State $\SequenceOf{\StringAlt_0;\AtomAlt_1;\ldots;\AtomAlt_m;\StringAlt_m} \gets
@@ -2137,13 +2137,13 @@ corresponding lens.
     \If {$n \neq m$}
     \State $\ReturnVal{\None}$
     \EndIf
-    \State $\sigma_1 \gets \SortingOf{\AtomLeq}{\ListOf{\Atom_1;\ldots;\Atom_n}}$
-    \State $\sigma_2 \gets \SortingOf{\AtomLeq}{\ListOf{\AtomAlt_1;\ldots;\AtomAlt_n}}$
+    \State $\sigma_1 \gets \SortingOf{\AtomLeq^\Examples}{\ListOf{\Atom_1;\ldots;\Atom_n}}$
+    \State $\sigma_2 \gets \SortingOf{\AtomLeq^\Examples}{\ListOf{\AtomAlt_1;\ldots;\AtomAlt_n}}$
     \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
     \State $\mathit{ABs} \gets
     \Call{Zip}{\ListOf{\Atom_1;\ldots;\Atom_n},\ListOf{\AtomAlt_{\sigma(1)};\ldots;\AtomAlt_{\sigma(n)}}}$
     \State $\mathit{alos} \gets
-    \Call{\Map}{\RigidSynthAtom,\mathit{ABs}}$
+    \Call{\Map}{\RigidSynthAtom(\Examples),\mathit{ABs}}$
     \Switch{$\Call{AllSome}{\mathit{alos}}$}
     \Case {\SomeOf{\ListOf{\AtomLens_1;\ldots;\AtomLens_n}}}
     \State $\ReturnVal{\SomeOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma)}}$
@@ -2156,7 +2156,7 @@ corresponding lens.
 
     \Statex
 
-    \Function{\RigidSynth}{$\DNFRegex,\DNFRegexAlt$}
+    \Function{\RigidSynth}{$\DNFRegex,\DNFRegexAlt,\Examples$}
     \State $\DNFOf{\Sequence_1;\ldots;\Sequence_n} \gets
     \DNFRegex$
     \State $\DNFOf{\SequenceAlt_1;\ldots;\SequenceAlt_m} \gets
@@ -2164,13 +2164,13 @@ corresponding lens.
     \If {$n \neq m$}
     \State $\ReturnVal{\None}$
     \EndIf
-    \State $\sigma_1 \gets \SortingOf{\SequenceLeq}{\ListOf{\Sequence_1;\ldots;\Sequence_n}}$
-    \State $\sigma_2 \gets \SortingOf{\SequenceLeq}{\ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}$
+    \State $\sigma_1 \gets \SortingOf{\SequenceLeq^\Examples}{\ListOf{\Sequence_1;\ldots;\Sequence_n}}$
+    \State $\sigma_2 \gets \SortingOf{\SequenceLeq^\Examples}{\ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_n}}$
     \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
     \State $\mathit{STQs} \gets
     \Call{Zip}{\ListOf{\Sequence_1;\ldots;\Sequence_n},\ListOf{\SequenceAlt_{\sigma(1)};\ldots;\SequenceAlt_{\sigma(n)}}}$
     \State $\mathit{sqlos} \gets
-    \Call{\Map}{\RigidSynthSequence,\mathit{STQs}}$
+    \Call{\Map}{\RigidSynthSequence(\Examples),\mathit{STQs}}$
     \Switch{$\Call{AllSome}{\mathit{sqlos}}$}
     \Case {\SomeOf{\ListOf{\SequenceLens_1;\ldots;\SequenceLens_n}}}
     \State $\ReturnVal{\SomeOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}}$
@@ -2191,18 +2191,23 @@ proportional to $n!$.  A better approach is to identify elements of
 the source and target DNF regular expressions that match and to
 leverage that information to create candidate permutations.
 
-This identification is done through finding intelligent orderings.  For
+\RigidSynth{} performs this identification via orderings on
+sequences (\SequenceLeq), and atoms (\AtomLeq).  For
 example, between two sequences, $\Sequence$ and $\SequenceAlt$, there is a lens
 $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$ if,
 and only if, $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt
-\SequenceLeq \Sequence$.  Utilizing these orderings, aligning the components
-becomes merely sorting and zipping them.  Furthermore, through composing the
+\SequenceLeq \Sequence$.  Through these orderings, aligning the components
+becomes merely sorting and zipping lists.  Furthermore, through composing the
 permutations required to sort the sequences, we can discover the permutation
 used in the lens.
 
-Furthermore, through incorporating how examples are parsed in the orderings, we
+Through incorporating how examples are parsed in the orderings, we
 can guarantee not only that there will be a lens between the two, but also that
-the lens will satisfy the examples!
+the lens will satisfy the examples!  This is done by refining our orderings with
+the elements, such that $\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
+$\SequenceAlt \SequenceLeq^{\Examples} \Sequence$ not only means that there is a
+sequence lens between $\Sequence$ and $\SequenceAlt$, but also that such a lens
+would satisfy the examples!
 
 As an example, consider trying to find a lens between
 \begin{lstlisting}
@@ -2214,23 +2219,36 @@ and
  @"Title="@ !text_char! !text_char!* @","@
  | @""@
 \end{lstlisting}
-As it passes to \RigidSynth{}, the two clauses of legacy get ordered in the same
-order they are right now, first \CF{\StringCF{"<Field Id=2></Field>"}}, then
+As it passes to \RigidSynth{}, the two sequences in the legacy format get ordered
+by maintaining the current order:  first \CF{\StringCF{"<Field Id=2></Field>"}}, then
 \CF{\StringCF{"<Field Id=2>"} \VarCF{text\_char} \VarCF{text\_char}*
-  \StringCF{"</Field>"}}.  However, the two clauses of the modern version get
-reordered, into \CF{\StringCF{""}} first, followed by \CF{\StringCF{"Title="}
-  \VarCF{text\_char} \VarCF{text\_char}* \StringCF{","}}.  This generates the
-overall permutation of swapping the clause ordering.  Then, the clause lens
-between \StringCF{"<Field Id=2></Field>"} and \StringCF{""} is attempted to be
-found (and would quickly be found as \CF{const(\StringCF{"<Field
-    Id=2></Field>"},\StringCF{""})}).  Next the clause lens between
+  \StringCF{"</Field>"}}.  However, the two sequences of the modern version get
+reordered, making \CF{\StringCF{""}} first, and \CF{\StringCF{"Title="}
+  \VarCF{text\_char} \VarCF{text\_char}* \StringCF{","}} second.
+the overall permutation of a swap.  This causes the two sequences which consist
+only of a string to get aligned, and the complex sequences to also get aligned.
+
+Then, \RigidSynthSequence{} gets called on the two aligned sequence pairs.
+There are no atoms in both
+\StringCF{"<Field Id=2></Field>"} and \StringCF{""} which trivially creates the
+sequence lens:\\
+\\(\SequenceLensOf{(\StringCF{"<Field
+    Id=2></Field>"},\StringCF{""})},\Identity)\\
+\\
+\afm{should I do a match for the rigidsynthatom for variables vs iterations}
+Next
 \CF{\StringCF{"<Field Id=2>"} \VarCF{text\_char} \VarCF{text\_char}*
   \StringCF{"</Field>"}} and \CF{\StringCF{"Title="}
-  \VarCF{text\_char}} $ $ \CF{\VarCF{text\_char}* \StringCF{","}} would be attempted to
-be found.  In this, the atoms would not be reordered, and their lenses would
-quickly be found.  Then, the generated atom lenses could be combined into a
-clause lens.  Finally these two generated clause lenses would be combined into a
-final DNF lens.
+  \VarCF{text\_char}} $ $ \CF{\VarCF{text\_char}* \StringCF{","}} would be sent
+to \RigidSynthSequence{}.
+In this, the atoms would not be reordered, aligning \VarCF{text\_char} with
+\VarCF{text\_char}, and $\StarOf{\VarCF{text\_char}}$ with
+$\StarOf{\VarCF{text\_char}}$.  Immediately, \RigidSynthAtom{} finds the
+identity transformation on \VarCF{text\_char}, and will recurse to find
+\IterateLensOf{\IdentityLensOf{\TextChar}} for $\StarOf{\VarCF{text\_char}}$.
+  Then, these generated atom lenses are combined into a
+sequence lens.  Lastly, the two sequence lenses are used with the swapping
+permutation to create the final DNF lens.
 
 %\begin{figure}
 %  \label{fig:lens-synth-ordering-ex}
@@ -2369,7 +2387,8 @@ final DNF lens.
 
 \paragraph*{Implementation}
 We have implemented the lens synthesis algorithm in 5515 lines
-of OCaml code. 
+of OCaml code.  We have integrated our synthesis algorithm with Boomerang, so
+users can input synthesis tasks in place of lenses.
 
 % end implementation
 
