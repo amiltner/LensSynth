@@ -32,6 +32,10 @@ type driver_mode =
   | SpecSize
   | GenerateIOSpec
   | GenerateExtractionSpec
+  | ExpansionsPerformed
+  | SpecsVisited
+  | ExpansionsInferred
+  | ExpansionsForced
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -112,6 +116,22 @@ let args =
     , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateExtractionSpec)
                  ;(Arg.Set_int generate_io_count)])
     , " Synthesize (#) randomly generated extraction problems"
+    )
+  ; ( "-expansions_performed"
+    , Arg.Unit (fun _ -> set_opt ExpansionsPerformed)
+    , " Set to calculate the number of expansions performed"
+    )
+  ; ( "-specs_visited"
+    , Arg.Unit (fun _ -> set_opt SpecsVisited)
+    , " Set to calculate the number of specs visited"
+    )
+  ; ( "-expansions_inferred"
+    , Arg.Unit (fun _ -> set_opt ExpansionsInferred)
+    , " Set to calculate the number of expansions inferred"
+    )
+  ; ( "-expansions_forced"
+    , Arg.Unit (fun _ -> set_opt ExpansionsForced)
+    , " Set to calculate the number of expansions inferred"
     )
   ]
   |> Arg.align
@@ -194,6 +214,26 @@ let ignore (_:'a) : unit =
 let collect_time (p:program) : unit =
   let (time, _) = Util.time_action ~f:(fun _ -> synthesize_program p) in
   print_endline (Float.to_string time)
+
+let collect_expansions_performed (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let exps_perfed = Option.value_exn (expansions_performed_for_gen rc lc r1 r2 exs) in
+  print_endline (string_of_int exps_perfed)
+
+let collect_specs_visited (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let specs_visited = Option.value_exn (specs_visited_for_gen rc lc r1 r2 exs) in
+  print_endline (string_of_int specs_visited)
+
+let collect_expansions_forced (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let exps_forced = Option.value_exn (expansions_forced_for_gen rc lc r1 r2 exs) in
+  print_endline (string_of_int exps_forced)
+
+let collect_expansions_inferred (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let exps_inferred = Option.value_exn (expansions_inferred_for_gen rc lc r1 r2 exs) in
+  print_endline (string_of_int exps_inferred)
 
 let collect_example_number (p:program) : unit =
   let current_total = ref 0 in
@@ -452,6 +492,14 @@ let main () =
             parse_file f
             |> expand_regexps_if_necessary
             |> collect_extraction_spec
+          | ExpansionsPerformed ->
+            parse_file f |> expand_regexps_if_necessary |> collect_expansions_performed
+          | SpecsVisited ->
+            parse_file f |> expand_regexps_if_necessary |> collect_specs_visited
+          | ExpansionsInferred ->
+            parse_file f |> expand_regexps_if_necessary |> collect_expansions_inferred
+          | ExpansionsForced ->
+            parse_file f |> expand_regexps_if_necessary |> collect_expansions_forced
         end
     end
 

@@ -99,6 +99,23 @@ let string_of_quintuple
      ^ "," ^ (trd_to_string c)
      ^ "," ^ (rth_to_string d)
      ^ "," ^ (fth_to_string e))
+
+let string_of_sextuple
+    (fst_to_string:'a -> string)
+    (snd_to_string:'b -> string)
+    (trd_to_string:'c -> string)
+    (rth_to_string:'d -> string)
+    (fth_to_string:'e -> string)
+    (sth_to_string:'e -> string)
+    ((a,b,c,d,e,f):('a * 'b * 'c * 'd * 'e * 'f))
+  : string =
+  paren
+    ((fst_to_string a)
+     ^ "," ^ (snd_to_string b)
+     ^ "," ^ (trd_to_string c)
+     ^ "," ^ (rth_to_string d)
+     ^ "," ^ (fth_to_string e)
+     ^ "," ^ (sth_to_string f))
     
 let string_of_int_list : int list -> string =
   string_of_list string_of_int

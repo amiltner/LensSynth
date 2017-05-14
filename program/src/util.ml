@@ -573,6 +573,37 @@ let quint_compare
     | c -> c
   end
 
+let sext_compare
+    (fst_compare:'a -> 'a -> comparison)
+    (snd_compare:'b -> 'b -> comparison)
+    (trd_compare:'c -> 'c -> comparison)
+    (rth_compare:'d -> 'd -> comparison)
+    (fth_compare:'e -> 'e -> comparison)
+    (sth_compare:'f -> 'f -> comparison)
+    ((x1,x2,x3,x4,x5,x6):('a * 'b * 'c * 'd * 'e * 'f))
+    ((y1,y2,y3,y4,y5,y6):('a * 'b * 'c * 'd * 'e * 'f))
+  : comparison =
+  begin match fst_compare x1 y1 with
+    | EQ ->
+      begin match snd_compare x2 y2 with
+        | EQ ->
+          begin match trd_compare x3 y3 with
+            | EQ ->
+              begin match rth_compare x4 y4 with
+                | EQ ->
+                  begin match fth_compare x5 y5 with
+                    | EQ -> sth_compare x6 y6
+                    | c -> c
+                  end
+                | c -> c
+              end
+            | c -> c
+          end
+        | c -> c
+      end
+    | c -> c
+  end
+
 
 let partition_dictionary_order (f:'a -> 'a -> comparison)
   : 'a list list -> 'a list list -> comparison =
