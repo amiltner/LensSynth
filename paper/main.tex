@@ -2430,17 +2430,12 @@ users can input synthesis tasks in place of lenses.
 \end{figure}
 
 
-\begin{figure}
-  \includegraphics[width=\columnwidth]{SynthesisTimes}
-  \label{fig:optimization-impact}
-  \vspace*{-.6cm}
-  \caption{Impact of optimizations and comparison against other tools.}
-\end{figure}
-
-We evaluated our synthesis algorithm by applying it to 25
-benchmark programs derived from practice.  We investigated (TODO: Fill in).
+We evaluated our synthesis algorithm by applying it to 26
+benchmark programs derived from practice.  We investigate our benchmark suite,
+the impact of our optimizations, how many examples are required, and a
+comparison against other tools.
 The tests were run on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
-running Mac OS X Yosemite.
+running macOS Sierra.
 
 \paragraph*{Benchmark Suite Construction}
 We constructed our benchmarks by adapting examples from
@@ -2450,16 +2445,15 @@ examples to test various
 features of the algorithm.
 Specifically, we derived 17 of the benchmark tests by
 adapting all of the lenses from the Augeas distribution that started
-with the letter `A' as well as the lenses
+with the letters `A', `B', and `C' as well as the lenses
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
 by the `A' lenses.  We derived 3 benchmarks from examples in the
 FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
 We wrote 5 custom examples to test various features of the
-algorithm.
-In Figure~\ref{fig:evaluation-data}, examples derived from Augeas are
-prefixed with ``\CF{aug}'', those from FlashFill with
-``\CF{ff}'', and those 
-written by hand by ``\CF{cust}.''
+algorithm. Furthermore, the synthesis problems derived
+from Augeas with the letters `B' and `C' were tested after our synthesis
+algorithm was finalized, demonstrating that our optimizations are not build
+purely for the testing data.
 
 Augeas is a configuration editing system for linux that uses lens
 combinators similar to those in Boomerang. However, it transforms
@@ -2488,62 +2482,106 @@ particularly useful (\CF{date-probs}, \CF{bib-prob},
 and \CF{addr-probs}).   These examples convert between date
 formats, bibliography formats, and address formats, respectively.
 
+\begin{figure}
+  \includegraphics{SizeVsTime}
+  \caption{Relation between lens size and synthesis time}
+  \label{fig:size-vs-time}
+\end{figure}
 
-We consider the size of a benchmark program to be the total number of
-tokens in the source and target regular expressions.  
-For example, a \BaseRegexType{} regular expression counts as one
-while the concatenation of regular expressions $R_1$ and $R_2$ counts
-as one plus the sizes of $R_1$ and $R_2$.
-This size gives an approximate metric for how complex the data formats are.
+Our examples were fairly complex.  Figure~\ref{fig:size-vs-time} shows the sizes
+of our generated lenses, as well as the amount of time that it takes to generate
+those lenses.  We generate lenses of sizes between 5 AST nodes, for simple
+problems like changing how dates are represented, and 211 AST nodes, for complex
+tasks like transforming XML to a dictionary representation.  Furthermore, we
+scale as expected, with more complex tasks taking longer.
 
+%add back in if we have space
+%\paragraph*{Correctness}
+%To assess the correctness of the inferred lenses, we inspected each to
+%determine if the generated lens matched our understanding of the given
+%benchmark.  For all but \CF{cust/addr-probs}, the inferred lens was correct.
+%For \CF{cust/addr-probs}, the inferred lens had the correct type and performed
+%correctly on all supplied examples, but would have been incorrect on
+%other examples.  When we refined one of the given examples to
+%highlight the previously unseen case and re-ran the algorithm, it
+%produced the correct lens. As further validation, we confirmed that the
+%synthesized lenses performed correctly on the supplied examples and on
+%additional examples not made available to the synthesis algorithm,
+%having held back approximately half of our example data for validation.
 
-% KSF: This material seems to fit into a description of the algorithm,
-% not the evaluation section. Furthermore, in larger synthesis
-% problems, we build intermediary lenses between intermediary regular
-% expressions as a sanity check for bijectivity.  These intermediary
-% lenses are then used in the synthesis algorithm for mapping the
-% intermediary sub-expressions, to avoid repeating the same synthesis
-% algorithm. 
+\begin{figure}
+  \includegraphics{SynthesisTimes}
+  \caption{Impact of optimizations and comparison against other tools.}
+  \label{fig:synthesis-times}
+\end{figure}
 
-\paragraph*{Correctness}
-To assess the correctness of the inferred lenses, we inspected each to
-determine if the generated lens matched our understanding of the given
-benchmark.  For all but \CF{cust/addr-probs}, the inferred lens was correct.
-For \CF{cust/addr-probs}, the inferred lens had the correct type and performed
-correctly on all supplied examples, but would have been incorrect on
-other examples.  When we refined one of the given examples to
-highlight the previously unseen case and re-ran the algorithm, it
-produced the correct lens. As further validation, we confirmed that the
-synthesized lenses performed correctly on the supplied examples and on
-additional examples not made available to the synthesis algorithm,
-having held back approximately half of our example data for validation.
+\paragraph*{Impact of Optimizations}
 
+% If we take this problem to the logical extremes, we see that the the triple
+% capitalization problem takes 6.974 seconds, and the quadruple capitalization
+% problem takes 33 minutes and 54.730 seconds.
 
-\paragraph*{Speed of Synthesis}
+%If a bijection that satisfies the examples does not exist
+%between the source and target regular expressions, our tool rarely
+%terminates.  Instead, it performs increasingly complicated regular
+%expression transformations to try to find a bijective lens.  In
+%practice, if the system takes more than 10 seconds, we abort and
+%revise the regular expressions to have a bijective lens between them.
 %
-Figure~\ref{fig:evaluation-data} provides the runtime of our algorithm on our
-benchmark suite. The column \textbf{Time} shows the runtime of the
-synthesis algorithm in microseconds; smaller numbers are better.
-Across all examples, the average synthesis time is 283 milliseconds;
-the slowest example (\CF{aug/xml}) completes in just under four 
-seconds. 
-The results show that the synthesis time is not strongly correlated
-to the complexity of the source and target regular expressions.  Other
-factors, such as the degree to which the source and target regular
-expressions vary, have a large impact.
+Figure~\ref{fig:synthesis-times} shows the runtimes of various algorithms on our
+test suite.
+Our algorithm took a number of optimizations to become tractable.
 
-The example \CF{aug/xml} takes as long as it does primarily
-because of the number of expansions required to find the lens.
-Specifically, it requires twelve expansions
-in contrast to the other
-benchmarks, each of which requires fewer than five.  Combined with the
-complexity of the regular expressions that describe the source and
-target data formats, 311 total tokens, finding the correct expansions is quite
-difficult.\footnote{Since xml syntax is regular,
+Conversion to DNF form was a very important optimization we performed.  Trying
+naive type-directed synthesis on these languages doesn't work at all, none of
+the examples, even the very simple ones, are able to be synthesized within the 2
+minute timeframe.
+
+\begin{figure}
+  \includegraphics{InferencesDone}
+  \caption{Impact of optimizations and comparison against other tools.}
+  \label{fig:inferences-done}
+\end{figure}
+
+Conversion to DNF form helped significantly, but still left many problems
+intractible.  In particular, with no inference of expansions, only the lenses
+which required few expansions were tractible.  Because of the large fan-out
+caused the search space, only \afm{12} could be solved simply with DNF
+conversion, the rest required additional optimizations.
+
+Inferring expansions gives the fanout less of an impact.  Inferring the forced
+expansions alone makes almost all the synthesis tasks tractable.  This is
+because inferring forced expansions, in many cases, infers \emph{all} the
+expansions.  In \afm{15} of the \afm{26} examples, all expansions were forced.
+This allows most of the examples to be tractable, but rather slow.  This is able
+to be sped up by directing the search using more than just blind breadth-first
+search, when more information can be used to direct it.
+
+Our final optimization is the use of lenses in the context.  Through using
+lenses, present in the context, the synthesis algorithm is not solely
+responsible for all transformations that must occur, but instead can rely on
+existing lenses either written by the user, or previously synthesized.
+
+In our full synthesis algorithm, two examples take longer than the others to
+infer:  \CF{aug/xml} and \CF{cust/2-cap-prob}.
+
+The example \CF{aug/xml} was slowest because it was both a large data format,
+a large number of expansions were required, and not all expansions were
+inferred.  While a fairly large number of expansions were forced (15),
+there were 3 expansions that were inferred, but not forced, and 1 expansion that
+had to be found through random search.  This is not always a problem, however,
+as there were other formats that required even more search, both random search
+and directed search.  What differentiated \CF{aug/xml} was that it also was a
+very large data format: it had the \afm{second} largest lens and the
+\afm{seventh} largest specification.  The amount of random search it required
+had a larger impact because, with an increased specification size, there is also
+an increase in the fanout, with additional iterations that can be unfolded, and
+additional user defined data types that can be replaced by their definitions.
+This large fanout, alongside the depth that needed to be searched through, made
+the search very difficult, requiring \afm{164} types to be proposed before the
+correct one was found.\footnote{Since xml syntax is regular,
   the source and target regular expressions describe only xml
   expressions up to depth 3.}
-Even using our metric, the algorithm must consider over 400 expansions
-to find the correct twelve expansions.
 
 We constructed the example \CF{cust/2-cap-prob} to
 highlight the exponential blow-up that arises in expanding
@@ -2564,29 +2602,24 @@ defining a user-defined datatype and an associated lens (perhaps via
 synthesis!) to manage the capitalization conversion, users can avoid
 the combinatorial explosion in the search space.
 
-% If we take this problem to the logical extremes, we see that the the triple
-% capitalization problem takes 6.974 seconds, and the quadruple capitalization
-% problem takes 33 minutes and 54.730 seconds.
-
-If a bijection that satisfies the examples does not exist
-between the source and target regular expressions, our tool rarely
-terminates.  Instead, it performs increasingly complicated regular
-expression transformations to try to find a bijective lens.  In
-practice, if the system takes more than 10 seconds, we abort and
-revise the regular expressions to have a bijective lens between them.
-
 \paragraph*{Importance of Examples}
+
+\begin{figure}
+  \includegraphics{ExsReqd}
+  \caption{Impact of optimizations and comparison against other tools.}
+  \label{fig:exs-reqd}
+\end{figure}
+
 To evaluate how many user-supplied examples the algorithm requires in
 practice, we \textit{randomly} generated appropriate source/target
 pairs, mimicking what a naive user might do.  We did not write the
 examples by hand out of concern that our knowledge of the synthesis
-algorithm might bias the selection.  In
-Figure~\ref{fig:evaluation-data}, the column \textbf{Avg \# Exmpl} shows
+algorithm might bias the selection. Figure~\ref{fig:exs-reqd}, shows
 the number of randomly generated examples it takes to synthesize the
-correct lens averaged over ten runs.  Across all examples, the average
-number of required examples is 0.98. The mode is zero, and the
-maximum is 21.5.  A clever user may be able to reduce the
-number of required examples by selecting examples carefully.
+correct lens averaged over ten runs.  The synthesis algorithm almost never needs
+any examples: only 3 benchmarks need a nonzero number synthesize the correct
+lens. A clever user may be able to reduce the
+number of required examples even further by selecting examples carefully.
 
 These numbers are low because there are relatively few well-typed
 bijective lenses between any two source and target regular expressions. 
@@ -2596,23 +2629,23 @@ For example, the benchmark \CF{aug/addr-probs} requires examples because it
 must differentiate between and first and last names in both the
 source and target and map between them appropriately.
 
-As the \CF{cust/bib-prob} example illustrates, the average number of examples to
+\begin{figure}
+  \includegraphics{AllPaths}
+  \caption{Impact of optimizations and comparison against other tools.}
+  \label{fig:all-paths}
+\end{figure}
+
+The average number of examples to
 infer the correct lens does not tell the whole story.  The system will
 stop as soon as it finds a correctly typed lens that correctly maps
 all the supplied examples.  This inferred lens may or may not
 correctly handle unseen examples that correspond to
 unexercised portions of the source and target regular expressions.
-Column \textbf{Max \# Exmpl} in Figure~\ref{fig:evaluation-data} lists
+Figure~\ref{fig:all-paths} lists
 the number of examples that are required to exercise all choice
 points.  Intuitively, this number represents the maximum number of
 examples that a user must supply to guide the synthesis engine if it
 always guesses the wrong mapping when multiple mappings are possible.
-Note these examples must be carefully selected to exercise all
-choices; a very large number of examples that all follow the same
-pattern are no more helpful than a single such example.  We see an
-example of this phenomenon in the example \CF{ff/extract-fname}, where the
-average number of examples is greater than the Max number of examples
-because the system randomly generated redundant examples.
 
 The average number of examples is so much lower than the maximum
 number of required examples because of correspondances in how we wrote
@@ -2625,6 +2658,32 @@ to facilitate synthesis, but rather because maintaining similar
 subparts in similar orderings makes the types much easier to 
 read. We expect that most users would do the same.
 
+\paragraph*{Comparison Against Other Tools}
+%
+Figure~\ref{fig:synthesis-times} includes a comparison against two other tools
+for text transformation and extraction -- Flash Fill and FlashExtract.  For this
+evaluation, we used the version of these tools distributed through the
+PROSE project~\cite{prose}.
+
+To generate specifications for FlashFill, we generated input/output
+specifications through generating random elements of the source language, and
+running the lens on those elements to generate elements of the target language.
+These were then fed to FlashFill.
+
+To generate specifications for FlashExtract, we extracted portions of strings
+which were mapped, in the generated lens, either through an identity
+transformation, or through a lens in the context, whereas strings which were
+mapped through use of \ConstLens{}, were considered boilerplate, and so not
+extracted.
+
+As these tools were designed for a broader audience, they put less of a burden
+on the user.  These tools only require the use of IO examples (for Flash
+Fill), or marked text regions (for FlashExtract), as opposed to requiring the
+input of pairs of regular expressions.  However, by requiring this additional
+work by the user, \SynthLens{} is able to synthesize significantly more programs
+than either tool.  Unlike these two tools, which must spend a great deal of
+effort figuring out the appearance of the data, SynthLens{} avoids
+this problem by having the user input the data formats.
 
 %% \paragraph*{Impact of Incompleteness}
 
@@ -2693,20 +2752,13 @@ write regular expression specifications
 and it requires some work.
 On the other hand, such specifications provide a great deal of information
 to the synthesis system, which decreases the number of examples needed
-(sometimes to zero), makes the system scale well, and
-allows it to handle large, complex formats.  
-For instance, FlashFill~\cite{gulwani-popl-2014}, 
-one of the most prominent
-recent string transformation systems, does not handle formats
-with nested iteration, whereas our system is able to handle
-such formats with relative ease.  Another well-known system,
-FlashExtract~\cite{le-pldi-2014} does not support general unions.
-We tried applying FlashExtract to the problem
-of extracting author names from BibTeX examples where various fields
-appeared in different orders in different examples.  Even when we
-gave FlashExtract 30 examples, it was unable to correctly
-extract the desired fields.  By contrast, our system succeeds with no examples
-because all the necessary information is encoded in the format specifications.
+(usually to zero), makes the system scale well, and
+allows it to handle large, complex formats, as shown in \S \ref{evaluation}.
+Furthermore, because our language is one of \emph{bidirectional}
+transformations, we are not merely transforming or extracting data, but writing
+two-way convertersions between the formats.  Of course, because we are writing
+bidirectional languages, we are less expressive in some of the functions
+we can express, as we require the synthesized functions to be bijective.
 
 There are many other recent results showing how to synthesize functions from
 type-based specifications~\cite{augustsson-2004,gvero-pldi-2013,tds-pldi,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,armando+:pldi16}.  While we were inspired by this work,
