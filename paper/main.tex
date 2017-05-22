@@ -327,7 +327,7 @@ As inputs, it takes specifications of the source and target formats, plus
 transformation.  Format specifications are supplied as regular expressions.
 Because regular expressions are so widely understood, we anticipate such
 inputs will be substantially easier for everyday programmers to work with
-than the syntax of lenses.  Including these format descriptions communicates a
+than the unfamiliar syntax of lenses.  Including these format descriptions communicates a
 great deal of information to the synthesis system.  Hence, this
 design choice appears to make synthesis very robust, helps the system scale
 to handle large and complex data sources (including those with nested
@@ -541,7 +541,7 @@ In 2014, to increase third party developer interaction, Visual Studio Online
 released new web service endpoints~\cite{bharry}.  However, despite introducing
 new, modernized APIs, the old, legacy APIs must be maintained for continued
 support of legacy
-clients~\cite{team-explorer}.  Instead of maintaining server code for each client,
+clients~\cite{team-explorer}.  Instead of maintaining server code for each endpoint,
 our proposed architecture provides a lens that converts between resources of
 the old form into resources of the new form, as shown in
 Figure~\ref{fig:vsts-arch}.  Because of the large number of existing service
@@ -563,13 +563,11 @@ For simplicity, let's consider only finding the mapping between the ``Title''
 field of the task.
 The Legacy client allows for inputs of the form
 \begin{lstlisting}
-   !legacy_title! =
-      @"<Field Id=2>"@ !text_char!* @"</Field>"@
+   !legacy_title! = @"<Field Id=2>"@ !text_char!* @"</Field>"@
 \end{lstlisting}
 while the modern client allows for inputs of the form
 \begin{lstlisting}
-   !modern_title! =
-      (@"Title="@ !text_char!+ @","@) | @""@
+   !modern_title! = (@"Title="@ !text_char! !text_char!* @","@) | @""@
 \end{lstlisting}
 We would like to be able to synthesize a lens that maps between the legacy
 representation and the modern representation.
@@ -618,13 +616,12 @@ equivalent to them.  This is done by a type-conversion rule:
 \]
 
 With this rule, we can convert \CF{\color{darkbrown} legacy\_title} into
+%
 \begin{lstlisting}
-   !legacy_title'! =
-      @"<Field Id=2></Field>"@
-      | (@"<Field Id=2>"@ !text_char!+ @"</Field>"@)
+   !legacy_title'! = @"<Field Id=2></Field>"@ | (@"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@)
 \end{lstlisting}
-
-Now, we can make a well typed \OrLens{} lens, and the two cases of an empty and a
+%
+This allows us to now make a well typed \OrLens{} lens, and the two cases of an empty and a
 nonempty number of text characters can be handled separately.  However, the need
 to find this equivalent type highlights a signficant challenge in synthesizing
 boomerang lenses.
@@ -1167,26 +1164,35 @@ equivalences: any equivalences that don't satisfy the properties
 outlined below could produce a language that is no longer closed under
 composition, requiring a more complex search procedure. 
 
-To be compatible with our lens synthesis strategy, we require that our retyping
-equivalence relation is the equivalence closure of a set of rewrite rules that
-satisfies two properties.
+To be compatible with our lens synthesis strategy, we require that the
+equivalence relation used in subsumption
+is the equivalence closure of rewrite rules satisfying two properties.
 These properties involve the ability to be well typed with no use of the the
 retyping rule (which we will write as $\Lens \OfRewritelessType \Regex
 \Leftrightarrow \RegexAlt$).
 We call the first property \textit{confluence}.  It says:
 Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$,
 if $\Regex_1 \Rewrite
-\Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there should exist $\Regex_3$,
-$\RegexAlt_3$, and $\Lens_3$ such that $\Regex_2 \Rewrite \Regex_3$, $\RegexAlt_2
-\Rewrite \RegexAlt_3$, and $\Lens_3 \OfRewritelessType \Regex_3 \Leftrightarrow
-\RegexAlt_3$, where $\SemanticsOf{\Lens_3} = \SemanticsOf{\Lens_1}$.  
-We call the second property \textit{bisimilarity}.
-It says: Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$ and 
-$\Regex_1 \to \Regex_2$, there should exist $\RegexAlt_2$ and  $\DNFLens_2$ such
-that $\RegexAlt_1 \to \RegexAlt_2$,
-$\Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2$, and
-$\SemanticsOf{\Lens_2} = \SemanticsOf{\Lens_1}$,
-and similarly for $\RegexAlt_1 \to \RegexAlt_2$.
+\Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there exist regular
+expressions $\Regex_3$, and
+$\RegexAlt_3$ and a lens $\Lens_3$, such that:
+\begin{enumerate}
+\item $\Regex_2 \Rewrite \Regex_3$
+\item $\RegexAlt_2 \Rewrite \RegexAlt_3$
+\item $\Lens_3 \OfRewritelessType \Regex_3 \Leftrightarrow \RegexAlt_3$
+\item $\SemanticsOf{\Lens_3} = \SemanticsOf{\Lens_1}$
+\end{enumerate}
+We call the second property \textit{bisimilarity}.  Bisimilarity requires two
+symmetric conditions.
+Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$ and 
+$\Regex_1 \to \Regex_2$, there exist a regular expression $\RegexAlt_2$ and a
+lens $\Lens_2$ such that
+\begin{enumerate}
+\item $\RegexAlt_1 \Rewrite \RegexAlt_2$
+\item $\Lens_2 \OfRewritelessType \Regex_2 \Leftrightarrow \RegexAlt_2$
+\item $\SemanticsOf{\Lens_2} = \SemanticsOf{\Lens_1}$
+\end{enumerate}
+To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite \RegexAlt_2$.
 
 
 %  There are a large number of rules that can be
@@ -1241,9 +1247,9 @@ and similarly for $\RegexAlt_1 \to \RegexAlt_2$.
 % invariant that a lens maps between the languages of the regular expressions of
 % the type.
 
-Our solution for handling subsumption is to use
-the \textit{star semiring axioms},
-$\SSREquiv$.  These axioms are
+Our solution for handling subsumption is to use $\SSREquiv$, the equivalence relation
+generated by the axioms of a \textit{star semiring}~\cite{Droste2009}.
+These axioms are
 the semiring axioms, plus two ``unrolling'' rules that
 replace the Conway axioms of \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}, and
 \DicyclicityRule{}:
@@ -1255,7 +1261,7 @@ replace the Conway axioms of \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}
 \end{center}
 \noindent
 This equivalence relation is compatible with our lens synthesis strategy, as
-orienting these rules from left to right presents us with a rewrite relation
+orienting these unrolling rules from left to right presents us with a rewrite relation
 that is both confluent and bisimilar, and whose equivalence closure is
 $\SSREquiv$.
 The star semiring axioms are the 
@@ -1322,75 +1328,6 @@ formally.
     \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ %& \MultiOrDNFRegexType{} 
   \end{tabular}
 \end{center}
-\begin{figure*}
-  \begin{mathpar}
-    \inferrule[\AtomUnrollstarLeftRule{}]
-    {
-    }
-    {
-      \StarOf{\DNFRegex}\RewriteAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}})}
-    }
-
-    \inferrule[\AtomUnrollstarRightRule{}]
-    {
-    }
-    {
-      \StarOf{\DNFRegex}\RewriteAtom
-      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\AtomToDNFOf{\StarOf{\DNFRegex}}}{\DNFRegex})}
-    }
-
-    \inferrule[\AtomStructuralRewriteRule{}]
-    {
-      \DNFRegex \Rewrite \DNFRegex'
-    }
-    {
-      \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
-    }
-
-    \inferrule[\DNFStructuralRewriteRule{}]
-    {
-      \Atom_j \RewriteAtom \DNFRegex
-    }
-    {
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
-      \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
-      \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
-      \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
-      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
-      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
-      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
-    }
-    
-    % \inferrule[\ReflexivityRule{}]
-    % {
-    % }
-    % {
-    %   \DNFRegex \StarOf{\Rewrite} \DNFRegex
-    % }
-
-    % \inferrule[\BaseRule{}]
-    % {
-    %   \DNFRegex \Rewrite \DNFRegexAlt
-    % }
-    % {
-    %   \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
-    % }
-
-    % \inferrule[\TransitivityRule{}]
-    % {
-    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
-    %   \DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_3
-    % }
-    % {
-    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
-    % }
-
-  \end{mathpar}
-  \caption{DNF Regular Expression Rewrite Rules}
-  \label{fig:dnf-regex-rewrites}
-\end{figure*}
 
 
 Notice that it is straightforward to convert an arbitrary series
@@ -1492,9 +1429,13 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
 
 % fig:dnf-regex-functions
 \begin{figure}
+  \raggedright
   \ConcatSequence{} \OfType{} \ArrowTypeOf{\SequenceType{}}{\ArrowTypeOf{\SequenceType{}}{\SequenceType{}}}\\
   $\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=$\\
   \hspace*{2ex}$[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
+
+  \medskip
+  
   \ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
   $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
 \vspace*{-1.7ex}
@@ -1505,13 +1446,17 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
       \cdots  & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} & \DNFRight
     \end{array}
   \]
-  \\
+  
+  \medskip
+  
   \OrDNF{} \OfType{}
   \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}
   }\\
   $\OrDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}$=\\
   \hspace*{2ex}$\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$
-  \\
+  
+  \medskip
+  
   \AtomToDNF{} \OfType
   \ArrowTypeOf{\AtomType{}}{\DNFRegexType{}}\\
   $\AtomToDNFOf{\Atom} = \DNFOf{\SequenceOf{\EmptyString;\Atom;\EmptyString}}$
@@ -1588,6 +1533,76 @@ DNF regular expressions via the following theorem.
 
 \paragraph*{DNF Regular Expression Rewrites}
 
+\begin{figure*}
+  \begin{mathpar}
+    \inferrule[\AtomUnrollstarLeftRule{}]
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\RewriteAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\DNFRegex}{\AtomToDNFOf{\StarOf{\DNFRegex}}})}
+    }
+
+    \inferrule[\AtomUnrollstarRightRule{}]
+    {
+    }
+    {
+      \StarOf{\DNFRegex}\RewriteAtom
+      \OrDNFOf{\DNFOf{\SequenceOf{\EmptyString}}}{(\ConcatDNFOf{\AtomToDNFOf{\StarOf{\DNFRegex}}}{\DNFRegex})}
+    }
+
+    \inferrule[\AtomStructuralRewriteRule{}]
+    {
+      \DNFRegex \Rewrite \DNFRegex'
+    }
+    {
+      \StarOf{\DNFRegex} \RewriteAtom \DNFOf{\SequenceOf{\StarOf{\DNFRegex'}}}
+    }
+
+    \inferrule[\DNFStructuralRewriteRule{}]
+    {
+      \Atom_j \RewriteAtom \DNFRegex
+    }
+    {
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}
+      \ConcatDNF \AtomToDNFOf{\Atom_j} \ConcatDNF
+      \DNFOf{\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m}}
+      \OrDNF \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}\Rewrite\\
+      \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_{i-1}} \OrDNF
+      \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
+      \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
+    }
+    
+    % \inferrule[\ReflexivityRule{}]
+    % {
+    % }
+    % {
+    %   \DNFRegex \StarOf{\Rewrite} \DNFRegex
+    % }
+
+    % \inferrule[\BaseRule{}]
+    % {
+    %   \DNFRegex \Rewrite \DNFRegexAlt
+    % }
+    % {
+    %   \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
+    % }
+
+    % \inferrule[\TransitivityRule{}]
+    % {
+    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
+    %   \DNFRegex_2 \StarOf{\Rewrite} \DNFRegex_3
+    % }
+    % {
+    %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
+    % }
+
+  \end{mathpar}
+  \caption{DNF Regular Expression Rewrite Rules}
+  \label{fig:dnf-regex-rewrites}
+\end{figure*}
+
 There are many fewer equivalences on DNF regular expressions than there are on
 regular expressions, but there
 still remain pairs of DNF regular expressions that, while syntactically different,
@@ -1661,7 +1676,7 @@ describe how these lenses act on data.
 %We can now define a syntax for DNF lenses between DNF regular
 %expressions.  
 \begin{center}
-  \begin{tabular}{@{}l@{\ }c@{}l@{}}
+  \begin{tabular}{@{}r@{\ }c@{}l@{}}
     % REGEX
     \AtomLens{} & \GEq{} & $\IterateLensOf{\DNFLens}$ \\
     \SequenceLens{} & \GEq{} & $(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep\AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n\SequenceLensSep(\String_n,\StringAlt_n)},\sigma)$ \\
@@ -1703,25 +1718,25 @@ the semantics of ordinary iteration lenses.
 The semantics of DNF Lenses, sequence lenses and atom lenses 
 is defined formally below.
 
-\begin{trivlist}
-\item 
-  $\SemanticsOf{\IterateLensOf{\DNFLens}}$=\\
-  \hspace*{3em}$\SetOf{(\String_1\Concat\ldots\Concat\String_n,
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{}l@{}}
+    % REGEX
+    $\SemanticsOf{\IterateLensOf{\DNFLens}}$ & \GEq{} & $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
     \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-    n\in\Nats\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$\\
-  $\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
+    n\in\Nats\BooleanAnd(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}}$ \\
+    $\SemanticsOf{(\SequenceLensOf{(\String_0,\StringAlt_0)\SequenceLensSep
       \AtomLens_1\SequenceLensSep\ldots\SequenceLensSep\AtomLens_n
-      \SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}=$\\
-  \hspace*{3em}$\SetOf{
+      \SequenceLensSep(\String_n,\StringAlt_n)},\Permutation)}$ & \GEq{} & $\SetOf{
     (\String_0\String_1'\ldots\String_n'\String_n,
     \StringAlt_0\StringAlt_{\Permutation(1)}'\ldots
     \StringAlt_{\Permutation(n)}'\StringAlt_n)\SuchThat
-    (\String_i',\StringAlt_i')\in\SemanticsOf{\AtomLens_i}}$\\
-  $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
-      \SequenceLens_n},\Permutation)}=$\\
-  \hspace*{3em}$\SetOf{(\String,\StringAlt)\SuchThat
-    (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$
-\end{trivlist}
+    (\String_i',\StringAlt_i')\in\SemanticsOf{\AtomLens_i}}$ \\
+    $\SemanticsOf{(\DNFLensOf{\SequenceLens_1\DNFLensSep\ldots\DNFLensSep
+      \SequenceLens_n},\Permutation)}$ & \GEq{} & $\SetOf{(\String,\StringAlt)\SuchThat
+    (\String,\StringAlt)\in\SequenceLens_i\text{ for some $i$}}$ \\
+  \end{tabular}
+\end{center}
+
 %% A DNF lens is a list of sequence lenses.
 %% We use the balanced delimiters of
 %% $\DNFLensLeft$ and $\DNFLensRight$ to show that a list of sequence lenses
@@ -1892,7 +1907,7 @@ Second, the use of equivalence (rewriting) is highly constrained:  Rewriting
 may only be used once at the top-most level as opposed to interleaved
 between uses of the other rules.  Consequently, a type-directed synthesis
 algorithm may be factored into two discreet steps: one step that
-searches (heuristically) for an effective pair of regular expressions
+searches for an effective pair of regular expressions
 and a second step that is directed by the syntax of the regular expression
 types that were discovered in the first step.
 %% All rules except for \RewriteDNFRegexLensRule{} have a simple inductive
@@ -2382,6 +2397,29 @@ permutation to create the final DNF lens.
 %giving names to recurring regular expressions.  To date, this process
 %has not improved performance because the relatively large number of
 %inferred types enlarges the search space too much.
+
+\paragraph*{Correctness}
+We have proven two theorems demonstrating the correctness of our algorithm.
+
+\begin{restatable}[Algorithm Soundness]{theorem}{algs}
+  \label{thm:alg-soundness}
+  For all lenses $\Lens$, regular expressions $\Regex$ and $\RegexAlt$, and
+  examples $\Examples$, 
+  if $\Lens = \SynthLens(\Regex,\RegexAlt,\Examples)$, then
+  $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
+  $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
+  \SemanticsOf{\Lens}$.
+\end{restatable}
+
+\begin{restatable}[Algorithm Completeness]{theorem}{algc}
+  \label{thm:alg-completeness}
+  Given a lens $\Lens$, regular expressions $\Regex$ and $\RegexAlt$, and a set
+  of examples $\Examples$, if
+  $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
+  $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
+  \SemanticsOf{\Lens}$, then $\SynthLens(\Regex,\RegexAlt,\Examples)$ will
+  return a lens.
+\end{restatable}
 
 \paragraph*{Implementation}
 We have implemented the lens synthesis algorithm in 5515 lines
