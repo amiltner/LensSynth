@@ -10,54 +10,34 @@ open Transform
 open Normalized_lang
 open Consts
 open Naive_gen
-open String_utilities
-
-type new_queue_element = regex * regex * int * int * int * int
-
-let new_queue_element_comparison =
-  sext_compare
-    regex_compare
-    regex_compare
-    (fun _ _ -> EQ)
-    (fun _ _ -> EQ)
-    (fun _ _ -> EQ)
-    (fun _ _ -> EQ)
-
-let new_queue_element_to_string =
-  string_of_sextuple
-    regex_to_string
-    regex_to_string
-    string_of_int
-    string_of_int
-    string_of_int
-    string_of_int
+open Synth_structs
+open Expand
 
 module UDEF_DISTANCE_PQUEUE = Priority_queue_two.Make(
   struct
-    type element = new_queue_element
-    let compare = new_queue_element_comparison
+    type element = queue_element
+    let compare = queue_element_comparison
 
     let priority
-        ((_,_,d,exps_performed,_,_) : new_queue_element)
+        (qe : queue_element)
       : int =
       retrieve_priority
-        d
-        exps_performed
+        qe.expansions_performed
 
-    let to_string = new_queue_element_to_string
+    let to_string = queue_element_to_string
   end)
 
 module EXPANDCOUNT_PQUEUE = Priority_queue_two.Make(
   struct
-    type element = new_queue_element
-    let compare = new_queue_element_comparison
+    type element = queue_element
+    let compare = queue_element_comparison
 
     let priority
-        ((_,_,_,exps_performed,_,_) : new_queue_element)
+        (qe : queue_element)
       : int =
-      exps_performed
+      qe.expansions_performed
 
-    let to_string = new_queue_element_to_string
+    let to_string = queue_element_to_string
   end)
 
 module type LENS_SYNTHESIZER =
@@ -68,7 +48,7 @@ end
 module type LENSSYNTH_PRIORITY_QUEUE =
 sig
   type queue
-  type element = new_queue_element
+  type element = queue_element
 
   val empty : queue
   val from_list : element list -> queue
@@ -153,6 +133,35 @@ struct
         clause_lens_perm_part_list_by_left_clause in
     (clause_lenses,Permutation.create_from_doubles_unsafe perm_parts)
 
+  let rigid_synth
+      (rc:RegexContext.t)
+      (lc:LensContext.t)
+      (qe:queue_element)
+      (exs:examples)
+      (count:int)
+    : synthesis_info option =
+    let (lexs,rexs) = List.unzip exs in
+    let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc qe.r1 lexs in
+    let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc qe.r2 rexs in
+    begin match (exampled_r1_opt,exampled_r2_opt) with
+      | (Some exampled_r1,Some exampled_r2) ->
+        let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
+        let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
+        begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
+          | EQ ->
+            Some (
+              {
+                l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
+                specs_visited = count;
+                expansions_performed = qe.expansions_performed;
+                expansions_inferred = qe.expansions_inferred;
+                expansions_forced = qe.expansions_forced;
+              })
+          | _ -> None
+        end
+      | _ -> failwith "bad examples"
+    end
+
   let gen_dnf_lens_and_info_zipper
       (rc:RegexContext.t)
       (lc:LensContext.t)
@@ -167,7 +176,7 @@ struct
       : synthesis_info option =
       begin match PQ.pop queue with
         | None -> None
-        | Some ((r1,r2,distance,expansions_performed,expansions_inferred,expansions_forced),_,q) ->
+        | Some (qe,_,q) ->
           incr(count);
           if !verbose then
             (print_endline "popped";
@@ -175,217 +184,50 @@ struct
              print_endline "\n\n";
              print_endline ("r2: " ^ Pp.boom_pp_regex r2);
              print_endline "\n\n";
-             print_endline ("distance: " ^ (string_of_int distance));
-             print_endline "\n\n";
              print_endline ("count: " ^ (string_of_int !count));
              print_endline "\n\n";
-             print_endline ("exps_perfed: " ^ (string_of_int expansions_performed));
+             print_endline ("exps_perfed: " ^ (string_of_int qe.expansions_performed));
              print_endline "\n\n";
-             print_endline ("exps_inferred: " ^ (string_of_int expansions_inferred));
+             print_endline ("exps_inferred: " ^ (string_of_int qe.expansions_inferred));
              print_endline "\n\n";
-             print_endline ("exps_forced: " ^ (string_of_int expansions_forced));
+             print_endline ("exps_forced: " ^ (string_of_int qe.expansions_forced));
              print_endline ("\n\n\n"));
-          if !infer_expansions then
-            let (r1,r2,exs) =
-              expand_full_outermost_required_expansions
-                rc
-                lc
-                r1
-                r2
-            in
-            let expansions_performed = expansions_performed+exs in
-            let expansions_inferred = expansions_inferred+exs in
-            let expansions_forced = expansions_forced+exs in
-            let s1 = get_full_current_level_user_defined_rep_set lc r1 in
-            let s2 = get_full_current_level_user_defined_rep_set lc r2 in
-            let problem_elements =
-              (List.map
-                 ~f:(fun e -> Left e)
-                 (StringIntSet.as_list (StringIntSet.minus s1 s2)))
-              @
-              (List.map
-                 ~f:(fun e -> Right e)
-                 (StringIntSet.as_list (StringIntSet.minus s2 s1)))
-            in
-            if List.is_empty problem_elements then
-              (
-                let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc r1 lexs in
-                let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc r2 rexs in
-                if distance = 0 || (not !short_circuit) then
-                  begin match (exampled_r1_opt,exampled_r2_opt) with
-                    | (Some exampled_r1,Some exampled_r2) ->
-                      let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
-                      let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
-                      begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
-                        | EQ ->
-                          Some (
-                            {
-                              l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
-                              specs_visited = !count;
-                              expansions_performed = expansions_performed;
-                              expansions_inferred = expansions_inferred;
-                              expansions_forced = expansions_forced;
-                            })
-                            
-                        | _ ->
-                          let rx_list =
-                            expand_once
-                              rc
-                              r1
-                              r2
-                          in
-
-                          let queue_elements =
-                            List.map
-                              ~f:(fun (r1,r2) ->
-                                  let distance = retrieve_distance lc r1 r2 in
-                                  (r1,r2,distance,expansions_performed+1,expansions_inferred,expansions_forced))
-                              rx_list
-                          in
-
-                          gen_dnf_lens_zipper_queueing
-                            (PQ.push_all
-                               q
-                               queue_elements)
-                      end
-                    | _ -> None
-                  end
-                else
-                  let rx_list =
-                    expand_once
-                      rc
-                      r1
-                      r2
-                  in
-
-                  let queue_elements =
-                    List.map
-                      ~f:(fun (r1,r2) ->
-                          let distance = retrieve_distance lc r1 r2 in
-                          (r1,r2,distance,expansions_performed+1,expansions_inferred,expansions_forced))
-                      rx_list
-                  in
-
-                  gen_dnf_lens_zipper_queueing
-                    (PQ.push_all
-                       q
-                       queue_elements))
-            else
-              let new_problems =
-                List.concat_map
-                  ~f:(fun se ->
-                      begin match se with
-                        | Left (v,star_depth) ->
-                          let exposes = expose_full_userdef rc lc v star_depth r2 in
-                          if List.is_empty exposes then
-                            let (r1_expanded,expcount) =
-                              force_expand_userdef
-                                rc
-                                lc
-                                v
-                                r1
-                            in
-                            [(r1_expanded,r2,expcount)]
-                          else
-                            List.map ~f:(fun (e,exp) -> (r1,e,exs+exp)) exposes
-                        | Right (v,star_depth) ->
-                          let exposes = expose_full_userdef rc lc v star_depth r1 in
-                          if List.is_empty exposes then
-                            failwith ("shoulda handled earlier  " ^ v ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
-                                      ^ "\n\n" ^ (Pp.boom_pp_regex r2))
-                            (*let (r2_expanded,expcount) =
-                              force_expand_userdef
-                                r
-                              c
-                                lc
-                                v
-                                r2
-                              in
-                              [(r1,r2_expanded,expcount+exs)]*)
-                          else
-                            List.map ~f:(fun (e,exp) -> (e,r2,exs+exp)) exposes
-                      end)
-                  problem_elements
-              in
-              let queue_elements =
-                List.map
-                  ~f:(fun (r1,r2,exp) ->
-                      let distance = retrieve_distance lc r1 r2 in
-                      (r1,r2,distance,expansions_performed+exp,expansions_inferred+exp,expansions_forced))
-                  new_problems
-              in
-              gen_dnf_lens_zipper_queueing
-                (PQ.push_all
-                   q
-                   queue_elements)
-          else
-            let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc r1 lexs in
-            let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc r2 rexs in
-            if distance = 0 || (not !short_circuit) then
-              begin match (exampled_r1_opt,exampled_r2_opt) with
-                | (Some exampled_r1,Some exampled_r2) ->
-                  let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
-                  let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
-                  begin match compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2 with
-                    | EQ ->
-                          Some (
-                            {
-                              l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
-                              specs_visited = !count;
-                              expansions_performed = expansions_performed;
-                              expansions_inferred = expansions_inferred;
-                              expansions_forced = expansions_forced;
-                            })
-                    | _ ->
-                      let rx_list =
-                        expand_once
-                          rc
-                          r1
-                          r2
-                      in
-
-                      let queue_elements =
-                        List.map
-                          ~f:(fun (r1,r2) ->
-                              let distance = retrieve_distance lc r1 r2 in
-                              (r1,r2,distance,expansions_performed+1,expansions_inferred,expansions_forced))
-                          rx_list
-                      in
-
-                      gen_dnf_lens_zipper_queueing
-                        (PQ.push_all
-                           q
-                           queue_elements)
-                  end
-                | _ -> None
-              end
-            else
-              let rx_list =
-                expand_once
+          let result_o =
+            rigid_synth
+              rc
+              lc
+              qe
+              exs
+              !count
+          in
+          begin match result_o with
+            | Some _ -> result_o
+            | None ->
+              let queue_elements = 
+                expand
                   rc
-                  r1
-                  r2
+                  lc
+                  qe
               in
-
-              let queue_elements =
-                List.map
-                  ~f:(fun (r1,r2) ->
-                      let distance = retrieve_distance lc r1 r2 in
-                      (r1,r2,distance,expansions_performed+1,expansions_inferred,expansions_forced))
-                  rx_list
-              in
-
               gen_dnf_lens_zipper_queueing
                 (PQ.push_all
                    q
                    queue_elements)
+          end
       end
     in
-    gen_dnf_lens_zipper_queueing
+      gen_dnf_lens_zipper_queueing
       (PQ.from_list
-         [((r1,r2,0,0,0,0))])
+         [
+           {
+             r1 = r1;
+             r2 = r2;
+             expansions_performed = 0;
+             expansions_inferred = 0;
+             expansions_forced = 0;
+           }])
 
-  
+
   let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
       (exs:examples)
     : dnf_lens option =

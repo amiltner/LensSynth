@@ -36,6 +36,7 @@ type driver_mode =
   | SpecsVisited
   | ExpansionsInferred
   | ExpansionsForced
+  | LensSize
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -84,6 +85,10 @@ let args =
     , Arg.Unit (fun _ -> set_opt SpecSize)
     , " Set to calculate the size of the user input specification size"
     )
+  ; ( "-lens_size"
+    , Arg.Unit (fun _ -> set_opt LensSize)
+    , " Set to calculate the size of the generated lens"
+    )
   ; ( "-naive_strategy"
     , Arg.Unit (fun _ -> naive_strategy := true)
     , " Set to use a naive synthesis strategy"
@@ -91,10 +96,6 @@ let args =
   ; ( "-naive_pqueue"
     , Arg.Unit (fun _ -> naive_pqueue := true)
     , " Set to use a naive priority queue"
-    )
-  ; ( "-no_short_circuit"
-    , Arg.Unit (fun _ -> short_circuit := false)
-    , " Short circuit when distance is 0"
     )
   ; ( "-no_lens_context"
     , Arg.Unit (fun _ -> use_lens_context := false)
@@ -104,9 +105,12 @@ let args =
     , Arg.Unit (fun _ -> verbose := true)
     , " Print out information about synthesis"
     )
-  ; ( "-no_inferred_expansions"
-    , Arg.Unit (fun _ -> infer_expansions := false)
-    , " Infer necessary expansions")
+  ; ( "-naive_expansion_search"
+    , Arg.Unit (fun _ -> use_naive_expansion_search := true)
+    , " No inference of necessary expansions")
+  ; ( "-use_only_forced_expansions"
+    , Arg.Unit (fun _ -> use_only_forced_expansions := true)
+    , " Only infer expansions that are completely forced")
   ; ( "-generate_io_spec"
     , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateIOSpec)
                  ;(Arg.Set_int generate_io_count)])
@@ -410,6 +414,54 @@ let collect_final_io_spec (p:program) : unit =
   in
   collect_final_io_spec_internal !generate_io_count
 
+let lens_size (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let rec retrieve_transitive_userdefs (l:lens) : string list =
+    begin match l with
+    | LensConst(_,_) -> []
+    | LensConcat(l1,l2) ->
+      (retrieve_transitive_userdefs l1) @
+      (retrieve_transitive_userdefs l2)
+    | LensSwap (l1,l2) ->
+      (retrieve_transitive_userdefs l1) @
+      (retrieve_transitive_userdefs l2)
+    | LensUnion (l1,l2) ->
+      (retrieve_transitive_userdefs l1) @
+      (retrieve_transitive_userdefs l2)
+    | LensCompose (l1,l2) ->
+      (retrieve_transitive_userdefs l1) @
+      (retrieve_transitive_userdefs l2)
+    | LensIterate l' ->
+      retrieve_transitive_userdefs l'
+    | LensIdentity _ -> []
+    | LensInverse l' ->
+      retrieve_transitive_userdefs l'
+    | LensVariable v -> [v]
+    | LensPermute (_,ls) ->
+      List.concat_map
+        ~f:retrieve_transitive_userdefs
+        ls
+    end
+  in
+  let all_userdefs = retrieve_transitive_userdefs l in
+  let all_lenses =
+    List.dedup(
+      l::(List.map ~f:(fun v ->
+          (LensContext.lookup_impl_exn lc v))
+          all_userdefs))
+  in
+  let all_sizes =
+    List.map ~f:(fun l -> lens_size l) all_lenses
+  in
+  let mysize = List.fold_left
+    ~f:(+)
+    ~init:0
+    all_sizes
+  in
+
+  print_endline (string_of_int (mysize))
+
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
   let rec retrieve_transitive_userdefs (r:regex) : string list =
@@ -484,6 +536,8 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> print_outputs
           | SpecSize ->
             parse_file f |> expand_regexps_if_necessary |> specification_size
+          | LensSize ->
+            parse_file f |> expand_regexps_if_necessary |> lens_size
           | GenerateIOSpec ->
             parse_file f
             |> expand_regexps_if_necessary

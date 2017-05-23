@@ -84,6 +84,12 @@ let pp_comparison (c:comparison) : string =
   | GT -> "GT"
   end
 
+module type Data = sig
+  type t
+  val show : t -> string
+  val compare : t -> t -> comparison
+end
+
 type ('a, 'b) either =
     Left of 'a
   | Right of 'b

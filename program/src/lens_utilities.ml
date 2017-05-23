@@ -456,3 +456,33 @@ let simplify_lens : lens -> lens =
      % split_consts_into_concats_rightfirst
      % perform_cleanups
      % split_consts_into_concats_leftfirst)
+
+
+let rec lens_size
+    (l:lens)
+  : int =
+  begin match l with
+  | LensConst _ -> 1
+  | LensConcat (l1,l2) ->
+    1 + (lens_size l1) + (lens_size l2)
+  | LensSwap (l1,l2) ->
+    1 + (lens_size l1) + (lens_size l2)
+  | LensUnion (l1,l2) ->
+    1 + (lens_size l1) + (lens_size l2)
+  | LensCompose (l1,l2) ->
+    1 + (lens_size l1) + (lens_size l2)
+  | LensIterate l' ->
+    1 + (lens_size l')
+  | LensIdentity _ ->
+    1
+  | LensInverse l' ->
+    1 + (lens_size l')
+  | LensVariable _ ->
+    1
+  | LensPermute (_,ls) ->
+    List.fold_left
+      ~f:(+)
+      ~init:0
+      (List.map ~f:lens_size ls)
+  end
+

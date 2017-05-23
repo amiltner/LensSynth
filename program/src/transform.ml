@@ -217,11 +217,8 @@ let retrieve_distance (lc:LensContext.t) (r1:regex) (r2:regex) : int =
       userdef_dist_r1
       userdef_dist_r2)
 
-let retrieve_priority (distance:int) (expansions_preformed:int): int =
-  if !naive_pqueue then
-    expansions_preformed
-  else
-    distance + (expansions_preformed*16)
+let retrieve_priority (expansions_preformed:int): int =
+  expansions_preformed
 
 let rec quotiented_star (r:regex) (n:int) : regex =
   if n < 1 then
@@ -615,21 +612,6 @@ let requires_simple_expansions
       r2_userdefs
       r1_transitive_userdefs in
   not (List.is_empty (r1_not_in_r2trans@r2_not_in_r1trans))
-
-let requires_expansions
-    (rc:RegexContext.t)
-    (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
-  : bool =
-  if (!infer_expansions) then
-    requires_full_expansions lc r1 r2
-  else
-    requires_simple_expansions
-      rc
-      lc
-      r1
-      r2
 
 
 let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
@@ -1395,21 +1377,6 @@ let expand_real_required_expansions
   expand_real_required_expansions_internal
     (ExpansionCountPQueue.singleton (r1,r2,0))
 
-let expand_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
-  : (regex * regex * int) list =
-  if (!infer_expansions) then
-    expand_deeper_required_expansions
-      rc
-      lc
-      r1
-      r2
-  else
-    [expand_outermost_required_expansions
-       rc
-       lc
-       r1
-       r2]
-
 let retrieve_userdefs (r:regex) : id list =
   let rec retrieve_userdefs_internal (r:regex) : id list =
     begin match r with
@@ -1475,7 +1442,7 @@ let expand_once_to_queue_elts (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1
     ((r1,r2):regex*regex)
     : queue_element * int =
     let distance = retrieve_distance lc r1 r2 in
-    let priority = retrieve_priority distance expansions_preformed in
+    let priority = retrieve_priority expansions_preformed in
       (QERegexCombo
         (r1,r2,distance,expansions_preformed+1),
         priority)
