@@ -52,17 +52,17 @@ decl:
   | TEST r=regex MATCHES s=str SEMI SEMI
     { DeclTestString (r,s) }
   | TEST n=LID exs=examples SEMI SEMI
-    { DeclTestLens (n,exs) }
+    { DeclTestLens (Id n,exs) }
 
 defn:
   | TYPEDEF u=UID EQ r=regex SEMI SEMI
-    { (u,r,true) }
+    { (Id u,r,true) }
   | ABSTRACT u=UID EQ r=regex SEMI SEMI
-    { (u,r,false) }
+    { (Id u,r,false) }
 
 specification:
   |  n=LID EQ LBRACKET r1=regex LEFTRIGHTFATARR r2=regex es=examples RBRACKET
-    { (n,r1,r2,es) }
+    { (Id n,r1,r2,es) }
 
 (***** Regexes {{{ *****)
 
@@ -85,7 +85,7 @@ regex_l2:
 regex_l3:
   | s=base { Regex.RegExBase s }
   | LPAREN r=regex_l0 RPAREN { r }
-  | u=UID { Regex.RegExVariable u }
+  | u=UID { Regex.RegExVariable (Id u) }
 
 
 base:

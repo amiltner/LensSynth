@@ -25,7 +25,7 @@ let rec true_max_size (c:RegexContext.t) (r:Regex.t) : int =
   end
 
 
-type synth_problem = (RegexContext.t * string * Regex.t * Regex.t * (string * string) list)
+type synth_problem = (RegexContext.t * id * Regex.t * Regex.t * (string * string) list)
 
 let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
   let rc = RegexContext.create_from_list_exn ds in
@@ -35,8 +35,8 @@ let problems_to_problem_list ((ds,ss):synth_problems) : synth_problem list =
 
 let get_rep_userdef
     (lc:LensContext.t)
-    (ud:string)
-  : string =
+    (ud:id)
+  : id =
   if !use_lens_context then
     (fst (LensContext.shortest_path_to_rep_elt lc ud))
   else
@@ -104,9 +104,9 @@ let rec calculate_or_width (r:Regex.t) : int =
   end
 
 
-let calculate_userdef_distribution (lc:LensContext.t) (r:Regex.t) : ((string * int) Counters.t) =
+let calculate_userdef_distribution (lc:LensContext.t) (r:Regex.t) : ((id * int) Counters.t) =
   let rec calculate_userdef_distribution_internal (r:Regex.t) (depth:int)
-    : ((string * int) Counters.t) * int =
+    : ((id * int) Counters.t) * int =
       begin match r with
       | Regex.RegExEmpty -> (Counters.create compare,0)
       | Regex.RegExBase _ -> (Counters.create compare,1)
@@ -184,8 +184,8 @@ let calculate_userdef_distribution (lc:LensContext.t) (r:Regex.t) : ((string * i
     end*)
 
 let retrieve_distance (lc:LensContext.t) (r1:Regex.t) (r2:Regex.t) : int =
-  let rec retrieve_distance_internal (cs1:((string * int) * int) list)
-      (cs2:((string * int) * int) list)
+  let rec retrieve_distance_internal (cs1:((id * int) * int) list)
+      (cs2:((id * int) * int) list)
     : int =
     begin match (cs1,cs2) with
       | ((s1,c1)::t1,(s2,c2)::t2) ->
@@ -232,20 +232,6 @@ let rec quotiented_star (r:Regex.t) (n:int) : Regex.t =
       ((quotiented_star r (n-1))
       ,(exponentiate r (n-1)))
 
-let empty_or_not_star_expansion_right (r:Regex.t) : Regex.t =
-  Regex.RegExOr
-    (Regex.RegExBase ""
-    ,Regex.RegExConcat
-      (Regex.RegExStar r
-      ,r))
-
-
-let empty_or_not_star_expansion_left (r:Regex.t) : Regex.t =
-  Regex.RegExOr
-    (Regex.RegExBase ""
-    ,Regex.RegExConcat
-      (r
-      ,Regex.RegExStar r))
 
 let quotient_product_expansion_right (n:int) (r:Regex.t) : Regex.t =
   Regex.RegExConcat
@@ -342,6 +328,13 @@ module RegexSet = Comparison_set.Make(
     let to_string = Regex.show
   end)
 
+module IdSet = Comparison_set.Make(
+  struct
+    type element = id
+    let compare = compare_id
+    let to_string = show_id
+  end)
+
 module StringSet = Comparison_set.Make(
   struct
     type element = string
@@ -354,6 +347,13 @@ module IntSet = Comparison_set.Make(
     type element = int
     let compare = compare_int
     let to_string = string_of_int
+  end)
+
+module IdIntSet = Comparison_set.Make(
+  struct
+    type element = id * int
+    let compare = pair_compare compare_id compare_int
+    let to_string = string_of_pair show_id string_of_int
   end)
 
 module StringIntSet = Comparison_set.Make(
@@ -370,6 +370,16 @@ module RegexRegexSet = Comparison_set.Make(
     let to_string = string_of_pair Regex.show Regex.show
   end)
 
+module IdToIntSetDict = Dict.Make(
+  struct
+    type key = id
+    type value = IntSet.set
+    let compare_key = compare_id
+    let compare_value = IntSet.compare
+    let key_to_string = show_id
+    let value_to_string = IntSet.to_string
+  end)
+
 module StringToIntSetDict = Dict.Make(
   struct
     type key = string
@@ -378,6 +388,16 @@ module StringToIntSetDict = Dict.Make(
     let compare_value = IntSet.compare
     let key_to_string = ident
     let value_to_string = IntSet.to_string
+  end)
+
+module IdIntToIntDict = Dict.Make(
+  struct
+    type key = id * int
+    type value = int
+    let compare_key = pair_compare compare_id compare_int
+    let compare_value = compare_int
+    let key_to_string = string_of_pair show_id string_of_int
+    let value_to_string = string_of_int
   end)
 
 module StringIntToIntDict = Dict.Make(
@@ -393,21 +413,21 @@ module StringIntToIntDict = Dict.Make(
 let rec get_current_level_user_defined_rep_set
     (lc:LensContext.t)
     (r:Regex.t)
-  : StringSet.set =
+  : IdSet.set =
   begin match r with
-    | Regex.RegExEmpty -> StringSet.empty
-    | Regex.RegExBase _ -> StringSet.empty
+    | Regex.RegExEmpty -> IdSet.empty
+    | Regex.RegExBase _ -> IdSet.empty
     | Regex.RegExConcat (r1,r2) ->
       let s1 = get_current_level_user_defined_rep_set lc r1 in
       let s2 = get_current_level_user_defined_rep_set lc r2 in
-      StringSet.union s1 s2
+      IdSet.union s1 s2
     | Regex.RegExOr (r1,r2) ->
       let s1 = get_current_level_user_defined_rep_set lc r1 in
       let s2 = get_current_level_user_defined_rep_set lc r2 in
-      StringSet.union s1 s2
+      IdSet.union s1 s2
     | Regex.RegExStar r' -> get_current_level_user_defined_rep_set lc r'
     | Regex.RegExVariable v ->
-      StringSet.singleton
+      IdSet.singleton
         (get_rep_userdef
            lc
            v)
@@ -424,14 +444,14 @@ let expanded_form_po_compare
 let rec force_expand_userdef
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (v:string)
+    (v:id)
     (r:Regex.t)
   : Regex.t * int =
   begin match r with
     | Regex.RegExVariable v' ->
       if get_rep_userdef lc v' = v then
         begin match RegexContext.lookup_for_expansion_exn rc v' with
-          | None -> failwith ("no solution: " ^ v')
+          | None -> failwith ("no solution: " ^ (show_id v'))
           | Some r' -> (r',1)
         end
       else
@@ -454,7 +474,7 @@ let rec force_expand_userdef
 let rec expose_userdef
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (v:string)
+    (v:id)
     (r:Regex.t)
   : (Regex.t * int) list =
   begin match r with
@@ -513,15 +533,15 @@ module ExpansionCountPQueue = Priority_queue_two.Make(
 let get_full_current_level_user_defined_rep_set
     (lc:LensContext.t)
     (r:Regex.t)
-  : StringIntSet.set =
+  : IdIntSet.set =
   let rec get_current_level_user_defined_rep_set_internal
       (lc:LensContext.t)
       (r:Regex.t)
       (depth:int)
-    : StringIntSet.set =
+    : IdIntSet.set =
     begin match r with
-      | Regex.RegExEmpty -> StringIntSet.empty
-      | Regex.RegExBase _ -> StringIntSet.empty
+      | Regex.RegExEmpty -> IdIntSet.empty
+      | Regex.RegExBase _ -> IdIntSet.empty
       | Regex.RegExConcat (r1,r2) ->
         let s1 =
           get_current_level_user_defined_rep_set_internal
@@ -535,7 +555,7 @@ let get_full_current_level_user_defined_rep_set
             r2
             depth
         in
-        StringIntSet.union s1 s2
+        IdIntSet.union s1 s2
       | Regex.RegExOr (r1,r2) ->
         let s1 =
           get_current_level_user_defined_rep_set_internal
@@ -549,7 +569,7 @@ let get_full_current_level_user_defined_rep_set
             r2
             depth
         in
-        StringIntSet.union s1 s2
+        IdIntSet.union s1 s2
       | Regex.RegExStar r' ->
         get_current_level_user_defined_rep_set_internal
           lc
@@ -557,7 +577,7 @@ let get_full_current_level_user_defined_rep_set
           (depth+1)
       | Regex.RegExVariable v ->
         let v' = get_rep_userdef lc v in
-        StringIntSet.singleton
+        IdIntSet.singleton
           (v',depth)
     end
   in
@@ -573,11 +593,11 @@ let requires_full_expansions (lc:LensContext.t) (r1:Regex.t) (r2:Regex.t)
   let problem_elements =
     (List.map
        ~f:(fun e -> Left e)
-       (StringIntSet.as_list (StringIntSet.minus s1 s2)))
+       (IdIntSet.as_list (IdIntSet.minus s1 s2)))
     @
     (List.map
        ~f:(fun e -> Right e)
-       (StringIntSet.as_list (StringIntSet.minus s2 s1)))
+       (IdIntSet.as_list (IdIntSet.minus s2 s1)))
   in
   not (List.is_empty problem_elements)
 
@@ -587,7 +607,7 @@ let requires_simple_expansions
     (r1:Regex.t)
     (r2:Regex.t)
   : bool =
-  let rec retrieve_transitive_userdefs (r:Regex.t) : string list =
+  let rec retrieve_transitive_userdefs (r:Regex.t) : id list =
     begin match r with
       | Regex.RegExEmpty -> []
       | Regex.RegExBase _ -> []
@@ -605,8 +625,8 @@ let requires_simple_expansions
   in
   let r1_transitive_userdefs = retrieve_transitive_userdefs r1 in
   let r2_transitive_userdefs = retrieve_transitive_userdefs r2 in
-  let r1_userdefs = StringSet.as_list (get_current_level_user_defined_rep_set lc r1) in
-  let r2_userdefs = StringSet.as_list (get_current_level_user_defined_rep_set lc r2) in
+  let r1_userdefs = IdSet.as_list (get_current_level_user_defined_rep_set lc r1) in
+  let r2_userdefs = IdSet.as_list (get_current_level_user_defined_rep_set lc r2) in
   let r1_not_in_r2trans = set_minus_lose_order compare
       r1_userdefs
       r2_transitive_userdefs in
@@ -623,7 +643,7 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
       (lc:LensContext.t)
       ((r1,r2,exps):Regex.t * Regex.t * int)
     : Regex.t * Regex.t * int =
-    let rec retrieve_full_transitive_userdefs (r:Regex.t) (star_depth:int) : (string * int) list =
+    let rec retrieve_full_transitive_userdefs (r:Regex.t) (star_depth:int) : (id * int) list =
       begin match r with
         | Regex.RegExEmpty -> []
         | Regex.RegExBase _ -> []
@@ -639,7 +659,7 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
                               end)
       end
     in
-    let rec expand_full_required_expansions (bad_userdefs:(string * int) list)
+    let rec expand_full_required_expansions (bad_userdefs:(id * int) list)
         (r:Regex.t)
         (star_depth:int)
       : Regex.t * int =
@@ -674,30 +694,30 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
     let r1_transitive_userdefs = retrieve_full_transitive_userdefs r1 0 in
     let r2_transitive_userdefs = retrieve_full_transitive_userdefs r2 0 in
     let all_userdefs =
-      StringSet.from_list
+      IdSet.from_list
         ((List.map ~f:fst r1_transitive_userdefs)
          @(List.map ~f:fst r2_transitive_userdefs))
     in
     let empty_depths_dict =
       List.fold_left
         ~f:(fun d v ->
-            StringToIntSetDict.insert d v IntSet.empty)
-        ~init:StringToIntSetDict.empty
-        (StringSet.as_list all_userdefs)
+            IdToIntSetDict.insert d v IntSet.empty)
+        ~init:IdToIntSetDict.empty
+        (IdSet.as_list all_userdefs)
     in
     let r1_depths =
       List.fold_left
         ~f:(fun d (v,depth) ->
-            let previous_depths = StringToIntSetDict.lookup_exn d v in
-            StringToIntSetDict.insert d v (IntSet.insert depth previous_depths))
+            let previous_depths = IdToIntSetDict.lookup_exn d v in
+            IdToIntSetDict.insert d v (IntSet.insert depth previous_depths))
         ~init:empty_depths_dict
         r1_transitive_userdefs
     in
     let r2_depths =
       List.fold_left
         ~f:(fun d (v,depth) ->
-            let previous_depths = StringToIntSetDict.lookup_exn d v in
-            StringToIntSetDict.insert d v (IntSet.insert depth previous_depths))
+            let previous_depths = IdToIntSetDict.lookup_exn d v in
+            IdToIntSetDict.insert d v (IntSet.insert depth previous_depths))
         ~init:empty_depths_dict
         r2_transitive_userdefs
     in
@@ -707,13 +727,13 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
         ~f:(fun acc v ->
             let r1_depth_list =
               IntSet.as_list
-                (StringToIntSetDict.lookup_exn
+                (IdToIntSetDict.lookup_exn
                    r1_depths
                    v)
             in
             let r2_depth_list =
               IntSet.as_list
-                (StringToIntSetDict.lookup_exn
+                (IdToIntSetDict.lookup_exn
                    r2_depths
                    v)
             in
@@ -739,7 +759,7 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
             @
             acc)
         ~init:[]
-        (StringSet.as_list all_userdefs)
+        (IdSet.as_list all_userdefs)
     in
     let (left_unreachables,right_unreachables) = split_by_either unreachables in
     begin match (expand_full_required_expansions left_unreachables r1 0,
@@ -756,7 +776,7 @@ let expand_full_outermost_required_expansions (rc:RegexContext.t) (lc:LensContex
 
 let expand_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) (r1:Regex.t) (r2:Regex.t)
   : (Regex.t * Regex.t * int) =
-  let rec retrieve_transitive_userdefs (r:Regex.t) : string list =
+  let rec retrieve_transitive_userdefs (r:Regex.t) : id list =
     begin match r with
       | Regex.RegExEmpty -> []
       | Regex.RegExBase _ -> []
@@ -772,7 +792,7 @@ let expand_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) 
       end)
     end
   in
-  let rec expand_required_expansions (bad_userdefs:string list)
+  let rec expand_required_expansions (bad_userdefs:id list)
                                  (r:Regex.t)
     : Regex.t * int =
     begin match r with
@@ -819,7 +839,7 @@ let expand_outermost_required_expansions (rc:RegexContext.t) (lc:LensContext.t) 
 let rec expose_full_userdef
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (v:string)
+    (v:id)
     (star_depth:int)
     (r:Regex.t)
   : (Regex.t * int) list =
@@ -949,8 +969,8 @@ let expand_regex_once
 
   let expanders =
     [(expand_userdefs rc)
-    ;(expand_stars empty_or_not_star_expansion_right)
-    ;(expand_stars empty_or_not_star_expansion_left)]
+    ;(Algebra.left_unfold_all_stars regex_star_semiring)
+    ;(Algebra.right_unfold_all_stars regex_star_semiring)]
   in
 
   List.concat_map
@@ -1164,35 +1184,35 @@ let expand_evening_required_expansions
     let dist1 = calculate_userdef_distribution lc r1 in
     let dist2 = calculate_userdef_distribution lc r2 in
     let map1 =
-      StringIntToIntDict.from_kvp_list
+      IdIntToIntDict.from_kvp_list
         (Counters.as_ordered_assoc_list dist1)
     in
     let map2 =
-      StringIntToIntDict.from_kvp_list
+      IdIntToIntDict.from_kvp_list
         (Counters.as_ordered_assoc_list dist2)
     in
     let all_userdef_depths =
-      StringIntSet.from_list
-        ((StringIntToIntDict.key_list map1)
-         @(StringIntToIntDict.key_list map2))
+      IdIntSet.from_list
+        ((IdIntToIntDict.key_list map1)
+         @(IdIntToIntDict.key_list map2))
     in
     let all_tasks =
       List.filter
         ~f:(fun (v,depth) ->
             let r1_count =
-              begin match StringIntToIntDict.lookup map1 (v,depth) with
+              begin match IdIntToIntDict.lookup map1 (v,depth) with
                 | None -> 0
                 | Some i -> i
               end
             in
             let r2_count =
-              begin match StringIntToIntDict.lookup map2 (v,depth) with
+              begin match IdIntToIntDict.lookup map2 (v,depth) with
                 | None -> 0
                 | Some i -> i
               end
             in
             not (is_equal (compare_int r1_count r2_count)))
-        (StringIntSet.as_list all_userdef_depths)
+        (IdIntSet.as_list all_userdef_depths)
     in
     if List.is_empty all_tasks then
       let other_possibilities =
@@ -1243,11 +1263,11 @@ let expand_deeper_required_expansions
     let problem_elements =
       (List.map
          ~f:(fun e -> Left e)
-         (StringIntSet.as_list (StringIntSet.minus s1 s2)))
+         (IdIntSet.as_list (IdIntSet.minus s1 s2)))
       @
       (List.map
          ~f:(fun e -> Right e)
-         (StringIntSet.as_list (StringIntSet.minus s2 s1)))
+         (IdIntSet.as_list (IdIntSet.minus s2 s1)))
     in
     if List.is_empty problem_elements then
       let other_possibilities =
@@ -1277,7 +1297,7 @@ let expand_deeper_required_expansions
                 | Right (v,star_depth) ->
                   let exposes = expose_full_userdef rc lc v star_depth r1 in
                   if List.is_empty exposes then
-                    failwith ("shoulda handled earlier  " ^ v ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
+                    failwith ("shoulda handled earlier  " ^ (show_id v) ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
                              ^ "\n\n" ^ (Pp.boom_pp_regex r2))
                     (*let (r2_expanded,expcount) =
                       force_expand_userdef
@@ -1320,11 +1340,11 @@ let expand_real_required_expansions
     let problem_elements =
       (List.map
          ~f:(fun e -> Left e)
-         (StringSet.as_list (StringSet.minus s1 s2)))
+         (IdSet.as_list (IdSet.minus s1 s2)))
       @
       (List.map
          ~f:(fun e -> Right e)
-         (StringSet.as_list (StringSet.minus s2 s1)))
+         (IdSet.as_list (IdSet.minus s2 s1)))
     in
     if List.is_empty problem_elements then
       let other_possibilities =
@@ -1354,7 +1374,7 @@ let expand_real_required_expansions
                 | Right v ->
                   let exposes = expose_userdef rc lc v r1 in
                   if List.is_empty exposes then
-                    failwith ("shoulda handled earlier  " ^ v ^ "\n\n" ^ (Pp.boom_pp_regex r1)
+                    failwith ("shoulda handled earlier  " ^ (show_id v) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
                              ^ "\n\n" ^ (Pp.boom_pp_regex r2))
                     (*let (r2_expanded,expcount) =
                       force_expand_userdef
@@ -1432,9 +1452,9 @@ let expand_once_to_queue_elts (_:int) (rc:RegexContext.t) (lc:LensContext.t) (r1
     (retrieve_expansions_from_transform (expand_userdefs rc))
     @ (retrieve_expansions_from_transform (expand_userdefs rc))
     @ (retrieve_expansions_from_transform
-      (expand_stars empty_or_not_star_expansion_right))
+      (Algebra.left_unfold_all_stars regex_star_semiring))
     @ (retrieve_expansions_from_transform
-      (expand_stars empty_or_not_star_expansion_left))
+      (Algebra.left_unfold_all_stars regex_star_semiring))
   in
 
   let turn_regex_double_into_queue_element_priority
@@ -1686,11 +1706,10 @@ let expand_once
   
   let all_immediate_expansions =
     (retrieve_expansions_from_transform (expand_userdefs rc))
-    @ (retrieve_expansions_from_transform (expand_userdefs rc))
     @ (retrieve_expansions_from_transform
-         (expand_stars empty_or_not_star_expansion_right))
+         (Algebra.left_unfold_all_stars regex_star_semiring))
     @ (retrieve_expansions_from_transform
-         (expand_stars empty_or_not_star_expansion_left))
+         (Algebra.right_unfold_all_stars regex_star_semiring))
   in
 
   all_immediate_expansions

@@ -99,7 +99,7 @@ let add_inverted_lenses_after_original_lenses
           | DeclLensCreation (n,r1,r2,l) ->
             if List.mem ~equal:(=) inverted_vars n then
               let l_inv = simplify_lens (Lens.LensInverse l) in
-              let n_inv = LensContext.autogen_id_from_base lc (n ^ "_inv") in
+              let n_inv = LensContext.autogen_id_from_base lc ((get_string_of_id n) ^ "_inv") in
               let d_inv = DeclLensCreation(n_inv,r2,r1,l_inv) in
               let lc = LensContext.insert_exn lc n_inv l_inv r2 r1 in
               (lc,d::d_inv::p,(n,n_inv)::id_map)

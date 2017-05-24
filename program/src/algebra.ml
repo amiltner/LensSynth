@@ -1,30 +1,18 @@
 open Core
 open Util
 
+(* Semiring start *)
 module type Semiring =
 sig
   type t
   val apply_at_every_level : (t -> t) -> t -> t
+  val applies_for_every_applicable_level : (t -> t option) -> t -> t list
   val additive_identity : t
   val multiplicative_identity : t
   val separate_plus : t -> (t * t) option
   val separate_times : t -> (t * t) option
   val create_plus : t -> t -> t
   val create_times : t -> t -> t
-end
-
-module type StarSemiring =
-sig
-  type t
-  val apply_at_every_level : (t -> t) -> t -> t
-  val additive_identity : t
-  val multiplicative_identity : t
-  val separate_plus : t -> (t * t) option
-  val separate_times : t -> (t * t) option
-  val separate_star : t -> t option
-  val create_plus : t -> t -> t
-  val create_times : t -> t -> t
-  val create_star : t -> t
 end
 
 let maximally_factor_semiring_element
@@ -124,4 +112,69 @@ let maximally_factor_semiring_element
           (maximally_factor_current_level
              split_by_first_exn
              S.create_times)))
+(* Semiring end *)
 
+(* StarSemiring start *)
+module type StarSemiring =
+sig
+  type t
+  val apply_at_every_level : (t -> t) -> t -> t
+  val applies_for_every_applicable_level : (t -> t option) -> t -> t list
+  val additive_identity : t
+  val multiplicative_identity : t
+  val separate_plus : t -> (t * t) option
+  val separate_times : t -> (t * t) option
+  val separate_star : t -> t option
+  val create_plus : t -> t -> t
+  val create_times : t -> t -> t
+  val create_star : t -> t
+end
+
+let unfold_left_if_star
+    (type t)
+    (module S : StarSemiring with type t = t)
+    (v:S.t)
+  : S.t option =
+  Option.map
+    ~f:(fun r' ->
+        S.create_plus
+          S.multiplicative_identity
+          (S.create_times
+             r'
+             (S.create_star r')))
+    (S.separate_star v)
+
+let unfold_right_if_star
+    (type t)
+    (module S : StarSemiring with type t = t)
+    (v:S.t)
+  : S.t option =
+  Option.map
+    ~f:(fun r' ->
+        S.create_plus
+          S.multiplicative_identity
+          (S.create_times
+             (S.create_star r')
+             r'))
+    (S.separate_star v)
+
+let left_unfold_all_stars
+    (type t)
+    (module S : StarSemiring with type t = t)
+    (v:S.t)
+  : S.t list =
+  let ssr = (module S : StarSemiring with type t = t) in
+  S.applies_for_every_applicable_level
+    (unfold_left_if_star ssr)
+    v
+
+let right_unfold_all_stars
+    (type t)
+    (module S : StarSemiring with type t = t)
+    (v:S.t)
+  : S.t list =
+  let ssr = (module S : StarSemiring with type t = t) in
+  S.applies_for_every_applicable_level
+    (unfold_right_if_star ssr)
+    v
+(* StarSemiring end *)

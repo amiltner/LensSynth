@@ -1,4 +1,5 @@
 open Core
+open Lang
 open Lenscontext
 open Regexcontext
 open Synth_structs
@@ -62,11 +63,11 @@ let expand
       let problem_elements =
         (List.map
            ~f:(fun e -> Left e)
-           (Transform.StringIntSet.as_list (Transform.StringIntSet.minus s1 s2)))
+           (Transform.IdIntSet.as_list (Transform.IdIntSet.minus s1 s2)))
         @
         (List.map
            ~f:(fun e -> Right e)
-           (Transform.StringIntSet.as_list (Transform.StringIntSet.minus s2 s1)))
+           (Transform.IdIntSet.as_list (Transform.IdIntSet.minus s2 s1)))
       in
       if List.is_empty problem_elements then
         expand_once
@@ -93,7 +94,7 @@ let expand
                   | Right (v,star_depth) ->
                     let exposes = Transform.expose_full_userdef rc lc v star_depth r1 in
                     if List.is_empty exposes then
-                      failwith ("shoulda handled earlier  " ^ v ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
+                      failwith ("shoulda handled earlier  " ^ (show_id v) ^ "   " ^ (string_of_int star_depth) ^ "\n\n" ^ (Pp.boom_pp_regex r1)
                                 ^ "\n\n" ^ (Pp.boom_pp_regex r2))
                     else
                       List.map ~f:(fun (e,exp) -> (e,r2,exs+exp)) exposes

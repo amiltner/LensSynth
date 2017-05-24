@@ -31,7 +31,7 @@ let run_declaration_with_callback
     | DeclSynthesizeLens (n,r1,r2,exs) ->
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
-        | None -> failwith (n ^ " has no satisfying lens")
+        | None -> failwith ((show_id n) ^ " has no satisfying lens")
         | Some l ->
           c (rc,lc,r1,r2,exs);
           (rc,LensContext.insert_exn lc n l r1 r2,DeclLensCreation(n,r1,r2,l))
@@ -66,7 +66,7 @@ let run_declaration
     | DeclSynthesizeLens (n,r1,r2,exs) ->
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
-        | None -> failwith (n ^ " has no satisfying lens")
+        | None -> failwith ((show_id n) ^ " has no satisfying lens")
         | Some l ->
           (rc,LensContext.insert_exn lc n l r1 r2,DeclLensCreation(n,r1,r2,l))
       end

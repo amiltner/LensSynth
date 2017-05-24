@@ -28,9 +28,9 @@ module RegexContext : RegexContext_Sig = struct
     struct
       type key = id
       type value = Regex.t * bool
-      let compare_key = compare_string
+      let compare_key = compare_id
       let compare_value = pair_compare Regex.compare compare
-      let key_to_string = ident
+      let key_to_string = show_id
       let value_to_string = string_of_pair Regex.show string_of_bool
     end)
     type t = D.dict
@@ -56,7 +56,7 @@ module RegexContext : RegexContext_Sig = struct
             if ra = (r,is_abstract) then
               rc
             else
-              failwith (name ^ " already exists in the context")
+              failwith ((show_id name) ^ " already exists in the context")
       end
 
     let insert_list_exn (rc:t) (nral:(id * Regex.t * bool) list) : t =
@@ -71,7 +71,7 @@ module RegexContext : RegexContext_Sig = struct
     let autogen_id (rc:t) (r:Regex.t) : id =
       let base = Regex.show r in
       let rec fresh n =
-        let x = Printf.sprintf "%s%d" base n in
+        let x = Id (Printf.sprintf "%s%d" base n) in
         begin match D.lookup rc x with
           | Some (r',false) ->
             if r = r' then
@@ -87,7 +87,7 @@ module RegexContext : RegexContext_Sig = struct
     let autogen_fresh_id (rc:t) : id =
       let base = "r" in
       let rec fresh n =
-        let x = Printf.sprintf "%s%d" base n in
+        let x = Id (Printf.sprintf "%s%d" base n) in
         begin match D.lookup rc x with
           | Some _ -> fresh (n+1)
           | _ -> x
@@ -97,7 +97,7 @@ module RegexContext : RegexContext_Sig = struct
 
     let lookup_for_expansion_exn (rc:t) (name:id) : Regex.t option =
       begin match lookup_everything rc name with
-        | None -> failwith ("bad regex name: " ^ name)
+        | None -> failwith ("bad regex name: " ^ (show_id name))
         | Some (r,abs) ->
           if abs then
             None
@@ -120,7 +120,7 @@ module RegexContext : RegexContext_Sig = struct
         ~f:(fun i acc (id,(r,abs)) ->
             (Regex.hash r)
             lxor (Bool.hash abs)
-            lxor (String.hash id)
+            lxor (hash_id id)
             lxor (Int.hash i)
             lxor acc)
         ~init:(-25389029)

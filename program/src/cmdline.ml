@@ -341,7 +341,7 @@ let collect_extraction_spec (p:program) : unit =
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let rec collect_extraction_spec_internal
       (n:int)
-      ((r,(v,f)):Regex.t * (string * flattened_or_userdef_regex))
+      ((r,(v,f)):Regex.t * (id * flattened_or_userdef_regex))
     : unit =
     if (n <= 0) then
       ()
@@ -352,7 +352,7 @@ let collect_extraction_spec (p:program) : unit =
         collect_extraction_spec_internal (n-1) (r,(v,f))
       else
         let prob_userdef_for_tsv =
-          tsv_delimit (string_of_pair Regex.show ident (r,v))
+          tsv_delimit (string_of_pair Regex.show show_id (r,v))
         in
         let s_for_tsv = tsv_delimit s in
         let on_for_tsv =
@@ -416,7 +416,7 @@ let collect_final_io_spec (p:program) : unit =
 let lens_size (p:program) : unit =
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
-  let rec retrieve_transitive_userdefs (l:Lens.t) : string list =
+  let rec retrieve_transitive_userdefs (l:Lens.t) : id list =
     begin match l with
     | Lens.LensConst(_,_) -> []
     | Lens.LensConcat(l1,l2) ->
@@ -463,12 +463,13 @@ let lens_size (p:program) : unit =
 
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
-  let rec retrieve_transitive_userdefs (r:Regex.t) : string list =
+  let rec retrieve_transitive_userdefs (r:Regex.t) : id list =
     begin match r with
     | Regex.RegExEmpty -> []
     | Regex.RegExBase _ -> []
-    | Regex.RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
-        (retrieve_transitive_userdefs r2)
+    | Regex.RegExConcat (r1,r2) ->
+      (retrieve_transitive_userdefs r1)
+      @ (retrieve_transitive_userdefs r2)
     | Regex.RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
         (retrieve_transitive_userdefs r2)
     | Regex.RegExStar r' -> retrieve_transitive_userdefs r'

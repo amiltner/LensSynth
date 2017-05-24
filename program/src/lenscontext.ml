@@ -37,13 +37,13 @@ module LensContext : LensContext_Sig = struct
     struct
       type key = id
       type value = Lens.t * Regex.t * Regex.t
-      let compare_key = compare_string
+      let compare_key = compare_id
       let compare_value =
         triple_compare
           Lens.compare
           Regex.compare
           Regex.compare
-      let key_to_string = ident
+      let key_to_string = show_id
       let value_to_string =
         string_of_triple
           Lens.show
@@ -55,25 +55,25 @@ module LensContext : LensContext_Sig = struct
     struct
       type key = id
       type value = (Lens.t * id) list
-      let compare_key = compare_string
+      let compare_key = compare_id
       let compare_value =
         compare_list
           ~cmp:(pair_compare
              Lens.compare
              compare)
-      let key_to_string = ident
+      let key_to_string = show_id
       let value_to_string =
         string_of_list
           (string_of_pair
              Lens.show
-             ident)
+             show_id)
     end)
 
   module DS = Disjointset.Make(
     struct
       type elt = id
       let compare_elt = compare
-      let elt_to_string = ident
+      let elt_to_string = show_id
     end)
 
   type t = { defs     : DefsD.dict     ;
@@ -136,7 +136,7 @@ module LensContext : LensContext_Sig = struct
           equivs   = lc.equivs                        ; }
     end
 
-  let insert_list_exn (lc:t) (nirsl:(string * Lens.t * Regex.t * Regex.t) list) : t =
+  let insert_list_exn (lc:t) (nirsl:(id * Lens.t * Regex.t * Regex.t) list) : t =
     List.fold_left
       ~f:(fun acc (name,l,r1,r2) -> insert_exn acc name l r1 r2)
       ~init:lc
@@ -149,7 +149,7 @@ module LensContext : LensContext_Sig = struct
       | Some connections -> connections
     end
 
-  let create_from_list_exn (nirsl:(string * Lens.t * Regex.t * Regex.t) list) : t =
+  let create_from_list_exn (nirsl:(id * Lens.t * Regex.t * Regex.t) list) : t =
     insert_list_exn empty nirsl
 
   let shortest_path (lc:t) (regex1_name:id) (regex2_name:id)
@@ -210,12 +210,12 @@ module LensContext : LensContext_Sig = struct
           | Some n -> (Printf.sprintf "%s%d" base n, Some (n+1))
         end
       in
-      if DefsD.member lc.defs x then
+      if DefsD.member lc.defs (Id x) then
         fresh next
       else
         x
     in
-    fresh None
+    Id (fresh None)
 
   let autogen_id (lc:t) (l:Lens.t) : id =
     let base = Lens.show l in
@@ -226,7 +226,7 @@ module LensContext : LensContext_Sig = struct
           | Some n -> (Printf.sprintf "%s%d" base n, Some (n+1))
         end
       in
-      begin match DefsD.lookup lc.defs x with
+      begin match DefsD.lookup lc.defs (Id x) with
         | Some (l',_,_) ->
           if l = l' then
             x
@@ -235,7 +235,7 @@ module LensContext : LensContext_Sig = struct
         | _ -> x
       end
     in
-    fresh None
+    Id (fresh None)
       
   let autogen_fresh_id (lc:t) : id =
     autogen_id_from_base lc "l"
@@ -256,7 +256,7 @@ module LensContext : LensContext_Sig = struct
           (Regex.hash r1)
           lxor (Regex.hash r2)
           lxor (Lens.hash l)
-          lxor (String.hash id)
+          lxor (hash_id id)
           lxor (Int.hash i)
           lxor acc)
       ~init:(-25389029)

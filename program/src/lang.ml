@@ -7,8 +7,13 @@ open Printf
 exception Internal_error of string
 let internal_error f s = raise @@ Internal_error (sprintf "(%s) %s" f s)
 
-type id = string
+type id = Id of string
 [@@deriving ord, show, hash]
+
+let get_string_of_id
+    (Id v:id)
+  : string =
+  v
 (***** }}} *****)
 
 
@@ -22,41 +27,84 @@ struct
     | RegExConcat of t * t
     | RegExOr of t * t 
     | RegExStar of t
-    | RegExVariable of string
+    | RegExVariable of id
   [@@deriving ord, show, hash, map]
 
   let multiplicative_identity = RegExBase ""
 
   let additive_identity = RegExEmpty
 
-  let separate_plus (r:t) : (t * t) option =
+  let separate_plus
+      (r:t)
+    : (t * t) option =
     begin match r with
       | RegExOr (r1,r2) -> Some (r1,r2)
       | _ -> None
     end
 
-  let separate_times (r:t) : (t * t) option =
+  let separate_times
+      (r:t)
+    : (t * t) option =
     begin match r with
       | RegExConcat (r1,r2) -> Some (r1,r2)
       | _ -> None
     end
 
-  let separate_star (r:t) : t option =
+  let separate_star
+      (r:t)
+    : t option =
     begin match r with
       | RegExStar r' -> Some r'
       | _ -> None
     end
 
-  let create_plus (r1:t) (r2:t) : t =
+  let create_plus
+      (r1:t)
+      (r2:t)
+    : t =
     RegExOr (r1,r2)
 
-  let create_times (r1:t) (r2:t) : t =
+  let create_times
+      (r1:t)
+      (r2:t)
+    : t =
     RegExConcat (r1,r2)
 
-  let create_star (r:t) : t =
+  let create_star
+      (r:t)
+    : t =
     RegExStar r
 
-  let rec apply_at_every_level (f:t -> t) (r:t) : t =
+  let fold
+      ~empty_f:(empty_f:'a)
+      ~base_f:(base_f:string -> 'a)
+      ~concat_f:(concat_f:'a -> 'a -> 'a)
+      ~or_f:(or_f:'a -> 'a -> 'a)
+      ~star_f:(star_f:'a -> 'a)
+      ~var_f:(var_f:id -> 'a)
+    : t -> 'a =
+    let rec fold_internal
+        (r:t)
+      : 'a =
+      begin match r with
+        | RegExEmpty -> empty_f
+        | RegExBase s -> base_f s
+        | RegExConcat (r1,r2) ->
+          concat_f (fold_internal r1) (fold_internal r2)
+        | RegExOr (r1,r2) ->
+          or_f (fold_internal r1) (fold_internal r2)
+        | RegExStar r' ->
+          star_f (fold_internal r')
+        | RegExVariable v ->
+          var_f v
+      end
+    in
+    fold_internal
+
+  let rec apply_at_every_level
+      (f:t -> t)
+      (r:t)
+    : t =
     let r =
       begin match r with
         | RegExConcat (r1,r2) ->
@@ -70,7 +118,79 @@ struct
     in
     f r
 
-  let rec size (r:t) : int =
+  let rec applies_for_every_applicable_level
+      (f:t -> t option)
+      (r:t)
+    : t list =
+    let recursed_applies =
+      begin match r with
+        | RegExConcat (r1,r2) ->
+          let r1s =
+            applies_for_every_applicable_level
+              f
+              r1
+          in
+          let r2s =
+            applies_for_every_applicable_level
+              f
+              r2
+          in
+          let recursed_lefts =
+            List.map
+              ~f:(fun r1' -> RegExConcat (r1',r2))
+              r1s
+          in
+          let recursed_rights =
+            List.map
+              ~f:(fun r2' -> RegExConcat (r1,r2'))
+              r2s
+          in
+          recursed_lefts@recursed_rights
+        | RegExOr (r1,r2) ->
+          let r1s =
+            applies_for_every_applicable_level
+              f
+              r1
+          in
+          let r2s =
+            applies_for_every_applicable_level
+              f
+              r2
+          in
+          let recursed_lefts =
+            List.map
+              ~f:(fun r1' -> RegExOr (r1',r2))
+              r1s
+          in
+          let recursed_rights =
+            List.map
+              ~f:(fun r2' -> RegExOr (r1,r2'))
+              r2s
+          in
+          recursed_lefts@recursed_rights
+        | RegExStar r' ->
+          let r's =
+            applies_for_every_applicable_level
+              f
+              r'
+          in
+          List.map
+            ~f:(fun r'' -> RegExStar r'')
+            r's
+        | _ -> []
+      end
+    in
+    begin match f r with
+      | Some r' -> r'::recursed_applies
+      | None -> recursed_applies
+    end
+
+
+
+
+  let rec size
+      (r:t)
+    : int =
     begin match r with
       | RegExEmpty -> 1
       | RegExBase _ -> 1
@@ -217,6 +337,12 @@ struct
       end
     in
     f l
+
+  let rec applies_for_every_applicable_level
+      (_:t -> t option)
+      (_:t)
+    : t list =
+    failwith "TODO"
 end
 
 let lens_semiring = (module Lens : Semiring with type t = Lens.t)
@@ -230,7 +356,7 @@ let lens_star_semiring = (module Lens : StarSemiring with type t = Lens.t)
 
 type examples = (string * string) list
 
-type specification = (string * Regex.t * Regex.t * (string * string) list)
+type specification = (id * Regex.t * Regex.t * (string * string) list)
 
 type declaration =
   | DeclRegexCreation of (id * Regex.t * bool)
@@ -241,7 +367,7 @@ type declaration =
 
 type program = declaration list
 
-type synth_problems = (string * Regex.t * bool) list * (specification list) 
+type synth_problems = (id * Regex.t * bool) list * (specification list) 
 
 (***** }}} *****)
 

@@ -52,7 +52,7 @@ let make_flattened_or
 let rec to_flattened_or_userdef_regex_relevant_important
     (rc:RegexContext.t)
     (r:Regex.t)
-    (imp:string)
+    (imp:id)
   : flattened_or_userdef_regex =
   begin match r with
     | Regex.RegExEmpty -> (false,FRegExEmpty)
@@ -247,10 +247,10 @@ let gen_element_and_on_off_portions_of_flattened_or_userdef_regex
 let get_userdef_focused_flattened_regexs
     (rc:RegexContext.t)
     (r:Regex.t)
-  : (string * flattened_or_userdef_regex) list =
+  : (id * flattened_or_userdef_regex) list =
   let rec get_all_userdefs
       (r:Regex.t)
-    : string list =
+    : id list =
     begin match r with
       | Regex.RegExEmpty -> []
       | Regex.RegExBase _ -> []
