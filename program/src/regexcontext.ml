@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 open String_utilities
 open Lang
@@ -9,13 +9,13 @@ module type RegexContext_Sig = sig
     type t
 
     val empty                    : t
-    val lookup                   : t -> id -> regex option
-    val lookup_exn               : t -> id -> regex
-    val insert_exn               : t -> id -> regex -> bool -> t
-    val insert_list_exn          : t -> (id * regex * bool) list -> t
-    val create_from_list_exn     : (id * regex * bool) list -> t
-    val lookup_for_expansion_exn : t -> id -> regex option
-    val autogen_id               : t -> regex -> id
+    val lookup                   : t -> id -> Regex.t option
+    val lookup_exn               : t -> id -> Regex.t
+    val insert_exn               : t -> id -> Regex.t -> bool -> t
+    val insert_list_exn          : t -> (id * Regex.t * bool) list -> t
+    val create_from_list_exn     : (id * Regex.t * bool) list -> t
+    val lookup_for_expansion_exn : t -> id -> Regex.t option
+    val autogen_id               : t -> Regex.t -> id
     val autogen_fresh_id         : t -> id
     val merge_contexts_exn       : t -> t -> t
     val compare                  : t -> t -> comparison
@@ -27,29 +27,29 @@ module RegexContext : RegexContext_Sig = struct
   module D = Dict.Make(
     struct
       type key = id
-      type value = regex * bool
-      let compare_key = comparison_compare
-      let compare_value = pair_compare regex_compare comparison_compare
+      type value = Regex.t * bool
+      let compare_key = compare_string
+      let compare_value = pair_compare Regex.compare compare
       let key_to_string = ident
-      let value_to_string = string_of_pair regex_to_string string_of_bool
+      let value_to_string = string_of_pair Regex.show string_of_bool
     end)
     type t = D.dict
 
     let empty = D.empty
 
-    let lookup_everything (rc:t) (name:id) : (regex*bool) option =
+    let lookup_everything (rc:t) (name:id) : (Regex.t*bool) option =
       D.lookup rc name
 
-    let lookup (rc:t) (name:id) : regex option =
+    let lookup (rc:t) (name:id) : Regex.t option =
       Option.map ~f:fst (lookup_everything rc name)
 
-    let lookup_exn (rc:t) (name:id) : regex =
+    let lookup_exn (rc:t) (name:id) : Regex.t =
       begin match lookup rc name with
         | None -> failwith "lookup_exn: key not found"
         | Some v -> v
       end
 
-    let insert_exn (rc:t) (name:id) (r:regex) (is_abstract:bool) : t =
+    let insert_exn (rc:t) (name:id) (r:Regex.t) (is_abstract:bool) : t =
       begin match lookup_everything rc name with
         | None -> D.insert rc name (r,is_abstract)
         | Some ra ->
@@ -59,17 +59,17 @@ module RegexContext : RegexContext_Sig = struct
               failwith (name ^ " already exists in the context")
       end
 
-    let insert_list_exn (rc:t) (nral:(id * regex * bool) list) : t =
+    let insert_list_exn (rc:t) (nral:(id * Regex.t * bool) list) : t =
       List.fold_left
         ~f:(fun acc (name,r,b) -> insert_exn acc name r b)
         ~init:rc
         nral
 
-    let create_from_list_exn (nral:(id * regex * bool) list) : t =
+    let create_from_list_exn (nral:(id * Regex.t * bool) list) : t =
       insert_list_exn empty nral
 
-    let autogen_id (rc:t) (r:regex) : id =
-      let base = regex_to_string r in
+    let autogen_id (rc:t) (r:Regex.t) : id =
+      let base = Regex.show r in
       let rec fresh n =
         let x = Printf.sprintf "%s%d" base n in
         begin match D.lookup rc x with
@@ -95,7 +95,7 @@ module RegexContext : RegexContext_Sig = struct
       in
       fresh 1
 
-    let lookup_for_expansion_exn (rc:t) (name:id) : regex option =
+    let lookup_for_expansion_exn (rc:t) (name:id) : Regex.t option =
       begin match lookup_everything rc name with
         | None -> failwith ("bad regex name: " ^ name)
         | Some (r,abs) ->
@@ -118,7 +118,7 @@ module RegexContext : RegexContext_Sig = struct
       let kvp_list = D.as_kvp_list rc in
       List.foldi
         ~f:(fun i acc (id,(r,abs)) ->
-            (regex_hash r)
+            (Regex.hash r)
             lxor (Bool.hash abs)
             lxor (String.hash id)
             lxor (Int.hash i)

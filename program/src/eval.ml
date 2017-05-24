@@ -1,21 +1,21 @@
-open Core.Std
+open Core
 open Lang
 open Normalized_lang
 open Regexcontext
 
-let rec to_empty_exampled_regex (r:regex) : exampled_regex =
+let rec to_empty_exampled_regex (r:Regex.t) : exampled_regex =
   begin match r with
-  | RegExEmpty -> ERegExEmpty
-  | RegExBase s -> ERegExBase (s,[])
-  | RegExConcat (r1,r2) ->
+  | Regex.RegExEmpty -> ERegExEmpty
+  | Regex.RegExBase s -> ERegExBase (s,[])
+  | Regex.RegExConcat (r1,r2) ->
       ERegExConcat (to_empty_exampled_regex r1,to_empty_exampled_regex r2,[])
-  | RegExOr (r1,r2) ->
+  | Regex.RegExOr (r1,r2) ->
       ERegExOr
         ((to_empty_exampled_regex r1),
          (to_empty_exampled_regex r2),
          [])
-  | RegExStar r' -> ERegExStar (to_empty_exampled_regex r',[])
-  | RegExVariable t -> ERegExVariable (t,[],[])
+  | Regex.RegExStar r' -> ERegExStar (to_empty_exampled_regex r',[])
+  | Regex.RegExVariable t -> ERegExVariable (t,[],[])
   end
 
 type data = string * exampled_regex *
@@ -28,12 +28,12 @@ type state =
 
 type dfa = (state ref) * (state ref)
 
-let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
+let rec regex_to_dfa (c:RegexContext.t) (r:Regex.t) (inside_userdef:bool) : dfa =
   begin match r with
-  | RegExEmpty ->
+  | Regex.RegExEmpty ->
       let final = ref QAccept in
       (ref (State (fun _ -> [])), final)
-  | RegExBase s ->
+  | Regex.RegExBase s ->
       let final = ref QAccept in
       (ref (State (fun (str,er,recombiners,is,so) ->
         begin match String.chop_prefix ~prefix:s str with
@@ -47,7 +47,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
             else
               [(final,(str',er,recombiners,is,so))]
         end)), final)
-  | RegExConcat (r1,r2) ->
+  | Regex.RegExConcat (r1,r2) ->
       let (r1_start_ref,r1_end_ref) = regex_to_dfa c r1 inside_userdef in
       let (r2_start_ref,r2_end_ref) = regex_to_dfa c r2 inside_userdef in
       let new_start_fun = (fun (s,er,rc,is,so) ->
@@ -88,7 +88,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
       in
       r2_end_ref := new_r2_end;
       (ref new_start,new_end_ref)
-  | RegExOr (r1,r2) ->
+  | Regex.RegExOr (r1,r2) ->
       let (r1_start_ref,r1_end_ref) = regex_to_dfa c r1 inside_userdef in
       let (r2_start_ref,r2_end_ref) = regex_to_dfa c r2 inside_userdef in
       let new_start_fun = (fun (s,er,rc,is,so) ->
@@ -125,7 +125,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
       r1_end_ref := new_inner_end;
       r2_end_ref := new_inner_end;
       (ref new_start,new_end_ref)
-  | RegExStar (inner_r) ->
+  | Regex.RegExStar (inner_r) ->
       let (inner_start_ref,inner_end_ref) = regex_to_dfa c inner_r inside_userdef in
       let new_end_ref = ref QAccept in
       let new_inner_end_fun =
@@ -156,7 +156,7 @@ let rec regex_to_dfa (c:RegexContext.t) (r:regex) (inside_userdef:bool) : dfa =
       in
       let new_start = State new_start_fun in
       (ref new_start, new_end_ref)
-  | RegExVariable t ->
+  | Regex.RegExVariable t ->
       let rex = RegexContext.lookup_exn c t in
       let (inner_start_ref,inner_end_ref) = regex_to_dfa c rex true in
       let new_end_ref = ref QAccept in
@@ -208,7 +208,7 @@ let rec eval_dfa (st:state) ((s,er,recombiners,is,so):data) :
         None
   end
 
-let fast_eval (c:RegexContext.t) (r:regex) (s:string) : bool =
+let fast_eval (c:RegexContext.t) (r:Regex.t) (s:string) : bool =
   let (dfa_start,_) = regex_to_dfa c r false in
   not
     (Option.is_empty
@@ -216,7 +216,7 @@ let fast_eval (c:RegexContext.t) (r:regex) (s:string) : bool =
           !dfa_start
           (s,(to_empty_exampled_regex r),[],[0],None)))
 
-let regex_to_exampled_regex (rc:RegexContext.t) (r:regex) (es:string list)
+let regex_to_exampled_regex (rc:RegexContext.t) (r:Regex.t) (es:string list)
                                  : exampled_regex option =
   let (dfa_start,_) = regex_to_dfa rc r false in
   let start_state = !dfa_start in

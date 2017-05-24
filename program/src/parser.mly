@@ -70,22 +70,22 @@ regex:
   | r=regex_l0 { r }
 
 regex_l0:
-  | r1=regex_l1 PIPE r2=regex_l0 { RegExOr (r1,r2) }
+  | r1=regex_l1 PIPE r2=regex_l0 { Regex.RegExOr (r1,r2) }
   | r=regex_l1 { r }
 
 regex_l1:
-  | r1=regex_l2 r2=regex_l1 { RegExConcat (r1,r2) }
+  | r1=regex_l2 r2=regex_l1 { Regex.RegExConcat (r1,r2) }
   | r=regex_l2 { r }
 
 regex_l2:
-  | r=regex_l2 STAR { RegExStar r }
-  | r=regex_l2 PLUS { RegExConcat(r, RegExStar r) }
+  | r=regex_l2 STAR { Regex.RegExStar r }
+  | r=regex_l2 PLUS { Regex.RegExConcat(r, Regex.RegExStar r) }
   | r=regex_l3 { r }
 
 regex_l3:
-  | s=base { RegExBase s }
+  | s=base { Regex.RegExBase s }
   | LPAREN r=regex_l0 RPAREN { r }
-  | u=UID { RegExVariable u }
+  | u=UID { Regex.RegExVariable u }
 
 
 base:

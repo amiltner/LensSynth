@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Lang
 open Regexcontext
 open String_utilities
@@ -51,23 +51,23 @@ let make_flattened_or
 
 let rec to_flattened_or_userdef_regex_relevant_important
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (imp:string)
   : flattened_or_userdef_regex =
   begin match r with
-    | RegExEmpty -> (false,FRegExEmpty)
-    | RegExBase s -> (false,FRegExBase s)
-    | RegExConcat (r1,r2) ->
+    | Regex.RegExEmpty -> (false,FRegExEmpty)
+    | Regex.RegExBase s -> (false,FRegExBase s)
+    | Regex.RegExConcat (r1,r2) ->
       make_flattened_concat
         (to_flattened_or_userdef_regex_relevant_important rc r1 imp)
         (to_flattened_or_userdef_regex_relevant_important rc r2 imp)
-    | RegExOr (r1,r2) ->
+    | Regex.RegExOr (r1,r2) ->
       make_flattened_or
         (to_flattened_or_userdef_regex_relevant_important rc r1 imp)
         (to_flattened_or_userdef_regex_relevant_important rc r2 imp)
-    | RegExStar r' ->
+    | Regex.RegExStar r' ->
       (false,FRegExStar (to_flattened_or_userdef_regex_relevant_important rc r' imp))
-    | RegExVariable v ->
+    | Regex.RegExVariable v ->
       let r' = RegexContext.lookup_exn rc v in
       let sub_ofr = snd (to_flattened_or_userdef_regex_relevant_important rc r' v) in
       (v = imp, sub_ofr)
@@ -75,22 +75,22 @@ let rec to_flattened_or_userdef_regex_relevant_important
 
 let rec to_flattened_or_userdef_regex
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
   : flattened_or_userdef_regex =
   begin match r with
-    | RegExEmpty -> (false,FRegExEmpty)
-    | RegExBase s -> (false,FRegExBase s)
-    | RegExConcat (r1,r2) ->
+    | Regex.RegExEmpty -> (false,FRegExEmpty)
+    | Regex.RegExBase s -> (false,FRegExBase s)
+    | Regex.RegExConcat (r1,r2) ->
       make_flattened_concat
         (to_flattened_or_userdef_regex rc r1)
         (to_flattened_or_userdef_regex rc r2)
-    | RegExOr (r1,r2) ->
+    | Regex.RegExOr (r1,r2) ->
       make_flattened_or
         (to_flattened_or_userdef_regex rc r1)
         (to_flattened_or_userdef_regex rc r2)
-    | RegExStar r' ->
+    | Regex.RegExStar r' ->
       (false,FRegExStar (to_flattened_or_userdef_regex rc r'))
-    | RegExVariable v ->
+    | Regex.RegExVariable v ->
       let r' = RegexContext.lookup_exn rc v in
       to_flattened_or_userdef_regex rc r'
   end
@@ -128,7 +128,7 @@ and sum_flattened_or_userdef_regex_to_string
   end
 
 let compare_flattened_or_userdef_regex : flattened_or_userdef_regex comparer =
-  comparison_compare
+  compare
 
 
 let gen_element_and_on_portions_of_flattened_or_userdef_regex
@@ -202,7 +202,7 @@ let gen_element_and_on_portions_of_flattened_or_userdef_regex
     
 let gen_element_of_regex_language
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
   : string =
   let (s,_) =
     (gen_element_and_on_portions_of_flattened_or_userdef_regex
@@ -246,21 +246,21 @@ let gen_element_and_on_off_portions_of_flattened_or_userdef_regex
 
 let get_userdef_focused_flattened_regexs
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
   : (string * flattened_or_userdef_regex) list =
   let rec get_all_userdefs
-      (r:regex)
+      (r:Regex.t)
     : string list =
     begin match r with
-      | RegExEmpty -> []
-      | RegExBase _ -> []
-      | RegExConcat (r1,r2) ->
+      | Regex.RegExEmpty -> []
+      | Regex.RegExBase _ -> []
+      | Regex.RegExConcat (r1,r2) ->
         (get_all_userdefs r1)@(get_all_userdefs r2)
-      | RegExOr (r1,r2) ->
+      | Regex.RegExOr (r1,r2) ->
         (get_all_userdefs r1)@(get_all_userdefs r2)
-      | RegExStar r' ->
+      | Regex.RegExStar r' ->
         get_all_userdefs r'
-      | RegExVariable v -> [v]
+      | Regex.RegExVariable v -> [v]
     end
   in
   let all_userdefs = List.dedup (get_all_userdefs r) in

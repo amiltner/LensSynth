@@ -1,5 +1,5 @@
 open Lang
-open Core.Std
+open Core
 open Eval
 open Lens_put
 open Util
@@ -18,7 +18,7 @@ let rec clean_exampledness_atom
       let udef_choice_zip = List.zip_exn el cs in
       let actual_choices =
         List.filter
-          ~f:(fun (_,c) -> List.mem choices c)
+          ~f:(fun (_,c) -> List.mem ~equal:(=) choices c)
           udef_choice_zip
       in
       let (strs,cs) = List.unzip actual_choices in
@@ -27,7 +27,7 @@ let rec clean_exampledness_atom
       
       let actual_choices =
         List.filter
-          ~f:(fun ch -> List.mem choices ch)
+          ~f:(fun ch -> List.mem ~equal:(=) choices ch)
           cs
       in
       
@@ -39,7 +39,7 @@ and clean_exampledness_clause (above_choices:int list list)
   
   let actual_choices =
     List.filter
-      ~f:(fun ch -> List.mem above_choices ch)
+      ~f:(fun ch -> List.mem ~equal:(=) above_choices ch)
       current_choices
   in
   
@@ -82,7 +82,7 @@ let concat_exampled_dnf_regexs ((r1,_):exampled_dnf_regex)
   cartesian_map
     (fun (a1s,s1s,c1s) (a2s,s2s,c2s) ->
        let choices_taken = intersect_lose_order_no_dupes
-           (compare_list ~cmp:(int_comparer_to_comparer compare))
+           (compare_list ~cmp:compare)
            c1s
            c2s in
        (List.map ~f:(clean_exampledness_atom choices_taken)(a1s@a2s),
@@ -128,14 +128,14 @@ let rec exampled_regex_to_exampled_dnf_regex (rc:RegexContext.t) (lc:LensContext
           ill
       else
         exampled_atom_to_exampled_dnf_regex
-          (EAVariable (s,s,LensIdentity (RegExVariable s),ss,ill))
+          (EAVariable (s,s,Lens.LensIdentity (Regex.RegExVariable s),ss,ill))
           ill
   end
 
 let regex_to_exampled_dnf_regex
     (c:RegexContext.t)
     (lc:LensContext.t)
-    (r:regex)
+    (r:Regex.t)
     (es:string list)
   : exampled_dnf_regex option =
   let er_option = regex_to_exampled_regex c r es in

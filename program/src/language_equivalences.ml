@@ -1,34 +1,34 @@
-open Core.Std
+open Core
 open Lang
 open Util
 open Normalized_lang
 
 
-let rec to_dnf_regex (r:regex) : dnf_regex =
+let rec to_dnf_regex (r:Regex.t) : dnf_regex =
   let atom_to_dnf_regex (a:atom) : dnf_regex =
     [([a],["";""])]
   in
   begin match r with
-  | RegExEmpty -> []
-  | RegExBase c -> [([],[c])]
-  | RegExConcat (r1,r2) ->
+  | Regex.RegExEmpty -> []
+  | Regex.RegExBase c -> [([],[c])]
+  | Regex.RegExConcat (r1,r2) ->
       cartesian_map
         (fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
         (to_dnf_regex r1)
         (to_dnf_regex r2)
-  | RegExOr (r1, r2) -> (to_dnf_regex r1) @ (to_dnf_regex r2)
-  | RegExStar (r') -> atom_to_dnf_regex (AStar (to_dnf_regex r'))
-  | RegExVariable s -> atom_to_dnf_regex (AUserDefined s)
+  | Regex.RegExOr (r1, r2) -> (to_dnf_regex r1) @ (to_dnf_regex r2)
+  | Regex.RegExStar (r') -> atom_to_dnf_regex (AStar (to_dnf_regex r'))
+  | Regex.RegExVariable s -> atom_to_dnf_regex (AUserDefined s)
   end
 
 
-let rec atom_to_regex (a:atom) : regex =
+let rec atom_to_regex (a:atom) : Regex.t =
   begin match a with
-  | AUserDefined t -> RegExVariable t
-  | AStar dr -> RegExStar (dnf_regex_to_regex dr)
+  | AUserDefined t -> Regex.RegExVariable t
+  | AStar dr -> Regex.RegExStar (dnf_regex_to_regex dr)
   end
 
-and clause_to_regex ((atoms,strings):clause) : regex =
+and clause_to_regex ((atoms,strings):clause) : Regex.t =
   let atoms_regex_list = List.map
     ~f:(fun a -> atom_to_regex a)
     atoms
@@ -37,25 +37,25 @@ and clause_to_regex ((atoms,strings):clause) : regex =
   let aslist = List.zip_exn atoms_regex_list tstr in
   List.fold_right
     ~f:(fun (a,s) acc ->
-      RegExConcat(RegExConcat(a,RegExBase s),acc))
-    ~init:(RegExBase hstr)
+      Regex.RegExConcat(Regex.RegExConcat(a,Regex.RegExBase s),acc))
+    ~init:(Regex.RegExBase hstr)
     aslist
 
-and dnf_regex_to_regex (r:dnf_regex) : regex =
+and dnf_regex_to_regex (r:dnf_regex) : Regex.t =
   let sequence_regex_list = List.map
     ~f:(fun c -> clause_to_regex c)
     r
   in
   List.fold_right
   ~f:(fun sqr acc ->
-    RegExOr (sqr,acc))
-  ~init:RegExEmpty
+    Regex.RegExOr (sqr,acc))
+  ~init:Regex.RegExEmpty
   sequence_regex_list
 
 
 
 type queue_element =
-  | QERegexCombo of regex * regex * int * int
+  | QERegexCombo of Regex.t * Regex.t * int * int
   | QEGenerator of (unit -> ((queue_element * int) list))
 
 
@@ -68,32 +68,32 @@ let clause_to_kvp ((atoms,strings):clause)
   end
 
 let rec tl_regex_to_regex (tl:(((atom * string) option) list,
-string) tagged_list_tree) : regex =
+string) tagged_list_tree) : Regex.t =
   begin match tl with
-  | Leaf s -> RegExBase s
+  | Leaf s -> Regex.RegExBase s
   | Node (asl,tll) ->
       let left_side = List.fold_left
         ~f:(fun acc aso ->
           begin match aso with
-          | None -> RegExBase ""
+          | None -> Regex.RegExBase ""
           | Some (a,s) ->
-              RegExOr(acc,RegExConcat (RegExBase s,smart_atom_to_regex a))
+              Regex.RegExOr(acc,Regex.RegExConcat (Regex.RegExBase s,smart_atom_to_regex a))
           end)
-        ~init:RegExEmpty
+        ~init:Regex.RegExEmpty
         asl
       in
       let right_side = tll_regex_to_regex tll in
-      RegExConcat(left_side,right_side)
+      Regex.RegExConcat(left_side,right_side)
   end
 
 and tll_regex_to_regex (tll:(((atom * string) option) list,
-string) tagged_list_tree list) : regex =
+string) tagged_list_tree list) : Regex.t =
         List.fold_left
-          ~f:(fun acc l -> RegExOr(acc, tl_regex_to_regex l))
-          ~init:RegExEmpty
+          ~f:(fun acc l -> Regex.RegExOr(acc, tl_regex_to_regex l))
+          ~init:Regex.RegExEmpty
           tll
 
-and smart_dnf_regex_to_regex (r:dnf_regex) : regex =
+and smart_dnf_regex_to_regex (r:dnf_regex) : Regex.t =
   let tltl = dnf_regex_to_tagged_list_tree_list r in
   let tltl_grouped = List.map ~f:tagged_list_tree_keygrouped tltl in
   let real_grouped_tltl = handle_noded_tltl tltl_grouped in
@@ -124,8 +124,8 @@ string) tagged_list_tree list =
       end)
     test
 
-and smart_atom_to_regex (a:atom) : regex =
+and smart_atom_to_regex (a:atom) : Regex.t =
   begin match a with
-  | AUserDefined t -> RegExVariable t
-  | AStar dr -> RegExStar (smart_dnf_regex_to_regex dr)
+  | AUserDefined t -> Regex.RegExVariable t
+  | AStar dr -> Regex.RegExStar (smart_dnf_regex_to_regex dr)
   end

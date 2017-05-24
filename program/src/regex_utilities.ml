@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 open Lang
 open Regexcontext
@@ -6,23 +6,23 @@ open Regexcontext
 let rec make_regex_safe_in_smaller_context
     (rc_smaller:RegexContext.t)
     (rc_larger:RegexContext.t)
-    (r:regex)
-  : regex =
+    (r:Regex.t)
+  : Regex.t =
   begin match r with
-    | RegExEmpty -> RegExEmpty
-    | RegExBase _ -> r
-    | RegExConcat (r1,r2) ->
+    | Regex.RegExEmpty -> Regex.RegExEmpty
+    | Regex.RegExBase _ -> r
+    | Regex.RegExConcat (r1,r2) ->
       let r1 = make_regex_safe_in_smaller_context rc_smaller rc_larger r1 in
       let r2 = make_regex_safe_in_smaller_context rc_smaller rc_larger r2 in
-      RegExConcat (r1,r2)
-    | RegExOr (r1,r2) ->
+      Regex.RegExConcat (r1,r2)
+    | Regex.RegExOr (r1,r2) ->
       let r1 = make_regex_safe_in_smaller_context rc_smaller rc_larger r1 in
       let r2 = make_regex_safe_in_smaller_context rc_smaller rc_larger r2 in
-      RegExOr (r1,r2)
-    | RegExStar r' ->
+      Regex.RegExOr (r1,r2)
+    | Regex.RegExStar r' ->
       let r' = make_regex_safe_in_smaller_context rc_smaller rc_larger r' in
-      RegExStar r'
-    | RegExVariable rn ->
+      Regex.RegExStar r'
+    | Regex.RegExVariable rn ->
       begin match (RegexContext.lookup rc_smaller rn) with
         | None ->
           let r = RegexContext.lookup_exn rc_larger rn in
@@ -31,81 +31,74 @@ let rec make_regex_safe_in_smaller_context
       end
   end
 
-
-
-let simplify_regex : regex -> regex =
-  let maximally_factor_regex : regex -> regex =
-    maximally_factor_hemiring_element
-      apply_at_every_level_regex
-      multiplicative_identity_regex
-      separate_plus_regex
-      separate_times_regex
-      create_plus_regex
-      create_times_regex
+let simplify_regex : Regex.t -> Regex.t =
+  let maximally_factor_regex : Regex.t -> Regex.t =
+    Algebra.maximally_factor_semiring_element
+      regex_semiring
   in
-  let rec clean_regex (r:regex) : regex =
+  let rec clean_regex (r:Regex.t) : Regex.t =
     begin match r with
-      | RegExConcat(x,y) ->
+      | Regex.RegExConcat(x,y) ->
         let x = clean_regex x in
         let y = clean_regex y in
         begin match (x,y) with
-          | (RegExBase "",_) -> y
-          | (_,RegExBase "") -> x
-          | (RegExEmpty,_) -> RegExEmpty
-          | (_,RegExEmpty) -> RegExEmpty
-          | _ -> RegExConcat(x,y)
+          | (Regex.RegExBase "",_) -> y
+          | (_,Regex.RegExBase "") -> x
+          | (Regex.RegExEmpty,_) -> Regex.RegExEmpty
+          | (_,Regex.RegExEmpty) -> Regex.RegExEmpty
+          | _ -> Regex.RegExConcat(x,y)
         end
-      | RegExOr(x,y) ->
+      | Regex.RegExOr(x,y) ->
         let x = clean_regex x in
         let y = clean_regex y in
         begin match (x,y) with
-          | (RegExEmpty,_) -> y
-          | (_,RegExEmpty) -> x
-          | _ -> RegExOr(x,y)
+          | (Regex.RegExEmpty,_) -> y
+          | (_,Regex.RegExEmpty) -> x
+          | _ -> Regex.RegExOr(x,y)
         end
-      | RegExStar(x) ->
+      | Regex.RegExStar(x) ->
         let x = clean_regex x in
         begin match x with
-          | RegExEmpty -> RegExBase ""
-          | _ -> RegExStar x
+          | Regex.RegExEmpty -> Regex.RegExBase ""
+          | _ -> Regex.RegExStar x
         end
       | _ -> r
     end
   in
 
-  let merge_concated_bases : regex -> regex =
+  let merge_concated_bases : Regex.t -> Regex.t =
     let rec retrieve_rightmost_concated_base
-        (r:regex)
-      : (regex option * string option) =
+        (r:Regex.t)
+      : (Regex.t option * string option) =
       begin match r with
-        | RegExConcat (r1,r2) ->
+        | Regex.RegExConcat (r1,r2) ->
           begin match retrieve_rightmost_concated_base r2 with
             | (None, so) -> (Some r1, so)
-            | (Some r2, so) -> (Some (RegExConcat (r1,r2)),so)
+            | (Some r2, so) -> (Some (Regex.RegExConcat (r1,r2)),so)
           end
-        | RegExBase s -> (None, Some s)
+        | Regex.RegExBase s -> (None, Some s)
         | _ -> (Some r, None)
       end
     in
     let rec try_insert_into_leftmost_concated_base
-        (r:regex)
+        (r:Regex.t)
         (s1:string)
-      : regex option =
+      : Regex.t option =
       begin match r with
-        | RegExConcat (r1,r2) ->
+        | Regex.RegExConcat (r1,r2) ->
           Option.map
-            ~f:(fun r1 -> RegExConcat (r1,r2))
+            ~f:(fun r1 -> Regex.RegExConcat (r1,r2))
             (try_insert_into_leftmost_concated_base r1 s1)
-        | RegExBase s2 ->
-          Some (RegExBase (s1^s2))
+        | Regex.RegExBase s2 ->
+          Some (Regex.RegExBase (s1^s2))
         | _ -> None
       end
     in
     let merge_concated_bases_current_level
-        (r:regex)
-      : regex =
+        (r:Regex.t)
+      : Regex.t =
       begin match r with
-        | RegExConcat (r1,r2) ->
+        | Regex.RegExConcat (r1,r2) ->
           begin match retrieve_rightmost_concated_base r1 with
             | (r1o,Some s1) ->
               begin match try_insert_into_leftmost_concated_base r2 s1 with
@@ -113,7 +106,7 @@ let simplify_regex : regex -> regex =
                 | Some r2 ->
                   begin match r1o with
                     | None -> r2
-                    | Some r1 -> RegExConcat (r1,r2)
+                    | Some r1 -> Regex.RegExConcat (r1,r2)
                   end
               end
             | (_, None) -> r
@@ -122,24 +115,10 @@ let simplify_regex : regex -> regex =
       end
     in
 
-    apply_at_every_level_regex merge_concated_bases_current_level
+    Regex.apply_at_every_level merge_concated_bases_current_level
   in
 
   fold_until_fixpoint
     (merge_concated_bases
      % clean_regex
      % maximally_factor_regex)
-
-
-let size (r:regex) : int =
-  let rec size_internal (r:regex) : int =
-    begin match r with
-      | RegExEmpty -> 1
-      | RegExBase _ -> 1
-      | RegExConcat (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
-      | RegExOr (r1,r2) -> 1 + (size_internal r1) + (size_internal r2)
-      | RegExStar r' -> 1 + (size_internal r')
-      | RegExVariable _ -> 1
-    end
-  in
-  size_internal r

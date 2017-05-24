@@ -4,8 +4,8 @@ open String_utilities
 
 type queue_element =
   {
-    r1 : regex;
-    r2 : regex;
+    r1 : Regex.t;
+    r2 : Regex.t;
     expansions_performed : int;
     expansions_inferred : int;
     expansions_forced : int;
@@ -13,7 +13,7 @@ type queue_element =
 
 let nqe_to_tuple
     (q:queue_element)
-  : regex * regex * int * int * int =
+  : Regex.t * Regex.t * int * int * int =
   (q.r1,
    q.r2,
    q.expansions_performed,
@@ -26,19 +26,19 @@ let queue_element_comparison
   (q2:queue_element)
   : comparison =
   quint_compare
-    regex_compare
-    regex_compare
-    (fun _ _ -> EQ)
-    (fun _ _ -> EQ)
-    (fun _ _ -> EQ)
+    Regex.compare
+    Regex.compare
+    (fun _ _ -> 0)
+    (fun _ _ -> 0)
+    (fun _ _ -> 0)
     (nqe_to_tuple q1)
     (nqe_to_tuple q2)
 
 
 let queue_element_to_string =
   (string_of_quintuple
-    regex_to_string
-    regex_to_string
+    Regex.show
+    Regex.show
     string_of_int
     string_of_int
     string_of_int)

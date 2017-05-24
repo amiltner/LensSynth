@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 open String_utilities
 
@@ -30,7 +30,7 @@ struct
       type key = DA.elt
       type value = DA.elt ref
       let compare_key = DA.compare_elt
-      let compare_value = comparison_compare
+      let compare_value = compare
       let key_to_string = DA.elt_to_string
       let value_to_string = (string_of_ref DA.elt_to_string)
     end)

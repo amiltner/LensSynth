@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 open Lang
 open Lenscontext
@@ -6,23 +6,23 @@ open Lens_utilities
 
 type boom_typ =
   | BoomTypRegex
-  | BoomTypLens of regex * regex
+  | BoomTypLens of Regex.t * Regex.t
 
 type boom_expression =
-  | BoomExpRegex of regex
-  | BoomExpLens of lens
+  | BoomExpRegex of Regex.t
+  | BoomExpLens of Lens.t
   | BoomExpCut of boom_statement * boom_expression
 
 and boom_statement =
   | BoomStmtDefinition of id * boom_typ * boom_expression
-  | BoomStmtTestRegex of regex * string
-  | BoomStmtTestLens of lens * string * string
+  | BoomStmtTestRegex of Regex.t * string
+  | BoomStmtTestLens of Lens.t * string * string
 
 type boom_program = boom_statement list
 
-let compare_boom_expression : boom_expression comparer = comparison_compare
+let compare_boom_expression : boom_expression comparer = compare
 
-let compare_boom_statement : boom_statement comparer = comparison_compare
+let compare_boom_statement : boom_statement comparer = compare
 
 let compare_boom_program : boom_program comparer =
   compare_list ~cmp:compare_boom_statement
@@ -37,40 +37,40 @@ let statement_of_decl (d:declaration) : boom_statement list =
       [BoomStmtDefinition (n,BoomTypLens(r1,r2),BoomExpLens l)]
     | DeclTestLens (n,exs) ->
       List.map
-        ~f:(fun (lex,rex) -> BoomStmtTestLens (LensVariable n, lex, rex))
+        ~f:(fun (lex,rex) -> BoomStmtTestLens (Lens.LensVariable n, lex, rex))
         exs
   end
 
 let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
   let rec retrieve_inverses_of_lens_variables_in_lens_exn
-      (l:lens)
+      (l:Lens.t)
     : id list =
     begin match l with
-      | LensConst _ -> []
-      | LensConcat(l1,l2) ->
+      | Lens.LensConst _ -> []
+      | Lens.LensConcat(l1,l2) ->
         let vs1 = retrieve_inverses_of_lens_variables_in_lens_exn l1 in
         let vs2 = retrieve_inverses_of_lens_variables_in_lens_exn l2 in
         vs1@vs2
-      | LensSwap(l1,l2) ->
+      | Lens.LensSwap(l1,l2) ->
         let vs1 = retrieve_inverses_of_lens_variables_in_lens_exn l1 in
         let vs2 = retrieve_inverses_of_lens_variables_in_lens_exn l2 in
         vs1@vs2
-      | LensUnion(l1,l2) ->
+      | Lens.LensUnion(l1,l2) ->
         let vs1 = retrieve_inverses_of_lens_variables_in_lens_exn l1 in
         let vs2 = retrieve_inverses_of_lens_variables_in_lens_exn l2 in
         vs1@vs2
-      | LensCompose(l1,l2) ->
+      | Lens.LensCompose(l1,l2) ->
         let vs1 = retrieve_inverses_of_lens_variables_in_lens_exn l1 in
         let vs2 = retrieve_inverses_of_lens_variables_in_lens_exn l2 in
         vs1@vs2
-      | LensIterate(l') ->
+      | Lens.LensIterate(l') ->
         retrieve_inverses_of_lens_variables_in_lens_exn l'
-      | LensIdentity _ -> []
-      | LensInverse(LensVariable n) -> [n]
-      | LensInverse(l') ->
+      | Lens.LensIdentity _ -> []
+      | Lens.LensInverse(Lens.LensVariable n) -> [n]
+      | Lens.LensInverse(l') ->
         retrieve_inverses_of_lens_variables_in_lens_exn l'
-      | LensVariable _ -> []
-      | LensPermute (_,ls) ->
+      | Lens.LensVariable _ -> []
+      | Lens.LensPermute (_,ls) ->
         List.concat_map
           ~f:retrieve_inverses_of_lens_variables_in_lens_exn
           ls
@@ -97,8 +97,8 @@ let add_inverted_lenses_after_original_lenses
     ~f:(fun d (lc,p,id_map) ->
         begin match d with
           | DeclLensCreation (n,r1,r2,l) ->
-            if List.mem inverted_vars n then
-              let l_inv = simplify_lens (LensInverse l) in
+            if List.mem ~equal:(=) inverted_vars n then
+              let l_inv = simplify_lens (Lens.LensInverse l) in
               let n_inv = LensContext.autogen_id_from_base lc (n ^ "_inv") in
               let d_inv = DeclLensCreation(n_inv,r2,r1,l_inv) in
               let lc = LensContext.insert_exn lc n_inv l_inv r2 r1 in
@@ -115,14 +115,14 @@ let replace_inverted_lens_variables
     (p:program)
   : program =
   let replace_inverted_lens_variables_current_level_lens
-      (l:lens)
-    : lens =
+      (l:Lens.t)
+    : Lens.t =
     begin match l with
-      | LensInverse(LensVariable n) ->
-        begin match List.Assoc.find inverted_map n with
+      | Lens.LensInverse(Lens.LensVariable n) ->
+        begin match List.Assoc.find ~equal:(=) inverted_map n with
           | None ->
             l
-          | Some v -> LensVariable v
+          | Some v -> Lens.LensVariable v
         end
       | _ -> l
     end

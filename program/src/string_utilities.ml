@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 
 let paren (s:string) : string = "(" ^ s ^ ")"
@@ -131,15 +131,5 @@ let string_of_char_list : char list -> string =
 let string_of_char_list_list : char list list -> string =
   string_of_list string_of_char_list
 
-let string_of_comparison (c:comparison) : string =
-  begin match c with
-  | EQ -> "EQ"
-  | LT -> "LT"
-  | GT -> "GT"
-  end
-
 let string_of_ref (location_to_string:'a -> string) (r:'a ref) : string =
   (location_to_string !r) ^ " ref"
-
-let string_compare : string -> string -> comparison =
-  int_comparer_to_comparer String.compare

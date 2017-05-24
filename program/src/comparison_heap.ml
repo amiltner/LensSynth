@@ -1,6 +1,6 @@
 (* Heavily using http://typeocaml.com/2015/03/12/heap-leftist-tree/ *)
 
-open Core.Std
+open Core
 open Util
 open String_utilities
 
@@ -49,18 +49,17 @@ struct
       | (Leaf,_) -> h2
       | (_,Leaf) -> h1
       | (Node(lh,e1,rh,_), Node(_,e2,_,_)) ->
-        begin match H.compare e1 e2 with
-          | GT ->
-            merge h2 h1
-          | _ ->
-            let merged = merge rh h2 in
-            let rank_left = rank lh in
-            let rank_right = rank merged in
-            if rank_left >= rank_right then
-              Node (lh, e1, merged, rank_right+1)
-            else
-              Node (merged, e1, lh, rank_left+1)
-        end
+        let cmp = H.compare e1 e2 in
+        if (is_gt cmp) then
+          merge h2 h1
+        else
+          let merged = merge rh h2 in
+          let rank_left = rank lh in
+          let rank_right = rank merged in
+          if rank_left >= rank_right then
+            Node (lh, e1, merged, rank_right+1)
+          else
+            Node (merged, e1, lh, rank_left+1)
     end
     
   let push (h:heap) (e:element) : heap =
@@ -98,8 +97,8 @@ struct
     end
 
   let compare (h1:heap) (h2:heap) : comparison =
-    let h1es = sort ~cmp:H.compare (to_list h1) in
-    let h2es = sort ~cmp:H.compare (to_list h2) in
+    let h1es = List.sort ~cmp:H.compare (to_list h1) in
+    let h2es = List.sort ~cmp:H.compare (to_list h2) in
     compare_list
       ~cmp:H.compare
       h1es

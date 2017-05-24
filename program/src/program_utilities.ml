@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Lang
 open Regexcontext
 open Lenscontext
@@ -9,8 +9,8 @@ open Lens_put
 type callback =
   (RegexContext.t *
    LensContext.t *
-   regex *
-   regex *
+   Regex.t *
+   Regex.t *
    (string * string) list)
     -> unit
 
@@ -27,7 +27,7 @@ let run_declaration_with_callback
       if fast_eval rc r s then
         (rc,lc,d)
       else
-        failwith (s ^ " does not match regex " ^ (regex_to_string r))
+        failwith (s ^ " does not match regex " ^ (Regex.show r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
@@ -41,7 +41,7 @@ let run_declaration_with_callback
     | DeclTestLens (n,exs) ->
       List.iter
         ~f:(fun (lex,rex) ->
-            let ans = lens_putr rc lc (LensVariable n) lex in
+            let ans = lens_putr rc lc (Lens.LensVariable n) lex in
             if ans <> rex then
               failwith ("expected:" ^ rex ^ "got:" ^ ans)
             else
@@ -62,7 +62,7 @@ let run_declaration
       if fast_eval rc r s then
         (rc,lc,d)
       else
-        failwith (s ^ " does not match regex " ^ (regex_to_string r))
+        failwith (s ^ " does not match regex " ^ (Regex.show r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
@@ -75,7 +75,7 @@ let run_declaration
     | DeclTestLens (n,exs) ->
       List.iter
         ~f:(fun (lex,rex) ->
-            let ans = lens_putr rc lc (LensVariable n) lex in
+            let ans = lens_putr rc lc (Lens.LensVariable n) lex in
             if ans <> rex then
               failwith ("expected:" ^ rex ^ "got:" ^ ans)
             else
@@ -135,7 +135,7 @@ let remove_tests : program -> program =
 
 let retrieve_last_synthesis_problem_exn
     (p:program)
-  : RegexContext.t * LensContext.t * regex * regex * examples =
+  : RegexContext.t * LensContext.t * Regex.t * Regex.t * examples =
   let p = remove_tests p in
   let (rc,lc,last_synth_option) = List.fold_left
     ~f:(fun (rc,lc,last_synth_option) d ->

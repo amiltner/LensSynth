@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Regexcontext
 open Lenscontext
 open Lang
@@ -17,20 +17,19 @@ let fetch_or_calculate (tbl: ('a, 'b) Hashtbl.t) (key:'a) (f:unit -> 'b) : 'b =
       end
 
 module RC_R_S : sig
-  type t = (RegexContext.t * regex * int)
-  val make_key : RegexContext.t -> regex -> int -> t
+  type t = (RegexContext.t * Regex.t * int)
+  val make_key : RegexContext.t -> Regex.t -> int -> t
   include Hashable.S with type t := t
 end = struct
   module T = struct
-    type t = RegexContext.t * regex * int
-    let make_key (rc:RegexContext.t) (r:regex) (s:int) = (rc,r,s)
-    let hash = hash_triple RegexContext.hash regex_hash Int.hash
+    type t = RegexContext.t * Regex.t * int
+    let make_key (rc:RegexContext.t) (r:Regex.t) (s:int) = (rc,r,s)
+    let hash = hash_triple RegexContext.hash Regex.hash Int.hash
     let compare k1 k2 =
-      comparison_to_int
         (triple_compare
            RegexContext.compare
-           regex_compare
-           comparison_compare
+           Regex.compare
+           compare
            k1
            k2)
       
@@ -42,34 +41,33 @@ end = struct
 end
 
 module RC_LC_R_R_S : sig
-  type t = (RegexContext.t * LensContext.t * regex * regex * int)
-  val make_key : RegexContext.t -> LensContext.t -> regex -> regex -> int -> t
+  type t = (RegexContext.t * LensContext.t * Regex.t * Regex.t * int)
+  val make_key : RegexContext.t -> LensContext.t -> Regex.t -> Regex.t -> int -> t
   include Hashable.S with type t := t
 end = struct
   module T = struct
-    type t = RegexContext.t * LensContext.t * regex * regex * int
+    type t = RegexContext.t * LensContext.t * Regex.t * Regex.t * int
     let make_key
         (rc:RegexContext.t)
         (lc:LensContext.t)
-        (r1:regex)
-        (r2:regex)
+        (r1:Regex.t)
+        (r2:Regex.t)
         (s:int)
       = (rc,lc,r1,r2,s)
     let hash =
       hash_quintuple
         RegexContext.hash
         LensContext.hash
-        regex_hash
-        regex_hash
+        Regex.hash
+        Regex.hash
         Int.hash
     let compare k1 k2 =
-      comparison_to_int
         (quint_compare
            RegexContext.compare
            LensContext.compare
-           regex_compare
-           regex_compare
-           comparison_compare
+           Regex.compare
+           Regex.compare
+           compare
            k1
            k2)
       
@@ -80,38 +78,38 @@ end = struct
   include Hashable.Make(T)
 end
 
-type rewriter = RegexContext.t -> regex -> int -> regex list
-type synthesizer = RegexContext.t -> LensContext.t -> regex -> regex -> int -> lens list
+type rewriter = RegexContext.t -> Regex.t -> int -> Regex.t list
+type synthesizer = RegexContext.t -> LensContext.t -> Regex.t -> Regex.t -> int -> Lens.t list
 
-let memo_rrw_tbl : (RC_R_S.t, regex list) Hashtbl.t =
+let memo_rrw_tbl : (RC_R_S.t, Regex.t list) Hashtbl.t =
   Hashtbl.create ~hashable:RC_R_S.hashable ()
 
-let memo_lenssynth_tbl : (RC_LC_R_R_S.t, lens list) Hashtbl.t =
+let memo_lenssynth_tbl : (RC_LC_R_R_S.t, Lens.t list) Hashtbl.t =
   Hashtbl.create ~hashable:RC_LC_R_R_S.hashable ()
 let rec regexes_of_size
     (size:int)
-  : regex list =
+  : Regex.t list =
   let make_or
-      (r1:regex)
-      (r2:regex)
-    : regex =
-    RegExOr(r1,r2)
+      (r1:Regex.t)
+      (r2:Regex.t)
+    : Regex.t =
+    Regex.RegExOr(r1,r2)
   in
   let make_concat
-      (r1:regex)
-      (r2:regex)
-    : regex =
-    RegExConcat(r1,r2)
+      (r1:Regex.t)
+      (r2:Regex.t)
+    : Regex.t =
+    Regex.RegExConcat(r1,r2)
   in
   let make_star
-      (r:regex)
-    : regex =
-    RegExStar(r)
+      (r:Regex.t)
+    : Regex.t =
+    Regex.RegExStar(r)
   in
   if size = 0 then
     []
   else if size = 1 then
-    [RegExBase "a";RegExEmpty]
+    [Regex.RegExBase "a";Regex.RegExEmpty]
   else
     let stars = List.map ~f:make_star (regexes_of_size (size-1)) in
     let ps = double_partitions size in
@@ -143,12 +141,12 @@ let rec regexes_of_size
 
 let expand_userdefs_lr
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExVariable v ->
+      | Regex.RegExVariable v ->
         [RegexContext.lookup_exn rc v]
       | _ ->
         []
@@ -158,13 +156,13 @@ let expand_userdefs_lr
 
 let combine_bases_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(RegExBase s1, RegExBase s2) ->
-        [RegExBase (s1^s2)]
+      | Regex.RegExConcat(Regex.RegExBase s1, Regex.RegExBase s2) ->
+        [Regex.RegExBase (s1^s2)]
       | _ ->
         []
     end
@@ -173,12 +171,12 @@ let combine_bases_lr
 
 let combine_bases_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExBase s ->
+      | Regex.RegExBase s ->
         let len = String.length s in
         if len < 2 then
           []
@@ -188,7 +186,7 @@ let combine_bases_rl
             ~f:(fun i ->
                 let s1 = String.sub ~pos:0 ~len:i s in
                 let s2 = String.sub ~pos:i ~len:(len-i) s in
-                RegExConcat(RegExBase s1, RegExBase s2))
+                Regex.RegExConcat(Regex.RegExBase s1, Regex.RegExBase s2))
             split_locations
       | _ ->
         []
@@ -198,12 +196,12 @@ let combine_bases_rl
 
 let or_id_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(r1,RegExEmpty) ->
+      | Regex.RegExOr(r1,Regex.RegExEmpty) ->
         [r1]
       | _ ->
         []
@@ -213,23 +211,23 @@ let or_id_rewrites_lr
 
 let or_id_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
-    [RegExOr(r,RegExEmpty)]
+    [Regex.RegExOr(r,Regex.RegExEmpty)]
   else
     []
 
 let empty_proj_right_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(_,RegExEmpty) ->
-        [RegExEmpty]
+      | Regex.RegExConcat(_,Regex.RegExEmpty) ->
+        [Regex.RegExEmpty]
       | _ ->
         []
     end
@@ -238,15 +236,15 @@ let empty_proj_right_rewrites_lr
 
 let empty_proj_right_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   begin match r with
-    | RegExEmpty ->
+    | Regex.RegExEmpty ->
       let generated_regexes = regexes_of_size size in
       List.map
         ~f:(fun r' ->
-            RegExConcat (r', RegExEmpty))
+            Regex.RegExConcat (r', Regex.RegExEmpty))
         generated_regexes
     | _ ->
       []
@@ -254,13 +252,13 @@ let empty_proj_right_rewrites_rl
 
 let empty_proj_left_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(RegExEmpty,_) ->
-        [RegExEmpty]
+      | Regex.RegExConcat(Regex.RegExEmpty,_) ->
+        [Regex.RegExEmpty]
       | _ ->
         []
     end
@@ -269,15 +267,15 @@ let empty_proj_left_rewrites_lr
 
 let empty_proj_left_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   begin match r with
-    | RegExEmpty ->
+    | Regex.RegExEmpty ->
       let generated_regexes = regexes_of_size size in
       List.map
         ~f:(fun r' ->
-            RegExConcat (RegExEmpty, r'))
+            Regex.RegExConcat (Regex.RegExEmpty, r'))
         generated_regexes
     | _ ->
       []
@@ -285,13 +283,13 @@ let empty_proj_left_rewrites_rl
 
 let concat_assoc_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(RegExConcat(r1,r2),r3) ->
-        [RegExConcat(r1,RegExConcat(r2,r3))]
+      | Regex.RegExConcat(Regex.RegExConcat(r1,r2),r3) ->
+        [Regex.RegExConcat(r1,Regex.RegExConcat(r2,r3))]
       | _ ->
         []
     end
@@ -300,13 +298,13 @@ let concat_assoc_rewrites_lr
 
 let concat_assoc_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(r1,RegExConcat(r2,r3)) ->
-        [RegExConcat(RegExConcat(r1,r2),r3)]
+      | Regex.RegExConcat(r1,Regex.RegExConcat(r2,r3)) ->
+        [Regex.RegExConcat(Regex.RegExConcat(r1,r2),r3)]
       | _ ->
         []
     end
@@ -315,13 +313,13 @@ let concat_assoc_rewrites_rl
 
 let or_assoc_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(RegExOr(r1,r2),r3) ->
-        [RegExOr(r1,RegExOr(r2,r3))]
+      | Regex.RegExOr(Regex.RegExOr(r1,r2),r3) ->
+        [Regex.RegExOr(r1,Regex.RegExOr(r2,r3))]
       | _ ->
         []
     end
@@ -330,13 +328,13 @@ let or_assoc_rewrites_lr
 
 let or_assoc_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(r1,RegExOr(r2,r3)) ->
-        [RegExOr(RegExOr(r1,r2),r3)]
+      | Regex.RegExOr(r1,Regex.RegExOr(r2,r3)) ->
+        [Regex.RegExOr(Regex.RegExOr(r1,r2),r3)]
       | _ ->
         []
     end
@@ -345,13 +343,13 @@ let or_assoc_rewrites_rl
 
 let or_commut_rewrites
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(r1,r2) ->
-        [RegExOr(r2,r1)]
+      | Regex.RegExOr(r1,r2) ->
+        [Regex.RegExOr(r2,r1)]
       | _ -> []
     end
   else
@@ -359,13 +357,13 @@ let or_commut_rewrites
 
 let distributivity_left_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(r1, RegExOr(r2,r3)) ->
-        [RegExOr(RegExConcat(r1,r2),RegExConcat(r1,r3))]
+      | Regex.RegExConcat(r1, Regex.RegExOr(r2,r3)) ->
+        [Regex.RegExOr(Regex.RegExConcat(r1,r2),Regex.RegExConcat(r1,r3))]
       | _ -> []
     end
   else
@@ -373,14 +371,14 @@ let distributivity_left_rewrites_lr
 
 let distributivity_left_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(RegExConcat(r1,r2),RegExConcat(r1',r3)) ->
+      | Regex.RegExOr(Regex.RegExConcat(r1,r2),Regex.RegExConcat(r1',r3)) ->
         if r1 = r1' then
-          [RegExConcat(r1, RegExOr(r2,r3))]
+          [Regex.RegExConcat(r1, Regex.RegExOr(r2,r3))]
         else
           []
       | _ -> []
@@ -390,13 +388,13 @@ let distributivity_left_rewrites_rl
 
 let distributivity_right_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(RegExOr(r1,r2), r3) ->
-        [RegExOr(RegExConcat(r1,r3),RegExConcat(r2,r3))]
+      | Regex.RegExConcat(Regex.RegExOr(r1,r2), r3) ->
+        [Regex.RegExOr(Regex.RegExConcat(r1,r3),Regex.RegExConcat(r2,r3))]
       | _ -> []
     end
   else
@@ -404,14 +402,14 @@ let distributivity_right_rewrites_lr
 
 let distributivity_right_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(RegExConcat(r1,r3),RegExConcat(r2,r3')) ->
+      | Regex.RegExOr(Regex.RegExConcat(r1,r3),Regex.RegExConcat(r2,r3')) ->
         if r3 = r3' then
-          [RegExConcat(RegExOr(r1,r2), r3)]
+          [Regex.RegExConcat(Regex.RegExOr(r1,r2), r3)]
         else
           []
       | _ -> []
@@ -421,12 +419,12 @@ let distributivity_right_rewrites_rl
 
 let concat_id_left_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(RegExBase "", r1) ->
+      | Regex.RegExConcat(Regex.RegExBase "", r1) ->
         [r1]
       | _ ->
         []
@@ -436,22 +434,22 @@ let concat_id_left_rewrites_lr
 
 let concat_id_left_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
-    [RegExConcat(RegExBase "", r)]
+    [Regex.RegExConcat(Regex.RegExBase "", r)]
   else
     []
 
 let concat_id_right_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExConcat(r1, RegExBase "") ->
+      | Regex.RegExConcat(r1, Regex.RegExBase "") ->
         [r1]
       | _ ->
         []
@@ -461,23 +459,23 @@ let concat_id_right_rewrites_lr
 
 let concat_id_right_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
-    [RegExConcat(r, RegExBase "")]
+    [Regex.RegExConcat(r, Regex.RegExBase "")]
   else
     []
 
 let unrollstar_left_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExStar(r1) ->
-        [RegExOr(RegExBase "", RegExConcat(r1,RegExStar(r1)))]
+      | Regex.RegExStar(r1) ->
+        [Regex.RegExOr(Regex.RegExBase "", Regex.RegExConcat(r1,Regex.RegExStar(r1)))]
       | _ ->
         []
     end
@@ -486,14 +484,14 @@ let unrollstar_left_rewrites_lr
 
 let unrollstar_left_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(RegExBase "", RegExConcat(r1,RegExStar(r1'))) ->
+      | Regex.RegExOr(Regex.RegExBase "", Regex.RegExConcat(r1,Regex.RegExStar(r1'))) ->
         if r1 = r1' then
-          [RegExStar(r1)]
+          [Regex.RegExStar(r1)]
         else
           []
       | _ ->
@@ -504,13 +502,13 @@ let unrollstar_left_rewrites_rl
 
 let unrollstar_right_rewrites_lr
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExStar(r1) ->
-        [RegExOr(RegExBase "", RegExConcat(RegExStar(r1),r1))]
+      | Regex.RegExStar(r1) ->
+        [Regex.RegExOr(Regex.RegExBase "", Regex.RegExConcat(Regex.RegExStar(r1),r1))]
       | _ ->
         []
     end
@@ -519,14 +517,14 @@ let unrollstar_right_rewrites_lr
 
 let unrollstar_right_rewrites_rl
     (_:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 1 then
     begin match r with
-      | RegExOr(RegExBase "", RegExConcat(RegExStar(r1),r1')) ->
+      | Regex.RegExOr(Regex.RegExBase "", Regex.RegExConcat(Regex.RegExStar(r1),r1')) ->
         if r1 = r1' then
-          [RegExStar(r1)]
+          [Regex.RegExStar(r1)]
         else
           []
       | _ ->
@@ -537,46 +535,46 @@ let unrollstar_right_rewrites_rl
 
 let rec recursive_rewrites
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   fetch_or_calculate
     memo_rrw_tbl
     (RC_R_S.make_key rc r size)
     begin fun _ ->
       begin match r with
-        | RegExConcat (r1,r2) ->
+        | Regex.RegExConcat (r1,r2) ->
           let r1_rewrites = apply_single_rewrite rc r1 size in
           let r2_rewrites = apply_single_rewrite rc r2 size in
           let r1_rewritten_combined =
             List.map
-              ~f:(fun r1rw -> RegExConcat (r1rw,r2))
+              ~f:(fun r1rw -> Regex.RegExConcat (r1rw,r2))
               r1_rewrites
           in
           let r2_rewritten_combined =
             List.map
-              ~f:(fun r2rw -> RegExConcat (r1,r2rw))
+              ~f:(fun r2rw -> Regex.RegExConcat (r1,r2rw))
               r2_rewrites
           in
           r1_rewritten_combined@r2_rewritten_combined
-        | RegExOr (r1,r2) ->
+        | Regex.RegExOr (r1,r2) ->
           let r1_rewrites = apply_single_rewrite rc r1 size in
           let r2_rewrites = apply_single_rewrite rc r2 size in
           let r1_rewritten_combined =
             List.map
-              ~f:(fun r1rw -> RegExOr (r1rw,r2))
+              ~f:(fun r1rw -> Regex.RegExOr (r1rw,r2))
               r1_rewrites
           in
           let r2_rewritten_combined =
             List.map
-              ~f:(fun r2rw -> RegExOr (r1,r2rw))
+              ~f:(fun r2rw -> Regex.RegExOr (r1,r2rw))
               r2_rewrites
           in
           r1_rewritten_combined@r2_rewritten_combined
-        | RegExStar r' ->
+        | Regex.RegExStar r' ->
           let r_prime_rewrites = apply_single_rewrite rc r' size in
           List.map
-            ~f:(fun r_p_rw -> RegExStar r_p_rw)
+            ~f:(fun r_p_rw -> Regex.RegExStar r_p_rw)
             r_prime_rewrites
         | _ -> []
       end
@@ -584,9 +582,9 @@ let rec recursive_rewrites
       
 and apply_single_rewrite
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   let rewriters =
     [expand_userdefs_lr
     ;combine_bases_lr
@@ -623,9 +621,9 @@ and apply_single_rewrite
 
 let rec apply_rewrite_of_size
     (rc:RegexContext.t)
-    (r:regex)
+    (r:Regex.t)
     (size:int)
-  : regex list =
+  : Regex.t list =
   if size = 0 then
     [r]
   else
@@ -645,19 +643,19 @@ let rec apply_rewrite_of_size
 let rec gen_concat_lens_naive_of_size
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   begin match (r1,r2) with
-    | (RegExConcat(r11,r12),RegExConcat(r21,r22)) ->
+    | (Regex.RegExConcat(r11,r12),Regex.RegExConcat(r21,r22)) ->
       let ps = double_partitions (size-1) in
       List.concat_map
         ~f:(fun (s1,s2) ->
             let l1s = gen_lens_naive_of_size rc lc r11 r21 s1 in
             let l2s = gen_lens_naive_of_size rc lc r12 r22 s2 in
             cartesian_map
-              (fun l1 l2 -> LensConcat(l1,l2))
+              (fun l1 l2 -> Lens.LensConcat(l1,l2))
               l1s
               l2s)
         ps
@@ -668,19 +666,19 @@ let rec gen_concat_lens_naive_of_size
 and gen_or_lens_naive_of_size
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   begin match (r1,r2) with
-    | (RegExOr(r11,r12),RegExOr(r21,r22)) ->
+    | (Regex.RegExOr(r11,r12),Regex.RegExOr(r21,r22)) ->
       let ps = double_partitions (size-1) in
       let x = List.concat_map
           ~f:(fun (s1,s2) ->
               let l1s = gen_lens_naive_of_size rc lc r11 r21 s1 in
               let l2s = gen_lens_naive_of_size rc lc r12 r22 s2 in
               cartesian_map
-                (fun l1 l2 -> LensUnion(l1,l2))
+                (fun l1 l2 -> Lens.LensUnion(l1,l2))
                 l1s
                 l2s)
           ps
@@ -693,15 +691,15 @@ and gen_or_lens_naive_of_size
 and gen_iterate_lens_naive_of_size
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   begin match (r1,r2) with
-    | (RegExStar(r1'),RegExStar(r2')) ->
+    | (Regex.RegExStar(r1'),Regex.RegExStar(r2')) ->
       let ls = gen_lens_naive_of_size rc lc r1' r2' (size-1) in
       List.map
-        ~f:(fun l -> LensIterate(l))
+        ~f:(fun l -> Lens.LensIterate(l))
         ls
     | _ ->
       []
@@ -710,19 +708,19 @@ and gen_iterate_lens_naive_of_size
 and gen_ud_mapping_lens_of_size
     (_:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   begin match (r1,r2) with
-    | (RegExVariable s1, RegExVariable s2) ->
+    | (Regex.RegExVariable s1, Regex.RegExVariable s2) ->
       if s1 = s2 then
         []
       else
         begin match LensContext.shortest_path lc s1 s2 with
           | None -> []
           | Some l ->
-            if lens_size l = size then
+            if Lens.size l = size then
               [l]
             else
               []
@@ -734,14 +732,14 @@ and gen_ud_mapping_lens_of_size
 and gen_const_lens_of_size
     (_:RegexContext.t)
     (_:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   if size = 1 then
     begin match (r1,r2) with
-      | (RegExBase s1, RegExBase s2) ->
-        [LensConst(s1,s2)]
+      | (Regex.RegExBase s1, Regex.RegExBase s2) ->
+        [Lens.LensConst(s1,s2)]
       | _ ->
         []
     end
@@ -751,14 +749,14 @@ and gen_const_lens_of_size
 and gen_identity_lens_of_size
     (_:RegexContext.t)
     (_:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   if size = 1 then
-    begin match regex_compare r1 r2 with
+    begin match make_matchable (Regex.compare r1 r2) with
       | EQ ->
-        [LensIdentity r1]
+        [Lens.LensIdentity r1]
       | _ ->
         []
     end
@@ -768,10 +766,10 @@ and gen_identity_lens_of_size
 and gen_retype_lens_of_size
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   let tps = triple_partitions (size-1) in
   let both_rewritten =
     List.concat_map
@@ -816,10 +814,10 @@ and gen_retype_lens_of_size
 and gen_lens_naive_of_size
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (r1:regex)
-    (r2:regex)
+    (r1:Regex.t)
+    (r2:Regex.t)
     (size:int)
-  : lens list =
+  : Lens.t list =
   fetch_or_calculate
     memo_lenssynth_tbl
     (RC_LC_R_R_S.make_key rc lc r1 r2 size)
@@ -841,12 +839,12 @@ and gen_lens_naive_of_size
         synthesizers
     end
 
-let gen_lens_naive (rc:RegexContext.t) (lc:LensContext.t) (r1:regex) (r2:regex)
-    (exs:examples) : lens =
+let gen_lens_naive (rc:RegexContext.t) (lc:LensContext.t) (r1:Regex.t) (r2:Regex.t)
+    (exs:examples) : Lens.t =
 
   let rec gen_lens_naive_of_increasing_size
       (size:int)
-    : lens =
+    : Lens.t =
     let ls = gen_lens_naive_of_size rc lc r1 r2 size in
     let satisfying_ls =
       List.filter

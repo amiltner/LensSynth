@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 
 module type Counters_Sig = sig
@@ -25,12 +25,14 @@ module Counters : Counters_Sig = struct
   let add ((counts,comparer):'a t) (data:'a) : 'a t =
     let rec add_internal (counts:('a * int) list) : ('a * int) list =
       begin match counts with
-      | (h,i)::t ->
-          begin match comparer data h with
-          | LT -> (data,1)::counts
-          | GT -> (h,i)::(add_internal t)
-          | EQ -> (h,i+1)::t
-          end
+        | (h,i)::t ->
+          let cmp = comparer data h in
+          if is_equal cmp then
+            (h,i+1)::t
+          else if is_lt cmp then
+            (data,1)::counts
+          else
+            (h,i)::(add_internal t)
       | [] -> [data,1]
       end
     in
@@ -43,12 +45,14 @@ module Counters : Counters_Sig = struct
                            (counts2:('a * int) list)
                            : ('a * int) list =
       begin match (counts1,counts2) with
-      | ((h1,i1)::t1,(h2,i2)::t2) ->
-          begin match comparer h1 h2 with
-          | EQ -> (h1,combiner i1 i2)::(merge_internal t1 t2)
-          | LT -> (h1,combiner i1 0)::(merge_internal t1 counts2)
-          | GT -> (h2,combiner 0 i2)::(merge_internal counts1 t2)
-          end
+        | ((h1,i1)::t1,(h2,i2)::t2) ->
+          let cmp = comparer h1 h2 in
+          if is_equal cmp then
+            (h1,combiner i1 i2)::(merge_internal t1 t2)
+          else if is_lt cmp then
+            (h1,combiner i1 0)::(merge_internal t1 counts2)
+          else
+            (h2,combiner 0 i2)::(merge_internal counts1 t2)
       | (_,[]) -> List.map ~f:(fun (d,i) -> (d,combiner i 0)) counts1
       | ([],_) -> List.map ~f:(fun (d,i) -> (d,combiner 0 i)) counts2
       end
@@ -66,12 +70,14 @@ module Counters : Counters_Sig = struct
                            (counts2:('a * int) list)
                            : ('a * int) list =
       begin match (counts1,counts2) with
-      | ((h1,i1)::t1,(h2,i2)::t2) ->
-          begin match comparer h1 h2 with
-          | EQ -> (h1,i1*i2)::(merge_internal t1 t2)
-          | LT -> (h1,i1)::(merge_internal t1 counts2)
-          | GT -> (h2,i2)::(merge_internal counts1 t2)
-          end
+        | ((h1,i1)::t1,(h2,i2)::t2) ->
+          let cmp = comparer h1 h2 in
+          if is_equal cmp then
+            (h1,i1*i2)::(merge_internal t1 t2)
+          else if is_lt cmp then
+            (h1,i1)::(merge_internal t1 counts2)
+          else
+            (h2,i2)::(merge_internal counts1 t2)
       | (_,[]) -> counts1
       | ([],_) -> counts2
       end

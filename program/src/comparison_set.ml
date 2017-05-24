@@ -1,5 +1,5 @@
+open Core
 open Util
-open Core.Std
 
 (* An interface for set modules *)
 module type COMPARISON_SET = 
@@ -73,7 +73,7 @@ struct
     type key = C.element
     type value = unit
     let compare_key = C.compare
-    let compare_value = comparison_compare
+    let compare_value = compare
     let key_to_string = C.to_string
     let value_to_string = fun () -> "()"
   end)
@@ -118,8 +118,8 @@ struct
     : comparison =
     compare_list
       ~cmp:C.compare
-      (sort ~cmp:C.compare (as_list s1))
-      (sort ~cmp:C.compare (as_list s2))
+      (List.sort ~cmp:C.compare (as_list s1))
+      (List.sort ~cmp:C.compare (as_list s2))
 
   let po_compare
       (s1:set)

@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open String_utilities
 open Lang
 open Format
@@ -10,36 +10,36 @@ open Permutation
 let fpf         = fprintf ;;
 let ident ppf s = fpf ppf "%s" s ;;
 let kwd   ppf s = fpf ppf "%s" s ;;
-type pp_info = int * regex * bool * bool
+type pp_info = int * Regex.t * bool * bool
 
 (*****  *****)
 
 (***** Regexs  *****)
 
-let prec_of_regex (r:regex) =
+let prec_of_regex (r:Regex.t) =
   begin match r with
-    | RegExEmpty      -> 150
-    | RegExBase     _ -> 150
-    | RegExVariable _ -> 150
-    | RegExStar     _ -> 125
-    | RegExConcat   _ -> 100
-    | RegExOr       _ -> 75
+    | Regex.RegExEmpty      -> 150
+    | Regex.RegExBase     _ -> 150
+    | Regex.RegExVariable _ -> 150
+    | Regex.RegExStar     _ -> 125
+    | Regex.RegExConcat   _ -> 100
+    | Regex.RegExOr       _ -> 75
   end
 
-let prec_of_lens (l:lens) =
+let prec_of_lens (l:Lens.t) =
   begin match l with
-    | LensIdentity  _ -> 150
-    | LensVariable  _ -> 150
-    | LensInverse   _ -> 150(*failwith "TODO: inverse support"*)
-    | LensIterate   _ -> 125
-    | LensSwap      _ -> 112
-    | LensCompose   _ -> 112
-    | LensConst("",_) -> 112
-    | LensConst(_,"") -> 112
-    | LensPermute   _ -> 112
-    | LensConcat    _ -> 100
-    | LensConst     _ -> 100
-    | LensUnion     _ -> 75
+    | Lens.LensIdentity  _ -> 150
+    | Lens.LensVariable  _ -> 150
+    | Lens.LensInverse   _ -> 150(*failwith "TODO: inverse support"*)
+    | Lens.LensIterate   _ -> 125
+    | Lens.LensSwap      _ -> 112
+    | Lens.LensCompose   _ -> 112
+    | Lens.LensConst("",_) -> 112
+    | Lens.LensConst(_,"") -> 112
+    | Lens.LensPermute   _ -> 112
+    | Lens.LensConcat    _ -> 100
+    | Lens.LensConst     _ -> 100
+    | Lens.LensUnion     _ -> 75
   end
 
 let rec boom_fpf_regex
@@ -49,11 +49,11 @@ let rec boom_fpf_regex
   let this_lvl = prec_of_regex r in
   (if this_lvl < lvl then fpf ppf "(");
   begin match r with
-    | RegExEmpty -> fpf ppf "AHHH" 
-    | RegExBase s -> fpf ppf "\"%a\"" ident (delimit_string s)
-    | RegExVariable n -> fpf ppf "%a" ident n
-    | RegExStar r' -> fpf ppf "%a* " boom_fpf_regex (this_lvl, r', false, false)
-    | RegExConcat (r1,r2) ->
+    | Regex.RegExEmpty -> fpf ppf "AHHH" 
+    | Regex.RegExBase s -> fpf ppf "\"%a\"" ident (delimit_string s)
+    | Regex.RegExVariable n -> fpf ppf "%a" ident n
+    | Regex.RegExStar r' -> fpf ppf "%a* " boom_fpf_regex (this_lvl, r', false, false)
+    | Regex.RegExConcat (r1,r2) ->
       if conc_seq then
         fpf ppf "@[<hv -2>%a@ . %a@]"
           boom_fpf_regex (this_lvl, r1, false, true)
@@ -62,7 +62,7 @@ let rec boom_fpf_regex
         fpf ppf "@[<hv 2>%a@ . %a@]"
           boom_fpf_regex (this_lvl, r1, false, true)
           boom_fpf_regex (this_lvl, r2, false, true)
-    | RegExOr (r1,r2) ->
+    | Regex.RegExOr (r1,r2) ->
       if or_seq then
         fpf ppf "@[<hv -2>%a@ | %a@]"
           boom_fpf_regex (this_lvl, r1, true, false)
@@ -76,12 +76,12 @@ let rec boom_fpf_regex
 
 let rec boom_fpf_lens
     (ppf:formatter)
-    ((lvl, l, or_seq, conc_seq):int * lens * bool * bool)
+    ((lvl, l, or_seq, conc_seq):int * Lens.t * bool * bool)
   : unit =
   let this_lvl = prec_of_lens l in
   (if this_lvl < lvl then fpf ppf "(");
   begin match l with
-    | LensConst (s1,s2) ->
+    | Lens.LensConst (s1,s2) ->
       let s1 = delimit_string s1 in
       let s2 = delimit_string s2 in
       if s1 <> "" && s2 <> "" then
@@ -94,7 +94,7 @@ let rec boom_fpf_lens
       else if s2 = "" then
         fpf ppf "del \"%a\""
           ident s1
-    | LensConcat(l1,l2) ->
+    | Lens.LensConcat(l1,l2) ->
       if conc_seq then
         fpf ppf "@[<hv -2>%a@ . %a@]"
           boom_fpf_lens (this_lvl, l1, false, true)
@@ -103,11 +103,11 @@ let rec boom_fpf_lens
         fpf ppf "@[<hv 2>%a@ . %a@]"
           boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, false, true)
-    | LensSwap(l1,l2) ->
+    | Lens.LensSwap(l1,l2) ->
       fpf ppf "@[<hv 2>lens_swap@ %a@ %a@]"
         boom_fpf_lens (this_lvl+1, l1, false, false)
         boom_fpf_lens (this_lvl+1, l2, false, false)
-    | LensUnion(l1,l2) ->
+    | Lens.LensUnion(l1,l2) ->
       if or_seq then
         fpf ppf "@[<hv -3>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, true, false)
@@ -116,22 +116,22 @@ let rec boom_fpf_lens
         fpf ppf "@[<hv 4>%a@ || %a@]"
           boom_fpf_lens (this_lvl, l1, false, false)
           boom_fpf_lens (this_lvl, l2, true, false)
-    | LensCompose(l1,l2) ->
+    | Lens.LensCompose(l1,l2) ->
       fpf ppf "@[<hv 2>compose@ %a@ %a@]"
         boom_fpf_lens (this_lvl+1, l1, false, false)
         boom_fpf_lens (this_lvl+1, l2, false, false)
-    | LensIterate(l') ->
+    | Lens.LensIterate(l') ->
       fpf ppf "%a* "
         boom_fpf_lens (this_lvl, l', false, false);
-    | LensIdentity r ->
+    | Lens.LensIdentity r ->
       boom_fpf_regex ppf (this_lvl,r, false, false)
-    | LensInverse _ ->
+    | Lens.LensInverse _ ->
       failwith "inverse doesn't exist in boom"
-    | LensVariable n ->
+    | Lens.LensVariable n ->
       fpf ppf "%a"
         ident
         n
-    | LensPermute(p,ls) ->
+    | Lens.LensPermute(p,ls) ->
       fpf ppf "@[<hv 2>lens_permute@ #{int}%a@ #{lens}[%a]@]"
         ident (String_utilities.string_of_int_list (Permutation.to_int_list p))
         (Format.pp_print_list
@@ -189,10 +189,10 @@ and boom_fpf_expression
         boom_fpf_expression e'
   end
 
-let boom_pp_regex (r:regex) : string =
+let boom_pp_regex (r:Regex.t) : string =
   (boom_fpf_regex str_formatter (0, r, false, false); flush_str_formatter ())
 
-let boom_pp_lens (l:lens) : string =
+let boom_pp_lens (l:Lens.t) : string =
   (boom_fpf_lens str_formatter (0, l, false, false); flush_str_formatter ())
 
 let pp_typ (t:boom_typ) : string =

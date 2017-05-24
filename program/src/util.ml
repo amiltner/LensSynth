@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 
 let random_char () =
   let random_int = Random.int 256 in
@@ -8,11 +8,26 @@ let (%) (f:'b -> 'c) (g:'a -> 'b) : 'a -> 'c =
   Fn.compose f g
 
 type 'a continuation = 'a -> 'a
+type 'a printer = 'a -> string
 
-type comparison =
+type comparison = int
+
+let is_equal (c:comparison) : bool =
+  c = 0
+
+let is_lt (c:comparison) : bool =
+  c < 0
+
+let is_gt (c:comparison) : bool =
+  c > 0
+
+type 'a comparer = 'a -> 'a -> int
+
+type matchable_comparison =
     EQ
   | LT
   | GT
+[@@deriving ord, show, hash]
 
 type partial_order_comparison =
     PO_EQ
@@ -20,9 +35,12 @@ type partial_order_comparison =
   | PO_GT
   | PO_INCOMPARABLE
 
-type 'a comparer = 'a -> 'a -> comparison
+let compare_list
+    ~cmp:(cmp:'a comparer)
+  : ('a list) comparer =
+  compare_list cmp
 
-let int_to_comparison (n:int) : comparison =
+let make_matchable (n:comparison) : matchable_comparison =
   if n = 0 then
     EQ
   else if n < 0 then
@@ -30,64 +48,28 @@ let int_to_comparison (n:int) : comparison =
   else
     GT
 
-let comparison_to_int (c:comparison) : int =
+let make_comparison (c:matchable_comparison) : comparison =
   begin match c with
   | EQ -> 0
   | LT -> -1
   | GT -> 1
   end
 
-let comparison_to_bool (c:comparison) : bool =
-  begin match c with
-    | EQ -> true
-    | _ -> false
-  end
+let comparison_to_equality (c:comparison) : bool =
+  c = 0
 
-let comparer_to_int_comparer (f:'a -> 'a -> comparison) (x:'a) (y:'a)
-  : int =
-    comparison_to_int (f x y)
-
-let int_comparer_to_comparer (f:'a -> 'a -> int) (x:'a) (y:'a)
-  : comparison =
-  int_to_comparison (f x y)
-
-let comparer_to_equality_check (f:'a -> 'a -> comparison) (x:'a) (y:'a)
+let compare_to_equals
+    (f:'a comparer)
+    (x:'a)
+    (y:'a)
   : bool =
-  comparison_to_bool (f x y)
-
-let comparison_compare = fun x y -> int_to_comparison (compare x y)
-
-let compare_comparison
-    (x1:comparison)
-    (x2:comparison)
-  : comparison =
-  begin match (x1,x2) with
-    | (LT,LT) -> EQ
-    | (LT,_ ) -> LT
-    | (_ ,LT) -> GT
-    | (EQ,EQ) -> EQ
-    | (EQ,_ ) -> LT
-    | (_ ,EQ) -> GT
-    | (GT,GT) -> EQ
-  end
-
-let int_compare (n1:int) (n2:int) : comparison =
-  int_to_comparison (n1 - n2)
-
-let bool_compare : bool -> bool -> comparison =
-  int_comparer_to_comparer (compare_bool)
-
-let pp_comparison (c:comparison) : string =
-  begin match c with
-  | EQ -> "EQ"
-  | LT -> "LT"
-  | GT -> "GT"
-  end
+  comparison_to_equality
+    (f x y)
 
 module type Data = sig
   type t
-  val show : t -> string
-  val compare : t -> t -> comparison
+  val to_string : t printer
+  val compare : t comparer
 end
 
 type ('a, 'b) either =
@@ -355,10 +337,6 @@ let triple_partitions (n:int) : (int * int * int) list =
         end)
     list_split_partitions
 
-let sort ~(cmp:('a -> 'a -> comparison)) (l:'a list) : 'a list =
-  let int_comparer = comparer_to_int_comparer cmp in
-  List.sort ~cmp:int_comparer l
-
 let rec sort_and_partition (f:'a -> 'a -> comparison) (l:'a list) : 'a list list =
   let rec merge_sorted_partitions (l1:'a list list) (l2:'a list list) : 'a list list =
     begin match (l1,l2) with
@@ -366,11 +344,12 @@ let rec sort_and_partition (f:'a -> 'a -> comparison) (l:'a list) : 'a list list
         let rep1 = List.hd_exn h1 in
         let rep2 = List.hd_exn h2 in
         let comparison = f rep1 rep2 in
-        begin match comparison with
-        | EQ -> ((h1@h2)::(merge_sorted_partitions t1 t2))
-        | LT -> (h1::(merge_sorted_partitions t1 l2))
-        | GT -> (h2::(merge_sorted_partitions l1 t2))
-        end
+        if (comparison = 0) then
+          ((h1@h2)::(merge_sorted_partitions t1 t2))
+        else if (comparison < 0) then
+          (h1::(merge_sorted_partitions t1 l2))
+        else
+          (h2::(merge_sorted_partitions l1 t2))
     | _ -> l1 @ l2
     end in
   begin match l with
@@ -402,21 +381,25 @@ let sort_and_partition_with_indices (f:'a -> 'a -> comparison)
     end in
   let rec sort_and_partition_with_indices_internal (l:('a * int) list)
                       : ('a * int) list list =*)
-  let rec merge_grouped_things (remaining:('a * int) list) (currentacc:('a*int) list)
-  (accacc:('a*int) list list) : ('a*int) list list =
+  let rec merge_grouped_things
+      (remaining:('a * int) list)
+      (currentacc:('a*int) list)
+      (accacc:('a*int) list list)
+    : ('a*int) list list =
     begin match remaining with
     | [] -> currentacc :: accacc
     | (h,i)::t -> let currenthd = fst (List.hd_exn currentacc) in
-      begin match f h currenthd with
-      | EQ -> merge_grouped_things t ((h,i)::currentacc) accacc
-      | _ -> merge_grouped_things t [(h,i)] (currentacc::accacc)
-      end
+      let cmp = f h currenthd in
+      if (cmp = 0) then
+        merge_grouped_things t ((h,i)::currentacc) accacc
+      else
+        merge_grouped_things t [(h,i)] (currentacc::accacc)
     end
   in
 
 
   let sorted = List.sort
-    ~cmp:(fun (x,_) (y,_) -> comparison_to_int (f x y))
+    ~cmp:(fun (x,_) (y,_) -> (f x y))
     (List.mapi ~f:(fun i x -> (x,i)) l) in
 
   begin match sorted with
@@ -442,38 +425,18 @@ let ordered_partition_order (f:'a -> 'a -> comparison)
                             : comparison =
   let p1 = sort_and_partition f l1 in
   let p2 = sort_and_partition f l2 in
-  begin match (int_compare (List.length p1) (List.length p2)) with
-  | EQ ->
-      List.fold_left
+  let cmp = compare_int (List.length p1) (List.length p2) in
+  if (cmp = 0) then
+    List.fold_left
       ~f:(fun acc (l1',l2') ->
-        begin match acc with
-        | EQ ->
-            begin match (int_compare (List.length l1') (List.length l2')) with
-            | EQ -> f (List.hd_exn l1') (List.hd_exn l2')
-            | c -> c
-            end
-        | c -> c
-        end)
-      ~init:EQ
+          if (is_equal acc) then
+            compare_list ~cmp:f l1' l2'
+          else
+            acc)
+      ~init:0
       (List.zip_exn p1 p2)
-  | c -> c
-  end
-
-let rec compare_list
-    ~cmp:(cmp:'a comparer)
-  : ('a list) comparer =
-  fun l1 l2 ->
-    begin match (l1,l2) with
-      | ([],[]) -> EQ
-      | (_::_,[]) -> GT
-      | ([],_::_) -> LT
-      | (h1::t1,h2::t2) ->
-        begin match cmp h1 h2 with
-          | EQ -> compare_list ~cmp:cmp t1 t2
-          | x -> x
-        end
-    end
-  
+  else
+    cmp
 
 let option_compare
     (value_compare:'a -> 'a -> comparison)
@@ -481,9 +444,9 @@ let option_compare
     (yo:'a option)
   : comparison =
   begin match (xo,yo) with
-    | (None, None) -> EQ
-    | (None, Some _) -> LT
-    | (Some _, None) -> GT
+    | (None, None) -> 0
+    | (None, Some _) -> -1
+    | (Some _, None) -> 1
     | (Some x, Some y) -> value_compare x y
   end
 
@@ -497,23 +460,23 @@ let either_compare
     | (Left xl, Left yl) ->
       left_compare xl yl
     | (Left _, _) ->
-      LT
+      -1
     | (Right xr, Right yr) ->
       right_compare xr yr
-    | (Right _, _) -> GT
+    | (Right _, _) -> 1
   end
 
 let pair_compare
-    (fst_compare:'a -> 'a -> comparison)
-    (snd_compare:'b -> 'b -> comparison)
+    (fst_compare:'a comparer)
+    (snd_compare:'b comparer)
     ((x1,x2):('a * 'b))
     ((y1,y2):('a * 'b))
   : comparison =
-  begin match fst_compare x1 y1 with
-    | EQ ->
-      snd_compare x2 y2
-    | c -> c
-  end
+  let cmp = fst_compare x1 y1 in
+  if (is_equal cmp) then
+    snd_compare x2 y2
+  else
+    cmp
 
 let triple_compare
     (fst_compare:'a -> 'a -> comparison)
@@ -522,15 +485,15 @@ let triple_compare
     ((x1,x2,x3):('a * 'b * 'c))
     ((y1,y2,y3):('a * 'b * 'c))
   : comparison =
-  begin match fst_compare x1 y1 with
-    | EQ ->
-      begin match snd_compare x2 y2 with
-        | EQ ->
-          trd_compare x3 y3
-        | c -> c
-      end
-    | c -> c
-  end
+  let cmp = fst_compare x1 y1 in
+  if (is_equal cmp) then
+    pair_compare
+      snd_compare
+      trd_compare
+      (x2,x3)
+      (y2,y3)
+  else
+    cmp
 
 let quad_compare
     (fst_compare:'a -> 'a -> comparison)
@@ -540,18 +503,16 @@ let quad_compare
     ((x1,x2,x3,x4):('a * 'b * 'c * 'd))
     ((y1,y2,y3,y4):('a * 'b * 'c * 'd))
   : comparison =
-  begin match fst_compare x1 y1 with
-    | EQ ->
-      begin match snd_compare x2 y2 with
-        | EQ ->
-          begin match trd_compare x3 y3 with
-            | EQ -> rth_compare x4 y4
-            | c -> c
-          end
-        | c -> c
-      end
-    | c -> c
-  end
+  let cmp = fst_compare x1 y1 in
+  if (is_equal cmp) then
+    triple_compare
+      snd_compare
+      trd_compare
+      rth_compare
+      (x2,x3,x4)
+      (y2,y3,y4)
+  else
+    cmp
 
 let quint_compare
     (fst_compare:'a -> 'a -> comparison)
@@ -562,22 +523,17 @@ let quint_compare
     ((x1,x2,x3,x4,x5):('a * 'b * 'c * 'd * 'e))
     ((y1,y2,y3,y4,y5):('a * 'b * 'c * 'd * 'e))
   : comparison =
-  begin match fst_compare x1 y1 with
-    | EQ ->
-      begin match snd_compare x2 y2 with
-        | EQ ->
-          begin match trd_compare x3 y3 with
-            | EQ ->
-              begin match rth_compare x4 y4 with
-                | EQ -> fth_compare x5 y5
-                | c -> c
-              end
-            | c -> c
-          end
-        | c -> c
-      end
-    | c -> c
-  end
+  let cmp = fst_compare x1 y1 in
+  if (is_equal cmp) then
+    quad_compare
+      snd_compare
+      trd_compare
+      rth_compare
+      fth_compare
+      (x2,x3,x4,x5)
+      (y2,y3,y4,y5)
+  else
+    cmp
 
 let sext_compare
     (fst_compare:'a -> 'a -> comparison)
@@ -589,60 +545,54 @@ let sext_compare
     ((x1,x2,x3,x4,x5,x6):('a * 'b * 'c * 'd * 'e * 'f))
     ((y1,y2,y3,y4,y5,y6):('a * 'b * 'c * 'd * 'e * 'f))
   : comparison =
-  begin match fst_compare x1 y1 with
-    | EQ ->
-      begin match snd_compare x2 y2 with
-        | EQ ->
-          begin match trd_compare x3 y3 with
-            | EQ ->
-              begin match rth_compare x4 y4 with
-                | EQ ->
-                  begin match fth_compare x5 y5 with
-                    | EQ -> sth_compare x6 y6
-                    | c -> c
-                  end
-                | c -> c
-              end
-            | c -> c
-          end
-        | c -> c
-      end
-    | c -> c
-  end
+  let cmp = fst_compare x1 y1 in
+  if (is_equal cmp) then
+    quint_compare
+      snd_compare
+      trd_compare
+      rth_compare
+      fth_compare
+      sth_compare
+      (x2,x3,x4,x5,x6)
+      (y2,y3,y4,y5,y6)
+  else
+    cmp
 
 
-let partition_dictionary_order (f:'a -> 'a -> comparison)
-  : 'a list list -> 'a list list -> comparison =
+let partition_dictionary_order (f:'a comparer)
+  : ('a list list) comparer =
     compare_list
       ~cmp:(fun x y -> f (List.hd_exn x) (List.hd_exn y))
 
 let ordered_partition_dictionary_order (f:'a -> 'a -> comparison)
-  : ('a * int) list list -> ('a * int) list list -> comparison =
+  : (('a * int) list list) comparer =
   compare_list
     ~cmp:(fun x y ->
-        begin match int_to_comparison (compare (List.length x) (List.length y)) with
-          | EQ -> f (fst (List.hd_exn x)) (fst (List.hd_exn y))
-          | x -> x
-        end)
+        let cmp = compare (List.length x) (List.length y) in
+        if is_equal cmp then
+          f (fst (List.hd_exn x)) (fst (List.hd_exn y))
+        else
+          cmp)
 
 let intersect_lose_order_no_dupes (cmp:'a -> 'a -> comparison)
                                   (l1:'a list) (l2:'a list)
                                   : 'a list =
   let rec intersect_ordered (l1:'a list) (l2:'a list) : 'a list =
     begin match (l1,l2) with
-    | (h1::t1,h2::t2) ->
-        begin match (cmp h1 h2) with
-        | EQ -> h1::(intersect_ordered t1 t2)
-        | LT -> intersect_ordered t1 l2
-        | GT -> intersect_ordered l1 t2
-        end
+      | (h1::t1,h2::t2) ->
+        let cmp = (cmp h1 h2) in
+        if is_equal cmp then
+          h1::(intersect_ordered t1 t2)
+        else if is_lt cmp then
+          intersect_ordered t1 l2
+        else
+          intersect_ordered l1 t2
     | ([],_) -> []
     | (_,[]) -> []
     end
   in
-  let int_comparer = comparer_to_int_comparer cmp in
-  let ordered_l1 = List.sort ~cmp:int_comparer l1 in
-  let ordered_l2 = List.sort ~cmp:int_comparer l2 in
+  let ordered_l1 = List.sort ~cmp:cmp l1 in
+  let ordered_l2 = List.sort ~cmp:cmp l2 in
   intersect_ordered ordered_l1 ordered_l2
 
 let set_minus_lose_order (cmp:'a -> 'a -> comparison)
@@ -650,19 +600,20 @@ let set_minus_lose_order (cmp:'a -> 'a -> comparison)
                                   : 'a list =
   let rec set_minus_ordered (l1:'a list) (l2:'a list) : 'a list =
     begin match (l1,l2) with
-    | (h1::t1,h2::t2) ->
-        begin match (cmp h1 h2) with
-        | EQ -> set_minus_ordered t1 t2
-        | LT -> h1::(set_minus_ordered t1 l2)
-        | GT -> set_minus_ordered l1 t2
-        end
+      | (h1::t1,h2::t2) ->
+        let cmp = cmp h1 h2 in
+        if (is_equal cmp) then
+          set_minus_ordered t1 t2
+        else if (is_lt cmp) then
+          h1::(set_minus_ordered t1 l2)
+        else
+          set_minus_ordered l1 t2
     | ([],_) -> []
     | (_,[]) -> l1
     end
   in
-  let int_comparer = comparer_to_int_comparer cmp in
-  let ordered_l1 = List.dedup (List.sort ~cmp:int_comparer l1) in
-  let ordered_l2 = List.dedup (List.sort ~cmp:int_comparer l2) in
+  let ordered_l1 = List.dedup (List.sort ~cmp:cmp l1) in
+  let ordered_l2 = List.dedup (List.sort ~cmp:cmp l2) in
   set_minus_ordered ordered_l1 ordered_l2
 
 let pairwise_maintain_invariant
@@ -887,8 +838,6 @@ let string_to_char_list (s:string) : char list =
   let rec exp i l =
     if i < 0 then l else exp (i - 1) (s.[i] :: l) in
   exp (String.length s - 1) [];;
-
-let char_compare : char comparer = int_comparer_to_comparer Char.compare
 
 let hash_pair
     (fst_hash:'a -> int)

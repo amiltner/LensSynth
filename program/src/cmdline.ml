@@ -5,7 +5,7 @@ open Regexcontext
 open Lenscontext
 open Gen_exs
 open Gen
-open Core.Std
+open Core
 open Lang
 open Consts
 open Typing
@@ -14,7 +14,6 @@ open Boom_lang
 open Eval
 open Converter
 open Normalized_lang
-open Regex_utilities
 open String_utilities
 open Lens_utilities
 
@@ -141,14 +140,14 @@ let args =
   |> Arg.align
 
 let expand_regexps (p:program) : program =
-  let rec expand_regexp (r:regex) (c:RegexContext.t) : regex =
+  let rec expand_regexp (r:Regex.t) (c:RegexContext.t) : Regex.t =
     begin match r with
-    | RegExEmpty -> r
-    | RegExBase _ -> r
-    | RegExConcat (r1,r2) -> RegExConcat (expand_regexp r1 c,expand_regexp r2 c)
-    | RegExOr (r1,r2) -> RegExOr (expand_regexp r1 c,expand_regexp r2 c)
-    | RegExStar r' -> RegExStar (expand_regexp r' c)
-    | RegExVariable t ->
+    | Regex.RegExEmpty -> r
+    | Regex.RegExBase _ -> r
+    | Regex.RegExConcat (r1,r2) -> Regex.RegExConcat (expand_regexp r1 c,expand_regexp r2 c)
+    | Regex.RegExOr (r1,r2) -> Regex.RegExOr (expand_regexp r1 c,expand_regexp r2 c)
+    | Regex.RegExStar r' -> Regex.RegExStar (expand_regexp r' c)
+    | Regex.RegExVariable t ->
       let r' = RegexContext.lookup_exn c t in
       expand_regexp r' c
     end
@@ -183,7 +182,7 @@ let expand_regexps_if_necessary (p:program) : program =
 let rec check_examples
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (l:lens)
+    (l:Lens.t)
     (exs:examples)
   : unit =
   begin match exs with
@@ -197,17 +196,17 @@ let rec check_examples
         check_examples rc lc l exst
   end
 
-let print_lenses (lc:LensContext.t) (lss:(string * lens option) list) : unit =
+let print_lenses (lc:LensContext.t) (lss:(string * Lens.t option) list) : unit =
   List.iter
     ~f:(fun (s,lo) ->
       print_endline "\n\n";
       print_endline (s ^ ":");
       begin match lo with
       | None -> print_endline "no lens found"
-      | Some ls -> print_endline (lens_to_string ls);
+      | Some ls -> print_endline (Lens.show ls);
         let (t1,t2) = type_lens lc ls in
-        print_endline (regex_to_string t1);
-        print_endline (regex_to_string t2)
+        print_endline (Regex.show t1);
+        print_endline (Regex.show t2)
       end)
     lss
 
@@ -266,7 +265,7 @@ let collect_example_number (p:program) : unit =
 let rec max_examples_required
     (rc:RegexContext.t)
     (lc:LensContext.t)
-    (l:lens)
+    (l:Lens.t)
   : int =
   let sum_list = List.fold_left ~f:(+) ~init:0 in
   let rec examples_required_o_ex_dnf_regex (o_ex_dr:ordered_exampled_dnf_regex) : int =
@@ -307,19 +306,19 @@ let rec max_examples_required
   and examples_required_o_ex_atom (_:ordered_exampled_atom) : int =
     1
   in
-  let rec referenced_lenses (l:lens) : lens list =
+  let rec referenced_lenses (l:Lens.t) : Lens.t list =
     begin match l with
-      | LensConst _ -> []
-      | LensConcat (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
-      | LensSwap (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
-      | LensUnion (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
-      | LensCompose (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
-      | LensIterate (l') -> (referenced_lenses l')
-      | LensIdentity _ -> []
-      | LensInverse l' -> (referenced_lenses l')
-      | LensVariable v ->
+      | Lens.LensConst _ -> []
+      | Lens.LensConcat (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | Lens.LensSwap (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | Lens.LensUnion (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | Lens.LensCompose (l1,l2) -> (referenced_lenses l1) @ (referenced_lenses l2)
+      | Lens.LensIterate (l') -> (referenced_lenses l')
+      | Lens.LensIdentity _ -> []
+      | Lens.LensInverse l' -> (referenced_lenses l')
+      | Lens.LensVariable v ->
         [LensContext.lookup_impl_exn lc v]
-      | LensPermute (_,ll) ->
+      | Lens.LensPermute (_,ll) ->
         List.concat_map ~f:referenced_lenses ll
     end
   in
@@ -342,7 +341,7 @@ let collect_extraction_spec (p:program) : unit =
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let rec collect_extraction_spec_internal
       (n:int)
-      ((r,(v,f)):regex * (string * flattened_or_userdef_regex))
+      ((r,(v,f)):Regex.t * (string * flattened_or_userdef_regex))
     : unit =
     if (n <= 0) then
       ()
@@ -353,7 +352,7 @@ let collect_extraction_spec (p:program) : unit =
         collect_extraction_spec_internal (n-1) (r,(v,f))
       else
         let prob_userdef_for_tsv =
-          tsv_delimit (string_of_pair regex_to_string ident (r,v))
+          tsv_delimit (string_of_pair Regex.show ident (r,v))
         in
         let s_for_tsv = tsv_delimit s in
         let on_for_tsv =
@@ -417,32 +416,32 @@ let collect_final_io_spec (p:program) : unit =
 let lens_size (p:program) : unit =
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
-  let rec retrieve_transitive_userdefs (l:lens) : string list =
+  let rec retrieve_transitive_userdefs (l:Lens.t) : string list =
     begin match l with
-    | LensConst(_,_) -> []
-    | LensConcat(l1,l2) ->
+    | Lens.LensConst(_,_) -> []
+    | Lens.LensConcat(l1,l2) ->
       (retrieve_transitive_userdefs l1) @
       (retrieve_transitive_userdefs l2)
-    | LensSwap (l1,l2) ->
+    | Lens.LensSwap (l1,l2) ->
       (retrieve_transitive_userdefs l1) @
       (retrieve_transitive_userdefs l2)
-    | LensUnion (l1,l2) ->
+    | Lens.LensUnion (l1,l2) ->
       (retrieve_transitive_userdefs l1) @
       (retrieve_transitive_userdefs l2)
-    | LensCompose (l1,l2) ->
+    | Lens.LensCompose (l1,l2) ->
       (retrieve_transitive_userdefs l1) @
       (retrieve_transitive_userdefs l2)
-    | LensIterate l' ->
+    | Lens.LensIterate l' ->
       retrieve_transitive_userdefs l'
-    | LensIdentity _ -> []
-    | LensInverse l' ->
+    | Lens.LensIdentity _ -> []
+    | Lens.LensInverse l' ->
       retrieve_transitive_userdefs l'
-    | LensVariable v -> [v]
-    | LensPermute (_,ls) ->
+    | Lens.LensVariable v -> [v]
+    | Lens.LensPermute (_,ls) ->
       List.concat_map
         ~f:retrieve_transitive_userdefs
-        ls
-    end
+      ls
+  end
   in
   let all_userdefs = retrieve_transitive_userdefs l in
   let all_lenses =
@@ -452,7 +451,7 @@ let lens_size (p:program) : unit =
           all_userdefs))
   in
   let all_sizes =
-    List.map ~f:(fun l -> lens_size l) all_lenses
+    List.map ~f:(fun l -> Lens.size l) all_lenses
   in
   let mysize = List.fold_left
     ~f:(+)
@@ -464,16 +463,16 @@ let lens_size (p:program) : unit =
 
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
-  let rec retrieve_transitive_userdefs (r:regex) : string list =
+  let rec retrieve_transitive_userdefs (r:Regex.t) : string list =
     begin match r with
-    | RegExEmpty -> []
-    | RegExBase _ -> []
-    | RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
+    | Regex.RegExEmpty -> []
+    | Regex.RegExBase _ -> []
+    | Regex.RegExConcat (r1,r2) -> (retrieve_transitive_userdefs r1) @
         (retrieve_transitive_userdefs r2)
-    | RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
+    | Regex.RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
         (retrieve_transitive_userdefs r2)
-    | RegExStar r' -> retrieve_transitive_userdefs r'
-    | RegExVariable t ->
+    | Regex.RegExStar r' -> retrieve_transitive_userdefs r'
+    | Regex.RegExVariable t ->
       t::(begin match RegexContext.lookup_for_expansion_exn rc t with
       | None -> []
       | Some rex -> retrieve_transitive_userdefs rex
@@ -489,7 +488,7 @@ let specification_size (p:program) : unit =
           all_userdefs))
   in
   let all_sizes =
-    List.map ~f:(fun r -> size r) all_regexps
+    List.map ~f:(fun r -> Regex.size r) all_regexps
   in
   let mysize = List.fold_left
     ~f:(+)

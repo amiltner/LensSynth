@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Lenscontext
 open Regexcontext
 open Synth_structs

@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 open String_utilities
 
@@ -37,7 +37,6 @@ struct
       type element = (P.element * int)
       let compare =
         (fun (_,f1) (_,f2) ->
-           int_to_comparison
              (compare_int f1 f2))
       let to_string = (string_of_pair P.to_string string_of_int)
     end)

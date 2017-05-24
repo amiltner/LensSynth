@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 
 type swap_concat_compose_tree =
@@ -6,6 +6,7 @@ type swap_concat_compose_tree =
   | SCCTConcat of swap_concat_compose_tree * swap_concat_compose_tree
   | SCCTCompose of swap_concat_compose_tree * swap_concat_compose_tree
   | SCCTLeaf
+[@@deriving ord, show, hash]
 
 let rec size_scct (scct:swap_concat_compose_tree) : int =
   begin match scct with
@@ -44,82 +45,16 @@ let rec pp_swap_concat_compose_tree (scct:swap_concat_compose_tree)
     | SCCTLeaf -> "."
     end
 
-let rec compare_swap_concat_compare_tree
-  (scct1:swap_concat_compose_tree)
-  (scct2:swap_concat_compose_tree)
-  : comparison =
-  let compare_scct_pair = 
-    pair_compare
-      compare_swap_concat_compare_tree
-      compare_swap_concat_compare_tree
-  in
-  begin match (scct1,scct2) with
-    | (SCCTSwap (scct11,scct12),SCCTSwap (scct21,scct22)) ->
-      compare_scct_pair
-        (scct11,scct12)
-        (scct21,scct22)
-    | (SCCTSwap _, _) -> LT
-    | (_, SCCTSwap _) -> GT
-    | (SCCTConcat (scct11,scct12),SCCTConcat (scct21,scct22)) ->
-      compare_scct_pair
-        (scct11,scct12)
-        (scct21,scct22)
-    | (SCCTConcat _, _) -> LT
-    | (_, SCCTConcat _) -> GT
-    | (SCCTCompose (scct11,scct12),SCCTCompose (scct21,scct22)) ->
-      compare_scct_pair
-        (scct11,scct12)
-        (scct21,scct22)
-    | (SCCTCompose _, _) -> LT
-    | (_, SCCTCompose _) -> GT
-    | (SCCTLeaf, SCCTLeaf) -> EQ
-  end
-
-
-module type Permutation_Sig = sig
-  type t
-
-  val create : int list -> t
-
-  val create_from_doubles : (int * int) list -> t
-
-  val create_from_doubles_unsafe : (int * int) list -> t
-
-  val create_from_constraints : int -> (int * int) list
-                                    -> (int * int) list -> (t * ((int * int) list)) option
-
-  val inverse : t -> t
-
-  val create_all : int -> t list
-
-  val apply : t -> int -> int
-
-  val apply_inverse : t -> int -> int
-  
-  val apply_to_list_exn : t -> 'a list -> 'a list
-
-  val apply_inverse_to_list_exn : t -> 'a list -> 'a list
-
-  val to_swap_concat_compose_tree : t -> swap_concat_compose_tree
-
-  val pp : t -> string
-
-  val to_int_list : t -> int list
-
-  val hash : t -> int
-
-  val compare : t -> t -> comparison
-end
-
-module Permutation : Permutation_Sig = struct
+module Permutation = struct
   type t = int list
+  [@@deriving show]
 
   let create (mapping:int list) =
     let len = List.length mapping in
     List.rev
       (List.fold_left
       ~f:(fun acc x ->
-        if ((List.mem acc x) || (x >= len) || (x < 0)) then
+        if ((List.mem ~equal:(=) acc x) || (x >= len) || (x < 0)) then
           failwith "Not Bijection"
         else
           x::acc)
@@ -171,7 +106,7 @@ module Permutation : Permutation_Sig = struct
       | [] -> Some (create_from_doubles required_parts, guessed_parts)
       | hl::tl ->
           let choice = split_by_first_satisfying
-            (fun x -> not (List.mem invalid_parts (hl,x)))
+            (fun x -> not (List.mem ~equal:(=) invalid_parts (hl,x)))
             unused_partsr in
           begin match choice with
           | None -> continuation None
@@ -202,7 +137,7 @@ module Permutation : Permutation_Sig = struct
           end
       end in
   if (List.exists
-        ~f:(fun invalid_part -> List.mem required_parts invalid_part)
+        ~f:(fun invalid_part -> List.mem ~equal:(=) required_parts invalid_part)
         invalid_parts) then
     None
   else
@@ -210,8 +145,8 @@ module Permutation : Permutation_Sig = struct
     let (used_partsl,used_partsr) = List.unzip required_parts in
     let (unused_partsl,unused_partsr) = List.fold_left
       ~f:(fun (l,r) x ->
-            let unused_in_left = not (List.mem used_partsl x) in
-            let unused_in_right = not (List.mem used_partsr x) in
+            let unused_in_left = not (List.mem ~equal:(=) used_partsl x) in
+            let unused_in_right = not (List.mem ~equal:(=) used_partsr x) in
             let l' = if unused_in_left then x::l else l in
             let r' = if unused_in_right then x::r else r in
             (l',r'))
@@ -360,5 +295,5 @@ module Permutation : Permutation_Sig = struct
       l
 
   let compare : t -> t -> comparison =
-    compare_list ~cmp:int_compare
+    compare_list ~cmp:compare_int
 end

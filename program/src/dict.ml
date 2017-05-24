@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Util
 
 (* Interfaces and implementations of dictionaries.  A dictionary
@@ -179,10 +179,13 @@ struct
       (x: pair) (x_other: dict) : kicked = 
     let (w_key,_) = w in
     let (x_key,_) = x in
-    match D.compare_key w_key x_key with
-      | EQ -> Done(Two(w_left,w,w_right))
-      | LT -> Done(Three(w_left,w,w_right,x,x_other))
-      | GT -> Done(Three(x_other,x,w_left,w,w_right))
+    let cmp = D.compare_key w_key x_key in
+    if (is_equal cmp) then
+      Done(Two(w_left,w,w_right))
+    else if (is_lt cmp) then
+      Done(Three(w_left,w,w_right,x,x_other))
+    else
+      Done(Three(x_other,x,w_left,w,w_right))
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children, 
@@ -201,7 +204,9 @@ struct
     let (w_key,_) = w in
     let (x_key,_) = x in
     let (y_key,_) = y in
-    match D.compare_key w_key x_key, D.compare_key w_key y_key with
+    match
+      make_matchable (D.compare_key w_key x_key),
+      make_matchable (D.compare_key w_key y_key) with
       | EQ, _ -> Done(Three(w_left,x,other_left,y,other_right))
       | _, EQ -> Done(Three(w_left,x,other_left,y,other_right))
       | LT, _ -> 
@@ -261,28 +266,32 @@ struct
    * (k1,v1) is the (key,value) of the current Two node, and left and right
    * are the two subtrees of the current Two node. *)
   and insert_downward_two ((k,v): pair) ((k1,v1): pair) 
-      (left: dict) (right: dict) : kicked = 
-    match D.compare_key k k1 with
-      | EQ -> Done(Two(left,(k1,v),right))
-      | LT ->
-        (match insert_downward left k v with
-          | Up(l_kick,w,r_kick) -> 
-            insert_upward_two w l_kick r_kick (k1,v1) right
-          | Done new_left -> Done(Two(new_left,(k1,v1),right))
-        )
-      | GT ->
-        (match insert_downward right k v with
-          | Up(l_kick,w,r_kick) -> 
-            insert_upward_two w l_kick r_kick (k1,v1) left
-          | Done new_right -> Done(Two(left,(k1,v1),new_right))
-        )
+      (left: dict) (right: dict) : kicked =
+    let cmp = D.compare_key k k1 in
+    if is_equal cmp then
+      Done(Two(left,(k1,v),right))
+    else if is_lt cmp then
+      begin match insert_downward left k v with
+        | Up(l_kick,w,r_kick) -> 
+          insert_upward_two w l_kick r_kick (k1,v1) right
+        | Done new_left -> Done(Two(new_left,(k1,v1),right))
+      end
+    else
+      begin match insert_downward right k v with
+        | Up(l_kick,w,r_kick) -> 
+          insert_upward_two w l_kick r_kick (k1,v1) left
+        | Done new_right -> Done(Two(left,(k1,v1),new_right))
+      end
+
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
    * left, middle, and right are the three subtrees of our current Three node *)
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair) 
       (left: dict) (middle: dict) (right: dict) : kicked =
-    match D.compare_key k k1, D.compare_key k k2 with
+    match
+      make_matchable (D.compare_key k k1),
+      make_matchable (D.compare_key k k2) with
       | EQ, _ -> Done(Three(left,(k1,v),middle,(k2,v2),right))
       | _, EQ -> Done(Three(left,(k1,v1),middle,(k2,v),right))
       | LT, _ -> 
@@ -354,12 +363,14 @@ struct
     match d with
       | Leaf -> Absorbed(None,d)
       | Two(Leaf,(k1,v1),Leaf) ->
-        (match D.compare_key k k1 with
-          | EQ -> Hole(Some(k1,v1),Leaf)
-          | LT | GT -> Absorbed(None,d)
-        )
+        if is_equal (D.compare_key k k1) then
+          Hole(Some(k1,v1),Leaf)
+        else
+          Absorbed(None,d)
       | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) ->
-        (match D.compare_key k k1, D.compare_key k k2 with
+        (match
+           make_matchable (D.compare_key k k1),
+           make_matchable (D.compare_key k k2) with
           | EQ, _ -> Absorbed(Some(k1,v1),Two(Leaf,(k2,v2),Leaf))
           | _, EQ -> Absorbed(Some(k2,v2),Two(Leaf,(k1,v1),Leaf))
           | _, _ -> Absorbed(None,d)
@@ -370,69 +381,71 @@ struct
   (* DO NOT EDIT THIS *)
   and remove_downward_two (k: key) ((k1,v1): pair) 
       (left: dict) (right: dict) : hole =
-    match D.compare_key k k1 with
-      | EQ ->
-        (match remove_min right with
+    let cmp = D.compare_key k k1 in
+    if is_equal cmp then
+      begin match remove_min right with
           | Hole(None,_) -> Hole(None,left)
           | Hole(Some n,new_right) -> 
             remove_upward_two n None left new_right Right2
           | Absorbed(None,_) -> Hole(None,left)
           | Absorbed(Some n,new_right) -> Absorbed(None,Two(left,n,new_right))
-        )
-      | LT -> 
-        (match remove_downward left k with
-          | Hole(rem,t) -> remove_upward_two (k1,v1) rem t right Left2
-          | Absorbed(rem,t) -> Absorbed(rem,Two(t,(k1,v1),right))
-        )
-      | GT ->
-        (match remove_downward right k with
+      end
+    else if is_lt cmp then
+      begin match remove_downward left k with
+        | Hole(rem,t) -> remove_upward_two (k1,v1) rem t right Left2
+        | Absorbed(rem,t) -> Absorbed(rem,Two(t,(k1,v1),right))
+      end
+    else
+        begin match remove_downward right k with
           | Hole(rem,t) -> remove_upward_two (k1,v1) rem left t Right2
           | Absorbed(rem,t) -> Absorbed(rem,Two(left,(k1,v1),t))
-        )
+        end
 
   (* DO NOT EDIT THIS *)
   and remove_downward_three (k: key) ((k1,v1): pair) ((k2,v2): pair)
       (left: dict) (middle: dict) (right: dict) : hole =
-    match D.compare_key k k1, D.compare_key k k2 with
+    match
+      make_matchable (D.compare_key k k1),
+      make_matchable (D.compare_key k k2) with
       | EQ, _ ->
-        (match remove_min middle with
+        begin match remove_min middle with
           | Hole(None,_) -> Hole(None,Two(left,(k2,v2),right))
           | Hole(Some n,new_middle) -> 
             remove_upward_three n (k2,v2) None left new_middle right Mid3
           | Absorbed(None,_) -> Absorbed(None,Two(left,(k1,v1),right))
           | Absorbed(Some n,new_middle) -> 
             Absorbed(None,Three(left,n,new_middle,(k2,v2),right))
-        )
+        end
       | _ , EQ ->
-        (match remove_min right with
+        begin match remove_min right with
           | Hole(None,_) -> Hole(None,Two(left,(k1,v1),middle))
           | Hole(Some n,new_right) -> 
             remove_upward_three (k1,v1) n None left middle new_right Right3
           | Absorbed(None,_) -> Absorbed(None,Two(left,(k1,v1),middle))
           | Absorbed(Some n,new_right) -> 
             Absorbed(None,Three(left,(k1,v1),middle,n,new_right))
-        )
+        end
       | LT, _ ->
-        (match remove_downward left k with
+        begin match remove_downward left k with
           | Hole(rem,t) -> 
             remove_upward_three (k1,v1) (k2,v2) rem t middle right Left3
           | Absorbed(rem,t) -> 
             Absorbed(rem,Three(t,(k1,v1),middle,(k2,v2),right))
-        )
+        end
       | _, GT ->
-        (match remove_downward right k with
+        begin match remove_downward right k with
           | Hole(rem,t) -> 
             remove_upward_three (k1,v1) (k2,v2) rem left middle t Right3
           | Absorbed(rem,t) -> 
             Absorbed(rem,Three(left,(k1,v1),middle,(k2,v2),t))
-        )
+        end
       | GT, LT ->
-        (match remove_downward middle k with
+        begin match remove_downward middle k with
           | Hole(rem,t) -> 
             remove_upward_three (k1,v1) (k2,v2) rem left t right Mid3
           | Absorbed(rem,t) -> 
             Absorbed(rem,Three(left,(k1,v1),t,(k2,v2),right))
-        )
+        end
 
   (* DO NOT EDIT THIS *)
   and remove_min (d: dict) : hole =
@@ -465,12 +478,17 @@ struct
     match d with
       | Leaf -> None
       | Two(left,(k1,v1),right) ->
-        (match D.compare_key k k1 with
-          | EQ -> Some v1
-          | LT -> lookup left k
-          | GT -> lookup right k)
+        let cmp = D.compare_key k k1 in
+        if is_equal cmp then
+          Some v1
+        else if is_lt cmp then
+          lookup left k
+        else
+          lookup right k
       | Three(left,(k1,v1),middle,(k2,v2),right) ->
-        (match D.compare_key k k1, D.compare_key k k2 with
+        (match
+           make_matchable (D.compare_key k k1),
+           make_matchable (D.compare_key k k2) with
           | EQ, _ -> Some v1
           | _, EQ -> Some v2
           | LT, _ -> lookup left k
@@ -538,8 +556,8 @@ struct
     let comparer = (pair_compare D.compare_key D.compare_value) in
     compare_list
       ~cmp:comparer
-      (sort ~cmp:comparer (as_kvp_list d1))
-      (sort ~cmp:comparer (as_kvp_list d2))
+      (List.sort ~cmp:comparer (as_kvp_list d1))
+      (List.sort ~cmp:comparer (as_kvp_list d2))
 end
 
 
