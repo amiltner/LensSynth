@@ -2,6 +2,7 @@ open Core
 open Lang
 open Util
 open Normalized_lang
+open Permutation
 
 
 let rec to_dnf_regex (r:Regex.t) : dnf_regex =
@@ -21,111 +22,92 @@ let rec to_dnf_regex (r:Regex.t) : dnf_regex =
   | Regex.RegExVariable s -> atom_to_dnf_regex (AUserDefined s)
   end
 
-
-let rec atom_to_regex (a:atom) : Regex.t =
+let rec atom_lens_to_lens (a:atom_lens) : Lens.t =
   begin match a with
-  | AUserDefined t -> Regex.RegExVariable t
-  | AStar dr -> Regex.RegExStar (dnf_regex_to_regex dr)
+    | AtomLensIterate d -> Lens.LensIterate (dnf_lens_to_lens d)
+    | AtomLensVariable l -> l
   end
 
-and clause_to_regex ((atoms,strings):clause) : Regex.t =
-  let atoms_regex_list = List.map
-    ~f:(fun a -> atom_to_regex a)
-    atoms
-  in
-  let (hstr,tstr) = split_by_first_exn strings in
-  let aslist = List.zip_exn atoms_regex_list tstr in
-  List.fold_right
-    ~f:(fun (a,s) acc ->
-      Regex.RegExConcat(Regex.RegExConcat(a,Regex.RegExBase s),acc))
-    ~init:(Regex.RegExBase hstr)
-    aslist
+and clause_lens_to_lens ((atoms,permutation,strings1,strings2):clause_lens)
+  : Lens.t =
+    let rec combine_scct_and_atom_lenses
+            (atom_lenses:Lens.t list)
+            (scct:swap_concat_compose_tree)
+            : (Lens.t * Lens.t list) =
+      begin match scct with
+      | SCCTSwap (s1,s2) ->
+          let (l1,remaining_left) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              remaining_left
+              s2 in
+          (Lens.LensSwap(l1,l2),remaining_total)
+      | SCCTConcat (s1,s2) ->
+          let (l1,remaining_left) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              remaining_left
+              s2 in
+          (Lens.LensConcat(l1,l2),remaining_total)
+      | SCCTCompose _ ->
+        failwith "compose is too ugly, should have failed faster"
+          (*let s2size = size_scct s2 in
+          let identity_copies = duplicate (LensIdentity (RegExBase "TODO")) s2size in
+          let (l1,_) =
+            combine_scct_and_atom_lenses
+              identity_copies
+              s1 in
+          let (l2,remaining_total) =
+            combine_scct_and_atom_lenses
+              atom_lenses
+              s2 in
+            (LensCompose(l1,l2),remaining_total)*)
+      | SCCTLeaf -> split_by_first_exn atom_lenses
+      end
+    in
+    let (string1h,string1t) = split_by_first_exn strings1 in
+    let (string2h,string2t) = split_by_first_exn strings2 in
+    let (string2t_invperm) =
+      Permutation.apply_inverse_to_list_exn
+        permutation
+        string2t
+    in
+    let string_lss_hd = Lens.LensConst (string1h, string2h) in
+    let string_tl_combos = List.zip_exn string1t string2t_invperm in
+    let string_lss_tl =
+      List.map
+        ~f:(fun (x,y) -> Lens.LensConst (x,y))
+        string_tl_combos
+    in
+    let atom_lenses =
+      List.map ~f:atom_lens_to_lens atoms in
+    let atom_string_zips = List.zip_exn atom_lenses string_lss_tl in
+    let atom_string_concats =
+      List.map ~f:(fun (x,y) -> Lens.LensConcat (x,y)) atom_string_zips in
+    begin match atom_string_concats with
+    | [] -> string_lss_hd
+    | _ ->
+      let permutation_scct =
+        Permutation.to_swap_concat_compose_tree permutation in
+      if has_compose permutation_scct then
+        Lens.LensConcat(string_lss_hd,
+                   Lens.LensPermute (permutation,atom_string_concats))
+      else
+        Lens.LensConcat(string_lss_hd,
+                   (fst (combine_scct_and_atom_lenses
+                           atom_string_concats
+                           permutation_scct)))
+    end
 
-and dnf_regex_to_regex (r:dnf_regex) : Regex.t =
-  let sequence_regex_list = List.map
-    ~f:(fun c -> clause_to_regex c)
-    r
-  in
-  List.fold_right
-  ~f:(fun sqr acc ->
-    Regex.RegExOr (sqr,acc))
-  ~init:Regex.RegExEmpty
-  sequence_regex_list
-
-
-
-type queue_element =
-  | QERegexCombo of Regex.t * Regex.t * int * int
-  | QEGenerator of (unit -> ((queue_element * int) list))
-
-
-let clause_to_kvp ((atoms,strings):clause)
-      : ((atom * string) option * clause) =
-  begin match (atoms,strings) with
-  | (ah::at,sh::st) -> (Some (ah,sh), (at,st))
-  | ([],[s]) -> (None,([],[s]))
-  | _ -> failwith "malformed clause"
-  end
-
-let rec tl_regex_to_regex (tl:(((atom * string) option) list,
-string) tagged_list_tree) : Regex.t =
-  begin match tl with
-  | Leaf s -> Regex.RegExBase s
-  | Node (asl,tll) ->
-      let left_side = List.fold_left
-        ~f:(fun acc aso ->
-          begin match aso with
-          | None -> Regex.RegExBase ""
-          | Some (a,s) ->
-              Regex.RegExOr(acc,Regex.RegExConcat (Regex.RegExBase s,smart_atom_to_regex a))
-          end)
-        ~init:Regex.RegExEmpty
-        asl
-      in
-      let right_side = tll_regex_to_regex tll in
-      Regex.RegExConcat(left_side,right_side)
-  end
-
-and tll_regex_to_regex (tll:(((atom * string) option) list,
-string) tagged_list_tree list) : Regex.t =
-        List.fold_left
-          ~f:(fun acc l -> Regex.RegExOr(acc, tl_regex_to_regex l))
-          ~init:Regex.RegExEmpty
-          tll
-
-and smart_dnf_regex_to_regex (r:dnf_regex) : Regex.t =
-  let tltl = dnf_regex_to_tagged_list_tree_list r in
-  let tltl_grouped = List.map ~f:tagged_list_tree_keygrouped tltl in
-  let real_grouped_tltl = handle_noded_tltl tltl_grouped in
-  tll_regex_to_regex real_grouped_tltl
-
-and dnf_regex_to_tagged_list_tree_list (r:dnf_regex) : ((atom * string) option,
-string) tagged_list_tree list =
-  let kvp_list = List.map ~f:clause_to_kvp r in
-  let keys = List.dedup (List.map ~f:fst kvp_list) in
-  let test = List.fold_left
-    ~f:(fun acc (k,v) ->
-        insert_into_correct_list acc k v)
-    ~init:(List.map ~f:(fun key -> (key,[])) keys)
-    kvp_list
-  in
-  List.map
-    ~f:(fun (k,vl) ->
-      begin match k with
-      | None -> Node (k,
-          List.map
-            ~f:(fun x ->
-              begin match x with
-              | ([],[s]) -> Leaf s
-              | _ -> failwith "bad"
-              end)
-            vl)
-      | Some _ -> Node (k, dnf_regex_to_tagged_list_tree_list vl)
-      end)
-    test
-
-and smart_atom_to_regex (a:atom) : Regex.t =
-  begin match a with
-  | AUserDefined t -> Regex.RegExVariable t
-  | AStar dr -> Regex.RegExStar (smart_dnf_regex_to_regex dr)
-  end
+and dnf_lens_to_lens ((clauses,_):dnf_lens) : Lens.t =
+  let clause_lenses = List.map ~f:clause_lens_to_lens clauses in
+  List.fold_left
+    ~f:(fun acc l -> Lens.LensUnion (acc, l))
+    ~init:(Lens.LensIdentity (Regex.RegExEmpty))
+    clause_lenses

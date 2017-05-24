@@ -1,4 +1,5 @@
 open Core
+open Util
 open Algebra
 open Printf
 
@@ -58,6 +59,14 @@ struct
       | _ -> None
     end
 
+  let separate_userdef
+      (r:t)
+    : id option =
+    begin match r with
+      | RegExVariable v -> Some v
+      | _ -> None
+    end
+
   let create_plus
       (r1:t)
       (r2:t)
@@ -74,6 +83,11 @@ struct
       (r:t)
     : t =
     RegExStar r
+
+  let create_userdef
+      (v:id)
+    : t =
+    RegExVariable v
 
   let fold
       ~empty_f:(empty_f:'a)
@@ -105,36 +119,32 @@ struct
       (f:t -> t)
       (r:t)
     : t =
-    let r =
-      begin match r with
-        | RegExConcat (r1,r2) ->
-          RegExConcat (apply_at_every_level f r1, apply_at_every_level f r2)
-        | RegExOr (r1,r2) ->
-          RegExOr (apply_at_every_level f r1, apply_at_every_level f r2)
-        | RegExStar r' ->
-          RegExStar (apply_at_every_level f r')
-        | _ -> r
-      end
-    in
-    f r
+    fold
+      ~empty_f:(f RegExEmpty)
+      ~base_f:(fun s -> f (RegExBase s))
+      ~concat_f:(fun r1 r2 -> f (RegExConcat (r1,r2)))
+      ~or_f:(fun r1 r2 -> f (RegExOr (r1,r2)))
+      ~star_f:(fun r' -> f (RegExStar r'))
+      ~var_f:(fun v -> f (RegExVariable v))
+      r
 
   let rec applies_for_every_applicable_level
       (f:t -> t option)
-      (r:t)
-    : t list =
-    let recursed_applies =
-      begin match r with
-        | RegExConcat (r1,r2) ->
-          let r1s =
-            applies_for_every_applicable_level
-              f
-              r1
-          in
-          let r2s =
-            applies_for_every_applicable_level
-              f
-              r2
-          in
+    : t -> t list =
+    snd
+    %
+    fold
+      ~empty_f:(
+        let empty_r = RegExEmpty in
+        let level_contribution = option_to_empty_or_singleton (f empty_r) in
+        (empty_r, level_contribution))
+      ~base_f:(fun s ->
+          let base_r = RegExBase s in
+          let level_contribution = option_to_empty_or_singleton (f base_r) in
+          (base_r, level_contribution))
+      ~concat_f:(fun (r1,r1s) (r2,r2s) ->
+          let concat_r = RegExConcat (r1,r2) in
+          let level_contribution = option_to_empty_or_singleton (f concat_r) in
           let recursed_lefts =
             List.map
               ~f:(fun r1' -> RegExConcat (r1',r2))
@@ -145,18 +155,10 @@ struct
               ~f:(fun r2' -> RegExConcat (r1,r2'))
               r2s
           in
-          recursed_lefts@recursed_rights
-        | RegExOr (r1,r2) ->
-          let r1s =
-            applies_for_every_applicable_level
-              f
-              r1
-          in
-          let r2s =
-            applies_for_every_applicable_level
-              f
-              r2
-          in
+          (concat_r, level_contribution@recursed_lefts@recursed_rights))
+      ~or_f:(fun (r1,r1s) (r2,r2s) ->
+          let or_r = RegExOr (r1,r2) in
+          let level_contribution = option_to_empty_or_singleton (f or_r) in
           let recursed_lefts =
             List.map
               ~f:(fun r1' -> RegExOr (r1',r2))
@@ -167,38 +169,30 @@ struct
               ~f:(fun r2' -> RegExOr (r1,r2'))
               r2s
           in
-          recursed_lefts@recursed_rights
-        | RegExStar r' ->
-          let r's =
-            applies_for_every_applicable_level
-              f
-              r'
+          (or_r, level_contribution@recursed_lefts@recursed_rights))
+      ~star_f:(fun (r',r's) ->
+          let star_r = RegExStar r' in
+          let level_contribution = option_to_empty_or_singleton (f star_r) in
+          let recursed_inner =
+            List.map
+              ~f:(fun r'' -> RegExStar r'')
+              r's
           in
-          List.map
-            ~f:(fun r'' -> RegExStar r'')
-            r's
-        | _ -> []
-      end
-    in
-    begin match f r with
-      | Some r' -> r'::recursed_applies
-      | None -> recursed_applies
-    end
-
-
-
+          (star_r, level_contribution@recursed_inner))
+      ~var_f:(fun v ->
+          let var_r = RegExVariable v in
+          let level_contribution = option_to_empty_or_singleton (f var_r) in
+          (var_r, level_contribution))
 
   let rec size
-      (r:t)
-    : int =
-    begin match r with
-      | RegExEmpty -> 1
-      | RegExBase _ -> 1
-      | RegExConcat (r1,r2) -> 1 + (size r1) + (size r2)
-      | RegExOr (r1,r2) -> 1 + (size r1) + (size r2)
-      | RegExStar r' -> 1 + (size r')
-      | RegExVariable _ -> 1
-    end
+    : t -> int =
+    fold
+      ~empty_f:1
+      ~base_f:(fun _ -> 1)
+      ~concat_f:(fun n1 n2 -> 1+n1+n2)
+      ~or_f:(fun n1 n2 -> 1+n1+n2)
+      ~star_f:(fun n -> 1+n)
+      ~var_f:(fun _ -> 1)
 end
 
 let regex_semiring = (module Regex : Semiring with type t = Regex.t)

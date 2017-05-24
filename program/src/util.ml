@@ -143,6 +143,23 @@ let distribute_option (l:('a option) list) : 'a list option =
   ~init:(Some [])
   (List.rev l))
 
+let option_to_empty_or_singleton
+    (xo:'a option)
+  : 'a list =
+  begin match xo with
+    | Some x -> [x]
+    | None -> []
+  end
+
+let option_bind
+    ~f:(f:'a -> 'b option)
+    (xo:'a option)
+  : 'b option =
+  begin match xo with
+    | None -> None
+    | Some x -> f x
+  end
+
 let swap_double ((x,y):'a * 'b) : 'b * 'a =
   (y,x)
 

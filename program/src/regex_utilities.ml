@@ -122,3 +122,130 @@ let simplify_regex : Regex.t -> Regex.t =
     (merge_concated_bases
      % clean_regex
      % maximally_factor_regex)
+
+
+let rec expand_userdefs (c:RegexContext.t) (r:Regex.t)
+                            : Regex.t list =
+  begin match r with
+  | Regex.RegExEmpty -> []
+  | Regex.RegExBase _ -> []
+  | Regex.RegExConcat (r1,r2) ->
+      let r1_expansions = expand_userdefs c r1 in
+      let r2_expansions = expand_userdefs c r2 in
+      (List.map
+        ~f:(fun expansion -> Regex.RegExConcat (expansion,r2))
+        r1_expansions)
+      @
+      (List.map
+        ~f:(fun expansion -> Regex.RegExConcat (r1,expansion))
+        r2_expansions)
+  | Regex.RegExOr (r1,r2) ->
+      let r1_expansions = expand_userdefs c r1 in
+      let r2_expansions = expand_userdefs c r2 in
+      (List.map
+        ~f:(fun expansion -> Regex.RegExOr (expansion,r2))
+        r1_expansions)
+      @
+      (List.map
+        ~f:(fun expansion -> Regex.RegExOr (r1,expansion))
+        r2_expansions)
+  | Regex.RegExStar (r') ->
+      List.map
+        ~f:(fun expansion -> Regex.RegExStar expansion)
+        (expand_userdefs c r')
+  | Regex.RegExVariable t ->
+      begin match RegexContext.lookup_for_expansion_exn c t with
+      | Some rex -> [rex]
+      | None -> []
+      end
+  end
+
+let rec iteratively_deepen (r:Regex.t) : Regex.t * RegexContext.t =
+  begin match r with
+  | Regex.RegExEmpty -> (r,RegexContext.empty)
+  | Regex.RegExBase _ -> (r,RegexContext.empty)
+  | Regex.RegExConcat (r1,r2) ->
+      let (r1',c1) = iteratively_deepen r1 in
+      let (r2',c2) = iteratively_deepen r2 in
+      let context = RegexContext.merge_contexts_exn c1 c2 in
+      let regex_definition = Regex.RegExConcat(r1',r2') in
+      let regex_variable =
+        RegexContext.autogen_id
+          context
+          regex_definition
+      in
+      let context =
+        RegexContext.insert_exn
+          context
+          regex_variable
+          regex_definition
+          false
+        in
+      (Regex.RegExVariable regex_variable,context)
+  | Regex.RegExOr (r1,r2) ->
+      let (r1',c1) = iteratively_deepen r1 in
+      let (r2',c2) = iteratively_deepen r2 in
+      let context = RegexContext.merge_contexts_exn c1 c2 in
+      let regex_definition = Regex.RegExOr(r1',r2') in
+      let regex_variable =
+        RegexContext.autogen_id
+          context
+          regex_definition
+      in
+      let context =
+        RegexContext.insert_exn
+          context
+          regex_variable
+          regex_definition
+          false
+        in
+      (Regex.RegExVariable regex_variable,context)
+  | Regex.RegExStar r' ->
+      let (r'',c) = iteratively_deepen r' in
+      let regex_definition = Regex.RegExStar r'' in
+      let regex_variable =
+        RegexContext.autogen_id
+          c
+          regex_definition
+      in
+      let context =
+        RegexContext.insert_exn
+          c
+          regex_variable
+          regex_definition
+          false
+        in
+      (Regex.RegExVariable regex_variable,context)
+  | Regex.RegExVariable _ ->
+      (r,RegexContext.empty)
+  end
+
+(*let rec ordered_exampled_dnf_regex_to_regex
+    (r:ordered_exampled_dnf_regex) : regex =
+  dnf_regex_to_regex (ordered_exampled_dnf_regex_to_dnf_regex r)*)
+
+let expand_once
+    (rc:RegexContext.t)
+    (r1:Regex.t)
+    (r2:Regex.t)
+  : (Regex.t * Regex.t) list =
+  let retrieve_expansions_from_transform (transform:Regex.t -> Regex.t list):
+    (Regex.t * Regex.t) list =
+    (List.map
+       ~f:(fun le -> (le, r2))
+       (transform r1))
+    @
+    (List.map
+       ~f:(fun re -> (r1, re))
+       (transform r2))
+  in
+  
+  let all_immediate_expansions =
+    (retrieve_expansions_from_transform (expand_userdefs rc))
+    @ (retrieve_expansions_from_transform
+         (Algebra.left_unfold_all_stars regex_star_semiring))
+    @ (retrieve_expansions_from_transform
+         (Algebra.right_unfold_all_stars regex_star_semiring))
+  in
+
+  all_immediate_expansions

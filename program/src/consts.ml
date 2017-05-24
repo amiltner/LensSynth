@@ -12,7 +12,6 @@ let force_expand_regexps : bool ref = ref false
 let include_directories : string list ref = ref ["."]
 
 let naive_strategy : bool ref = ref false
-let naive_pqueue : bool ref = ref true
 let use_lens_context : bool ref = ref true
 
 let generate_io_count : int ref = ref 0

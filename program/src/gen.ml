@@ -4,30 +4,17 @@ open Converter
 open Regexcontext
 open Lang
 open Lens_utilities
+open Regex_utilities
 open Util
 open Permutation
-open Transform
 open Normalized_lang
 open Consts
 open Naive_gen
 open Synth_structs
 open Expand
+open Language_equivalences
 
-module UDEF_DISTANCE_PQUEUE = Priority_queue_two.Make(
-  struct
-    type element = queue_element
-    let compare = queue_element_comparison
-
-    let priority
-        (qe : queue_element)
-      : int =
-      retrieve_priority
-        qe.expansions_performed
-
-    let to_string = queue_element_to_string
-  end)
-
-module EXPANDCOUNT_PQUEUE = Priority_queue_two.Make(
+module PQ = Priority_queue_two.Make(
   struct
     type element = queue_element
     let compare = queue_element_comparison
@@ -42,7 +29,13 @@ module EXPANDCOUNT_PQUEUE = Priority_queue_two.Make(
 
 module type LENS_SYNTHESIZER =
 sig
-  val gen_lens : RegexContext.t -> LensContext.t -> Regex.t -> Regex.t -> examples -> Lens.t option
+  val gen_lens :
+    RegexContext.t ->
+    LensContext.t ->
+    Regex.t ->
+    Regex.t ->
+    examples ->
+    Lens.t option
 end
 
 module type LENSSYNTH_PRIORITY_QUEUE =
@@ -60,7 +53,7 @@ sig
   val to_string : queue -> string
 end
 
-module DNFSynth(PQ : LENSSYNTH_PRIORITY_QUEUE) =
+module DNFSynth =
 struct
   type synthesis_info =
     {
@@ -281,13 +274,10 @@ struct
         dnf_lens_option
 end
 
-module EXPANDCOUNT_SYNTHESIZER =
-  DNFSynth(EXPANDCOUNT_PQUEUE)
-
-let expansions_performed_for_gen = EXPANDCOUNT_SYNTHESIZER.expansions_performed_for_gen
-let specs_visited_for_gen = EXPANDCOUNT_SYNTHESIZER.specs_visited_for_gen
-let expansions_inferred_for_gen = EXPANDCOUNT_SYNTHESIZER.expansions_inferred_for_gen
-let expansions_forced_for_gen = EXPANDCOUNT_SYNTHESIZER.expansions_forced_for_gen
+let expansions_performed_for_gen = DNFSynth.expansions_performed_for_gen
+let specs_visited_for_gen = DNFSynth.specs_visited_for_gen
+let expansions_inferred_for_gen = DNFSynth.expansions_inferred_for_gen
+let expansions_forced_for_gen = DNFSynth.expansions_forced_for_gen
 
 let gen_lens
     (rc:RegexContext.t)
@@ -313,12 +303,10 @@ let gen_lens
       (r1,r2,rc)
   in
   let lens_option =
-    (if !naive_strategy then
+    if !naive_strategy then
       Some (gen_lens_naive rc lc r1 r2 exs)
-     else if !naive_pqueue then
-       EXPANDCOUNT_SYNTHESIZER.gen_lens rc lc r1 r2 exs
-     else
-       EXPANDCOUNT_SYNTHESIZER.gen_lens rc lc r1 r2 exs)
+    else
+      DNFSynth.gen_lens rc lc r1 r2 exs
   in
   if !verbose then
     print_endline "Synthesis End";

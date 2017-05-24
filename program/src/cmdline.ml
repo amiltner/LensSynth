@@ -92,10 +92,6 @@ let args =
     , Arg.Unit (fun _ -> naive_strategy := true)
     , " Set to use a naive synthesis strategy"
     )
-  ; ( "-naive_pqueue"
-    , Arg.Unit (fun _ -> naive_pqueue := true)
-    , " Set to use a naive priority queue"
-    )
   ; ( "-no_lens_context"
     , Arg.Unit (fun _ -> use_lens_context := false)
     , " Short circuit when distance is 0"

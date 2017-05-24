@@ -243,7 +243,6 @@ let gen_element_and_on_off_portions_of_flattened_or_userdef_regex
   in
   (s,ordered_on_portions,off_portions)
 
-
 let get_userdef_focused_flattened_regexs
     (rc:RegexContext.t)
     (r:Regex.t)
