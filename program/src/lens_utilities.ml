@@ -141,7 +141,7 @@ let distribute_inverses : Lens.t -> Lens.t =
 
 let simplify_lens : Lens.t -> Lens.t =
   let maximally_factor_lens : Lens.t -> Lens.t =
-    Algebra.maximally_factor_semiring_element
+    Algebra.Semiring.maximally_factor_element
       lens_semiring
   in
   let distribute_identities (l:Lens.t) : Lens.t =

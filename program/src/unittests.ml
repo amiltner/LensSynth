@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Normalized_lang
 open Converter
 open Counters
@@ -16,80 +16,80 @@ open Lang
 open Gen
 open Lens_put
 open Boom_lang
-open Transform
 open Gen_exs
+open Expand
 
 let test_to_normalized_exp_base _ =
   assert_dnf_equal
-    (to_dnf_regex (RegExBase "x"))
+    (to_dnf_regex (Regex.RegExBase "x"))
     [([],["x"])]
 
 let test_to_normalized_exp_concat_easy _ =
   assert_dnf_equal
     [([],["ab"])]
     (to_dnf_regex
-      (RegExConcat
-        (RegExBase "a",
-        RegExBase "b")))
+      (Regex.RegExConcat
+        (Regex.RegExBase "a",
+        Regex.RegExBase "b")))
     
 let test_to_normalized_exp_concat_tree _ =
   assert_dnf_equal
     [([],["abcde"])]
     (to_dnf_regex
-      (RegExConcat
-        (RegExConcat
-          (RegExBase "a",
-          RegExBase "b"),
-        RegExConcat
-          (RegExBase "c",
-          RegExConcat
-            (RegExBase "d",
-            RegExBase "e")))))
+      (Regex.RegExConcat
+        (Regex.RegExConcat
+          (Regex.RegExBase "a",
+          Regex.RegExBase "b"),
+        Regex.RegExConcat
+          (Regex.RegExBase "c",
+          Regex.RegExConcat
+            (Regex.RegExBase "d",
+            Regex.RegExBase "e")))))
 
 let test_to_normalized_exp_union_tree _ =
   assert_dnf_equal
     [([],["a"]);([],["b"]);([],["c"]);([],["d"]);([],["e"])]
     (to_dnf_regex
-      (RegExOr
-        (RegExOr
-          (RegExBase "a",
-          RegExBase "b"),
-        RegExOr
-          (RegExBase "c",
-          RegExOr
-            (RegExBase "d",
-            RegExBase "e")))))
+      (Regex.RegExOr
+        (Regex.RegExOr
+          (Regex.RegExBase "a",
+          Regex.RegExBase "b"),
+        Regex.RegExOr
+          (Regex.RegExBase "c",
+          Regex.RegExOr
+            (Regex.RegExBase "d",
+            Regex.RegExBase "e")))))
 
 let test_to_normalized_exp_append_distributeconcat _ =
   assert_dnf_equal
     (to_dnf_regex
-      (RegExConcat
-        (RegExConcat
-          (RegExBase "a",
-          RegExOr
-            (RegExBase "b",
-            RegExBase "c")),
-        RegExBase "d")))
+      (Regex.RegExConcat
+        (Regex.RegExConcat
+          (Regex.RegExBase "a",
+          Regex.RegExOr
+            (Regex.RegExBase "b",
+            Regex.RegExBase "c")),
+        Regex.RegExBase "d")))
     [([],["abd"]);([],["acd"])]
 
 let test_to_normalized_exp_complicated _ =
   assert_dnf_equal
   ([([],["abg"]);([AStar ([([],["cdf"]);([],["cef"])])],["a";"g"])])
     (to_dnf_regex
-    (RegExConcat
-      (RegExConcat
-        (RegExBase "a",
-          RegExOr
-            (RegExBase "b",
-            RegExStar
-              (RegExConcat
-                (RegExConcat
-                  (RegExBase "c",
-                  RegExOr
-                    (RegExBase "d",
-                    RegExBase "e")),
-                RegExBase "f")))),
-         RegExBase "g")))
+    (Regex.RegExConcat
+      (Regex.RegExConcat
+        (Regex.RegExBase "a",
+          Regex.RegExOr
+            (Regex.RegExBase "b",
+            Regex.RegExStar
+              (Regex.RegExConcat
+                (Regex.RegExConcat
+                  (Regex.RegExBase "c",
+                  Regex.RegExOr
+                    (Regex.RegExBase "d",
+                    Regex.RegExBase "e")),
+                Regex.RegExBase "f")))),
+         Regex.RegExBase "g")))
 
 
 let to_normalized_exp_suite = "to_normalized_exp Unit Tests" >:::
@@ -108,37 +108,37 @@ let test_counters_add_same _ =
   assert_ordered_string_assoc_list_equal
     [("a",2)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "a") "a"))
+    compare_string) "a") "a"))
 
 let test_counters_add_different _ =
   assert_ordered_string_assoc_list_equal
     [("a",1);("b",1)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "a") "b"))
+    compare_string) "a") "b"))
 
 let test_counters_add_different_rev _ =
   assert_ordered_string_assoc_list_equal
     [("a",1);("b",1)]
     (Counters.as_ordered_assoc_list (Counters.add (Counters.add (Counters.create
-    comparison_compare) "b") "a"))
+    compare_string) "b") "a"))
 
 let test_counters_merge_same _ =
   assert_ordered_string_assoc_list_equal
     [("a",2)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create compare_string) "a")
+    (Counters.add (Counters.create compare_string) "a"))))
 
 let test_counters_merge_different _ =
   assert_ordered_string_assoc_list_equal
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "a")
-    (Counters.add (Counters.create comparison_compare) "b"))))
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create compare_string) "a")
+    (Counters.add (Counters.create compare_string) "b"))))
 
 let test_counters_merge_different_rev _ =
   assert_ordered_string_assoc_list_equal
     [("a",1);("b",1)]
-    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create comparison_compare) "b")
-    (Counters.add (Counters.create comparison_compare) "a"))))
+    (Counters.as_ordered_assoc_list ((Counters.merge (fun x y -> x+y) (Counters.add (Counters.create compare_string) "b")
+    (Counters.add (Counters.create compare_string) "a"))))
 
 let counters_suite = "compare_dnf_regexs Unit Tests" >:::
   ["test_counters_add_same" >:: test_counters_add_same;
@@ -154,7 +154,7 @@ let _ = run_test_tt_main counters_suite
 module IntDisjointSet = Disjointset.Make(
   struct
     type elt = int
-    let compare_elt = comparison_compare
+    let compare_elt = compare
     let elt_to_string = string_of_int
   end)
 
@@ -202,44 +202,44 @@ let test_to_exampled_dnf_constant_noex _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[])],[]))
     (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
-      (RegExBase "a")
+      (Regex.RegExBase "a")
       [])
 
 let test_to_exampled_dnf_constant_2ex _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[[1];[0]])],[[1];[0]]))
     (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
-      (RegExBase "a")
+      (Regex.RegExBase "a")
       ["a";"a"])
 
 let test_to_exampled_dnf_or _ =
   assert_exampled_dnf_option_equal
     (Some ([([],["a"],[[1]]);([],["b"],[[0]])],[[1];[0]]))
     (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
-      (RegExOr (RegExBase "a", RegExBase "b"))
+      (Regex.RegExOr (Regex.RegExBase "a", Regex.RegExBase "b"))
       ["b";"a"])
 
 let test_to_exampled_dnf_userdefined _ =
   assert_exampled_dnf_option_equal
-    (Some ([([EAVariable ("A","A",LensIdentity(RegExVariable "A"),["a"],[[0]])],["";""],[[0]])],[[0]]))
-    (regex_to_exampled_dnf_regex (RegexContext.create_from_list_exn ["A",RegExBase "a",true]) LensContext.empty
-      (RegExVariable "A")
+    (Some ([([EAVariable (Id "A",Id "A",Lens.LensIdentity(Regex.RegExVariable (Id "A")),["a"],[[0]])],["";""],[[0]])],[[0]]))
+    (regex_to_exampled_dnf_regex (RegexContext.create_from_list_exn [Id "A",Regex.RegExBase "a",true]) LensContext.empty
+      (Regex.RegExVariable (Id "A"))
       ["a"])
 
 let test_to_exampled_dnf_star _ =
   assert_exampled_dnf_option_equal
   (Some ([([EAStar (([[],["a"],[[1;0];[0;0]]],[[1;0];[0;0]]),[[0]])],["";""],[[0]])],[[0]]))
     (regex_to_exampled_dnf_regex RegexContext.empty LensContext.empty
-      (RegExStar (RegExBase "a"))
+      (Regex.RegExStar (Regex.RegExBase "a"))
       ["aa"])
 
 (*let test_to_exampled_dnf_star_udef_or_concat _ =
   assert_exampled_dnf_option_equal
     (Some ([],[[0]]))
-    (regex_to_exampled_dnf_regex ["A",RegExBase "a"]
-      (RegExConcat
-        ((RegExStar (RegExVariable "A"))
-        ,(RegExOr (RegExBase "c",RegExBase "d"))))
+    (regex_to_exampled_dnf_regex ["A",Regex.RegExBase "a"]
+      (Regex.RegExConcat
+        ((Regex.RegExStar (Regex.RegExVariable "A"))
+        ,(Regex.RegExOr (Regex.RegExBase "c",Regex.RegExBase "d"))))
       ["aac"])*)
 
 
@@ -257,15 +257,15 @@ let _ = run_test_tt_main test_to_exampled_dnf_suite
 
 let test_compare_dnf_regexs_userdefineds_eq _ =
   assert_comparison_equal
-    EQ
-    (compare_dnf_regexs [[AUserDefined "a"],["";"1qaz"]]
-    [[AUserDefined "a"],["";"2wsx"]])
+    0
+    (compare_dnf_regexs [[AUserDefined (Id "a")],["";"1qaz"]]
+    [[AUserDefined (Id "a")],["";"2wsx"]])
 
 let test_compare_dnf_regexs_userdefineds_lt _ =
   assert_comparison_equal
-    LT
-    (compare_dnf_regexs [[AUserDefined "a"],["";"1qaz"]]
-    [[AUserDefined "b"],["";"2wsx"]])
+    (-1)
+    (compare_dnf_regexs [[AUserDefined (Id "a")],["";"1qaz"]]
+    [[AUserDefined (Id "b")],["";"2wsx"]])
 
 let compare_dnf_regexs_suite = "compare_dnf_regexs Unit Tests" >:::
   ["test_compare_dnf_regexs_userdefineds_eq" >:: test_compare_dnf_regexs_userdefineds_eq;
@@ -276,25 +276,25 @@ let _ = run_test_tt_main compare_dnf_regexs_suite
 
 let test_compare_exampled_dnf_regexs_userdefineds_eq _ =
   assert_comparison_equal
-    EQ
+    0
     (compare_exampled_dnf_regexs ([[EAVariable
-    ("a","a",LensIdentity (RegExVariable "a"),["a";"aa"],[[0];[1]])],["";"1qaz"],[[0];[1]]],[[0];[1]])
+    ((Id "a"),(Id "a"),Lens.LensIdentity (Regex.RegExVariable (Id "a")),["a";"aa"],[[0];[1]])],["";"1qaz"],[[0];[1]]],[[0];[1]])
     ([[EAVariable
-    ("a","a",LensIdentity (RegExVariable "a"),["a";"aa"],[[0];[1]])],["";"2wsx"],[[0];[1]]],[[0];[1]]))
+    ((Id "a"),(Id "a"),Lens.LensIdentity (Regex.RegExVariable (Id "a")),["a";"aa"],[[0];[1]])],["";"2wsx"],[[0];[1]]],[[0];[1]]))
 
 let test_compare_exampled_dnf_regexs_userdefineds_lt1 _ =
   assert_comparison_equal
-    LT
+    (-1)
     (compare_exampled_dnf_regexs ([[EAVariable
-    ("a","a",LensIdentity (RegExVariable "a"),["b"],[[0]])],["";"1qaz"],[[0]]],[[0]])
-    ([[EAVariable ("b","b",LensIdentity (RegExVariable "b"),["a"],[[0]])],["";"2wsx"],[[0]]],[[0]]))
+    (Id "a",Id "a",Lens.LensIdentity (Regex.RegExVariable (Id "a")),["b"],[[0]])],["";"1qaz"],[[0]]],[[0]])
+    ([[EAVariable (Id "b",Id "b",Lens.LensIdentity (Regex.RegExVariable (Id "b")),["a"],[[0]])],["";"2wsx"],[[0]]],[[0]]))
 
 let test_compare_exampled_dnf_regexs_userdefineds_lt2 _ =
   assert_comparison_equal
-    LT
+    (-1)
     (compare_exampled_dnf_regexs ([[EAVariable
-    ("a","a",LensIdentity (RegExVariable "a"), ["a"],[[0]])],["";"1qaz"],[[0]]],[[0]])
-    ([[EAVariable ("a","a", LensIdentity (RegExVariable "a"), ["b"],[[0]])],["";"2wsx"],[[0]]],[[0]]))
+    (Id "a",Id "a",Lens.LensIdentity (Regex.RegExVariable (Id "a")), ["a"],[[0]])],["";"1qaz"],[[0]]],[[0]])
+    ([[EAVariable (Id "a",Id "a", Lens.LensIdentity (Regex.RegExVariable (Id "a")), ["b"],[[0]])],["";"2wsx"],[[0]]],[[0]]))
 
 let compare_equivalent_dnf_regexs_suite = "compare_dnf_regexs Unit Tests" >:::
   ["test_compare_exampled_dnf_regexs_userdefineds_eq" >:: test_compare_exampled_dnf_regexs_userdefineds_eq;
@@ -307,10 +307,10 @@ let _ = run_test_tt_main compare_equivalent_dnf_regexs_suite
 
 
 
-let test_rxc_concrete_name = "concrete_name"
-let test_rxc_concrete_base = (RegExBase "concrete_base")
-let test_rxc_abstract_name = "abstract_name"
-let test_rxc_abstract_base = (RegExBase "abstract_base")
+let test_rxc_concrete_name = Id "concrete_name"
+let test_rxc_concrete_base = (Regex.RegExBase "concrete_base")
+let test_rxc_abstract_name = Id "abstract_name"
+let test_rxc_abstract_base = (Regex.RegExBase "abstract_base")
 let test_rxc_context =
   RegexContext.create_from_list_exn
     [(test_rxc_concrete_name,test_rxc_concrete_base,false)
@@ -319,7 +319,7 @@ let test_rxc_context =
 let test_lookup_empty _ =
   assert_raises
     (Failure "lookup_exn: key not found")
-    (fun _ -> RegexContext.lookup_exn RegexContext.empty "none")
+    (fun _ -> RegexContext.lookup_exn RegexContext.empty (Id "none"))
 
 let test_lookup_abstract _ =
   assert_regex_equal
@@ -340,7 +340,7 @@ let test_insert_same =
 
 let test_insert_conflicted _ =
   assert_raises
-    (Failure (test_rxc_concrete_name ^ " already exists in the context"))
+    (Failure (show_id test_rxc_concrete_name ^ " already exists in the context"))
     (fun _ ->
        RegexContext.insert_exn
          test_rxc_context
@@ -350,8 +350,8 @@ let test_insert_conflicted _ =
 
 let test_lookup_for_expansion_empty _ =
   assert_raises
-    (Failure "bad regex name: none")
-    (fun _ -> RegexContext.lookup_for_expansion_exn RegexContext.empty "none")
+    (Failure "bad regex name: (Lang.Id \"none\")")
+    (fun _ -> RegexContext.lookup_for_expansion_exn RegexContext.empty (Id "none"))
 
 (* TODO: tests on generated ids *)
 
@@ -366,21 +366,21 @@ let regex_context_suite = "RegexContext Unit Tests" >:::
 
 let _ = run_test_tt_main regex_context_suite
 
-let test_lc_a_name = "a"
-let test_lc_b_name = "b"
-let test_lc_c_name = "c"
-let test_lc_a = RegExVariable test_lc_a_name
-let test_lc_b = RegExVariable test_lc_b_name
-let test_lc_c = RegExVariable test_lc_c_name
-let test_lc_ab_name = "ab"
-let test_lc_bc_name = "bc"
-let test_lc_ca_name = "ca"
-let test_lc_ab_lens = LensConst ("a","b")
-let test_lc_bc_lens = LensConst ("b","c")
-let test_lc_ca_lens = LensConst ("c","a")
-let test_lc_ab_variable_lens = LensVariable test_lc_ab_name
-let test_lc_bc_variable_lens = LensVariable test_lc_bc_name
-let test_lc_ca_variable_lens = LensVariable test_lc_ca_name
+let test_lc_a_name = Id "a"
+let test_lc_b_name = Id "b"
+let test_lc_c_name = Id "c"
+let test_lc_a = Regex.RegExVariable test_lc_a_name
+let test_lc_b = Regex.RegExVariable test_lc_b_name
+let test_lc_c = Regex.RegExVariable test_lc_c_name
+let test_lc_ab_name = Id "ab"
+let test_lc_bc_name = Id "bc"
+let test_lc_ca_name = Id "ca"
+let test_lc_ab_lens = Lens.LensConst ("a","b")
+let test_lc_bc_lens = Lens.LensConst ("b","c")
+let test_lc_ca_lens = Lens.LensConst ("c","a")
+let test_lc_ab_variable_lens = Lens.LensVariable test_lc_ab_name
+let test_lc_bc_variable_lens = Lens.LensVariable test_lc_bc_name
+let test_lc_ca_variable_lens = Lens.LensVariable test_lc_ca_name
 let test_lc_context =
   LensContext.create_from_list_exn
     [(test_lc_ab_name,test_lc_ab_lens,test_lc_a,test_lc_b)
@@ -390,17 +390,17 @@ let test_lc_context =
 let test_lc_lookup_empty _ =
   assert_raises
     (Failure "lookup_exn: key not found")
-    (fun _ -> LensContext.lookup_exn LensContext.empty "none")
+    (fun _ -> LensContext.lookup_exn LensContext.empty (Id "none"))
 
 let test_lc_lookup_type_empty _ =
   assert_raises
     (Failure "lookup_exn: key not found")
-    (fun _ -> LensContext.lookup_type_exn LensContext.empty "none")
+    (fun _ -> LensContext.lookup_type_exn LensContext.empty (Id "none"))
 
 let test_lc_lookup_impl_empty _ =
   assert_raises
     (Failure "lookup_exn: key not found")
-    (fun _ -> LensContext.lookup_impl_exn LensContext.empty "none")
+    (fun _ -> LensContext.lookup_impl_exn LensContext.empty (Id "none"))
 
 let test_lc_lookup _ =
   assert_lens_regex_regex_equal
@@ -435,7 +435,7 @@ let test_lc_shortest_path_exn_nopath _ =
        LensContext.shortest_path_exn
          test_lc_context
          test_lc_a_name
-         "other")
+         (Id "other"))
 
 let test_lc_shortest_path_exn_normal _ =
   assert_lens_equal
@@ -447,7 +447,7 @@ let test_lc_shortest_path_exn_normal _ =
 
 let test_lc_shortest_path_exn_inverse _ =
   assert_lens_equal
-    (LensInverse test_lc_ca_variable_lens)
+    (Lens.LensInverse test_lc_ca_variable_lens)
     (LensContext.shortest_path_exn
        test_lc_context
        test_lc_a_name
@@ -455,7 +455,7 @@ let test_lc_shortest_path_exn_inverse _ =
 
 let test_lc_paths_to_rep_elt_1 _ =
   assert_id_lens_equal
-    (test_lc_c_name,LensIdentity (test_lc_c))
+    (test_lc_c_name,Lens.LensIdentity (test_lc_c))
     (LensContext.shortest_path_to_rep_elt
        test_lc_context
        test_lc_c_name)
@@ -469,17 +469,17 @@ let test_lc_paths_to_rep_elt_2 _ =
 
 let test_lc_paths_to_rep_elt_3 _ =
   assert_id_lens_equal
-    (test_lc_c_name,LensInverse test_lc_ca_variable_lens)
+    (test_lc_c_name,Lens.LensInverse test_lc_ca_variable_lens)
     (LensContext.shortest_path_to_rep_elt
        test_lc_context
        test_lc_a_name)
 
 let test_lc_paths_to_rep_elt_singleton _ =
   assert_id_lens_equal
-    ("sinlgetonname",LensIdentity (RegExVariable "singletonname"))
+    ((Id "sinlgetonname"),Lens.LensIdentity (Regex.RegExVariable (Id "sinlgetonname")))
     (LensContext.shortest_path_to_rep_elt
        test_lc_context
-       "sinlgetonname")
+       (Id "sinlgetonname"))
 
 let lens_context_suite = "LensContext Unit Tests" >:::
   [
@@ -508,183 +508,183 @@ let _ = run_test_tt_main lens_context_suite
 let test_fast_eval_base_positive _ =
   assert_bool_equal
     true
-    (fast_eval RegexContext.empty (RegExBase "x") "x")
+    (fast_eval RegexContext.empty (Regex.RegExBase "x") "x")
 
 let test_fast_eval_base_negative1 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty (RegExBase "x") "y")
+    (fast_eval RegexContext.empty (Regex.RegExBase "x") "y")
 
 let test_fast_eval_base_negative2 _ =
   assert_bool_equal
     false
-    (fast_eval RegexContext.empty (RegExBase "x") "xx")
+    (fast_eval RegexContext.empty (Regex.RegExBase "x") "xx")
 
 let test_fast_eval_concat_positive1 _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExBase "x",
-        RegExConcat
-          (RegExBase "y",
-          RegExBase "z"))) "xyz")
+      (Regex.RegExConcat
+        (Regex.RegExBase "x",
+        Regex.RegExConcat
+          (Regex.RegExBase "y",
+          Regex.RegExBase "z"))) "xyz")
 
 let test_fast_eval_concat_positive2 _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExConcat
-          (RegExBase "x",
-          RegExBase "y"),
-        RegExBase "z")) "xyz")
+      (Regex.RegExConcat
+        (Regex.RegExConcat
+          (Regex.RegExBase "x",
+          Regex.RegExBase "y"),
+        Regex.RegExBase "z")) "xyz")
 
 let test_fast_eval_concat_negative1 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExBase "x",
-        RegExBase "y")) "x")
+      (Regex.RegExConcat
+        (Regex.RegExBase "x",
+        Regex.RegExBase "y")) "x")
 
 let test_fast_eval_concat_negative2 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExBase "x",
-        RegExBase "y")) "xz")
+      (Regex.RegExConcat
+        (Regex.RegExBase "x",
+        Regex.RegExBase "y")) "xz")
 
 let test_fast_eval_concat_negative3 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExBase "x",
-        RegExBase "y")) "yx")
+      (Regex.RegExConcat
+        (Regex.RegExBase "x",
+        Regex.RegExBase "y")) "yx")
 
 let test_fast_eval_concat_negative4 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExConcat
-        (RegExBase "x",
-        RegExBase "y")) "xyz")
+      (Regex.RegExConcat
+        (Regex.RegExBase "x",
+        Regex.RegExBase "y")) "xyz")
 
 let test_fast_eval_or_positive _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExOr
-        (RegExOr
-          (RegExBase "a",
-          RegExBase "b"),
-        (RegExOr
-          (RegExBase "c",
-          RegExBase "d")))) "c")
+      (Regex.RegExOr
+        (Regex.RegExOr
+          (Regex.RegExBase "a",
+          Regex.RegExBase "b"),
+        (Regex.RegExOr
+          (Regex.RegExBase "c",
+          Regex.RegExBase "d")))) "c")
 
 let test_fast_eval_or_negative _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExOr
-        (RegExOr
-          (RegExBase "a",
-          RegExBase "b"),
-        (RegExOr
-          (RegExBase "c",
-          RegExBase "d")))) "x")
+      (Regex.RegExOr
+        (Regex.RegExOr
+          (Regex.RegExBase "a",
+          Regex.RegExBase "b"),
+        (Regex.RegExOr
+          (Regex.RegExBase "c",
+          Regex.RegExBase "d")))) "x")
 
 let test_fast_eval_star_empty _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "")
 
 let test_fast_eval_star_one _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "a")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "a")
 
 let test_fast_eval_star_two _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "aa")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "aa")
 
 let test_fast_eval_star_choice _ =
   assert_bool_equal
     true
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExOr
-          (RegExBase "a"
-          ,RegExBase "b"))
+      (Regex.RegExStar
+        (Regex.RegExOr
+          (Regex.RegExBase "a"
+          ,Regex.RegExBase "b"))
       ) "aab" )
 
 let test_fast_eval_star_negative1 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "b")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "b")
 
 let test_fast_eval_star_negative2 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "ab")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "ab")
 
 let test_fast_eval_star_negative3 _ =
   assert_bool_equal
     false
     (fast_eval RegexContext.empty
-      (RegExStar
-        (RegExBase "a")) "ba")
+      (Regex.RegExStar
+        (Regex.RegExBase "a")) "ba")
 
 let test_fast_eval_userdef_positive _ =
   assert_bool_equal
     true
-    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
-      (RegExVariable "A") "a")
+    (fast_eval (RegexContext.create_from_list_exn [(Id "A"),Regex.RegExBase "a",true])
+      (Regex.RegExVariable (Id "A")) "a")
 
 let test_fast_eval_userdef_negative _ =
   assert_bool_equal
     false
-    (fast_eval (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
-      (RegExVariable "A") "b")
+    (fast_eval (RegexContext.create_from_list_exn [(Id "A"),Regex.RegExBase "a",true])
+      (Regex.RegExVariable (Id "A")) "b")
 
 let test_fast_eval_concat_userdef _ =
   assert_bool_equal
   true
   (fast_eval
-    (RegexContext.create_from_list_exn [("A", RegExBase "a",true);("B", RegExBase "b",true)])
-    (RegExConcat (RegExVariable "A", RegExVariable "B"))
+    (RegexContext.create_from_list_exn [(Id "A", Regex.RegExBase "a",true);(Id "B", Regex.RegExBase "b",true)])
+    (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "B")))
     "ab")
 
 let test_fast_eval_nested_userdef _ =
   assert_bool_equal
   true
   (fast_eval
-   (RegexContext.create_from_list_exn [("A", RegExBase "a", true);("B", RegExVariable "A",true)])
-   (RegExVariable "B") "a")
+   (RegexContext.create_from_list_exn [(Id "A", Regex.RegExBase "a", true);(Id "B", Regex.RegExVariable (Id "A"),true)])
+   (Regex.RegExVariable (Id "B")) "a")
 
 let test_fast_eval_fast _ =
   assert_bool_equal
   true
   (fast_eval
-     (RegexContext.create_from_list_exn [("A", RegExConcat (RegExBase "c", RegExConcat (RegExStar
-  (RegExBase "a"), RegExStar (RegExBase "b"))),true)])
-  (RegExConcat (RegExStar (RegExVariable "A"), RegExConcat (RegExBase "z",
-  RegExStar (RegExConcat (RegExConcat (RegExVariable "A", RegExBase "q"),
-  RegExStar (RegExConcat (RegExVariable "A", RegExOr (RegExBase "t",
-  RegExBase "m"))))))))
+     (RegexContext.create_from_list_exn [(Id "A", Regex.RegExConcat (Regex.RegExBase "c", Regex.RegExConcat (Regex.RegExStar
+  (Regex.RegExBase "a"), Regex.RegExStar (Regex.RegExBase "b"))),true)])
+  (Regex.RegExConcat (Regex.RegExStar (Regex.RegExVariable (Id "A")), Regex.RegExConcat (Regex.RegExBase "z",
+  Regex.RegExStar (Regex.RegExConcat (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExBase "q"),
+  Regex.RegExStar (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExOr (Regex.RegExBase "t",
+  Regex.RegExBase "m"))))))))
   "caaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbcaaabbbbzcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbtcaaabbbqcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbmcaaabbbm")
 
 let fast_eval_suite = "fast_eval Unit Tests" >:::
@@ -905,7 +905,7 @@ let test_sort_and_partition _ =
   assert_char_list_list_equal
     [['a';'a'];['b'];['c';'c';'c'];['z']]
     (sort_and_partition
-      (fun x y -> int_compare (Char.to_int x) (Char.to_int y))
+      (fun x y -> compare_int (Char.to_int x) (Char.to_int y))
       ['a';'z';'b';'c';'c';'a';'c'])
 
 let util_suite = "Util Unit Tests" >:::
@@ -1000,7 +1000,7 @@ let test_extract_string_userdefined _ =
   assert_string_equal
     "userdefined"
     (extract_string
-       (ERegExVariable ("t",["userdefined";"not"],[[0];[1]]))
+       (ERegExVariable (Id "t",["userdefined";"not"],[[0];[1]]))
        [0])
 
 let extract_string_suite = "extract_string Unit Tests" >:::
@@ -1019,7 +1019,7 @@ let _ = run_test_tt_main extract_string_suite
 let test_lens_putr_const _ =
   assert_string_equal
     "target"
-    (lens_putr RegexContext.empty LensContext.empty (LensConst ("source","target")) "source")
+    (lens_putr RegexContext.empty LensContext.empty (Lens.LensConst ("source","target")) "source")
 
 let test_lens_putr_concat _ =
   assert_string_equal
@@ -1027,7 +1027,7 @@ let test_lens_putr_concat _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensConcat ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensConcat ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "s1s2")
 
 let test_lens_putr_swap _ =
@@ -1036,7 +1036,7 @@ let test_lens_putr_swap _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensSwap ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensSwap ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "s1s2")
 
 let test_lens_putr_union_left _ =
@@ -1045,7 +1045,7 @@ let test_lens_putr_union_left _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensUnion ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensUnion ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "s1")
 
 let test_lens_putr_union_right _ =
@@ -1054,7 +1054,7 @@ let test_lens_putr_union_right _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensUnion ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensUnion ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "s2")
 
 let test_lens_putr_compose _ =
@@ -1063,7 +1063,7 @@ let test_lens_putr_compose _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensCompose ((LensConst ("t","u")),LensConst ("s","t")))
+       (Lens.LensCompose ((Lens.LensConst ("t","u")),Lens.LensConst ("s","t")))
        "s")
 
 let test_lens_putr_iterate_empty _ =
@@ -1072,7 +1072,7 @@ let test_lens_putr_iterate_empty _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "")
 
 let test_lens_putr_iterate_singleton _ =
@@ -1081,7 +1081,7 @@ let test_lens_putr_iterate_singleton _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "s")
 
 let test_lens_putr_iterate_multiple _ =
@@ -1090,7 +1090,7 @@ let test_lens_putr_iterate_multiple _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "sss")
 
 let test_lens_putr_identity _ =
@@ -1099,7 +1099,7 @@ let test_lens_putr_identity _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensIdentity (RegExBase "source"))
+       (Lens.LensIdentity (Regex.RegExBase "source"))
        "source")
 
 let test_inverse_putr _ =
@@ -1108,7 +1108,7 @@ let test_inverse_putr _ =
     (lens_putr
        RegexContext.empty
        LensContext.empty
-       (LensInverse (LensConst ("source","target")))
+       (Lens.LensInverse (Lens.LensConst ("source","target")))
        "target")
 
 let lens_putr_suite = "lens_putr Unit Tests" >:::
@@ -1132,7 +1132,7 @@ let _ = run_test_tt_main lens_putr_suite
 let test_lens_putl_const _ =
   assert_string_equal
     "source"
-    (lens_putl RegexContext.empty LensContext.empty (LensConst ("source","target")) "target")
+    (lens_putl RegexContext.empty LensContext.empty (Lens.LensConst ("source","target")) "target")
 
 let test_lens_putl_concat _ =
   assert_string_equal
@@ -1140,7 +1140,7 @@ let test_lens_putl_concat _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensConcat ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensConcat ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "t1t2")
 
 let test_lens_putl_swap _ =
@@ -1149,7 +1149,7 @@ let test_lens_putl_swap _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensSwap ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensSwap ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "t2t1")
 
 let test_lens_putl_union_left _ =
@@ -1158,7 +1158,7 @@ let test_lens_putl_union_left _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensUnion ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensUnion ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "t1")
 
 let test_lens_putl_union_right _ =
@@ -1167,7 +1167,7 @@ let test_lens_putl_union_right _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensUnion ((LensConst ("s1","t1")),LensConst ("s2","t2")))
+       (Lens.LensUnion ((Lens.LensConst ("s1","t1")),Lens.LensConst ("s2","t2")))
        "t2")
 
 let test_lens_putl_compose _ =
@@ -1176,7 +1176,7 @@ let test_lens_putl_compose _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensCompose ((LensConst ("t","u")),LensConst ("s","t")))
+       (Lens.LensCompose ((Lens.LensConst ("t","u")),Lens.LensConst ("s","t")))
        "u")
 
 let test_lens_putl_iterate_empty _ =
@@ -1185,7 +1185,7 @@ let test_lens_putl_iterate_empty _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "")
 
 let test_lens_putl_iterate_singleton _ =
@@ -1194,7 +1194,7 @@ let test_lens_putl_iterate_singleton _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "t")
 
 let test_lens_putl_iterate_multiple _ =
@@ -1203,7 +1203,7 @@ let test_lens_putl_iterate_multiple _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensIterate (LensConst ("s","t")))
+       (Lens.LensIterate (Lens.LensConst ("s","t")))
        "ttt")
 
 let test_lens_putl_identity _ =
@@ -1212,7 +1212,7 @@ let test_lens_putl_identity _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensIdentity (RegExBase "target"))
+       (Lens.LensIdentity (Regex.RegExBase "target"))
        "target")
 
 let test_lens_putl_inverse _ =
@@ -1221,7 +1221,7 @@ let test_lens_putl_inverse _ =
     (lens_putl
        RegexContext.empty
        LensContext.empty
-       (LensInverse (LensConst ("source","target")))
+       (Lens.LensInverse (Lens.LensConst ("source","target")))
        "source")
 
 let lens_putl_suite = "lens_putl Unit Tests" >:::
@@ -1241,23 +1241,24 @@ let lens_putl_suite = "lens_putl Unit Tests" >:::
 
 let _ = run_test_tt_main lens_putl_suite
 
-let gen_dnf_lens = UDEF_DISTANCE_DNF_SYNTHESIZER.gen_dnf_lens
+let gen_dnf_lens = DNFSynth.gen_dnf_lens
 
 let test_gen_dnf_lens_const_nosoln _ =
-  assert_dnf_lens_option_equal
-    None
-    (gen_dnf_lens RegexContext.empty
+  assert_raises
+    (Failure "bad examples")
+    (fun _ -> (gen_dnf_lens RegexContext.empty
        LensContext.empty
-      (RegExBase "x")
-      (RegExBase "y")
-      [("a","b")])
+      (Regex.RegExBase "x")
+      (Regex.RegExBase "y")
+      [("a","b")]))
+    
 
 let test_gen_dnf_lens_const_soln _ =
   assert_dnf_lens_option_equal
     (Some ([[],Permutation.create [], ["x"], ["y"]],Permutation.create [0]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExBase "x")
-      (RegExBase "y")
+      (Regex.RegExBase "x")
+      (Regex.RegExBase "y")
       [("x","y")])
 
 let test_gen_lenses_union _ =
@@ -1267,8 +1268,8 @@ let test_gen_lenses_union _ =
         [],Permutation.create [], ["b"], ["x"]],
       Permutation.create [1;0]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExOr (RegExBase "a", RegExBase "b"))
-      (RegExOr (RegExBase "x", RegExBase "y"))
+      (Regex.RegExOr (Regex.RegExBase "a", Regex.RegExBase "b"))
+      (Regex.RegExOr (Regex.RegExBase "x", Regex.RegExBase "y"))
       [("a","y");("b","x")])
 
 let test_gen_lenses_three_union _ =
@@ -1279,40 +1280,40 @@ let test_gen_lenses_three_union _ =
         [],Permutation.create [], ["c"], ["x"]],
       Permutation.create [2;0;1]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExOr (RegExBase "a", RegExOr (RegExBase "b", RegExBase "c")))
-      (RegExOr (RegExBase "x", RegExOr (RegExBase "y", RegExBase "z")))
+      (Regex.RegExOr (Regex.RegExBase "a", Regex.RegExOr (Regex.RegExBase "b", Regex.RegExBase "c")))
+      (Regex.RegExOr (Regex.RegExBase "x", Regex.RegExOr (Regex.RegExBase "y", Regex.RegExBase "z")))
       [("a","y");("b","z");("c","x")])
 
 let test_gen_lenses_userdef_ident _ =
   assert_dnf_lens_option_equal
     (Some
-      ([[AtomLensVariable (LensIdentity (RegExVariable "A"))], Permutation.create [0], ["";""], ["";""]],
+      ([[AtomLensVariable (Lens.LensIdentity (Regex.RegExVariable (Id "A")))], Permutation.create [0], ["";""], ["";""]],
       Permutation.create [0]))
-    (gen_dnf_lens (RegexContext.create_from_list_exn ["A",RegExBase "a",false; "B", RegExBase "b",false]) LensContext.empty
-      (RegExVariable "A")
-      (RegExVariable "A")
+    (gen_dnf_lens (RegexContext.create_from_list_exn [Id "A",Regex.RegExBase "a",false; Id "B", Regex.RegExBase "b",false]) LensContext.empty
+      (Regex.RegExVariable (Id "A"))
+      (Regex.RegExVariable (Id "A"))
       [])
 
 let test_gen_lenses_concat_userdef _ =
   assert_dnf_lens_option_equal
     (Some
-      ([[AtomLensVariable (LensIdentity (RegExVariable "A")); AtomLensVariable (LensIdentity (RegExVariable "B"))], Permutation.create [1;0],
+      ([[AtomLensVariable (Lens.LensIdentity (Regex.RegExVariable (Id "A"))); AtomLensVariable (Lens.LensIdentity (Regex.RegExVariable (Id "B")))], Permutation.create [1;0],
         ["";"";""], ["";"";""]],
       Permutation.create [0]))
-    (gen_dnf_lens (RegexContext.create_from_list_exn ["A",RegExBase "a",true; "B", RegExBase "b",true]) LensContext.empty
-      (RegExConcat (RegExVariable "A", RegExVariable "B"))
-      (RegExConcat (RegExVariable "B", RegExVariable "A"))
+    (gen_dnf_lens (RegexContext.create_from_list_exn [Id "A",Regex.RegExBase "a",true; Id "B", Regex.RegExBase "b",true]) LensContext.empty
+      (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "B")))
+      (Regex.RegExConcat (Regex.RegExVariable (Id "B"), Regex.RegExVariable (Id "A")))
       ["ab","ba"])
 
 let test_gen_lenses_concat_userdef_hard _ =
   assert_dnf_lens_option_equal
     (Some
-      ([[AtomLensVariable(LensIdentity(RegExVariable "A")); AtomLensVariable(LensIdentity(RegExVariable "A"))], Permutation.create [1;0],
+      ([[AtomLensVariable(Lens.LensIdentity(Regex.RegExVariable (Id "A"))); AtomLensVariable(Lens.LensIdentity(Regex.RegExVariable (Id "A")))], Permutation.create [1;0],
         ["";"";""], ["";"";""]],
       Permutation.create [0]))
-    (gen_dnf_lens (RegexContext.create_from_list_exn ["A",RegExOr (RegExBase "a", RegExBase "A"),true]) LensContext.empty
-      (RegExConcat (RegExVariable "A", RegExVariable "A"))
-      (RegExConcat (RegExVariable "A", RegExVariable "A"))
+    (gen_dnf_lens (RegexContext.create_from_list_exn [Id "A",Regex.RegExOr (Regex.RegExBase "a", Regex.RegExBase "A"),true]) LensContext.empty
+      (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "A")))
+      (Regex.RegExConcat (Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "A")))
       [("Aa","aA")])
 
 let test_gen_lenses_userdef_expand _ =
@@ -1320,17 +1321,17 @@ let test_gen_lenses_userdef_expand _ =
     (Some
       ([[], Permutation.create[], ["a"], ["a"]],
         Permutation.create [0]))
-    (gen_dnf_lens (RegexContext.create_from_list_exn ["A", RegExBase "a",false]) LensContext.empty
-      (RegExVariable "A")
-      (RegExBase "a") [])
+    (gen_dnf_lens (RegexContext.create_from_list_exn [Id "A", Regex.RegExBase "a",false]) LensContext.empty
+      (Regex.RegExVariable (Id "A"))
+      (Regex.RegExBase "a") [])
 
 let test_gen_lenses_star _ =
   assert_dnf_lens_option_equal
   (Some ([[(AtomLensIterate ([[], Permutation.create [], ["a"], ["b"]], Permutation.create
   [0]))], Permutation.create [0], ["";""], ["";""]], Permutation.create [0]))
   (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExStar (RegExBase "a"))
-      (RegExStar (RegExBase "b"))
+      (Regex.RegExStar (Regex.RegExBase "a"))
+      (Regex.RegExStar (Regex.RegExBase "b"))
       ["aa","bb"])
 
 let test_gen_dnf_lens_star_difficult _ =
@@ -1344,12 +1345,12 @@ let test_gen_dnf_lens_star_difficult _ =
     ],
     Permutation.create [0]))
   (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExConcat
-        (RegExStar (RegExBase "a"),
-        RegExStar (RegExBase "b")))
-      (RegExConcat
-        (RegExStar (RegExBase "a"),
-        RegExStar (RegExBase "b")))
+      (Regex.RegExConcat
+        (Regex.RegExStar (Regex.RegExBase "a"),
+        Regex.RegExStar (Regex.RegExBase "b")))
+      (Regex.RegExConcat
+        (Regex.RegExStar (Regex.RegExBase "a"),
+        Regex.RegExStar (Regex.RegExBase "b")))
       ["abb","aab"])
 
 let test_dnf_lens_star_expansion _ =
@@ -1357,14 +1358,14 @@ let test_dnf_lens_star_expansion _ =
   (Some ([
     [],Permutation.create [], [""], [""];
     [(AtomLensIterate ([[], Permutation.create [], ["a"], ["a"]], Permutation.create
-    [0]))], Permutation.create [0], ["";"a"], ["a";""]
+    [0]))], Permutation.create [0], ["a";""], ["a";""]
     ],
     Permutation.create [0;1]))
   (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExStar (RegExBase "a"))
-      (RegExOr
-        (RegExBase "",
-        RegExConcat (RegExBase "a", RegExStar (RegExBase "a"))))
+      (Regex.RegExStar (Regex.RegExBase "a"))
+      (Regex.RegExOr
+        (Regex.RegExBase "",
+        Regex.RegExConcat (Regex.RegExBase "a", Regex.RegExStar (Regex.RegExBase "a"))))
       ["a","a"])
 
 
@@ -1375,15 +1376,15 @@ let test_dnf_lens_star_inner_expansion _ =
         ([],Permutation.create [], ["a"], ["a"]);
         ([AtomLensIterate ([
           ([],Permutation.create [], ["z"], ["z"])
-        ],Permutation.create [0])],Permutation.create [0], ["a";"z"], ["az";""])
+        ],Permutation.create [0])],Permutation.create [0], ["az";""], ["az";""])
       ],Permutation.create [0;1])],Permutation.create [0], ["";""],
       ["";""]
       ],Permutation.create [0]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
+      (Regex.RegExStar (Regex.RegExConcat (Regex.RegExBase "a", Regex.RegExStar (Regex.RegExBase
       "z"))))
-      (RegExStar (RegExOr (RegExBase "a", RegExConcat (RegExBase
-      "az", RegExStar (RegExBase "z")))))
+      (Regex.RegExStar (Regex.RegExOr (Regex.RegExBase "a", Regex.RegExConcat (Regex.RegExBase
+      "az", Regex.RegExStar (Regex.RegExBase "z")))))
       [])
 
 (*let test_dnf_lens_quotient_expansion _ =
@@ -1391,22 +1392,22 @@ let test_dnf_lens_star_inner_expansion _ =
     (Some (
       [
         ([
-          (AtomLensIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
+          (AtomLens.LensIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
         ],
         Permutation.create [0],
         ["";""],
         ["";""]);
         ([
-          (AtomLensIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
+          (AtomLens.LensIterate ([[],Permutation.create [], ["aa"],["aa"]], Permutation.create [0]))
         ],
         Permutation.create [0],
         ["a";""],
         ["a";""]);
       ], Permutation.create [0;1]))
     (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExStar (RegExBase "a"))
-      (RegExOr (RegExStar (RegExBase "aa"),
-                            RegExConcat (RegExBase "a", RegExStar (RegExBase
+      (Regex.RegExStar (Regex.RegExBase "a"))
+      (Regex.RegExOr (Regex.RegExStar (Regex.RegExBase "aa"),
+                            Regex.RegExConcat (Regex.RegExBase "a", Regex.RegExStar (Regex.RegExBase
                             "aa"))))
       [])
 
@@ -1415,17 +1416,17 @@ let test_dnf_lens_inner_quotient_expansion _ =
   (Some (
     [
       ([
-        AtomLensIterate 
+        AtomLens.LensIterate 
 (
       [
         ([
-          (AtomLensIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
+          (AtomLens.LensIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
         ],
         Permutation.create [0],
         ["a";""],
         ["a";""]);
         ([
-          (AtomLensIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
+          (AtomLens.LensIterate ([[],Permutation.create [], ["bb"],["bb"]], Permutation.create [0]))
         ],
         Permutation.create [0],
         ["ab";""],
@@ -1433,10 +1434,10 @@ let test_dnf_lens_inner_quotient_expansion _ =
       ], Permutation.create [0;1])
     ], Permutation.create [0], ["";""], ["";""])], Permutation.create [0]))
   (gen_dnf_lens RegexContext.empty LensContext.empty
-      (RegExStar (RegExConcat (RegExBase "a", RegExStar (RegExBase
+      (Regex.RegExStar (Regex.RegExConcat (Regex.RegExBase "a", Regex.RegExStar (Regex.RegExBase
     "b"))))
-      (RegExStar (RegExConcat (RegExBase "a", RegExOr (RegExStar (RegExBase "bb"),
-                            RegExConcat (RegExBase "b", RegExStar (RegExBase
+      (Regex.RegExStar (Regex.RegExConcat (Regex.RegExBase "a", Regex.RegExOr (Regex.RegExStar (Regex.RegExBase "bb"),
+                            Regex.RegExConcat (Regex.RegExBase "b", Regex.RegExStar (Regex.RegExBase
                             "bb"))))))
       [("a","a")])
   *)
@@ -1538,8 +1539,8 @@ let _ = run_test_tt_main to_swap_concat_compose_tree_suite
 
 let test_atom_lens_to_lens_basic _ =
   assert_lens_equal
-    (LensIdentity (RegExBase "TODO"))
-    (LensIdentity (RegExBase "TODO"))
+    (Lens.LensIdentity (Regex.RegExBase "TODO"))
+    (Lens.LensIdentity (Regex.RegExBase "TODO"))
 
 let atom_lens_to_lens_suite = "atom_lens_to_lens Unit Tests" >:::
   [
@@ -1552,61 +1553,61 @@ let _ = run_test_tt_main atom_lens_to_lens_suite
 
 let test_simplify_lens_lensvariable _ =
   assert_lens_equal
-    (LensVariable "var")
-    (simplify_lens (LensVariable "var"))
+    (Lens.LensVariable (Id "var"))
+    (simplify_lens (Lens.LensVariable (Id "var")))
 
 let test_simplify_lens_combine_identity_or _ =
   assert_lens_equal
-    (LensIdentity (RegExOr(RegExVariable "A", RegExVariable "B")))
+    (Lens.LensIdentity (Regex.RegExOr(Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "B"))))
     (simplify_lens
-       (LensUnion
-          (LensIdentity (RegExVariable "A")
-          ,LensIdentity (RegExVariable "B"))))
+       (Lens.LensUnion
+          (Lens.LensIdentity (Regex.RegExVariable (Id "A"))
+          ,Lens.LensIdentity (Regex.RegExVariable (Id "B")))))
 
 
 let test_simplify_lens_combine_identity_concat _ =
   assert_lens_equal
-    (LensIdentity (RegExConcat(RegExVariable "A", RegExVariable "B")))
+    (Lens.LensIdentity (Regex.RegExConcat(Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "B"))))
     (simplify_lens
-       (LensConcat
-          (LensIdentity (RegExVariable "A")
-          ,LensIdentity (RegExVariable "B"))))
+       (Lens.LensConcat
+          (Lens.LensIdentity (Regex.RegExVariable (Id "A"))
+          ,Lens.LensIdentity (Regex.RegExVariable (Id "B")))))
 
 let test_simplify_lens_distribute_iteration _ =
   assert_lens_equal
-    (LensIdentity (RegExStar (RegExVariable "A")))
+    (Lens.LensIdentity (Regex.RegExStar (Regex.RegExVariable (Id "A"))))
     (simplify_lens
-       (LensIterate
-          (LensIdentity (RegExVariable "A"))))
+       (Lens.LensIterate
+          (Lens.LensIdentity (Regex.RegExVariable (Id "A")))))
 
 let test_simplify_lens_distribute_inverses _ =
   assert_lens_equal
-    (LensConcat
-       (LensConcat
-          (LensIdentity (RegExVariable "A")
-          ,LensConcat
-              (LensConst ("B","b")
-              ,LensIdentity (RegExVariable "C")))
-       ,LensConst ("D","d")))
+    (Lens.LensConcat
+       (Lens.LensConcat
+          (Lens.LensIdentity (Regex.RegExVariable (Id "A"))
+          ,Lens.LensConcat
+              (Lens.LensConst ("B","b")
+              ,Lens.LensIdentity (Regex.RegExVariable (Id "C"))))
+       ,Lens.LensConst ("D","d")))
     (simplify_lens
-       (LensInverse
-          (LensConcat
-             (LensConcat
-                (LensIdentity (RegExVariable "A")
-                ,LensConst ("b","B"))
-             ,LensConcat
-                 (LensIdentity (RegExVariable "C")
-                 ,LensConst ("d","D"))))))
+       (Lens.LensInverse
+          (Lens.LensConcat
+             (Lens.LensConcat
+                (Lens.LensIdentity (Regex.RegExVariable (Id "A"))
+                ,Lens.LensConst ("b","B"))
+             ,Lens.LensConcat
+                 (Lens.LensIdentity (Regex.RegExVariable (Id "C"))
+                 ,Lens.LensConst ("d","D"))))))
 
 let test_simplify_lens_identify_consts _ =
   assert_lens_equal
-    (LensIdentity (RegExBase "a"))
-    (simplify_lens (LensConst ("a","a")))
+    (Lens.LensIdentity (Regex.RegExBase "a"))
+    (simplify_lens (Lens.LensConst ("a","a")))
 
 let test_simplify_lens_combine_regex_consts _ =
   assert_lens_equal
-    (LensIdentity (RegExBase "ab"))
-    (simplify_lens (LensConcat (LensConst ("a","a"), LensConst ("b","b"))))
+    (Lens.LensIdentity (Regex.RegExBase "ab"))
+    (simplify_lens (Lens.LensConcat (Lens.LensConst ("a","a"), Lens.LensConst ("b","b"))))
 
 
 let simplify_lens_suite = "simplify_lens Unit Tests" >:::
@@ -1625,34 +1626,34 @@ let _ = run_test_tt_main simplify_lens_suite
 
 let test_boom_program_of_program_userdef_abstract _ =
   assert_boom_program_equal
-    [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
-    (boom_program_of_program LensContext.empty [DeclRegexCreation("r",RegExBase "b",true)])
+    [BoomStmtDefinition(Id "r",BoomTypRegex,BoomExpRegex (Regex.RegExBase "b"))]
+    (boom_program_of_program LensContext.empty [DeclRegexCreation(Id "r",Regex.RegExBase "b",true)])
 
 let test_boom_program_of_program_userdef_concrete _ =
   assert_boom_program_equal
-    [BoomStmtDefinition("r",BoomTypRegex,BoomExpRegex (RegExBase "b"))]
-    (boom_program_of_program LensContext.empty [DeclRegexCreation("r",RegExBase "b",false)])
+    [BoomStmtDefinition(Id "r",BoomTypRegex,BoomExpRegex (Regex.RegExBase "b"))]
+    (boom_program_of_program LensContext.empty [DeclRegexCreation(Id "r",Regex.RegExBase "b",false)])
 
 let test_boom_program_of_program_test_string _ =
   assert_boom_program_equal
-    [BoomStmtTestRegex (RegExBase "b", "c")]
-    (boom_program_of_program LensContext.empty [DeclTestString (RegExBase "b", "c")])
+    [BoomStmtTestRegex (Regex.RegExBase "b", "c")]
+    (boom_program_of_program LensContext.empty [DeclTestString (Regex.RegExBase "b", "c")])
 
 let test_boom_program_of_program_synthesize_program _ =
   assert_raises
     (Failure "no boom functionality for this")
     (fun _ ->
        boom_program_of_program LensContext.empty
-         [DeclSynthesizeLens ("n",RegExBase "a", RegExBase "b", [])])
+         [DeclSynthesizeLens (Id "n",Regex.RegExBase "a", Regex.RegExBase "b", [])])
 
 let test_boom_program_of_program_lens_creation _ =
   assert_boom_program_equal
     [BoomStmtDefinition
-       ("n"
-       ,BoomTypLens(RegExBase "a",RegExBase "b")
-       ,BoomExpLens(LensVariable "x"))]
+       (Id "n"
+       ,BoomTypLens(Regex.RegExBase "a",Regex.RegExBase "b")
+       ,BoomExpLens(Lens.LensVariable (Id "x")))]
     (boom_program_of_program LensContext.empty
-       [DeclLensCreation ("n", RegExBase "a", RegExBase "b", LensVariable "x")])
+       [DeclLensCreation (Id "n", Regex.RegExBase "a", Regex.RegExBase "b", Lens.LensVariable (Id "x"))])
 
 let boom_program_of_program_suite = "boom_program_of_program Unit Tests" >:::
   [
@@ -1674,75 +1675,53 @@ b   c   y   z   c
 
 
 let test_expand_regexcontext = RegexContext.create_from_list_exn
-    [("a",RegExConcat(RegExVariable "b",RegExVariable "c"),false)
-    ;("b",RegExBase "b",false)
-    ;("c",RegExBase "c",false)
-    ;("x",RegExOr(RegExVariable "y",RegExVariable "z"),false)
-    ;("y",RegExBase "y",false)
-    ;("z",RegExBase "z",false)
-    ;("d",RegExStar(RegExVariable "c"),false)
-    ;("c",RegExBase "c",false)
-    ;("f",RegExBase "f",true)]
+    [(Id "a",Regex.RegExConcat(Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")),false)
+    ;(Id "b",Regex.RegExBase "b",false)
+    ;(Id "c",Regex.RegExBase "c",false)
+    ;(Id "x",Regex.RegExOr(Regex.RegExVariable (Id "y"),Regex.RegExVariable (Id "z")),false)
+    ;(Id "y",Regex.RegExBase "y",false)
+    ;(Id "z",Regex.RegExBase "z",false)
+    ;(Id "d",Regex.RegExStar(Regex.RegExVariable (Id "c")),false)
+    ;(Id "c",Regex.RegExBase "c",false)
+    ;(Id "f",Regex.RegExBase "f",true)]
 
 let test_expand_lenscontext = LensContext.empty
 
 let test_expand_nothing_required_base _ =
   assert_required_expansions_equal
-    [(RegExBase "a", RegExBase "b", 0)]
-    (expand_real_required_expansions
+    (Regex.RegExBase "a", Regex.RegExBase "b", 0)
+    (expand_required
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExBase "a")
-       (RegExBase "b"))
+       (Regex.RegExBase "a")
+       (Regex.RegExBase "b"))
 
 let test_expand_nothing_required_variable _ =
   assert_required_expansions_equal
-    [(RegExVariable "a", RegExVariable "a", 0)]
-    (expand_real_required_expansions
+    (Regex.RegExVariable (Id "a"), Regex.RegExVariable (Id "a"), 0)
+    (expand_required
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExVariable "a")
-       (RegExVariable "a"))
+       (Regex.RegExVariable (Id "a"))
+       (Regex.RegExVariable (Id "a")))
 
 let test_expand_single_required_left_top _ =
   assert_required_expansions_equal
-    [(RegExConcat (RegExVariable "b",RegExVariable "c"), RegExOr(RegExVariable "b",RegExVariable "c"), 1)]
-    (expand_real_required_expansions
+    (Regex.RegExConcat (Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")), Regex.RegExOr(Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")), 1)
+    (expand_required
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExVariable "a")
-       (RegExOr(RegExVariable "b",RegExVariable "c")))
+       (Regex.RegExVariable (Id "a"))
+       (Regex.RegExOr(Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c"))))
 
 let test_expand_single_required_right_top _ =
   assert_required_expansions_equal
-    [(RegExOr(RegExVariable "b",RegExVariable "c"), RegExConcat (RegExVariable "b",RegExVariable "c"), 1)]
-    (expand_real_required_expansions
+    (Regex.RegExOr(Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")), Regex.RegExConcat (Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")), 1)
+    (expand_required
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExOr(RegExVariable "b",RegExVariable "c"))
-       (RegExVariable "a"))
-
-let test_expand_internal_required_left _ =
-  assert_required_expansions_equal
-    [(RegExConcat(RegExVariable "b",RegExVariable "c")
-     ,RegExOr(RegExConcat(RegExVariable "b",RegExVariable "c"),RegExVariable "b"),
-     2)]
-    (expand_real_required_expansions
-       test_expand_regexcontext
-       test_expand_lenscontext
-       (RegExVariable "a")
-       (RegExOr(RegExVariable "a",RegExVariable "b")))
-
-let test_expand_internal_required_right _ =
-  assert_required_expansions_equal
-    [(RegExOr(RegExConcat(RegExVariable "b",RegExVariable "c"),RegExVariable "b")
-     ,RegExConcat(RegExVariable "b",RegExVariable "c"),
-     2)]
-    (expand_real_required_expansions
-       test_expand_regexcontext
-       test_expand_lenscontext
-       (RegExOr(RegExVariable "a",RegExVariable "b"))
-       (RegExVariable "a"))
+       (Regex.RegExOr(Regex.RegExVariable (Id "b"),Regex.RegExVariable (Id "c")))
+       (Regex.RegExVariable (Id "a")))
 
 let expand_required_expansions_program_suite = "expand_required_expansions Unit Tests" >:::
   [
@@ -1750,75 +1729,73 @@ let expand_required_expansions_program_suite = "expand_required_expansions Unit 
     "test_expand_nothing_required_variable" >:: test_expand_nothing_required_variable;
     "test_expand_single_required_left_top" >:: test_expand_single_required_left_top;
     "test_expand_single_required_right_top" >:: test_expand_single_required_right_top;
-    "test_expand_internal_required_left" >:: test_expand_internal_required_left;
-    "test_expand_internal_required_right" >:: test_expand_internal_required_right;
   ]
 
 let _ = run_test_tt_main expand_required_expansions_program_suite
 
 
-
+(*
 let test_expand_count_unfold _ =
   assert_expansions_equal
-    [((RegExOr(RegExBase "",
-               RegExConcat(RegExVariable "b",RegExStar(RegExVariable "b"))))
+    [((Regex.RegExOr(Regex.RegExBase "",
+               Regex.RegExConcat(Regex.RegExVariable (Id "b"),Regex.RegExStar(Regex.RegExVariable (Id "b")))))
      ,1)
-    ;((RegExOr(RegExBase "",
-               RegExConcat(RegExStar(RegExVariable "b"),RegExVariable "b")))
+    ;((Regex.RegExOr(Regex.RegExBase "",
+               Regex.RegExConcat(Regex.RegExStar(Regex.RegExVariable (Id "b")),Regex.RegExVariable (Id "b"))))
      ,1)]
     (expand_count_of_regex_depth
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExStar(RegExVariable "b"))
+       (Regex.RegExStar(Regex.RegExVariable "b"))
        "b"
        0)
 
 let test_expand_underneath_star _ =
   assert_expansions_equal
-    [((RegExOr(RegExBase "",
-                         RegExConcat(RegExStar(RegExVariable "b"),
-                                     RegExStar(RegExStar(RegExVariable "b")))))
+    [((Regex.RegExOr(Regex.RegExBase "",
+                         Regex.RegExConcat(Regex.RegExStar(Regex.RegExVariable "b"),
+                                     Regex.RegExStar(Regex.RegExStar(Regex.RegExVariable "b")))))
      ,1)
-    ;((RegExOr(RegExBase "",
-               RegExConcat(RegExStar(RegExStar(RegExVariable "b")),
-                           RegExStar(RegExVariable "b"))))
+    ;((Regex.RegExOr(Regex.RegExBase "",
+               Regex.RegExConcat(Regex.RegExStar(Regex.RegExStar(Regex.RegExVariable "b")),
+                           Regex.RegExStar(Regex.RegExVariable "b"))))
      ,1)
-    ;(RegExStar(RegExOr(RegExBase "",
-                        RegExConcat(RegExVariable "b",
-                                    RegExStar(RegExVariable "b"))))
+    ;(Regex.RegExStar(Regex.RegExOr(Regex.RegExBase "",
+                        Regex.RegExConcat(Regex.RegExVariable "b",
+                                    Regex.RegExStar(Regex.RegExVariable "b"))))
       ,1)
-    ;(RegExStar(RegExOr(RegExBase "",
-                        RegExConcat(RegExStar(RegExVariable "b"),
-                                    RegExVariable "b")))
+    ;(Regex.RegExStar(Regex.RegExOr(Regex.RegExBase "",
+                        Regex.RegExConcat(Regex.RegExStar(Regex.RegExVariable "b"),
+                                    Regex.RegExVariable "b")))
       ,1)
     ]
     (expand_count_of_regex_depth
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExStar(RegExStar(RegExVariable "b")))
+       (Regex.RegExStar(Regex.RegExStar(Regex.RegExVariable "b")))
        "b"
        1)
 
 let test_by_expanding_other _ =
   assert_expansions_equal
-    [(RegExConcat(RegExVariable "b",
-                  RegExStar(RegExBase "c"))
+    [(Regex.RegExConcat(Regex.RegExVariable "b",
+                  Regex.RegExStar(Regex.RegExBase "c"))
      ,1)
-    ;(RegExConcat(RegExVariable "b",
-                  (RegExOr(RegExBase "",
-                           RegExConcat(RegExVariable "c",
-                                       RegExStar(RegExVariable "c")))))
+    ;(Regex.RegExConcat(Regex.RegExVariable "b",
+                  (Regex.RegExOr(Regex.RegExBase "",
+                           Regex.RegExConcat(Regex.RegExVariable "c",
+                                       Regex.RegExStar(Regex.RegExVariable "c")))))
      ,1)
-    ;(RegExConcat(RegExVariable "b",
-                  (RegExOr(RegExBase "",
-                           RegExConcat(RegExStar(RegExVariable "c"),
-                                       RegExVariable "c"))))
+    ;(Regex.RegExConcat(Regex.RegExVariable "b",
+                  (Regex.RegExOr(Regex.RegExBase "",
+                           Regex.RegExConcat(Regex.RegExStar(Regex.RegExVariable "c"),
+                                       Regex.RegExVariable "c"))))
      ,1)
     ]
     (expand_count_of_regex_depth
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExVariable "c")))
        "b"
        0)
 
@@ -1834,25 +1811,25 @@ let _ = run_test_tt_main expand_count_of_regex_depth_suite
 
 let test_contraction_depth0 _ =
   assert_expansions_equal
-    [(RegExConcat(RegExVariable "b",RegExBase "c")
+    [(Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExBase "c")
      ,1)
     ]
     (shrink_count_of_regex_depth
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExConcat(RegExVariable "b",RegExVariable "c"))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExVariable "c"))
        "c"
        0)
 
 let test_contraction_depth1 _ =
   assert_expansions_equal
-    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+    [(Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c"))
      ,1)
     ]
     (shrink_count_of_regex_depth
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExVariable "c")))
        "c"
        1)
 
@@ -1867,29 +1844,29 @@ let _ = run_test_tt_main shrink_count_of_regex_depth_suite
 
 let test_even_through_shrink_left _ =
   assert_double_expansions_equal
-    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")),
-      RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+    [(Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c")),
+      Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c"))
      ,1)
     ]
     (make_userdef_depth_same_size
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
-       (RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExVariable "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c")))
        "c"
        1)
 
 let test_even_through_shrink_right _ =
   assert_double_expansions_equal
-    [(RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")),
-      RegExConcat(RegExVariable "b",RegExStar(RegExBase "c"))
+    [(Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c")),
+      Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c"))
      ,1)
     ]
     (make_userdef_depth_same_size
        test_expand_regexcontext
        test_expand_lenscontext
-       (RegExConcat(RegExVariable "b",RegExStar(RegExBase "c")))
-       (RegExConcat(RegExVariable "b",RegExStar(RegExVariable "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExBase "c")))
+       (Regex.RegExConcat(Regex.RegExVariable "b",Regex.RegExStar(Regex.RegExVariable "c")))
        "c"
        1)
 
@@ -1899,7 +1876,7 @@ let make_userdef_depth_same_size_suite = "make_userdef_depth_same_size Unit Test
     "test_even_through_shrink_right" >:: test_even_through_shrink_right;
   ]
 
-let _ = run_test_tt_main make_userdef_depth_same_size_suite
+let _ = run_test_tt_main make_userdef_depth_same_size_suite*)
 
 
 let _ = Random.init 0
@@ -1935,24 +1912,22 @@ let gen_element_and_on_portions_of_flattened_or_userdef_regex_topint _ =
        (true,(FRegExConcat ((false,FRegExBase "a"), (false,FRegExBase "b")))))
 
 let get_userdef_focused_flattened_regex_concats _ =
-  assert_flattened_or_userdef_regex_list_equal
-    [(false,
-      FRegExConcat((true,FRegExBase"a"),(true,FRegExBase"a")))
-    ;(false,
-      FRegExConcat((true,FRegExBase"a"),(true,FRegExBase"a")))]
+  assert_id_flattened_or_userdef_regex_list_equal
+    [(Id "A",
+      (false, FRegExConcat((true,FRegExBase"a"),(true,FRegExBase"a"))))]
     (get_userdef_focused_flattened_regexs
-       (RegexContext.create_from_list_exn ["A",RegExBase "a",true])
-       (RegExConcat(RegExVariable "A", RegExVariable "A")))
+       (RegexContext.create_from_list_exn [Id "A",Regex.RegExBase "a",true])
+       (Regex.RegExConcat(Regex.RegExVariable (Id "A"), Regex.RegExVariable (Id "A"))))
 
 let get_userdef_focused_flattened_regex_ors _ =
-  assert_flattened_or_userdef_regex_list_equal
-    [(false,
+  assert_id_flattened_or_userdef_regex_list_equal
+    [Id "A", (false,
       FRegExOr[(false,FRegExBase"c")
               ;(true,FRegExBase"a")
               ;(true,FRegExBase"b")])]
     (get_userdef_focused_flattened_regexs
-       (RegexContext.create_from_list_exn ["A",(RegExOr (RegExBase "a",RegExBase "b")),true])
-       (RegExOr(RegExBase "c", RegExVariable "A")))
+       (RegexContext.create_from_list_exn [Id "A",(Regex.RegExOr (Regex.RegExBase "a",Regex.RegExBase "b")),true])
+       (Regex.RegExOr(Regex.RegExBase "c", Regex.RegExVariable (Id "A"))))
 
 let calculate_off_portions_easy _ =
   assert_int_int_list_equal

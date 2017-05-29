@@ -202,8 +202,8 @@ let expand_once
     (qe:queue_element)
   : queue_element list =
   let expanders =
-    [Algebra.left_unfold_all_stars regex_star_semiring
-    ;Algebra.right_unfold_all_stars regex_star_semiring
+    [Algebra.StarSemiring.left_unfold_all_stars regex_star_semiring
+    ;Algebra.StarSemiring.right_unfold_all_stars regex_star_semiring
     ;Regex.applies_for_every_applicable_level
         (fun r ->
            option_bind

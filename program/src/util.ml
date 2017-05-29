@@ -11,6 +11,7 @@ type 'a continuation = 'a -> 'a
 type 'a printer = 'a -> string
 
 type comparison = int
+[@@deriving ord, show, hash]
 
 let is_equal (c:comparison) : bool =
   c = 0
@@ -22,6 +23,7 @@ let is_gt (c:comparison) : bool =
   c > 0
 
 type 'a comparer = 'a -> 'a -> int
+type 'a equality_check = 'a -> 'a -> bool
 
 type matchable_comparison =
     EQ
@@ -55,8 +57,14 @@ let make_comparison (c:matchable_comparison) : comparison =
   | GT -> 1
   end
 
+
 let comparison_to_equality (c:comparison) : bool =
   c = 0
+
+
+let comparer_to_equality_check (c:'a comparer) : 'a equality_check =
+  (fun x y -> comparison_to_equality (c x y))
+
 
 let compare_to_equals
     (f:'a comparer)

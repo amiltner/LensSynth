@@ -1,5 +1,5 @@
 open OUnit2
-open Core.Std
+open Core
 open String_utilities
 open Util
 
@@ -20,7 +20,7 @@ let assert_not_equal (printer:'a -> string) (expectednot:'a) (actual:'a) =
 let assert_bool_equal (expected:bool) (actual:bool) =
   assert_equal
     ~printer:string_of_bool
-    ~cmp:bool_compare
+    ~cmp:compare_bool
     expected
     actual
 
@@ -40,14 +40,14 @@ let assert_not_equal_bool (expected_not:bool) (actual:bool) =
 let assert_not_equal_int (expected_not:int) (actual:int) =
   assert_not_equal string_of_int expected_not actual
 
-let assert_int_equal = assert_equal ~printer:string_of_int ~cmp:int_compare
+let assert_int_equal = assert_equal ~printer:string_of_int ~cmp:compare_int
 
 let assert_float_equal = assert_equal ~printer:Float.to_string
 
 let assert_int_option_equal =
   assert_equal
     ~printer:(string_of_option string_of_int)
-    ~cmp:(option_compare int_compare)
+    ~cmp:(option_compare compare_int)
 
 let assert_float_option_equal =
   assert_equal
@@ -74,20 +74,20 @@ let assert_string_list_option_equal
 
 let assert_comparison_equal =
   assert_equal
-    ~printer:string_of_comparison
+    ~printer:show_comparison
     ~cmp:compare_comparison
 
 let assert_char_list_list_equal = assert_equal
     ~printer:string_of_char_list_list
-    ~cmp:(compare_list ~cmp:(compare_list ~cmp:char_compare))
+    ~cmp:(compare_list ~cmp:(compare_list ~cmp:compare_char))
 
 let assert_char_list_double_equal =
   let char_list_printer = string_of_list string_of_char in
-  let char_list_comparer = compare_list ~cmp:char_compare in
+  let char_list_comparer = compare_list ~cmp:compare_char in
   assert_equal
     ~printer:(string_of_pair char_list_printer char_list_printer)
     ~cmp:(pair_compare char_list_comparer char_list_comparer)
 
 let assert_string_equal = assert_equal
     ~printer:ident
-    ~cmp:string_compare
+    ~cmp:compare_string

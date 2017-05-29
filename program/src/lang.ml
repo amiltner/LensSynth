@@ -89,6 +89,11 @@ struct
     : t =
     RegExVariable v
 
+  let create_base
+      (s:string)
+    : t =
+    RegExBase s
+
   let fold
       ~empty_f:(empty_f:'a)
       ~base_f:(base_f:string -> 'a)
@@ -195,8 +200,8 @@ struct
       ~var_f:(fun _ -> 1)
 end
 
-let regex_semiring = (module Regex : Semiring with type t = Regex.t)
-let regex_star_semiring = (module Regex : StarSemiring with type t = Regex.t)
+let regex_semiring = (module Regex : Semiring.Sig with type t = Regex.t)
+let regex_star_semiring = (module Regex : StarSemiring.Sig with type t = Regex.t)
 (***** }}} *****)
 
 
@@ -339,8 +344,8 @@ struct
     failwith "TODO"
 end
 
-let lens_semiring = (module Lens : Semiring with type t = Lens.t)
-let lens_star_semiring = (module Lens : StarSemiring with type t = Lens.t)
+let lens_semiring = (module Lens : Semiring.Sig with type t = Lens.t)
+let lens_star_semiring = (module Lens : StarSemiring.Sig with type t = Lens.t)
 
 (***** }}} *****)
 
