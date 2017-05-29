@@ -52,12 +52,24 @@
 \usepackage{algorithmicx}
 \usepackage[noend]{algpseudocode}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{textcomp}
 \usepackage{tabularx}
 \usepackage{stackengine}
 \usepackage{caption}
 
-\usetikzlibrary{er,matrix,shapes,arrows,positioning,fit,calc,pgfplots.groupplots}
+\usetikzlibrary{
+  er,
+  matrix,
+  shapes,
+  arrows,
+  positioning,
+  fit,
+  calc,
+  pgfplots.groupplots,
+  arrows.meta
+}
+\tikzset{>={Latex}}
 
 %%%% Hyperlinks – must come late!
 %\usepackage[pdftex,%
@@ -427,7 +439,7 @@ algorithm to a two-phased typing derivation.
 bidirectional programming more accessible.  We begin by motivating our problem
 with an extended, real-world example (\S\ref{motivation}).
 After we briefly recapitulate some background on regular expressions and core
-lens combinators (\S\ref{background}),
+lens combinators (\S\ref{preliminaries}),
 we offer the following technical contributions:
 
 \begin{itemize}
@@ -456,112 +468,124 @@ We close with related work (\S \ref{sec:related}) and conclusions (\S
 
 \begin{figure}
   \centering
-  \begin{tikzpicture}[auto,node distance=1.5cm]
-    %clients
-    \node[align=center,draw,rectangle,minimum width=2cm,minimum height = .9cm, text width=2cm, fill=lightyellow] (old-clients) {Legacy Clients};
-    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, text width=2cm, fill=lightgreen] (new-clients) [right = 1cm of old-clients] {Modern Clients};
+  \begin{subfigure}[b]{.49\textwidth}
+    \centering
+    \begin{tikzpicture}[auto,node distance=1.5cm]
+      % clients
+      \node[align=center,draw,rectangle,minimum width=2cm,minimum height = .9cm, text width=2cm, fill=lightyellow] (old-clients) {Legacy Clients};
+      \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, text width=2cm, fill=lightgreen] (new-clients) [right = 1cm of old-clients] {Modern Clients};
 
-    %server apis
-    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightyellow] (old-server-api) [below = .6cm of old-clients] {Legacy Server API};
-    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (new-server-api) [below = .6cm of new-clients] {Modern Server API};
+      % server apis
+      \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightyellow] (old-server-api) [below = .6cm of old-clients] {Legacy Server API};
+      \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (new-server-api) [below = .6cm of new-clients] {Modern Server API};
 
-    %server stack
-    \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (server-stack) [below = .3cm of new-server-api] {Server Stack};
-    
-    % Draw an edge between rel1 and node1; rel1 and node2
-    \path[<->] (old-clients) edge node {} (old-server-api);
-    \path[<->] (new-clients) edge node {} (new-server-api);
-    \path[<->] (new-server-api) edge node {} (server-stack);
-    
-    \draw[<->] (old-server-api.south)
-    -- ($(old-server-api.south)+(0,-.15)$)
-    -| ($(old-server-api.south)+(1.13,-.15)$) node[below] {Lens} 
-    -| ($(new-server-api.north)+(-1.63,.15)$)
-    -| ($(new-server-api.north)+(-.50,.15)$)
-    -- ($(new-server-api.north)+(-.50,0)$);
-    \node[fit=(old-server-api) (new-server-api) (server-stack) ,draw, inner sep=.8em] (server) {};
-    %\node (synth-name) [below=0cm of surrounding] (name) {\SynthLens{}};
-  \end{tikzpicture}
-  \caption{VSTS Architecture Using Lenses}
-  \label{fig:vsts-arch}
-\end{figure}
+      % server stack
+      \node[text width=2cm,align=center,draw,rectangle,minimum height = .9cm, fill=lightgreen] (server-stack) [below = .3cm of new-server-api] {Server Stack};
+      
+      % Draw an edge between rel1 and node1; rel1 and node2
+      \path[<->] (old-clients) edge node {} (old-server-api);
+      \path[<->] (new-clients) edge node {} (new-server-api);
+      \path[<->] (new-server-api) edge node {} (server-stack);
+      \path[<->] (old-server-api) edge node {Lens} (new-server-api);
 
-\begin{figure}
-
-%https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
-\setbox0=\hbox{%
-\begin{minipage}{1.9in}
+      % Surrounding box
+      \node[fit=(old-server-api) (new-server-api) (server-stack) ,draw, inner sep=.8em] (surrounding) {};
+    \end{tikzpicture}
+    \caption{}
+    \label{subfig:vsts-arch}
+  \end{subfigure}
+  \begin{subfigure}[b]{.49\textwidth}
+    % https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
+    \setbox0=\hbox{%
+      \begin{minipage}{1.9in}
 \begin{lstlisting}[
 tabsize=1,
 language={xml},
 ]
 <WorkItem>
  <Field Id=1>Bug</Field>
- <Field Id=2>Return 400 on bad PUT request</Field>
- <Field Id=5>J Smith</Field>
-</WorkItem>
+ <Field Id=2>Return 400 on
+    bad PUT request</Field>
+ <Field Id
 \end{lstlisting}
-\end{minipage}
-}
-\savestack{\listingA}{\box0}
+      \end{minipage}
+    }
+    \savestack{\listingA}{\box0}
 
-\setbox0=\hbox{%
-\begin{minipage}{1.9in}
+    \setbox0=\hbox{%
+      \begin{minipage}{1.9in}
 \begin{lstlisting}[
 tabsize=1,
 ]
 {
-  Title: Return 400 on bad PUT request,
+  Title: Return 400 on
+    bad PUT request,
   Type: Bug,
   AssignedTo: J Smith,
 }
 \end{lstlisting}
-\end{minipage}
-}
-\savestack{\listingB}{\box0}
-  \centering
-  \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
-      \hline
-      Legacy Task Representation & Modern Task Representation \\
-      \hline
-      \listingA & \listingB \\
-      \hline
-    \end{tabular}
-  }
-  \caption{Idealized Task representations from legacy and modern web service endpoints}
-  \label{fig:idealized-representations}
+      \end{minipage}
+    }
+    \savestack{\listingB}{\box0}
+    \centering
+    \resizebox{\columnwidth}{!}{%
+      \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
+        \hline
+        Legacy Work Item Representation & Modern Work Item Representation \\
+        \hline
+        \listingA & \listingB \\
+        \hline
+      \end{tabular}
+    }
+    \caption{}
+    \label{subfig:idealized-representations}
+  \end{subfigure}
+  \caption{VSTS Architecture Using Lenses.
+    In (a), %how do I make it ref correctly, doing a ref makes it appear as 2a
+    we show the proposed architecture of VSTS using lenses.  When a legacy
+    client requests a work item, the server retrieves the data in a modern format
+    through the new apis, then the lens converts it into a legacy format to
+    return to the client.   When a legacy client updates a work item, it
+    provides the data in the legacy format to the server,
+    which the lens then converts into the modern format for the new endpoints to
+    process.
+    Idealized Task representations from legacy and modern web service endpoints
+    are given in (b).}
+  \label{fig:vsts-with-lenses}
 \end{figure}
 
-Visual Studio Team Services is a web service for
+To highlight the difficulties in synthesizing lenses, we use an extended
+example inspired by Visual Studio Team Services (VSTS).  VSTS is
+a collection of web services for
 team management -- providing a unified location for source control (e.g. a Git
 server), task management (i.e. providing a means to keep track of
-projects and bugs), and more.
+TODOs and bugs), and more.
 In 2014, to increase third party developer interaction, Visual Studio Online
 released new web service endpoints~\cite{bharry}.  However, despite introducing
-new, modernized APIs, the old, legacy APIs must be maintained for continued
+new, modernized web APIs, the old, legacy web APIs must be maintained for continued
 support of legacy
 clients~\cite{team-explorer}.  Instead of maintaining server code for each endpoint,
 our proposed architecture provides a lens that converts between resources of
 the old form into resources of the new form, as shown in
-Figure~\ref{fig:vsts-arch}.  Because of the large number of existing service
+Figure~\ref{subfig:vsts-arch}.  Because of the large number of existing service
 endpoints, writing these converters will be a pain, so we would like to be able
 to synthesize them.
 
-Consider a ``Task'', a resource that represents a piece of work given to a
-team.  Idealized versions of the representations of tasks from the new and
-old apis are given in Figure~\ref{fig:idealized-representations}.  If an old
-client performs a GET request on a task, it first retrieves that task using the
+Consider a ``Work Item'', a resource that represents a task given to a
+team.  Idealized versions of the representations of work items from the new and
+old apis are given in Figure~\ref{subfig:idealized-representations}.  If an old
+client performs a GET request to receive a work item, it first retrieves that work item
+using the
 modern API, and then uses the
 lens's \PutLeft{} function to convert this task into the legacy format.  Similarly,
-if an old client performs a PUT request a task, it first uses the lens's
-\PutRight{} function to convert that task into the
-new format, and then inputs that task through the modern APIs.  The two
+if an old client performs a PUT request a work item, it first uses the lens's
+\PutRight{} function to convert that data into the
+new format, and then inputs the work item in the new representation to the modern APIs.  The two
 representations contain the same information, but they are presented differently.
 
 For simplicity, let's consider only finding the mapping between the ``Title''
 field of the task.
-The Legacy client allows for inputs of the form
+The legacy client allows for inputs of the form
 \begin{lstlisting}
    !legacy_title! = @"<Field Id=2>"@ !text_char!* @"</Field>"@
 \end{lstlisting}
@@ -639,7 +663,8 @@ equivalent to the source and target regular expressions.  Do we need to
 consider all of them?  In what order?  To convert from
 \CF{\color{darkbrown} legacy\_title} to \CF{\color{darkbrown} legacy\_title'},
 we must first unroll \CF{{\color{darkbrown} text\_char}*} into
-\CF{{\color{blue} ""} | {\color{darkbrown} text\_char}+}, and then we must
+\CF{{\color{blue} ""} | {\color{darkbrown} text\_char} {\color{darkbrown}
+    text\_char}*}, and then we must
 distribute this \OrRegexType{} on the left and the right.
 
 A related challenge arises from Boomerang's composition operator,
@@ -722,24 +747,30 @@ second phase.
 \paragraph*{Challenge 2: Large Types}
 In practice, the regular expressions describing complex {\em ad hoc} data
 formats may be very large.  
-%
 The key to addressing this challenge is to observe that users naturally
 construct large types incrementally, introducing named abbreviations for
-major subcomponents.  We can exploit the structure inherent in these named
-abbreviations to speed up the search dramatically.  For example, if the name
-$A$ appears just once in both the source and the target types, the system
+major subcomponents.  This is highlighted by our use of \TextChar{} in our
+description of the title field.  The data type \TextChar{} represents stands for
+one of many possible characters.  To include this large regular expression
+everywhere it was used would be very unmanageable.
+
+We can exploit the structure inherent in these named
+abbreviations to speed up the search dramatically.  For example, if
+\TextChar{}
+ appears just once in both the source and the target types, the system
 hypothesizes that the identity lens can be used to convert between
-occurrences of $A$.  On the other hand, if the name $A$ appears in the
-source but not in the target, the system replaces the name $A$ with its
+occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
+source but not in the target, the system recognizes that, to find a lens,
+\TextChar{} must be replaced with its
 definition.  In this way, where names occur
 can serve as a guide for applying equivalence axioms in the synthesis
 algorithm.  We guide the transformation of regular expression types during
 search by deducing when certain expansions must be taken, or when one of a class
 of expansions must be taken.
 
-% begin background
-\section{Background}
-\label{background}
+% begin preliminaries
+\section{Preliminaries}
+\label{preliminaries}
 
 \SUBSECTION{Regular Expressions}
 % \label{sec:regexp}
@@ -789,11 +820,13 @@ of expansions must be taken.
 %   in just losing things even in the long version.  Just wanted to make sure
 %   we had the long version in mind.}
 
-$\Sigma$ is the alphabet of individual characters; $s$ and $t$ range over
-strings in $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, over $\Sigma$ are: 
+$\Sigma$ is the alphabet of individual characters $c$; strings $s$ and $t$ are
+are elements of $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, are
+used to express \emph{languages}, subsets of $\StarOf{\Sigma}$.
+REs over $\Sigma$ are: 
 \begin{center}
 \begin{tabular}{l@{\hspace*{5mm}}l@{\ }c@{\ }l}
-& \Regex{},\RegexAlt{} & \GEq{} & \hspace{1.06em}s \\
+& \Regex{},\RegexAlt{} & \GEq{} & \hspace{1.06em}c \\
           & & & \GBar{} $\emptyset$ \\
           & & & \GBar{} \Regex{}* \\
           & & & \GBar{} $\RegexConcat{\Regex_1}{\Regex_2}$ \\
@@ -822,7 +855,8 @@ defined as usual.
 %  \end{array}
 %\]
 
-Regular expressions $\Regex$ and $\RegexAlt$ are 
+The typing derivations of lenses require regular expressions to be written in a
+way that allows for unambiguous parsing. $\Regex$ and $\RegexAlt$ are
 \textit{unambiguously concatenable}, written
 $\Regex\UnambigConcat\RegexAlt$ if, 
 for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
@@ -865,7 +899,7 @@ are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
 %
 Conway's axioms consist of the semiring axioms (associativity,
 commutativity, identities, and distributivity for $|$ and $\cdot$) plus the following 
-rules for equivalences involving $*$:
+rules for equivalences involving $\Star{}$:
 \begin{center}
 \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
   \StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
@@ -901,7 +935,7 @@ rules for equivalences involving $*$:
 % left, but not both).}
 
 
-% Can't naively add both directions.
+% Can't na\"{i}vely add both directions.
 
 
 % \SumstarRule{} 
@@ -929,15 +963,15 @@ bijections created from the Boomerang lens combinators, mapping between
 languages of regular expressions.
 The syntax for these bijective lenses is given by:
 \begin{center}
-  \begin{tabular}{l@{\ }l@{\ }c@{\ }l}
+  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
     % REGEX
-    & \Lens{} & \GEq{} & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ \\
-            & & & \GBar{} $\IterateLensOf{\Lens}$ \\
-            & & & \GBar{} $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
-            & & & \GBar{} $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
-            & & & \GBar{} $\OrLensOf{\Lens_1}{\Lens_2}$ \\
-            & & & \GBar{} $\ComposeLensOf{\Lens_2}{\Lens_1}$ \\
-            & & & \GBar{} $\IdentityLensOf{\Regex}$ 
+     \Lens{} & \GEq{} & & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ \\
+            & & \GBar{} & $\IterateLensOf{\Lens}$ \\
+            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\ComposeLensOf{\Lens_2}{\Lens_1}$ \\
+            & & \GBar{} & $\IdentityLensOf{\Regex}$ 
   \end{tabular}
 \end{center}
 
@@ -1292,7 +1326,7 @@ cases in our benchmark suite (see \S\ref{evaluation}).
 % equivalence rules breaks parts of a regular expression under a star up only by
 % how many times the already defined repetition occurs.
 
-% end background
+% end preliminaries
 
 
 % begin formalisms
@@ -1430,30 +1464,25 @@ then $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
 % fig:dnf-regex-functions
 \begin{figure}
   \raggedright
-  \ConcatSequence{} \OfType{} \ArrowTypeOf{\SequenceType{}}{\ArrowTypeOf{\SequenceType{}}{\SequenceType{}}}\\
-  $\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=$\\
-  \hspace*{2ex}$[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
+  $\ConcatSequence{} \OfType{} \ArrowTypeOf{\SequenceType{}}{\ArrowTypeOf{\SequenceType{}}{\SequenceType{}}}$\\
+  $\ConcatSequenceOf{[\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n]}{[\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]}=
+  [\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\Atom_n\SequenceSep\String_n\Concat\StringAlt_0\SequenceSep\AtomAlt_1\SequenceSep\ldots\SequenceSep\AtomAlt_m\SequenceSep\StringAlt_m]$\\
 
   \medskip
   
-  \ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}\\
-  $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=$
-\vspace*{-1.7ex}
-  \[
-    \begin{array}{rcccl}
-      \DNFLeft & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1}\DNFSep & \cdots
-      & \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m}\DNFSep \\
-      \cdots  & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep & \cdots & \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} & \DNFRight
-    \end{array}
-  \]
+  $\ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}$\\
+  $\ConcatDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}=
+      \DNFLeft \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1}\DNFSep \cdots ;
+      \ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m}\DNFSep
+      \cdots ; \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1}\DNFSep \cdots ; \ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m} \DNFRight$
   
   \medskip
   
-  \OrDNF{} \OfType{}
+  $\OrDNF{} \OfType{}
   \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}
-  }\\
-  $\OrDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}$=\\
-  \hspace*{2ex}$\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$
+  }$\\
+  $\OrDNFOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}{\DNFOf{\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}} =
+  \DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n\DNFSep\SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}$
   
   \medskip
   
@@ -1619,7 +1648,7 @@ Figure~\ref{fig:dnf-regex-rewrites} defines a collection of rewrite rules on DNF
 designed to search the space of equivalent DNF REs.  
 %We write $\StarOf{\Rewrite}$ for the reflexive, transitive closure of $\Rewrite{}$.
 This directed rewrite system help us limit
-the search space more than the non-directional equivalence $\equiv_d$ relation.
+the search space more than the non-directional equivalence $\SSREquiv$ relation.
 However, because the rewrite rules are confluent, we will show that it is just as powerful as the
 $\equiv_d$ relation.
  
@@ -2224,13 +2253,11 @@ would satisfy the examples!
 
 As an example, consider trying to find a lens between
 \begin{lstlisting}
- @"<Field Id=2></Field>"@
- | @"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@
+ @"<Field Id=2></Field>"@ | @"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@
 \end{lstlisting}
 and
 \begin{lstlisting}
- @"Title="@ !text_char! !text_char!* @","@
- | @""@
+ @"Title="@ !text_char! !text_char!* @","@ | @""@
 \end{lstlisting}
 As it passes to \RigidSynth{}, the two sequences in the legacy format get ordered
 by maintaining the current order:  first \CF{\StringCF{"<Field Id=2></Field>"}}, then
@@ -2486,26 +2513,10 @@ particularly useful (\CF{date-probs}, \CF{bib-prob},
 and \CF{addr-probs}).   These examples convert between date
 formats, bibliography formats, and address formats, respectively.
 
-\begin{figure}
-  \includegraphics{SizeVsTime}
-  \caption{Relation between lens size and synthesis time}
-  \label{fig:size-vs-time}
-\end{figure}
-
-\afm{This whole paragraph needs work.  Main point I want to say: We are doing
-  hard problems, synthesizing very complex lenses, this is evidenced by the fact
-  that the number of AST nodes in the synthesized lenses is large.}
-Our examples were fairly complex.  Figure~\ref{fig:size-vs-time} shows the sizes
-of our generated lenses, as well as the amount of time that it takes to generate
-those lenses.  \afm{Ok, I don't really think the size vs time makes perfect
-  sense here.  I want to include size somehow, but can't think of some y value
-  that makes sense.  Maybe I could do spec size vs lens size?} We generate lenses of sizes between 5 AST nodes, for simple
-problems like changing how dates are represented, and 211 AST nodes, for complex
-tasks like transforming XML to a dictionary representation.  Furthermore, we
-scale as expected, with more complex tasks taking longer \afm{Again, this
-  doesn't really go in here.  I'm not even sure there is a place to say it,
-  should it just be omitted?  It doesn't really add to any of the main points
-  trying to be made here}.
+We have both complex and simple synthesis tasks in our benchmark suite.
+We generate lenses of sizes between 5 AST
+nodes, for simple problems like changing how dates are represented, and 211 AST
+nodes, for complex tasks like transforming XML to a dictionary representation.
 
 %add back in if we have space
 %\paragraph*{Correctness}
@@ -2523,14 +2534,19 @@ scale as expected, with more complex tasks taking longer \afm{Again, this
 
 \begin{figure}
   \includegraphics{SynthesisTimes}
-  \caption{Number of benchmarks that can be solved by a given algorithm in a given
+  \caption{
+    Number of benchmarks that can be solved by a given algorithm in a given
     amount of time. {\bf Full} is the full synthesis algorithm.  {\bf DNFFI} is
     the synthesis algorithm using all optimizations but the use of the lens
     context.  {\bf DNFPI} is the core DNF synthesis algorithm with forced
     expansions performed.  {\bf DNF} is the core synthesis algorithm.  {\bf
       Flash Fill} is the existing Flash Fill system.  {\bf FlashExtract} is the
     existing FlashExtract system.  {\bf Na\"{i}ve} is na\"{i}ve type-directed
-    synthesis on Boomerang combinators.}
+    synthesis on Boomerang combinators.  Our synthesis algorithm performs
+    better than the Na\"{i}ve approach and other string transformation systems,
+    and our optimizations speed up the algorithm enough that all tasks become
+    tractable.
+  }
   \label{fig:synthesis-times}
 \end{figure}
 
@@ -2565,11 +2581,13 @@ intelligent search through expansions)
 immediately allows for 12 benchmarks to be synthesized.
 
 \begin{figure}
-  \includegraphics{InferencesDone}
+  \includegraphics{UninferredExpansions}
   \caption{Number of expansions inferred for tasks requiring a given number of
     expansions.  {\bf Full Inference} is using the full inference algorithm.
-    {\bf Forced Only} only counts forced inferences.}
-  \label{fig:inferences-done}
+    {\bf Forced Only} only counts forced inferences.  Both systems are able
+    to infer the vast majority of expansions, with full inference only rarely
+    requiring any random search.}
+  \label{fig:uninferred-exps}
 \end{figure}
 
 Conversion to DNF form helped significantly, but still left many problems
@@ -2580,21 +2598,32 @@ with DNF conversion and \RigidSynth{}, none required more than \afm{5}
 expansions to be performed.  As up to \afm{30} expansions are needed for
 synthesizing some of the lenses, the large fanout an undirected traversal of
 expansions insufficient for many examples.
-Inferring expansions gives the fanout less of an impact.
+However, we can identify that many of these expansions must be performed, so
+the random search is often unnecessary.
+Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
+expansions can be identified as required, making the large fan-out have less of
+an impact.  While it is unable to infer all the examples, it still is able to
+infer quite a large amount: a maximum of 26 expansions, and a median of 11
+expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
 tractable.  This is because inferring forced expansions, in many cases, infers
-\emph{all} the expansions.  In \afm{15} of the \afm{26} examples, all expansions
-were forced.  This allows most of the examples to be tractable, but rather slow.
+\emph{all} the expansions.  In \afm{15} of the \afm{25} examples solvable with
+expansion inference, all expansions
+were forced.  However, the remaining \afm{11} still require random search.
+This allows most of the examples to be tractable, but rather slow.
 This is able to be sped up by directing the search using more than just blind
-breadth-first search, when more information can be used to direct it.  Adding in
+breadth-first search, when more information can be used to direct it.  When
+using full inference, the synthesis algorithm can recognize that one of a few
+expansions must be performed.  Adding in these types of
 inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
 
 Our final optimization is the use of lenses in the context.  Through using
 lenses present in the context, the synthesis algorithm is not solely
 responsible for all transformations that must occur, but instead can rely on
-existing lenses either written by the user, or previously synthesized.
+existing lenses included in the Boomerang standard library, written by
+the user, or synthesized by our system.
 
 \afm{should this potentially go elsewhere?}
 In our full synthesis algorithm, two examples take longer than the others to
@@ -2640,7 +2669,12 @@ the combinatorial explosion in the search space.
 \begin{figure}
   \includegraphics{ExsReqd}
   \caption{Average number of random examples required to synthesize benchmark
-    programs.}
+    programs.  {\bf Experimental Average} is the average number of randomly
+    generated examples needed to correctly synthesize the lens.  {\bf Exercise
+      All Paths} is the theoretical number of examples required to exercise all
+    code paths of the synthesized lens.  In practice, far fewer examples are
+    needed to synthesize the correct lens than would be predicted by the number
+    required for full code coverage.}
   \label{fig:exs-reqd}
 \end{figure}
 
@@ -2663,20 +2697,13 @@ For example, the benchmark \CF{aug/addr-probs} requires examples because it
 must differentiate between and first and last names in both the
 source and target and map between them appropriately.
 
-\begin{figure}
-  \includegraphics{AllPaths}
-  \caption{Number of examples required to exercise all codepaths of benchmark
-    programs.}
-  \label{fig:all-paths}
-\end{figure}
-
 The average number of examples to
 infer the correct lens does not tell the whole story.  The system will
 stop as soon as it finds a correctly typed lens that correctly maps
 all the supplied examples.  This inferred lens may or may not
 correctly handle unseen examples that correspond to
 unexercised portions of the source and target regular expressions.
-Figure~\ref{fig:all-paths} lists
+Figure~\ref{fig:exs-reqd} lists
 the number of examples that are required to exercise all choice
 points.  Intuitively, this number represents the maximum number of
 examples that a user must supply to guide the synthesis engine if it
@@ -2714,8 +2741,9 @@ extracted.
 As these tools were designed for a broader audience, they put less of a burden
 on the user.  These tools only require the use of IO examples (for Flash
 Fill), or marked text regions (for FlashExtract), as opposed to requiring the
-input of pairs of regular expressions.  However, by requiring this additional
-work by the user, \SynthLens{} is able to synthesize significantly more programs
+input of pairs of regular expressions.  However, by requiring the user to
+input regular expressions,
+\SynthLens{} is able to synthesize significantly more programs
 than either tool.  Unlike these two tools, which must spend a great deal of
 effort figuring out the appearance of the data, SynthLens{} avoids
 this problem by having the user input the data formats.
@@ -2874,21 +2902,29 @@ Data processing systems often need to convert data back-and-forth
 between different formats.  Domain-specific languages for generating
 bidirectional programs help prevent data corruption in such contexts,
 but are unfamiliar and hard to use.  To simplify the development of
-bidirectional applications, we have created a system to synthesize
+bidirectional applications, we have created the first synthesizer of a
+bidirectional language, generating
 lenses from data format specifications and input/output examples.
 To reduce the size of the synthesis search space, our system introduces
 a new language of DNF lenses, which are typed by DNF regular expressions.
 We have proven our new language sound and complete with respect to
-a declarative specification.  We also describe effective heuristics
+a declarative specification.  We also describe effective optimizations
 for efficiently searching through the refined space of lenses.
 
 We evaluated our system on a range of practical examples drawn from
 other systems in the literature including FlashFill and Augeas.  In
 general, we found our system to be robust, to require few examples,
-and to finish in seconds, even on complex data formats.  We attribute
-its success to a combination of (1) the information provided
+and to finish in seconds, even on complex data formats.  We found that our
+type-directed synthesis algorithm is able to generate data
+transformations too complex for both existing example-directed systems and for a
+na\"{i}ve type-directed algorithm, succeeding on \afm{22} more benchmarks than
+the tested existing alternatives.
+We attribute its success to a combination of (1) the information provided
 by format specifications, (2) the structure induced by user-specified
-names, and (3) the smart heuristics and metrics used to guide search.
+names, and (3) the inferences used to guide search.
+The approaches we used are generalizable both to other bidirectional languages,
+as well as to other domain-specific languages with large numbers of equivalences
+on the types.
 
 
 %% While lenses are very useful for their guarantees, they are a
