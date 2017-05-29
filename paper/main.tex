@@ -252,32 +252,35 @@ under 5 seconds.
 
 The growing dependence on big data makes tools for reliably parsing,
 printing, cleaning, and transforming data in {\em ad hoc} formats
-increasingly important.  One such class of tools is
-\emph{lenses}~\cite{Focal2005-long}, bidirectional
-programs that help users address the 
-classic ``view update problem'' \cite{Bancilhon81, Dayal82}.  A lens
-comprises two functions, called 
-\emph{get} and \emph{put}.  The \emph{get} function translates source data
-into a target format, or \emph{view}.  If the view is updated, the
+increasingly important.  In what is known as the classic
+``view update problem''~\cite{Bancilhon81, Dayal82},
+programmers want to be able to transform source data into a target
+format (or view) and transform the data from the view back into the source
+format.
+Solutions to this problem that provide strong guarantees about the
+round-trip behavior of the two components are formalized as
+\emph{lenses}~\cite{Focal2005-long}.
+Lenses help guard against data corruption while reading,
+editing, and writing data sources.  A lens comprises two functions, called 
+\emph{get} and \emph{put}.  The \emph{get} function translates between source data
+into the view.  If the view is updated, the
 \emph{put} function can translate the edited data back into the
-source format.  The \emph{get} and \emph{put} functions are both represented
-by a single expression written in a domain-specific language whose
-primitives can be read in either direction.
+source format.  In lens-based languages, the \emph{get} and
+\emph{put} functions are both represented
+by a single expression that can be interpreted in two different ways.  When
+these expressions are 
+well-typed, the resulting functions are guaranteed to satisfy the desired
+invertibility properties.
 
-An attractive feature of lens-based programming languages is that they can
-provide strong guarantees about the round-trip behavior of the two
-components, guarding against data corruption while reading,
-editing, and writing data sources.  
-%
-Such languages have been applied in a variety of practical settings.  For
-example, Augeas~\cite{augeas} is a popular tool that reads Linux system
-configuration files in a variety of {\em ad hoc} formats, uses the
-\emph{get} part of a lens to transform them into a simple, uniform tree
-representation that can be edited either manually or programmatically, and
-then uses the lens's \emph{put} to merge the edited results back into the
-original string format.  Other lens-based languages and tools include
-%
-Boomerang~\cite{boomerang, Matching10}, 
+Such lens-based languages have been applied in a variety of practical settings.
+Boomerang~\cite{boomerang, Matching10} is a well-researched tool for providing
+guarantees on transformations between {\em ad hoc} string document formats.
+Augeas~\cite{augeas} is a popular tool that reads Linux system configuration
+files, uses the \emph{get} part of a lens to transform them into a simple,
+uniform tree representation that can be edited either manually or
+programmatically, and then uses the lens's \emph{put} to merge the edited
+results back into the original string format.  Other lens-based languages and
+tools include 
 %
 GRoundTram~\cite{Hidaka2011GRoundTramAI},
 %
@@ -301,39 +304,26 @@ and many others.
 However, these languages are typically based on unfamiliar collections
 of primitives, and they require thinking in two directions at the same
 time---a tricky task for most programmers.  In addition, the details are
-often fiddly.  For example, in Boomerang~\cite{boomerang, Matching10},
+often fiddly, making lens programming a slow and tedious task.
+For example, Boomerang
 programmers must often rearrange the order of data items by recursively
-using operators that swap the order of adjacent fields.  The challenge of
-learning these languages and using them effectively has slowed their
-adoption in many settings where well-behaved bidirectional transformations
+using operators that swap the order of adjacent fields.  The
+challenge of learning these languages and using them effectively has slowed
+their adoption in many settings where well-behaved bidirectional transformations
 are needed.
 
-Our goal is to make lens programming easier by synthesizing
-lenses from simpler, higher-level specifications
+To make programming in lens-based languages faster and easier, we have
+developed a
+tool for synthesizing lenses from simpler, higher-level specifications
 instead of asking programmers to write them explicitly.
 %
-This work continues a recent trend toward synthesizing programs in a variety
-of domain-specific languages, many guided by
+This work continues a recent trend toward making programming easier
+through synthesizing programs in a variety of domain-specific
+languages~\cite{flashfill,le-pldi-2014,perelman2014test,DBLP:journals/corr/FengMGDC16},
+many guided by
 types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015}.  
-%
-%
-%Specifically, we aim to create a version of the Boomerang
-%language~\cite{boomerang,MoreBoomerangCitesIfThereAreAny} in which lenses
-%can be written by examples.  
-%% Doing this involves two significant
-%% steps.  First, given the types of the source and target and some examples,
-%% we need to be able to synthesize lens programs with the desired behavior.
-%% Second, in some cases we may wish to synthesize the types themselves, given
-%% examples of source and target data.  In this paper, we address the first
-%% step, leaving the second to future work.
-%
 Specifically, our system supports the synthesis of \emph{bijective lenses}, a
 useful subset of Boomerang.
-%%  that convert
-%% back and forth between text files.  These bijective lenses represent a core
-%% fragment of Boomerang.  Boomerang also supports more general {\em asymmetric}
-%% lenses---we focus on the bijective case to tackle the fundamental
-%% issue of how to control the size of the \emph{multi-dimensional} search space
 As inputs, it takes specifications of the source and target formats, plus
 (optionally) a collection of concrete examples of the desired
 transformation.  Format specifications are supplied as regular expressions.
@@ -342,31 +332,9 @@ inputs will be substantially easier for everyday programmers to work with
 than the unfamiliar syntax of lenses.  Including these format descriptions communicates a
 great deal of information to the synthesis system.  Hence, this
 design choice appears to make synthesis very robust, helps the system scale
-to handle large and complex data sources (including those with nested
-iteration that other synthesis algorithms preclude), and constrains the
+to handle large and complex data sources, and constrains the
 search space sufficiently that the user typically needs to give very few, if
 any, examples.
-
-%% very few 
-%% a description of the formats
-%% Moreover, we work with a
-%% simplified core of Boomerang in which only {\em bijective} lenses can be
-%% represented.  (Boomerang supports a more general class of {\em asymmetric}
-%% lenses, where information in the source format may be elided in the target
-%% format.)  The bijective case already raises thorny issues about controlling
-%% the size of the search space, and we believe that the solutions we've
-%% developed will be useful in the harder asymmetric case.  Moreover, bijective
-%% string transformations are already an interesting domain in themselves.
-%% \bcp{I've tried to make this paragraph much more honest about what we're
-%%   doing.  Is it too weak now?}
-
-% One way to overcome these difficulties is to {\em synthesize} lenses from
-% types and examples.  We propose an algorithm for doing this, for the case of
-% bijective lenses between regular string languages.  Given a type
-% $\Regex \Leftrightarrow \RegexAlt$ (which describes lenses mapping
-% bijectively between $\Regex$ and $\RegexAlt$) and a small number of
-% examples, our algorithm will synthesize a well-typed lens whose behavior
-% matches the examples.
 
 Despite the benefits of such informative types, certain features of
 Boomerang make it ill
@@ -387,10 +355,9 @@ have pairs of DNF regular expressions as types.
 Furthermore, DNF lenses have a \emph{two-phased} typing derivation which fixes
 where and how equivalences on DNF regular expressions can be processed.
 The first phase of the typing derivation handles equivalences on the types, and
-the second phase of the typing derivation aligns the terms with
-the types.
-We have then proven this language equivalent to our bijective fragment of
-Boomerang.
+the second phase of the typing derivation aligns the terms with the types.
+Despite DNF lenses' higly restrictive syntax and type system,
+they are equivalent to our bijective fragment of Boomerang.
 
 \begin{figure}
   \centering
@@ -2160,12 +2127,10 @@ corresponding lens.
   \begin{algorithmic}[1]
     \Function{\RigidSynthAtom}{$\StarOf{\DNFRegex},\StarOf{\DNFRegexAlt},\Examples$}
     \Switch{$\RigidSynth(\DNFRegex,\DNFRegexAlt,\Examples)$}
-    \Case {\SomeOf{\DNFLens}}
-    \State $\ReturnVal{\IterateLensOf{\DNFLens}}$
-    \EndCase
-    \Case {\None}
-    \State $\ReturnVal{\None}$
-    \EndCase
+    \CaseTwo{\SomeOf{\DNFLens}}{\ReturnVal{\IterateLensOf{\DNFLens}}}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
     \EndSwitch
     \EndFunction
 
@@ -2187,12 +2152,10 @@ corresponding lens.
     \State $\mathit{alos} \gets
     \Call{\Map}{\RigidSynthAtom(\Examples),\mathit{ABs}}$
     \Switch{$\Call{AllSome}{\mathit{alos}}$}
-    \Case {\SomeOf{\ListOf{\AtomLens_1;\ldots;\AtomLens_n}}}
-    \State $\ReturnVal{\SomeOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma)}}$
-    \EndCase
-    \Case {\None}
-    \State $\ReturnVal{\None}$
-    \EndCase
+    \CaseTwo {\SomeOf{\ListOf{\AtomLens_1;\ldots;\AtomLens_n}}}{$\ReturnVal{\SomeOf{(\SequenceLensOf{(\String_0,\StringAlt_0);\AtomLens_1;\ldots;\AtomLens_n;(\String_n,\StringAlt_n)},\sigma)}}$}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
     \EndSwitch
     \EndFunction
 
@@ -2214,12 +2177,10 @@ corresponding lens.
     \State $\mathit{sqlos} \gets
     \Call{\Map}{\RigidSynthSequence(\Examples),\mathit{STQs}}$
     \Switch{$\Call{AllSome}{\mathit{sqlos}}$}
-    \Case {\SomeOf{\ListOf{\SequenceLens_1;\ldots;\SequenceLens_n}}}
-    \State $\ReturnVal{\SomeOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}}$
-    \EndCase
-    \Case {\None}
-    \State $\ReturnVal{\None}$
-    \EndCase
+    \CaseTwo {\SomeOf{\ListOf{\SequenceLens_1;\ldots;\SequenceLens_n}}}{$\ReturnVal{\SomeOf{(\DNFLensOf{\SequenceLens_1;\ldots;\SequenceLens_n},\sigma)}}$}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
     \EndSwitch
     \EndFunction
   \end{algorithmic}
@@ -2461,9 +2422,14 @@ users can input synthesis tasks in place of lenses.
 \label{evaluation}
 
 We evaluate our synthesis algorithm by applying it to 26
-benchmark programs derived from practice.  In this evaluation, we describe the
-construction of our benchmark suite, investigate the impact of our optimizations,
-discuss the importance of examples, and provide a
+benchmark programs derived from practice.  We describe the benchmark suite
+construction to demonstrate that our benchmarks are realistic and interesting.
+We investigate the imapct of our optimizations to highlight how we were able to
+obtain our final performance.
+We discuss the importance of examples to show that our approach increases
+productivity, instead of merely changing time spent programming into time spent
+generating appropriate examples.
+Lastly, to demonstrate the novelty and strength of our approach, we provide a
 comparison against other, related tools.
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS Sierra.
