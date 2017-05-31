@@ -160,9 +160,9 @@ struct
           incr(count);
           if !verbose then
             (print_endline "popped";
-             print_endline ("r1: " ^ Pp.boom_pp_regex r1);
+             print_endline ("r1: " ^ Regex.show r1);
              print_endline "\n\n";
-             print_endline ("r2: " ^ Pp.boom_pp_regex r2);
+             print_endline ("r2: " ^ Regex.show r2);
              print_endline "\n\n";
              print_endline ("count: " ^ (string_of_int !count));
              print_endline "\n\n";
