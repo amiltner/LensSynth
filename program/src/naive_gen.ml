@@ -1,8 +1,7 @@
-open Core
+open Stdlib
 open Regexcontext
 open Lenscontext
 open Lang
-open Util
 open Lens_put
 
 let find_in_table (tbl:('a, 'b) Hashtbl.t) (key:'a) : 'b option =
@@ -139,7 +138,7 @@ let rec regexes_of_size
     in
     stars@ors@concats
 
-let expand_userdefs_lr
+let expand_vars_lr
     (rc:RegexContext.t)
     (r:Regex.t)
     (size:int)
@@ -586,7 +585,7 @@ and apply_single_rewrite
     (size:int)
   : Regex.t list =
   let rewriters =
-    [expand_userdefs_lr
+    [expand_vars_lr
     ;combine_bases_lr
     ;combine_bases_rl
     ;or_id_rewrites_lr

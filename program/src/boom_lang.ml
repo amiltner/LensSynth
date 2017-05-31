@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 open Lang
 open Lenscontext
 open Lens_utilities
@@ -14,7 +13,7 @@ type boom_expression =
   | BoomExpCut of boom_statement * boom_expression
 
 and boom_statement =
-  | BoomStmtDefinition of id * boom_typ * boom_expression
+  | BoomStmtDefinition of Id.t * boom_typ * boom_expression
   | BoomStmtTestRegex of Regex.t * string
   | BoomStmtTestLens of Lens.t * string * string
 
@@ -41,10 +40,10 @@ let statement_of_decl (d:declaration) : boom_statement list =
         exs
   end
 
-let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
+let retrieve_inverses_of_lens_variables_exn (p:program) : Id.t list =
   let rec retrieve_inverses_of_lens_variables_in_lens_exn
       (l:Lens.t)
-    : id list =
+    : Id.t list =
     begin match l with
       | Lens.LensConst _ -> []
       | Lens.LensConcat(l1,l2) ->
@@ -91,15 +90,15 @@ let retrieve_inverses_of_lens_variables_exn (p:program) : id list =
 let add_inverted_lenses_after_original_lenses
     (lc:LensContext.t)
     (p:program)
-    (inverted_vars:id list)
-  : LensContext.t * program * (id * id) list =
+    (inverted_vars:Id.t list)
+  : LensContext.t * program * (Id.t * Id.t) list =
   List.fold_right
     ~f:(fun d (lc,p,id_map) ->
         begin match d with
           | DeclLensCreation (n,r1,r2,l) ->
             if List.mem ~equal:(=) inverted_vars n then
               let l_inv = simplify_lens (Lens.LensInverse l) in
-              let n_inv = LensContext.autogen_id_from_base lc ((get_string_of_id n) ^ "_inv") in
+              let n_inv = LensContext.autogen_id_from_base lc ((Id.string_of_id n) ^ "_inv") in
               let d_inv = DeclLensCreation(n_inv,r2,r1,l_inv) in
               let lc = LensContext.insert_exn lc n_inv l_inv r2 r1 in
               (lc,d::d_inv::p,(n,n_inv)::id_map)
@@ -111,7 +110,7 @@ let add_inverted_lenses_after_original_lenses
     p
 
 let replace_inverted_lens_variables
-    (inverted_map:(id * id) list)
+    (inverted_map:(Id.t * Id.t) list)
     (p:program)
   : program =
   let replace_inverted_lens_variables_current_level_lens

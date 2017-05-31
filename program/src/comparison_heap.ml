@@ -1,55 +1,35 @@
-(* Heavily using http://typeocaml.com/2015/03/12/heap-leftist-tree/ *)
-
 open Core
 open Util
-open String_utilities
 
-module type COMPARISON_HEAP =
-sig
-  type heap
-  type element
+(* Heavily using http://typeocaml.com/2015/03/12/heap-leftist-tree/ *)
 
-  val empty : heap
-  val push : heap -> element -> heap
-  val pop : heap -> (element * heap) option
-  val size : heap -> int
-  val to_string : heap -> string
-  val to_list : heap -> element list
-  val compare : heap -> heap -> comparison
-end
-
-module type COMPARISON_HEAP_ARG =
-sig
-  type element
-
-  val compare : element -> element -> comparison
-  val to_string : element -> string
-end
-
-module TreeHeap(H:COMPARISON_HEAP_ARG) : (COMPARISON_HEAP with type element = H.element) =
+module HeapOf(D:Data) =
 struct
-  type element = H.element
-  type heap =
+  type element = D.t
+  [@@deriving show, hash]
+
+  type t =
     | Leaf
-    | Node of heap * element * heap * int
+    | Node of t * element * t * int
+  [@@deriving show, hash]
 
-  let empty : heap = Leaf
+  let empty : t = Leaf
 
-  let singleton (e:element) : heap =
+  let singleton (e:element) : t =
     Node(Leaf,e,Leaf,1)
 
-  let rank (h:heap) : int =
+  let rank (h:t) : int =
     begin match h with
       | Leaf -> 0
       | Node (_,_,_,r) -> r
     end
     
-  let rec merge (h1:heap) (h2:heap) : heap =
+  let rec merge (h1:t) (h2:t) : t =
     begin match (h1,h2) with
       | (Leaf,_) -> h2
       | (_,Leaf) -> h1
       | (Node(lh,e1,rh,_), Node(_,e2,_,_)) ->
-        let cmp = H.compare e1 e2 in
+        let cmp = D.compare e1 e2 in
         if (is_gt cmp) then
           merge h2 h1
         else
@@ -62,16 +42,16 @@ struct
             Node (merged, e1, lh, rank_left+1)
     end
     
-  let push (h:heap) (e:element) : heap =
+  let push (h:t) (e:element) : t =
     merge h (singleton e)
 
-  let pop (h:heap) : (element * heap) option =
+  let pop (h:t) : (element * t) option =
     begin match h with
       | Leaf -> None
       | Node (lh, e, rh, _) -> Some (e, merge lh rh)
     end
 
-  let rec to_string (h:heap) : string =
+  (*let rec to_string (h:heap) : string =
     begin match h with
       | Leaf -> "Leaf"
       | Node(lh,e,rh,rank) ->
@@ -82,29 +62,25 @@ struct
            to_string
            string_of_int
            (lh,e,rh,rank))
-    end
+    end*)
 
-  let rec size (h:heap) : int =
+  let rec size (h:t) : int =
     begin match h with
       | Leaf -> 0
       | Node(lh,_,rh,_) -> 1 + (size lh) + (size rh)
     end
 
-  let rec to_list (h:heap) : element list =
+  let rec to_list (h:t) : element list =
     begin match h with
       | Leaf -> []
       | Node(lh,e,rh,_) -> e::((to_list lh)@(to_list rh))
     end
 
-  let compare (h1:heap) (h2:heap) : comparison =
-    let h1es = List.sort ~cmp:H.compare (to_list h1) in
-    let h2es = List.sort ~cmp:H.compare (to_list h2) in
+  let compare (h1:t) (h2:t) : comparison =
+    let h1es = List.sort ~cmp:D.compare (to_list h1) in
+    let h2es = List.sort ~cmp:D.compare (to_list h2) in
     compare_list
-      ~cmp:H.compare
+      ~cmp:D.compare
       h1es
       h2es
 end
-
-module Make (H:COMPARISON_HEAP_ARG) : (COMPARISON_HEAP with type element = H.element) =
-  TreeHeap(H)
-

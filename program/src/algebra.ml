@@ -8,12 +8,12 @@ struct
     type t
     val apply_at_every_level : (t -> t) -> t -> t
     val applies_for_every_applicable_level : (t -> t option) -> t -> t list
-    val additive_identity : t
-    val multiplicative_identity : t
+    val zero : t
+    val one : t
     val separate_plus : t -> (t * t) option
     val separate_times : t -> (t * t) option
-    val create_plus : t -> t -> t
-    val create_times : t -> t -> t
+    val make_plus : t -> t -> t
+    val make_times : t -> t -> t
   end
 
   let maximally_factor_element
@@ -79,8 +79,8 @@ struct
               let producted_elements =
                 List.map
                   ~f:(fun pl ->
-                      begin match combine_list S.create_times pl with
-                        | None -> S.multiplicative_identity
+                      begin match combine_list S.make_times pl with
+                        | None -> S.one
                         | Some he -> he
                       end)
                   all
@@ -91,8 +91,8 @@ struct
       let ringed_list =
         List.map
           ~f:(fun (k,al) ->
-              let factored_side = combine_nonempty_list_exn S.create_plus al in
-              if factored_side = S.multiplicative_identity then
+              let factored_side = combine_nonempty_list_exn S.make_plus al in
+              if factored_side = S.one then
                 k
               else
                 product_combiner
@@ -100,19 +100,19 @@ struct
                   factored_side)
           keyed_sum_list
       in
-      combine_nonempty_list_exn S.create_plus ringed_list
+      combine_nonempty_list_exn S.make_plus ringed_list
     in
     Fn.compose
       (fold_until_fixpoint
          (S.apply_at_every_level
             (maximally_factor_current_level
                (Fn.compose swap_double split_by_last_exn)
-               (Fn.flip S.create_times))))
+               (Fn.flip S.make_times))))
       (fold_until_fixpoint
          (S.apply_at_every_level
             (maximally_factor_current_level
                split_by_first_exn
-               S.create_times)))
+               S.make_times)))
 end
 
 module StarSemiring =
@@ -122,14 +122,14 @@ struct
     type t
     val apply_at_every_level : (t -> t) -> t -> t
     val applies_for_every_applicable_level : (t -> t option) -> t -> t list
-    val additive_identity : t
-    val multiplicative_identity : t
+    val zero : t
+    val one : t
     val separate_plus : t -> (t * t) option
     val separate_times : t -> (t * t) option
     val separate_star : t -> t option
-    val create_plus : t -> t -> t
-    val create_times : t -> t -> t
-    val create_star : t -> t
+    val make_plus : t -> t -> t
+    val make_times : t -> t -> t
+    val make_star : t -> t
   end
 
   let unfold_left_if_star
@@ -139,11 +139,11 @@ struct
     : S.t option =
     Option.map
       ~f:(fun r' ->
-          S.create_plus
-            S.multiplicative_identity
-            (S.create_times
+          S.make_plus
+            S.one
+            (S.make_times
                r'
-               (S.create_star r')))
+               (S.make_star r')))
       (S.separate_star v)
 
   let unfold_right_if_star
@@ -153,10 +153,10 @@ struct
     : S.t option =
     Option.map
       ~f:(fun r' ->
-          S.create_plus
-            S.multiplicative_identity
-            (S.create_times
-               (S.create_star r')
+          S.make_plus
+            S.one
+            (S.make_times
+               (S.make_star r')
                r'))
       (S.separate_star v)
 

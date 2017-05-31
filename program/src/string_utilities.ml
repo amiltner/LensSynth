@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 
 let paren (s:string) : string = "(" ^ s ^ ")"
 

@@ -1,11 +1,10 @@
-open Util
+open Stdlib
 open Pp
 open Lens_put
 open Regexcontext
 open Lenscontext
 open Gen_exs
 open Gen
-open Core
 open Lang
 open Consts
 open Typing
@@ -211,7 +210,7 @@ let ignore (_:'a) : unit =
 
 
 let collect_time (p:program) : unit =
-  let (time, _) = Util.time_action ~f:(fun _ -> synthesize_program p) in
+  let (time, _) = time_action ~f:(fun _ -> synthesize_program p) in
   print_endline (Float.to_string time)
 
 let collect_expansions_performed (p:program) : unit =
@@ -337,18 +336,18 @@ let collect_extraction_spec (p:program) : unit =
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let rec collect_extraction_spec_internal
       (n:int)
-      ((r,(v,f)):Regex.t * (id * flattened_or_userdef_regex))
+      ((r,(v,f)):Regex.t * (Id.t * flattened_or_var_regex))
     : unit =
     if (n <= 0) then
       ()
     else
       let tsv_delimit = fun s -> delimit_tabs (delimit_newlines (delimit_slashes s)) in
-      let (s,on,off) = gen_element_and_on_off_portions_of_flattened_or_userdef_regex f in
+      let (s,on,off) = gen_element_and_on_off_portions_of_flattened_or_var_regex f in
       if List.is_empty on then
         collect_extraction_spec_internal (n-1) (r,(v,f))
       else
-        let prob_userdef_for_tsv =
-          tsv_delimit (string_of_pair Regex.show show_id (r,v))
+        let prob_var_for_tsv =
+          tsv_delimit (string_of_pair Regex.show Id.show (r,v))
         in
         let s_for_tsv = tsv_delimit s in
         let on_for_tsv =
@@ -366,7 +365,7 @@ let collect_extraction_spec (p:program) : unit =
                off)
         in
         let prob_s_on_off_for_tsv =
-          prob_userdef_for_tsv ^ "\t" ^
+          prob_var_for_tsv ^ "\t" ^
           s_for_tsv ^ "\t" ^
           on_for_tsv ^ "\t" ^
           off_for_tsv
@@ -385,7 +384,7 @@ let collect_extraction_spec (p:program) : unit =
       ~f:(fun it ->
           List.map
             ~f:(fun fr -> (it,fr))
-            (get_userdef_focused_flattened_regexs rc it))
+            (get_var_focused_flattened_regexs rc it))
       all_relevant_inputtypes
   in
   List.iter
@@ -412,39 +411,39 @@ let collect_final_io_spec (p:program) : unit =
 let lens_size (p:program) : unit =
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
-  let rec retrieve_transitive_userdefs (l:Lens.t) : id list =
+  let rec retrieve_transitive_vars (l:Lens.t) : Id.t list =
     begin match l with
     | Lens.LensConst(_,_) -> []
     | Lens.LensConcat(l1,l2) ->
-      (retrieve_transitive_userdefs l1) @
-      (retrieve_transitive_userdefs l2)
+      (retrieve_transitive_vars l1) @
+      (retrieve_transitive_vars l2)
     | Lens.LensSwap (l1,l2) ->
-      (retrieve_transitive_userdefs l1) @
-      (retrieve_transitive_userdefs l2)
+      (retrieve_transitive_vars l1) @
+      (retrieve_transitive_vars l2)
     | Lens.LensUnion (l1,l2) ->
-      (retrieve_transitive_userdefs l1) @
-      (retrieve_transitive_userdefs l2)
+      (retrieve_transitive_vars l1) @
+      (retrieve_transitive_vars l2)
     | Lens.LensCompose (l1,l2) ->
-      (retrieve_transitive_userdefs l1) @
-      (retrieve_transitive_userdefs l2)
+      (retrieve_transitive_vars l1) @
+      (retrieve_transitive_vars l2)
     | Lens.LensIterate l' ->
-      retrieve_transitive_userdefs l'
+      retrieve_transitive_vars l'
     | Lens.LensIdentity _ -> []
     | Lens.LensInverse l' ->
-      retrieve_transitive_userdefs l'
+      retrieve_transitive_vars l'
     | Lens.LensVariable v -> [v]
     | Lens.LensPermute (_,ls) ->
       List.concat_map
-        ~f:retrieve_transitive_userdefs
+        ~f:retrieve_transitive_vars
       ls
   end
   in
-  let all_userdefs = retrieve_transitive_userdefs l in
+  let all_vars = retrieve_transitive_vars l in
   let all_lenses =
     List.dedup(
       l::(List.map ~f:(fun v ->
           (LensContext.lookup_impl_exn lc v))
-          all_userdefs))
+          all_vars))
   in
   let all_sizes =
     List.map ~f:(fun l -> Lens.size l) all_lenses
@@ -459,30 +458,30 @@ let lens_size (p:program) : unit =
 
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
-  let rec retrieve_transitive_userdefs (r:Regex.t) : id list =
+  let rec retrieve_transitive_vars (r:Regex.t) : Id.t list =
     begin match r with
     | Regex.RegExEmpty -> []
     | Regex.RegExBase _ -> []
     | Regex.RegExConcat (r1,r2) ->
-      (retrieve_transitive_userdefs r1)
-      @ (retrieve_transitive_userdefs r2)
-    | Regex.RegExOr (r1,r2) -> (retrieve_transitive_userdefs r1) @
-        (retrieve_transitive_userdefs r2)
-    | Regex.RegExStar r' -> retrieve_transitive_userdefs r'
+      (retrieve_transitive_vars r1)
+      @ (retrieve_transitive_vars r2)
+    | Regex.RegExOr (r1,r2) -> (retrieve_transitive_vars r1) @
+        (retrieve_transitive_vars r2)
+    | Regex.RegExStar r' -> retrieve_transitive_vars r'
     | Regex.RegExVariable t ->
       t::(begin match RegexContext.lookup_for_expansion_exn rc t with
       | None -> []
-      | Some rex -> retrieve_transitive_userdefs rex
+      | Some rex -> retrieve_transitive_vars rex
       end)
     end
   in
-  let all_userdefs = (retrieve_transitive_userdefs r1) @
-                     (retrieve_transitive_userdefs r2) in
+  let all_vars = (retrieve_transitive_vars r1) @
+                     (retrieve_transitive_vars r2) in
   let all_regexps =
     List.dedup(
       r1::r2::(List.map ~f:(fun s ->
           (RegexContext.lookup_exn rc s))
-          all_userdefs))
+          all_vars))
   in
   let all_sizes =
     List.map ~f:(fun r -> Regex.size r) all_regexps

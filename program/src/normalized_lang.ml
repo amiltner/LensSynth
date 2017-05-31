@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 open Permutation
 open Lang
 open String_utilities
@@ -13,7 +12,7 @@ type exampled_regex =
   | ERegExConcat of exampled_regex * exampled_regex * (int list list)
   | ERegExOr of exampled_regex  * exampled_regex * (int list list)
   | ERegExStar of exampled_regex * (int list list)
-  | ERegExVariable of id * string list * (int list list)
+  | ERegExVariable of Id.t * string list * (int list list)
 
 let extract_iterations_consumed (er:exampled_regex) : int list list =
   begin match er with
@@ -90,7 +89,7 @@ let rec exampled_regex_to_string (r:exampled_regex) : string =
       ^ string_of_int_list_list ill)
   | ERegExStar (r',ill) ->
     paren (paren (exampled_regex_to_string r') ^ "*" ^ string_of_int_list_list ill)
-  | ERegExVariable (s,ss,ill) -> paren ((show_id s) ^ (bracket (
+  | ERegExVariable (s,ss,ill) -> paren ((Id.show s) ^ (bracket (
       String.concat
         ~sep:";"
         ss) ^ string_of_int_list_list ill))
@@ -104,7 +103,7 @@ let rec exampled_regex_to_string (r:exampled_regex) : string =
 (**** Exampled DNF Regex {{{ *****)
 
 type exampled_atom =
-  | EAVariable of id * id * Lens.t * string list * int list list
+  | EAVariable of Id.t * Id.t * Lens.t * string list * int list list
   | EAStar of exampled_dnf_regex * int list list
 
 and exampled_clause = (exampled_atom) list * string list * (int list list)
@@ -139,7 +138,7 @@ and exampled_clause_to_string ((atoms,strings,examples):exampled_clause) : strin
 and exampled_atom_to_string (a:exampled_atom) : string =
   begin match a with
   | EAVariable (s,_,_,sl,ill) -> paren (
-      (show_id s) ^ "," ^
+      (Id.show s) ^ "," ^
       bracket (
         String.concat
         ~sep:";"
@@ -151,7 +150,7 @@ and exampled_atom_to_string (a:exampled_atom) : string =
 (***** }}} *****)
 
 type ordered_exampled_atom =
-  | OEAUserDefined of id * id * Lens.t * string list
+  | OEAVar of Id.t * Id.t * Lens.t * string list
   | OEAStar of ordered_exampled_dnf_regex
 
 and ordered_exampled_clause = ((ordered_exampled_atom * int) list) list * string
@@ -163,7 +162,7 @@ let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
   comparison =
     begin match (a1,a2) with
       | (EAVariable (s1,_,_,el1,_), EAVariable (s2,_,_,el2,_)) ->
-        let cmp = compare_id s1 s2 in
+        let cmp = Id.compare s1 s2 in
         if (is_equal cmp) then
           ordered_partition_order
             (fun x y -> (compare x y))
@@ -197,7 +196,7 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
                                        (a2:ordered_exampled_atom)
                                      : comparison =
     begin match (a1,a2) with
-      | (OEAUserDefined (s1,_,_,el1), OEAUserDefined (s2,_,_,el2)) ->
+      | (OEAVar (s1,_,_,el1), OEAVar (s2,_,_,el2)) ->
         let cmp = compare s1 s2 in
         if is_equal cmp then
           compare_list
@@ -207,8 +206,8 @@ let rec compare_ordered_exampled_atoms (a1:ordered_exampled_atom)
         else
           cmp
     | (OEAStar r1, OEAStar r2) -> compare_ordered_exampled_dnf_regexs r1 r2
-    | (OEAStar _, OEAUserDefined _) -> 1
-    | (OEAUserDefined _, OEAStar _) -> -1
+    | (OEAStar _, OEAVar _) -> 1
+    | (OEAVar _, OEAStar _) -> -1
     end 
 
 and compare_ordered_exampled_clauses
@@ -238,7 +237,7 @@ and compare_ordered_exampled_dnf_regexs (r1:ordered_exampled_dnf_regex)
 
 let rec to_ordered_exampled_atom (a:exampled_atom) : ordered_exampled_atom =
   begin match a with
-  | EAVariable (s,sorig,lmap,el,_) -> OEAUserDefined (s,sorig,lmap,el)
+  | EAVariable (s,sorig,lmap,el,_) -> OEAVar (s,sorig,lmap,el)
   | EAStar (r,_) -> OEAStar (to_ordered_exampled_dnf_regex r)
   end
 
@@ -341,7 +340,7 @@ and compare_atom_lens
 (**** DNF Regex {{{ *****)
 
 type atom =
-  | AUserDefined of id
+  | AVar of Id.t
   | AStar of dnf_regex
 
 and clause = atom list * string list
@@ -387,9 +386,9 @@ let singleton_atom (a:atom) : dnf_regex =
 
 let rec compare_atoms (a1:atom) (a2:atom) : comparison =
   begin match (a1,a2) with
-  | (AUserDefined s1, AUserDefined s2) -> compare s1 s2
-  | (AUserDefined  _, AStar         _) -> -1
-  | (AStar         _, AUserDefined  _) -> 1
+  | (AVar s1, AVar s2) -> compare s1 s2
+  | (AVar  _, AStar         _) -> -1
+  | (AStar         _, AVar  _) -> 1
   | (AStar        r1, AStar        r2) -> compare_dnf_regexs r1 r2
   end
 
@@ -412,7 +411,7 @@ and clause_to_string ((atoms,strings):clause) : string =
 and atom_to_string (a:atom) : string =
   begin match a with
   | AStar dnf_rx -> (paren (dnf_regex_to_string dnf_rx)) ^ "*"
-  | AUserDefined s -> show_id s
+  | AVar s -> Id.show s
   end
 
 (***** }}} *****)

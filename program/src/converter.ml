@@ -1,8 +1,7 @@
+open Stdlib
 open Lang
-open Core
 open Eval
 open Lens_put
-open Util
 open Normalized_lang
 open Regexcontext
 open Lenscontext

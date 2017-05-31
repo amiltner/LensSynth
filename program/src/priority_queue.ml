@@ -1,61 +1,115 @@
-open Core.Std
+open Core
+open Util
+open My_set
+open Comparison_heap
 
-module type Priority_Queue_Sig = sig
-  type 'a t
-
-  val create : 'a t
-  val create_from_list : ('a * float) list -> 'a t
-  val push : 'a t -> 'a -> float -> 'a t
-  val push_all : 'a t -> ('a * float) list -> 'a t
-  val pop : 'a t -> ('a * float * ('a t)) option
-  val pp : ('a -> string) -> 'a t -> string
-  val length : 'a t -> int
+module type DataWithPriority =
+sig
+  type t
+  val show : t shower
+  val pp : t pper
+  val compare : t comparer
+  val hash : t hasher
+  val hash_fold_t : t hash_folder
+  val priority : t -> int
 end
 
-module Priority_Queue : Priority_Queue_Sig = struct
-  type 'a t = ('a*float) list
+module PriorityQueueOf(D:DataWithPriority) =
+struct
+  module QueueHeap =
+    HeapOf(
+    struct
+      type t = (D.t * int)
+      [@@deriving show, hash]
 
-  let create = []
+      let compare =
+        (fun (_,f1) (_,f2) ->
+             (compare_int f1 f2))
+      let to_string = fun _ -> "hi"
+    end)
 
-  let length (queue:'a t) : int = List.length queue
+  module PushedSet =
+    SetOf(D)
 
-  let push (queue:'a t) (data:'a) (priority:float) : 'a t =
-    let rec push_internal (queue:'a t) (continuation:'a t -> 'a t) : 'a t =
-      begin match queue with
-      | (d,p)::t ->
-          if p >= priority then
-            continuation ((data,priority)::queue)
-          else
-            push_internal
-              t
-              (fun q -> continuation ((d,p)::q))
-      | _ -> continuation [(data,priority)]
-      end
-    in
-    push_internal queue (fun x -> x)
+  type t = QueueHeap.t * PushedSet.t
+  [@@deriving show, hash]
 
-  let push_all (queue:'a t) (data_priority_list:('a * float) list) : 'a t =
+  type element = D.t
+
+  let empty = (QueueHeap.empty, PushedSet.empty)
+
+  let push ((h,s):t) (e:element) : t =
+    if PushedSet.member s e then
+      (h,s)
+    else
+      let s' = PushedSet.insert e s in
+      let pri = D.priority e in
+      let h' = QueueHeap.push h (e,pri) in
+      (h',s')
+
+  let push_all (q:t) (es:element list) : t =
     List.fold_left
-    ~f:(fun acc (d,p) -> push acc d p)
-      ~init:queue
-      data_priority_list
+      ~f:(fun q e -> push q e)
+      ~init:q
+      es
 
-  let create_from_list (data_priority_list:('a * float) list) : 'a t =
-    push_all create data_priority_list
+  let from_list (es:element list) : t =
+    push_all empty es
 
-  let pop (queue:'a t) : ('a * float * ('a t)) option =
-    begin match queue with
-    | (d,p)::t -> Some (d,p,t)
-    | [] -> None
+  let singleton (e:element) : t =
+    from_list [e]
+
+  let pop ((h,s):t) : ('a * int * t) option =
+    Option.map ~f:(fun ((e,p),h') -> (e,p,(h',s))) (QueueHeap.pop h)
+
+  let pop_exn (q:t) : 'a * int * t =
+    begin match pop q with
+      | None -> failwith "failure: pop_exn"
+      | Some e -> e
     end
 
-  let pp (f:'a -> string) (queue:'a t) : string =
-    "[" ^
-    (String.concat
-      ~sep:";"
-      (List.map
-        ~f:(fun (d,p) ->
-          "(" ^ (f d) ^ "," ^ (Float.to_string p) ^ ")")
-        queue))
-    ^ "]"
+  let all_remaining ((h,_):t) : ('a * int) list =
+    QueueHeap.to_list h
+
+  let rec pop_until_min_pri_greater_than
+      (q:t)
+      (f:int)
+    : (element * int) list * t =
+      begin match pop q with
+        | None -> ([],q)
+        | Some (e,f',q') ->
+          if f' > f then
+            ([],q)
+          else
+            let (efs,q'') = pop_until_min_pri_greater_than q' f in
+            ((e,f')::efs,q'')
+      end
+
+
+  let length ((h,_):t) : int = QueueHeap.size h
+
+  let compare
+    : (QueueHeap.t * PushedSet.t) comparer =
+    let real_heap_compare
+        (qh1:QueueHeap.t)
+        (qh2:QueueHeap.t)
+      : comparison =
+      let ordered_qhl1 =
+        List.sort
+          ~cmp:D.compare
+          (List.map ~f:fst (QueueHeap.to_list qh1))
+      in
+      let ordered_qhl2 =
+        List.sort
+          ~cmp:D.compare
+          (List.map ~f:fst (QueueHeap.to_list qh2))
+      in
+      compare_list
+        ~cmp:D.compare
+        ordered_qhl1
+        ordered_qhl2
+    in
+    pair_compare
+      real_heap_compare
+      PushedSet.compare
 end

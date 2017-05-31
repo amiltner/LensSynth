@@ -1,7 +1,6 @@
+open Stdlib
 open OUnit2
-open Core
 open String_utilities
-open Util
 
 let assert_equal
     ~printer:(printer:'a -> string)

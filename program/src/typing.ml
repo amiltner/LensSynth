@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 open Lang
 open Lenscontext
 open Permutation

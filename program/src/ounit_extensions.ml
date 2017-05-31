@@ -1,12 +1,12 @@
-open Core
+open Stdlib
 open Normalized_lang
 open Permutation
 open Lang
 open String_utilities
-open Util
 open Ounit_general_extensions
 open Boom_lang
 open Gen_exs
+open Expand
 
 
 let assert_dnf_equal (expected:dnf_regex) (actual:dnf_regex) =
@@ -107,8 +107,8 @@ let assert_id_lens_list_equal =
 
 let assert_id_lens_equal =
   assert_equal
-    ~printer:(string_of_pair show_id Lens.show)
-    ~cmp:(pair_compare compare_id Lens.compare)
+    ~printer:(string_of_pair Id.show Lens.show)
+    ~cmp:(pair_compare Id.compare Lens.compare)
 
 let assert_boom_statement_equal =
   assert_equal
@@ -125,12 +125,10 @@ let assert_boom_program_equal =
     ~printer:Pp.pp_program
     ~cmp:compare_boom_program
 
-module ModTenPQueue = Priority_queue_two.Make(
+module ModTenPQueue = PriorityQueueOf(
   struct
-    type element = int
-    let compare = compare
+    include IntModule
     let priority = (fun x -> (x mod 10))
-    let to_string = string_of_int
   end)
 
 let assert_int_int_int_priority_queue_option_equal =
@@ -139,7 +137,7 @@ let assert_int_int_int_priority_queue_option_equal =
       (string_of_triple
          string_of_int
          string_of_int
-         ModTenPQueue.to_string)
+         ModTenPQueue.show)
   in
   let comparer =
     option_compare
@@ -169,11 +167,10 @@ let assert_required_expansions_equal =
     ~printer:printer
     ~cmp:comparer
 
-module RegexIntSet = Comparison_set.Make(
+module RegexIntSet = SetOf(
   struct
-    type element = Regex.t * int
-    let compare = pair_compare Regex.compare compare_int
-    let to_string = string_of_pair Regex.show string_of_int
+    type t = Regex.t * int
+    [@@deriving ord, show, hash]
   end)
 
 let assert_expansions_equal
@@ -216,12 +213,26 @@ let assert_string_int_int_pair_list_pair_equal =
             (compare_list
                ~cmp:(pair_compare compare_int compare_int)))
 
-let assert_id_flattened_or_userdef_regex_list_equal =
+let assert_id_flattened_or_var_regex_list_equal =
   assert_equal
-    ~printer:(string_of_list (string_of_pair show_id flattened_or_userdef_regex_to_string))
-    ~cmp:(compare_list ~cmp:(pair_compare compare_id compare_flattened_or_userdef_regex))
+    ~printer:(string_of_list
+                (string_of_pair
+                   Id.show
+                   flattened_or_var_regex_to_string))
+    ~cmp:(compare_list ~cmp:(pair_compare Id.compare compare_flattened_or_var_regex))
 
 let assert_int_int_list_equal =
   assert_equal
     ~printer:(string_of_list (string_of_pair string_of_int string_of_int))
     ~cmp:(compare_list ~cmp:(pair_compare compare_int compare_int))
+
+
+let assert_transitive_set_equal =
+  assert_equal
+    ~printer:IdToIntSetDict.show
+    ~cmp:IdToIntSetDict.compare
+
+let assert_reachables_set_minus_equal =
+  assert_equal
+    ~printer:(string_of_pair IdIntSet.show IdIntSet.show)
+    ~cmp:(pair_compare IdIntSet.compare IdIntSet.compare)

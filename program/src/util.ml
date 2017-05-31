@@ -4,11 +4,23 @@ let random_char () =
   let random_int = Random.int 256 in
   Char.of_int_exn random_int
 
-let (%) (f:'b -> 'c) (g:'a -> 'b) : 'a -> 'c =
+let (%)
+    (f:'b -> 'c)
+    (g:'a -> 'b)
+  : 'a -> 'c =
   Fn.compose f g
 
+type 'a thunk = unit -> 'a
 type 'a continuation = 'a -> 'a
-type 'a printer = 'a -> string
+type 'a pper = Format.formatter -> 'a -> unit
+type 'a shower = 'a -> string
+type 'a hash_folder = Base__Hash.state -> 'a -> Base__Hash.state
+type 'a hasher = 'a -> int
+
+let thunk_of
+    (x:'a)
+  : 'a thunk =
+  (fun _ -> x)
 
 type comparison = int
 [@@deriving ord, show, hash]
@@ -76,8 +88,63 @@ let compare_to_equals
 
 module type Data = sig
   type t
-  val to_string : t printer
+  val show : t shower
+  val pp : t pper
   val compare : t comparer
+  val hash : t hasher
+  val hash_fold_t : t hash_folder
+end
+
+module UnitModule = struct
+  type t = unit
+  [@@deriving ord, show, hash]
+end
+
+module IntModule = struct
+  type t = int
+  [@@deriving ord, show, hash]
+end
+
+module BoolModule = struct
+  type t = bool
+  [@@deriving ord, show, hash]
+end
+
+module RefOf(D:Data) : Data with type t = D.t ref = struct
+  type t = D.t ref
+  [@@deriving ord, show]
+
+  let hash_fold_t : ('a ref) hash_folder =
+    fun hs -> (D.hash_fold_t hs) % (fun xr -> !xr)
+
+  let hash : 'a hasher = D.hash % (fun xr -> !xr)
+end
+
+module PairOf
+    (D1:Data)
+    (D2:Data)
+  : Data with type t = (D1.t * D2.t) =
+struct
+  type t = (D1.t * D2.t)
+  [@@deriving ord, show, hash]
+end
+
+module TripleOf
+    (D1:Data)
+    (D2:Data)
+    (D3:Data)
+  : Data with type t = (D1.t * D2.t * D3.t) =
+struct
+  type t = (D1.t * D2.t * D3.t)
+  [@@deriving ord, show, hash]
+end
+
+module ListOf
+    (D:Data)
+  : Data with type t = D.t list =
+struct
+  type t = D.t list
+  [@@deriving ord, show, hash]
 end
 
 type ('a, 'b) either =
@@ -140,6 +207,39 @@ let range (i:int) (j:int) : int list =
   in
   aux (j-1) []
 
+let make_some
+    (x:'a)
+  : 'a option =
+  Some x
+
+let cons_if_some
+    (xo:'a option)
+    (l:'a list)
+  : 'a list =
+  begin match xo with
+    | None -> l
+    | Some x -> x::l
+  end
+
+let filter_nones
+    (l:('a option) list)
+  : 'a list =
+  List.filter_map ~f:ident l
+
+let option_to_empty_or_singleton
+    (xo:'a option)
+  : 'a list =
+  cons_if_some xo []
+
+let option_bind
+    ~f:(f:'a -> 'b option)
+    (xo:'a option)
+  : 'b option =
+  begin match xo with
+    | None -> None
+    | Some x -> f x
+  end
+
 let distribute_option (l:('a option) list) : 'a list option =
   (List.fold_left
   ~f:(fun acc x ->
@@ -151,22 +251,6 @@ let distribute_option (l:('a option) list) : 'a list option =
   ~init:(Some [])
   (List.rev l))
 
-let option_to_empty_or_singleton
-    (xo:'a option)
-  : 'a list =
-  begin match xo with
-    | Some x -> [x]
-    | None -> []
-  end
-
-let option_bind
-    ~f:(f:'a -> 'b option)
-    (xo:'a option)
-  : 'b option =
-  begin match xo with
-    | None -> None
-    | Some x -> f x
-  end
 
 let swap_double ((x,y):'a * 'b) : 'b * 'a =
   (y,x)
@@ -272,6 +356,14 @@ let bucketize_pairs (num_buckets:int) (data_position_pairs:('a * int) list) : ('
                                            None)
                         data_position_pairs)
     (range 0 (num_buckets))
+
+let pair_apply
+    ~f:(f:'a -> 'b)
+    ((x,y):('a * 'a))
+  : 'b * 'b =
+  (f x, f y)
+    
+
 
 let bucketize (f:'a -> int) (num_buckets:int) (l:'a list) : ('a list) list =
   let data_position_pairs = List.map
@@ -757,108 +849,6 @@ module Operators = struct
       | Some v -> f v
 end
 
-let maximally_factor_hemiring_element
-    (apply_to_every_level:('a -> 'a) -> ('a -> 'a))
-    (multiplicative_identity:'a)
-    (separate_plus:'a -> ('a * 'a) option)
-    (separate_times:'a -> ('a * 'a) option)
-    (create_plus:'a -> 'a -> 'a)
-    (create_times:'a -> 'a -> 'a)
-  : 'a -> 'a =
-  let rec separate_into_sum
-      (r:'a)
-    : 'a list =
-    begin match separate_plus r with
-      | None -> [r]
-      | Some (r1,r2) -> (separate_into_sum r1) @ (separate_into_sum r2)
-    end
-  in
-  let rec separate_into_product
-      (r:'a)
-    : 'a list =
-    begin match separate_times r with
-      | None -> [r]
-      | Some (r1,r2) -> (separate_into_product r1) @ (separate_into_product r2)
-    end
-  in
-  let combine_nonempty_list_exn
-      (combiner:'a -> 'a -> 'a)
-      (rl:'a list)
-    : 'a =
-    let (rlf,rll) = split_by_last_exn rl in
-    List.fold_right
-      ~f:(fun r acc ->
-          combiner r acc)
-      ~init:rll
-      rlf
-  in
-  let combine_list
-      (combiner:'a -> 'a -> 'a)
-      (rl:'a list)
-    : 'a option =
-    begin match rl with
-      | [] -> None
-      | _ -> Some (combine_nonempty_list_exn combiner rl)
-    end
-  in
-  let maximally_factor_current_level
-      (product_splitter:'a list -> ('a * 'a list))
-      (product_combiner:'a -> 'a -> 'a)
-      (he:'a)
-    : 'a =
-    let sum_list = separate_into_sum he in
-    let sum_product_list_list =
-      List.map
-        ~f:separate_into_product
-        sum_list
-    in
-    let product_keyed_sum_list =
-      List.map
-        ~f:product_splitter
-        sum_product_list_list
-    in
-    let grouped_assoc_list = group_by_keys product_keyed_sum_list in
-    let keyed_sum_list =
-      List.map
-        ~f:(fun (k,all) ->
-            let producted_elements =
-              List.map
-                ~f:(fun pl ->
-                    begin match combine_list create_times pl with
-                      | None -> multiplicative_identity
-                      | Some he -> he
-                    end)
-                all
-            in
-            (k,producted_elements))
-        grouped_assoc_list
-    in
-    let ringed_list =
-      List.map
-        ~f:(fun (k,al) ->
-            let factored_side = combine_nonempty_list_exn create_plus al in
-            if factored_side = multiplicative_identity then
-              k
-            else
-              product_combiner
-                k
-                factored_side)
-        keyed_sum_list
-    in
-    combine_nonempty_list_exn create_plus ringed_list
-  in
-  Fn.compose
-    (fold_until_fixpoint
-       (apply_to_every_level
-          (maximally_factor_current_level
-             (Fn.compose swap_double split_by_last_exn)
-             (Fn.flip create_times))))
-    (fold_until_fixpoint
-       (apply_to_every_level
-          (maximally_factor_current_level
-             split_by_first_exn
-             create_times)))
-
 let string_to_char_list (s:string) : char list =
   let rec exp i l =
     if i < 0 then l else exp (i - 1) (s.[i] :: l) in
@@ -901,3 +891,16 @@ let hash_quintuple
   lxor (trd_hash c)
   lxor (rth_hash d)
   lxor (fth_hash e)
+
+type 'a sequence =
+  | SNil
+  | SCons of 'a * ('a sequence) thunk
+
+let rec app_seq
+    (s1:'a sequence)
+    (s2:'a sequence)
+  : 'a sequence =
+  begin match s1 with
+    | SNil -> s2
+    | SCons (x,s1't) -> SCons (x,fun () -> (app_seq (s1't ()) s2))
+  end

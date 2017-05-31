@@ -1,21 +1,31 @@
-open Core
-open Util
-open Algebra
+open Stdlib
 open Printf
 
 
 (**** General {{{ *****)
 exception Internal_error of string
 let internal_error f s = raise @@ Internal_error (sprintf "(%s) %s" f s)
-
-type id = Id of string
-[@@deriving ord, show, hash]
-
-let get_string_of_id
-    (Id v:id)
-  : string =
-  v
 (***** }}} *****)
+
+
+(**** Regex {{{ *****)
+module Id =
+struct
+  type t = Id of string
+  [@@deriving ord, show, hash]
+
+  let string_of_id
+      (Id v:t)
+    : string =
+    v
+
+  let make
+      (s:string)
+    : t =
+    Id s
+end
+(***** }}} *****)
+
 
 
 (**** Regex {{{ *****)
@@ -28,12 +38,12 @@ struct
     | RegExConcat of t * t
     | RegExOr of t * t 
     | RegExStar of t
-    | RegExVariable of id
-  [@@deriving ord, show, hash, map]
+    | RegExVariable of Id.t
+  [@@deriving ord, show, hash]
 
-  let multiplicative_identity = RegExBase ""
+  let one = RegExBase ""
 
-  let additive_identity = RegExEmpty
+  let zero = RegExEmpty
 
   let separate_plus
       (r:t)
@@ -59,40 +69,93 @@ struct
       | _ -> None
     end
 
-  let separate_userdef
+  let separate_var
       (r:t)
-    : id option =
+    : Id.t option =
     begin match r with
       | RegExVariable v -> Some v
       | _ -> None
     end
 
-  let create_plus
-      (r1:t)
-      (r2:t)
-    : t =
-    RegExOr (r1,r2)
+  let make_empty : t = RegExEmpty
 
-  let create_times
+  let make_concat
       (r1:t)
       (r2:t)
     : t =
     RegExConcat (r1,r2)
 
-  let create_star
+  let make_or
+      (r1:t)
+      (r2:t)
+    : t =
+    RegExOr (r1,r2)
+
+  let make_star
       (r:t)
     : t =
     RegExStar r
 
-  let create_userdef
-      (v:id)
+  let make_var
+      (v:Id.t)
     : t =
     RegExVariable v
 
-  let create_base
+  let make_var
+      (v:Id.t)
+    : t =
+    RegExVariable v
+
+  let make_plus = make_or
+
+  let make_times = make_concat
+
+  let make_base
       (s:string)
     : t =
     RegExBase s
+
+  let fold_downward_upward
+      ~init:(init:'b)
+      ~upward_empty:(upward_empty:'b -> 'a)
+      ~upward_base:(upward_base:'b -> string -> 'a)
+      ~upward_concat:(upward_concat:'b -> 'a -> 'a -> 'a)
+      ~upward_or:(upward_or:'b -> 'a -> 'a -> 'a)
+      ~upward_star:(upward_star:'b -> 'a -> 'a)
+      ~upward_var:(upward_var:'b -> Id.t -> 'a)
+      ?downward_concat:(downward_concat:'b -> 'b = ident)
+      ?downward_or:(downward_or:'b -> 'b = ident)
+      ?downward_star:(downward_star:'b -> 'b = ident)
+    : t -> 'a =
+    let rec fold_downward_upward_internal
+        (downward_acc:'b)
+        (r:t)
+      : 'a =
+      begin match r with
+        | RegExEmpty -> upward_empty downward_acc
+        | RegExBase s -> upward_base downward_acc s
+        | RegExConcat (r1,r2) ->
+          let downward_acc' = downward_concat downward_acc in
+          upward_concat
+            downward_acc
+            (fold_downward_upward_internal downward_acc' r1)
+            (fold_downward_upward_internal downward_acc' r2)
+        | RegExOr (r1,r2) ->
+          let downward_acc' = downward_or downward_acc in
+          upward_or
+            downward_acc
+            (fold_downward_upward_internal downward_acc' r1)
+            (fold_downward_upward_internal downward_acc' r2)
+        | RegExStar r' ->
+          let downward_acc' = downward_star downward_acc in
+          upward_star
+            downward_acc
+            (fold_downward_upward_internal downward_acc' r')
+        | RegExVariable v ->
+          upward_var downward_acc v
+      end
+    in
+    fold_downward_upward_internal init
 
   let fold
       ~empty_f:(empty_f:'a)
@@ -100,25 +163,18 @@ struct
       ~concat_f:(concat_f:'a -> 'a -> 'a)
       ~or_f:(or_f:'a -> 'a -> 'a)
       ~star_f:(star_f:'a -> 'a)
-      ~var_f:(var_f:id -> 'a)
-    : t -> 'a =
-    let rec fold_internal
-        (r:t)
-      : 'a =
-      begin match r with
-        | RegExEmpty -> empty_f
-        | RegExBase s -> base_f s
-        | RegExConcat (r1,r2) ->
-          concat_f (fold_internal r1) (fold_internal r2)
-        | RegExOr (r1,r2) ->
-          or_f (fold_internal r1) (fold_internal r2)
-        | RegExStar r' ->
-          star_f (fold_internal r')
-        | RegExVariable v ->
-          var_f v
-      end
-    in
-    fold_internal
+      ~var_f:(var_f:Id.t -> 'a)
+      (r:t)
+    : 'a =
+    fold_downward_upward
+      ~init:()
+      ~upward_empty:(thunk_of empty_f)
+      ~upward_base:(thunk_of base_f)
+      ~upward_concat:(thunk_of concat_f)
+      ~upward_or:(thunk_of or_f)
+      ~upward_star:(thunk_of star_f)
+      ~upward_var:(thunk_of var_f)
+      r
 
   let rec apply_at_every_level
       (f:t -> t)
@@ -220,14 +276,14 @@ struct
     | LensIterate of t
     | LensIdentity of Regex.t
     | LensInverse of t
-    | LensVariable of id
+    | LensVariable of Id.t
     | LensPermute of (int list) (*Permutation.t*) * (t list)
   [@@deriving ord, show, hash]
 
 
-  let multiplicative_identity = LensIdentity (Regex.multiplicative_identity)
+  let one = LensIdentity (Regex.one)
 
-  let additive_identity = LensIdentity (Regex.additive_identity)
+  let zero = LensIdentity (Regex.zero)
 
   let separate_plus (l:t) : (t * t) option =
     begin match l with
@@ -247,13 +303,13 @@ struct
       | _ -> None
     end
 
-  let create_plus (l1:t) (l2:t) : t =
+  let make_plus (l1:t) (l2:t) : t =
     LensUnion (l1,l2)
 
-  let create_times (l1:t) (l2:t) : t =
+  let make_times (l1:t) (l2:t) : t =
     LensConcat (l1,l2)
 
-  let create_star (l:t) : t =
+  let make_star (l:t) : t =
     LensIterate l
 
   let rec size (l:t) : int =
@@ -355,18 +411,18 @@ let lens_star_semiring = (module Lens : StarSemiring.Sig with type t = Lens.t)
 
 type examples = (string * string) list
 
-type specification = (id * Regex.t * Regex.t * (string * string) list)
+type specification = (Id.t * Regex.t * Regex.t * (string * string) list)
 
 type declaration =
-  | DeclRegexCreation of (id * Regex.t * bool)
+  | DeclRegexCreation of (Id.t * Regex.t * bool)
   | DeclTestString of (Regex.t * string)
   | DeclSynthesizeLens of specification
-  | DeclLensCreation of id * Regex.t * Regex.t * Lens.t
-  | DeclTestLens of id * examples
+  | DeclLensCreation of Id.t * Regex.t * Regex.t * Lens.t
+  | DeclTestLens of Id.t * examples
 
 type program = declaration list
 
-type synth_problems = (id * Regex.t * bool) list * (specification list) 
+type synth_problems = (Id.t * Regex.t * bool) list * (specification list) 
 
 (***** }}} *****)
 

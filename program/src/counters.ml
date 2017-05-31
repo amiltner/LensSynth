@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 
 module type Counters_Sig = sig
   type 'a t

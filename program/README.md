@@ -10,6 +10,7 @@ Quick and Dirty Installation Instructions
 opam install core  
 opam install menhir  
 opam install ounit  
+opam install ppx_deriving
 pip install EasyProcess  
 make
 

@@ -1,11 +1,10 @@
-open Core
+open Stdlib
 open Lenscontext
 open Converter
 open Regexcontext
 open Lang
 open Lens_utilities
 open Regex_utilities
-open Util
 open Permutation
 open Normalized_lang
 open Consts
@@ -14,18 +13,7 @@ open Synth_structs
 open Expand
 open Language_equivalences
 
-module PQ = Priority_queue_two.Make(
-  struct
-    type element = queue_element
-    let compare = queue_element_comparison
-
-    let priority
-        (qe : queue_element)
-      : int =
-      qe.expansions_performed
-
-    let to_string = queue_element_to_string
-  end)
+module PQ = PriorityQueueOf(QueueElement)
 
 module type LENS_SYNTHESIZER =
 sig
@@ -41,7 +29,7 @@ end
 module type LENSSYNTH_PRIORITY_QUEUE =
 sig
   type queue
-  type element = queue_element
+  type element = QueueElement.t
 
   val empty : queue
   val from_list : element list -> queue
@@ -69,7 +57,7 @@ struct
       (atom2:ordered_exampled_atom)
     : atom_lens =
     begin match (atom1,atom2) with
-      | (OEAUserDefined (_,sorig1,_,_),OEAUserDefined (_,sorig2,_,_)) ->
+      | (OEAVar (_,sorig1,_,_),OEAVar (_,sorig2,_,_)) ->
         AtomLensVariable (LensContext.shortest_path_exn lc sorig1 sorig2)
       | (OEAStar r1, OEAStar r2) ->
         AtomLensIterate (gen_dnf_lens_zipper_internal lc r1 r2)
@@ -129,13 +117,13 @@ struct
   let rigid_synth
       (rc:RegexContext.t)
       (lc:LensContext.t)
-      (qe:queue_element)
+      (qe:QueueElement.t)
       (exs:examples)
       (count:int)
     : synthesis_info option =
     let (lexs,rexs) = List.unzip exs in
-    let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc qe.r1 lexs in
-    let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc qe.r2 rexs in
+    let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc (QueueElement.get_r1 qe) lexs in
+    let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc (QueueElement.get_r2 qe) rexs in
     begin match (exampled_r1_opt,exampled_r2_opt) with
       | (Some exampled_r1,Some exampled_r2) ->
         let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
@@ -146,9 +134,9 @@ struct
               {
                 l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
                 specs_visited = count;
-                expansions_performed = qe.expansions_performed;
-                expansions_inferred = qe.expansions_inferred;
-                expansions_forced = qe.expansions_forced;
+                expansions_performed = (QueueElement.get_expansions_performed qe);
+                expansions_inferred = (QueueElement.get_expansions_inferred qe);
+                expansions_forced = (QueueElement.get_expansions_forced qe);
               })
           | _ -> None
         end
@@ -164,7 +152,7 @@ struct
     : synthesis_info option =
     let count = ref 0 in
     let rec gen_dnf_lens_zipper_queueing
-        (queue:PQ.queue)
+        (queue:PQ.t)
       : synthesis_info option =
       begin match PQ.pop queue with
         | None -> None
@@ -178,11 +166,11 @@ struct
              print_endline "\n\n";
              print_endline ("count: " ^ (string_of_int !count));
              print_endline "\n\n";
-             print_endline ("exps_perfed: " ^ (string_of_int qe.expansions_performed));
+             print_endline ("exps_perfed: " ^ (string_of_int (QueueElement.get_expansions_performed qe)));
              print_endline "\n\n";
-             print_endline ("exps_inferred: " ^ (string_of_int qe.expansions_inferred));
+             print_endline ("exps_inferred: " ^ (string_of_int (QueueElement.get_expansions_inferred qe)));
              print_endline "\n\n";
-             print_endline ("exps_forced: " ^ (string_of_int qe.expansions_forced));
+             print_endline ("exps_forced: " ^ (string_of_int (QueueElement.get_expansions_forced qe)));
              print_endline ("\n\n\n"));
           let result_o =
             rigid_synth
@@ -211,13 +199,13 @@ struct
       gen_dnf_lens_zipper_queueing
       (PQ.from_list
          [
-           {
-             r1 = r1;
-             r2 = r2;
-             expansions_performed = 0;
-             expansions_inferred = 0;
-             expansions_forced = 0;
-           }])
+           QueueElement.make
+             ~r1:r1
+             ~r2:r2
+             ~expansions_performed:0
+             ~expansions_inferred:0
+             ~expansions_forced:0
+           ])
 
 
   let gen_dnf_lens (rc:RegexContext.t) (lc:LensContext.t) (r1:Regex.t) (r2:Regex.t)

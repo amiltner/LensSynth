@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 open Lang
 open Regexcontext
 
@@ -9,21 +8,21 @@ let rec make_regex_safe_in_smaller_context
   : Regex.t -> Regex.t =
   fold_until_fixpoint
     (Regex.fold
-       ~empty_f:Regex.multiplicative_identity
-       ~concat_f:Regex.create_times
-       ~or_f:Regex.create_plus
-       ~star_f:Regex.create_star
-       ~base_f:Regex.create_base
+       ~empty_f:Regex.zero
+       ~concat_f:Regex.make_times
+       ~or_f:Regex.make_plus
+       ~star_f:Regex.make_star
+       ~base_f:Regex.make_base
        ~var_f:(fun v ->
            begin match (RegexContext.lookup rc_smaller v) with
              | None ->
                RegexContext.lookup_exn rc_larger v
-             | Some _ -> Regex.create_userdef v
+             | Some _ -> Regex.make_var v
            end))
 
 let simplify_regex : Regex.t -> Regex.t =
   let maximally_factor_regex : Regex.t -> Regex.t =
-    Algebra.Semiring.maximally_factor_element
+    Semiring.maximally_factor_element
       regex_semiring
   in
   let rec clean_regex (r:Regex.t) : Regex.t =

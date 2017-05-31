@@ -1,5 +1,4 @@
-open Core
-open Util
+open Stdlib
 
 type swap_concat_compose_tree =
   | SCCTSwap of swap_concat_compose_tree * swap_concat_compose_tree

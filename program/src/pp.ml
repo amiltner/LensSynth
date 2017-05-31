@@ -1,4 +1,4 @@
-open Core
+open Stdlib
 open String_utilities
 open Lang
 open Format
@@ -51,7 +51,7 @@ let rec boom_fpf_regex
   begin match r with
     | Regex.RegExEmpty -> fpf ppf "AHHH" 
     | Regex.RegExBase s -> fpf ppf "\"%a\"" ident (delimit_string s)
-    | Regex.RegExVariable n -> fpf ppf "%a" ident (get_string_of_id n)
+    | Regex.RegExVariable n -> fpf ppf "%a" ident (Id.string_of_id n)
     | Regex.RegExStar r' -> fpf ppf "%a* " boom_fpf_regex (this_lvl, r', false, false)
     | Regex.RegExConcat (r1,r2) ->
       if conc_seq then
@@ -130,7 +130,7 @@ let rec boom_fpf_lens
     | Lens.LensVariable n ->
       fpf ppf "%a"
         ident
-        (get_string_of_id n)
+        (Id.string_of_id n)
     | Lens.LensPermute(p,ls) ->
       fpf ppf "@[<hv 2>lens_permute@ #{int}%a@ #{lens}[%a]@]"
         ident (String_utilities.string_of_int_list (Permutation.to_int_list p))
@@ -160,7 +160,7 @@ let rec boom_fpf_statement
   begin match s with
     | BoomStmtDefinition(n,t,e) ->
       fpf ppf "@[<hv 2>let %a@ : %a =@ %a @]"
-        ident (get_string_of_id n)
+        ident (Id.string_of_id n)
         boom_fpf_typ t
         boom_fpf_expression e
     | BoomStmtTestRegex(r,s) ->

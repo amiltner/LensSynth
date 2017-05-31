@@ -33,13 +33,13 @@ let symbols : (string * Parser.token) list =
 
 let create_token lexbuf =
   let str = lexeme lexbuf in
-  match Util.lookup str reserved_words with
+  match Stdlib.lookup str reserved_words with
   | None   -> LID str
   | Some t -> t
 
 let create_symbol lexbuf =
   let str = lexeme lexbuf in
-  match Util.lookup str symbols with
+  match Stdlib.lookup str symbols with
   | None   -> raise @@ Lexer_error ("Unexpected token: " ^ str)
   | Some t -> t
 
