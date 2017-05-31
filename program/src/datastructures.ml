@@ -1,4 +1,5 @@
-include Dict
+include My_dict
 include My_set
-include Disjointset
-include Priority_queue
+include My_disjoint_set
+include My_heap
+include My_priority_queue

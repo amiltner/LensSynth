@@ -1,6 +1,6 @@
 open Core
 open Util
-open Dict
+open My_dict
 
 (* parameter to Set modules -- we must pass in some 
  * type for the elements of a set, a comparison

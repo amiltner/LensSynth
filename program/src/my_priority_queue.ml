@@ -1,7 +1,7 @@
 open Core
 open Util
 open My_set
-open Comparison_heap
+open My_heap
 
 module type DataWithPriority =
 sig

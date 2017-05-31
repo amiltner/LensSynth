@@ -1,6 +1,6 @@
 open Core
 open Util
-open Dict
+open My_dict
 
 module DisjointSetOf(DA : Data) =
 struct
