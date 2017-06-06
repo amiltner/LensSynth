@@ -254,16 +254,15 @@ The growing dependence on big data makes tools for reliably parsing,
 printing, cleaning, and transforming data in {\em ad hoc} formats
 increasingly important.  In what is known as the classic
 ``view update problem''~\cite{Bancilhon81, Dayal82},
-programmers want to be able to transform source data into a target
+programmers often need to reliably transform source data into a target
 format (or view) and transform the data from the view back into the source
 format.
-Solutions to this problem that provide strong guarantees about the
-round-trip behavior of the two components are formalized as
-\emph{lenses}~\cite{Focal2005-long}.
-Lenses help guard against data corruption while reading,
-editing, and writing data sources.  A lens comprises two functions, called 
-\emph{get} and \emph{put}.  The \emph{get} function translates between source data
-into the view.  If the view is updated, the
+\emph{Lenses}~\cite{Focal2005-long} solve this problem
+by providing strong guarantees about the round-trip behavior of the data
+transformations.  These guarantees help guard against data corruption while
+reading, editing, and writing data sources.  A lens comprises two functions,
+called \emph{get} and \emph{put}.  The \emph{get} function translates
+source data into the view.  If the view is updated, the
 \emph{put} function can translate the edited data back into the
 source format.  In lens-based languages, the \emph{get} and
 \emph{put} functions are both represented
@@ -275,7 +274,7 @@ invertibility properties.
 Such lens-based languages have been applied in a variety of practical settings.
 Boomerang~\cite{boomerang, Matching10} is a well-researched tool for providing
 guarantees on transformations between {\em ad hoc} string document formats.
-Augeas~\cite{augeas} is a popular tool that reads Linux system configuration
+Augeas~\cite{augeas}, a popular tool that reads Linux system configuration
 files, uses the \emph{get} part of a lens to transform them into a simple,
 uniform tree representation that can be edited either manually or
 programmatically, and then uses the lens's \emph{put} to merge the edited
@@ -308,11 +307,11 @@ often fiddly, making lens programming a slow and tedious task.
 For example, Boomerang
 programmers must often rearrange the order of data items by recursively
 using operators that swap the order of adjacent fields.  The
-challenge of learning these languages and using them effectively has slowed
+challenge of learning these languages and using them effectively may have slowed
 their adoption in many settings where well-behaved bidirectional transformations
 are needed.
 
-To make programming in lens-based languages faster and easier, we have
+To make programming with lenses languages faster and easier, we have
 developed a
 tool for synthesizing lenses from simpler, higher-level specifications
 instead of asking programmers to write them explicitly.
@@ -329,7 +328,8 @@ As inputs, it takes specifications of the source and target formats, plus
 transformation.  Format specifications are supplied as regular expressions.
 Because regular expressions are so widely understood, we anticipate such
 inputs will be substantially easier for everyday programmers to work with
-than the unfamiliar syntax of lenses.  Including these format descriptions communicates a
+than the unfamiliar syntax of lenses.  Moreover, including these format
+descriptions communicates a
 great deal of information to the synthesis system.  Hence, this
 design choice appears to make synthesis very robust, helps the system scale
 to handle large and complex data sources, and constrains the
@@ -338,7 +338,7 @@ any, examples.
 
 Despite the benefits of such informative types, certain features of
 Boomerang make it ill
-suited to synthesis in their raw form.  Boomerang's types are regular expression
+suited to synthesis in its raw form.  Boomerang's types are regular expression
 pairs, and there are infinite equivalent regular expressions.
 To synthesize all Boomerang terms, we
 must be able to traverse these equivalences.  Furthermore, composition is not
@@ -352,10 +352,10 @@ lenses and regular expressions loosely correspond to fully distributed lenses
 and regular expressions.
 Just as string lenses have pairs of regular expressions as types, DNF lenses
 have pairs of DNF regular expressions as types.
-Furthermore, DNF lenses have a \emph{two-phased} typing derivation which fixes
+Furthermore, DNF lenses' typing derivations have two typing judgements to fix
 where and how equivalences on DNF regular expressions can be processed.
-The first phase of the typing derivation handles equivalences on the types, and
-the second phase of the typing derivation aligns the terms with the types.
+The first typing judgement processes equivalences on the types, and
+the second judgement aligns the terms with the types.
 Despite DNF lenses' higly restrictive syntax and type system,
 they are equivalent to our bijective fragment of Boomerang.
 
@@ -385,7 +385,7 @@ they are equivalent to our bijective fragment of Boomerang.
 \end{figure}
 
 The typing rules of DNF lenses lend themselves to a two-phased synthesis
-algorithm.  A schematic diagram of this two phased algorithm is given in
+algorithm.  A schematic diagram of this two-phased algorithm is given in
 Figure~\ref{fig:schematic-diagram}.
 \SynthLens{} takes a pair of regular expressions describing the data formats
 as well as a list of input/output examples as input specifications.
@@ -398,9 +398,8 @@ then converted into Boomerang lens, and returned to the user.  If \RigidSynth{} 
 generate a DNF lens (\Failure{}), then this failure is provided to \TypeProp{},
 which then proposes another DNF regular expression pair.  This loop continues
 until \RigidSynth{} successfully completes.
-Two-phased synthesis algorithms are present in many other
-systems~\cite{?,?,?}, but \SynthLens{} is the first that ties this two-phased synthesis
-algorithm to a two-phased typing derivation.
+We use the two typing judgements to prove that our two-phased synthesis
+algorithm is both sound and complete.
 
 \paragraph*{Contributions.}  Our synthesis algorithm is intended to make
 bidirectional programming more accessible.  We begin by motivating our problem
@@ -411,19 +410,27 @@ we offer the following technical contributions:
 
 \begin{itemize}
 \item We introduce pseudo-canonical DNF regular expressions (\S
-\ref{sec:dnfre}) and DNF lenses, a variant of standard lenses designed
+\ref{sec:dnfre}) and DNF lenses, a new variant of standard lenses designed
 specifically for synthesis (\S\ref{sec:dnf}).  We show how to convert
-between ordinary regular expressions and lenses and the DNF forms, and prove
-these translations sound and complete with respect to our high-level lens syntax.
+between ordinary regular expressions and lenses and the DNF forms.  While it is
+common to introduce alternative DSLs designed for synthesis, we have further
+proven DNF lenses sound and complete with
+respect to our high-level lens syntax (despite permitting an efficient
+synthesis algorithm).
 
 \item We present a sound and complete type-directed algorithm for synthesizing
-  DNF lenses (\S\ref{algorithm}).
+  DNF lenses (\S\ref{algorithm}).  While applying type-directed synthesis
+  to DNF lenses provides a substantial improvement over existing algorithms,
+  it still proved insufficient for synthesizing many of the large format
+  transformations in our benchmark suite.  We provide refinements to these naive
+  algorithms to make these more difficult problems tractable.
 
 \item We evaluate our core algorithm, its optimizations, and synthesis tools in
   a similar domain on 26 benchmarks, including examples derived from
 Flash Fill~\cite{gulwani-popl-2014} and the Augeas~\cite{augeas}
 system (\S \ref{evaluation}).  Our full algorithm succeeds on
-all benchmarks in under 5 seconds.
+all benchmarks in under 5 seconds, despite competing tools finding fewer
+than \afm{20\%} of the desired transformations.
 \end{itemize}
 We close with related work (\S \ref{sec:related}) and conclusions (\S
 \ref{sec:conc}). 
@@ -527,7 +534,7 @@ a collection of web services for
 team management -- providing a unified location for source control (e.g. a Git
 server), task management (i.e. providing a means to keep track of
 TODOs and bugs), and more.
-In 2014, to increase third party developer interaction, Visual Studio Online
+In 2014, to increase third party developer interaction, VSTS
 released new web service endpoints~\cite{bharry}.  However, despite introducing
 new, modernized web APIs, the old, legacy web APIs must be maintained for continued
 support of legacy
@@ -552,20 +559,25 @@ representations contain the same information, but they are presented differently
 
 For simplicity, let's consider only finding the mapping between the ``Title''
 field of the task.
-The legacy client allows for inputs of the form
+The legacy client accepts inputs of the form
+%
 \begin{lstlisting}
    !legacy_title! = @"<Field Id=2>"@ !text_char!* @"</Field>"@
 \end{lstlisting}
-while the modern client allows for inputs of the form
+while the modern client accepts inputs of the form
 \begin{lstlisting}
    !modern_title! = (@"Title="@ !text_char! !text_char!* @","@) | @""@
 \end{lstlisting}
-We would like to be able to synthesize a lens that maps between the legacy
-representation and the modern representation.
-Because the modern api omits the title field if it's blank, we must do different
-actions depending on the number of text characters present.  We can perform
-different actions depending on the structure of the input through the use of an
-\OrLens{} lens.  The typing derivation for an \OrLens{} lens is:
+%
+We would like to be able to synthesize a lens $\Lens$, which satisfies the
+typing judgement $\Lens \OfType \LegacyTitle \Leftrightarrow \ModernTitle$
+(i.e.\ the lens maps between the legacy representation \LegacyTitle{}, and the modern
+representation \ModernTitle{}).
+Because the modern api omits the title field if it is blank, the lens must
+perform different 
+actions depending on the number of text characters present.  An \OrLens{} lens
+performs different actions depending on the structure of the input.  The typing
+derivation for an \OrLens{} lens is:
 \[
   \inferrule
   {
@@ -587,13 +599,14 @@ and $\Regex_2$ are \emph{disjoint}.  These constraints guarantee that the
 \emph{get} and \emph{put} operations of $\OrLensOf{\Lens_1}{\Lens_2}$ form a
 bijective pair if $\Lens_1$ and $\Lens_2$ are themselves bijective.
 
-However, we cannot immediately make an \OrLens{} lens using our types.  While
+However, the rule above does not suffice to type check lenses that maps data
+between \LegacyTitle{} and \ModernTitle{}.  While
 \CF{\color{darkbrown} modern\_title} is a regular expression with an
 outermost or operation, \CF{\color{darkbrown} legacy\_title}
-is a regular expression with an outermost concatenation, so an
-\OrLens{} lens would not be well typed.  To handle this problem, Boomerang
-allows for replacing regular expressions with regular expressions which are
-equivalent to them.  This is done by a type-conversion rule:
+is a regular expression with an outermost concatenation, so the rule above
+cannot be applied directly.  To handle this problem, the Boomerang type checker
+will replace one regular expression with another equivalent to it.
+This replacement is done by a type-conversion rule:
 \[
   \inferrule
   {
@@ -606,16 +619,16 @@ equivalent to them.  This is done by a type-conversion rule:
   }
 \]
 
-With this rule, we can convert \CF{\color{darkbrown} legacy\_title} into
+This rule we can convert \CF{\color{darkbrown} legacy\_title} into
 %
 \begin{lstlisting}
    !legacy_title'! = @"<Field Id=2></Field>"@ | (@"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@)
 \end{lstlisting}
 %
-This allows us to now make a well typed \OrLens{} lens, and the two cases of an empty and a
-nonempty number of text characters can be handled separately.  However, the need
-to find this equivalent type highlights a signficant challenge in synthesizing
-boomerang lenses.
+There exist \OrLens{} lenses with this new type, and the two cases of an empty
+and a nonempty number of text characters can be handled separately.  However,
+the need to find this equivalent type highlights a signficant challenge in
+synthesizing boomerang lenses.
 
 \paragraph*{Challenge 1: Multi-dimensional Search Space.}
 Since regular-expression equivalence is decideable, 
@@ -626,13 +639,13 @@ $\Regex_1' \Leftrightarrow \Regex_2'$.
 %
 During synthesis, however, deciding when and how to use type conversion is
 difficult because there are infinitely many regular expressions that are
-equivalent to the source and target regular expressions.  Do we need to
-consider all of them?  In what order?  To convert from
+equivalent to the source and target regular expressions.  Does the algorithm
+need to consider all of them?  In what order?  To convert from
 \CF{\color{darkbrown} legacy\_title} to \CF{\color{darkbrown} legacy\_title'},
-we must first unroll \CF{{\color{darkbrown} text\_char}*} into
+the algorithm must first unroll \CF{{\color{darkbrown} text\_char}*} into
 \CF{{\color{blue} ""} | {\color{darkbrown} text\_char} {\color{darkbrown}
-    text\_char}*}, and then we must
-distribute this \OrRegexType{} on the left and the right.
+    text\_char}*}, and then it must
+distribute this disjunction on the left and the right.
 
 A related challenge arises from Boomerang's composition operator,
 $\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
@@ -672,8 +685,8 @@ operator.
 
 Our approach to this challenge is to define a new ``DNF syntax'' for types
 and lenses that reduces the synthesis search space \emph{in all dimensions}.
-In this language, regular expressions are written in disjunctive normal
-form, where unions are fully distributed over concatenation and where binary
+In this new language, regular expressions are written in a disjunctive normal
+form, where disjunctions are fully distributed over concatenation and where binary
 operators are replaced by $n$-ary ones, eliminating associativity rules.
 For example, when presented with a synthesis problem with type
 $(A B) C \Leftrightarrow A' (B' C')$, our algorithm will first convert this
@@ -703,9 +716,10 @@ $C$ while the rest of the $B$s need to be transformed into $D$.)
 
 Consequently, we structure our synthesis algorithm in two phases.
 In the first phase, \SynthLens{} searches through equivalent DNF regular
-expressions.  By using the axioms of a star semiring to unfold * operators in
-one or both types, we obtain equivalent (but larger) DNF regular expression types.
-In the second phase, \SynthLens{} perform a syntax-directed search based on the
+expressions.  By using the axioms of a star semiring to unfold Kleene star
+operators in one or both types, we obtain equivalent (but larger) DNF regular
+expression types. In the second phase, \SynthLens{} perform a syntax-directed
+search based on the 
 structure of the provided DNF regular expression.
 If the second phase fails, we return to the first phase, to find different
 representations of the regular expressions which hopefully will succeed in the
@@ -716,10 +730,13 @@ In practice, the regular expressions describing complex {\em ad hoc} data
 formats may be very large.  
 The key to addressing this challenge is to observe that users naturally
 construct large types incrementally, introducing named abbreviations for
-major subcomponents.  This is highlighted by our use of \TextChar{} in our
-description of the title field.  The data type \TextChar{} represents stands for
+major subcomponents.  For example, in the specification of \LegacyTitle{} and
+\ModernTitle{}, we use the variable \TextChar{} in describing which values the
+title can take.
+The data type \TextChar{} stands for
 one of many possible characters.  To include this large regular expression
-everywhere it was used would be very unmanageable.
+everywhere it was used would be unmaintainable and difficult to
+read.
 
 We can exploit the structure inherent in these named
 abbreviations to speed up the search dramatically.  For example, if
@@ -729,7 +746,7 @@ hypothesizes that the identity lens can be used to convert between
 occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
 source but not in the target, the system recognizes that, to find a lens,
 \TextChar{} must be replaced with its
-definition.  In this way, where names occur
+definition.  In this way, the positions of names
 can serve as a guide for applying equivalence axioms in the synthesis
 algorithm.  We guide the transformation of regular expression types during
 search by deducing when certain expansions must be taken, or when one of a class
@@ -823,7 +840,7 @@ defined as usual.
 %\]
 
 The typing derivations of lenses require regular expressions to be written in a
-way that allows for unambiguous parsing. $\Regex$ and $\RegexAlt$ are
+way that parses text unambiguously. $\Regex$ and $\RegexAlt$ are
 \textit{unambiguously concatenable}, written
 $\Regex\UnambigConcat\RegexAlt$ if, 
 for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
@@ -1346,6 +1363,7 @@ by their semantics, which we give by defining the language (set of strings)
 that each DNF regular expression denotes:
 
 \begin{trivlist}
+  \centering
 \item 
 %\begin{center}
   \begin{tabular}{@{\ }R@{\ }L}
@@ -1529,8 +1547,10 @@ DNF regular expressions via the following theorem.
 
 \paragraph*{DNF Regular Expression Rewrites}
 
-\begin{figure*}
+\begin{figure}
+  \centering
   \begin{mathpar}
+    \centering
     \inferrule[\AtomUnrollstarLeftRule{}]
     {
     }
@@ -1569,14 +1589,12 @@ DNF regular expressions via the following theorem.
       \DNFOf{\SequenceOf{\String_0\SequenceSep\Atom_1\SequenceSep\ldots\SequenceSep\String_{j-1}}}\ConcatDNF\DNFRegex\ConcatDNF\SequenceOf{\String_j\SequenceSep\ldots\SequenceSep\Atom_m\SequenceSep\String_m} \OrDNF
       \DNFOf{\Sequence_{i+1}\DNFSep\ldots\DNFSep\Sequence_n}
     }
-    
     % \inferrule[\ReflexivityRule{}]
     % {
     % }
     % {
     %   \DNFRegex \StarOf{\Rewrite} \DNFRegex
     % }
-
     % \inferrule[\BaseRule{}]
     % {
     %   \DNFRegex \Rewrite \DNFRegexAlt
@@ -1584,7 +1602,6 @@ DNF regular expressions via the following theorem.
     % {
     %   \DNFRegex \StarOf{\Rewrite} \DNFRegexAlt
     % }
-
     % \inferrule[\TransitivityRule{}]
     % {
     %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_2\\
@@ -1593,11 +1610,10 @@ DNF regular expressions via the following theorem.
     % {
     %   \DNFRegex_1 \StarOf{\Rewrite} \DNFRegex_3
     % }
-
   \end{mathpar}
   \caption{DNF Regular Expression Rewrite Rules}
   \label{fig:dnf-regex-rewrites}
-\end{figure*}
+\end{figure}
 
 There are many fewer equivalences on DNF regular expressions than there are on
 regular expressions, but there
@@ -2071,7 +2087,7 @@ This is apparent
 in trying to find a lens between \VarCF{legacy\_title} and
 \VarCF{modern\_title}.  No matter how many expansions are taken on
 \VarCF{modern\_title}, \VarCF{legacy\_title} will not be exposed at depth 0 (or
-any other depth).  This is because the set of possible reachable pairs of
+any other depth) as the set of possible reachable pairs of
 data types and star depths in \VarCF{modern\_title} is $\{(\ModernTitle,0),
 $ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reach
 $\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.
@@ -2204,13 +2220,17 @@ becomes merely sorting and zipping lists.  Furthermore, through composing the
 permutations required to sort the sequences, we can discover the permutation
 used in the lens.
 
-Through incorporating how examples are parsed in the orderings, we
-can guarantee not only that there will be a lens between the two, but also that
-the lens will satisfy the examples!  This is done by refining our orderings with
-the elements, such that $\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
-$\SequenceAlt \SequenceLeq^{\Examples} \Sequence$ not only means that there is a
-sequence lens between $\Sequence$ and $\SequenceAlt$, but also that such a lens
-would satisfy the examples!
+Through incorporating information about how examples are parsed in the
+orderings,
+we can guarantee not only that there will be a lens between the regular
+expressions, but also
+that the lens will satisfy the examples!  For example if
+$\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
+$\SequenceAlt \SequenceLeq^{\Examples} \Sequence$ (where
+$\SequenceLeq^{\Examples}$ is the ordering incorporating example information)
+then there is not only a
+sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
+satisfies the examples!
 
 As an example, consider trying to find a lens between
 \begin{lstlisting}
@@ -2420,17 +2440,8 @@ users can input synthesis tasks in place of lenses.
 % begin evaluation
 \section{Evaluation}
 \label{evaluation}
-
 We evaluate our synthesis algorithm by applying it to 26
-benchmark programs derived from practice.  We describe the benchmark suite
-construction to demonstrate that our benchmarks are realistic and interesting.
-We investigate the imapct of our optimizations to highlight how we were able to
-obtain our final performance.
-We discuss the importance of examples to show that our approach increases
-productivity, instead of merely changing time spent programming into time spent
-generating appropriate examples.
-Lastly, to demonstrate the novelty and strength of our approach, we provide a
-comparison against other, related tools.
+benchmark programs.
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS Sierra.
 
@@ -2440,17 +2451,6 @@ Augeas~\cite{augeas} and
 FlashFill~\cite{gulwani-popl-2014} and by handcrafting specific
 examples to test various 
 features of the algorithm.
-Specifically, we derived 17 of the benchmark tests by
-adapting all of the lenses from the Augeas distribution that started
-with the letters `A', `B', and `C' as well as the lenses
-\CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
-by the `A' lenses.  We derived 3 benchmarks from examples in the
-FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
-We wrote 5 custom examples to test various features of the
-algorithm. Furthermore, the synthesis problems derived
-from Augeas with the letters `B' and `C' were tested after our synthesis
-algorithm was finalized, demonstrating that our optimizations were not
-overtuned to perform well on the testing data.
 
 Augeas is a configuration editing system for linux that uses lens
 combinators similar to those in Boomerang. However, it transforms
@@ -2464,6 +2464,15 @@ which are more general than the bijective lenses we can synthesize.
 We adapted these examples by adding extra fields to the
 target to make the transfomations bijective and thus suitable
 for our study.
+We derived \afm{17} of the benchmark tests by
+adapting all of the lenses from the Augeas distribution that started
+with the letters `A', `B', and `C' as well as the lenses
+\CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
+by the `A' lenses.
+Furthermore, the synthesis problems derived
+from Augeas with the letters `B' and `C' were tested after our synthesis
+algorithm was finalized, demonstrating that our optimizations were not
+overtuned to perform well on the testing data.
 
 FlashFill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
@@ -2471,32 +2480,21 @@ Many of the examples from FlashFill are non-bijective because
 the user's goal is often to extract information.  We were able to
 adapt some examples by adding information to the target so the
 resulting transformation was bijective.
+We derived 3 benchmarks from examples in the
+FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
 
 Finally, we added custom examples to highlight weaknesses of
 our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
 and to test situations for which we thought the tool would be
-particularly useful (\CF{date-probs}, \CF{bib-prob},
-and \CF{addr-probs}).   These examples convert between date
+particularly useful (\CF{workitem-probsTODO}, \CF{date-probs}, \CF{bib-prob},
+and \CF{addr-probs}).   These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
 We have both complex and simple synthesis tasks in our benchmark suite.
-We generate lenses of sizes between 5 AST
-nodes, for simple problems like changing how dates are represented, and 211 AST
-nodes, for complex tasks like transforming XML to a dictionary representation.
-
-%add back in if we have space
-%\paragraph*{Correctness}
-%To assess the correctness of the inferred lenses, we inspected each to
-%determine if the generated lens matched our understanding of the given
-%benchmark.  For all but \CF{cust/addr-probs}, the inferred lens was correct.
-%For \CF{cust/addr-probs}, the inferred lens had the correct type and performed
-%correctly on all supplied examples, but would have been incorrect on
-%other examples.  When we refined one of the given examples to
-%highlight the previously unseen case and re-ran the algorithm, it
-%produced the correct lens. As further validation, we confirmed that the
-%synthesized lenses performed correctly on the supplied examples and on
-%additional examples not made available to the synthesis algorithm,
-%having held back approximately half of our example data for validation.
+We generate lenses of sizes between \afm{5} AST
+nodes, for simple problems like changing how dates are represented, and
+\afm{211} AST nodes, for complex tasks like transforming XML to a dictionary
+representation. 
 
 \begin{figure}
   \includegraphics{SynthesisTimes}
@@ -2511,40 +2509,30 @@ nodes, for complex tasks like transforming XML to a dictionary representation.
     synthesis on Boomerang combinators.  Our synthesis algorithm performs
     better than the Na\"{i}ve approach and other string transformation systems,
     and our optimizations speed up the algorithm enough that all tasks become
-    tractable.
+    solvable.
   }
   \label{fig:synthesis-times}
 \end{figure}
 
 \paragraph*{Impact of Optimizations}
-%
-% If we take this problem to the logical extremes, we see that the the triple
-% capitalization problem takes 6.974 seconds, and the quadruple capitalization
-% problem takes 33 minutes and 54.730 seconds.
-%
-%If a bijection that satisfies the examples does not exist
-%between the source and target regular expressions, our tool rarely
-%terminates.  Instead, it performs increasingly complicated regular
-%expression transformations to try to find a bijective lens.  In
-%practice, if the system takes more than 10 seconds, we abort and
-%revise the regular expressions to have a bijective lens between them.
-%
-As we iterated on our design, we added in a variety of optimizations to make all
-the benchmarks tractable.  To demonstrate how critical these optimizations
+We developed a series of optimizations that improve the performance of the
+synthesis algorithm dramatically.  Indeed, a number of benchmark lenses cannot
+be synthesized in any reasonable amount of time without these optimizations.
+To demonstrate how critical these optimizations
 are for a resilient synthesis algorithm, we ran our algorithm on our test suite
 with optimizations enabled and disabled.
 We summarize the results of these tests in Figure~\ref{fig:synthesis-times},
-demonstrating that as we add in additional optimizations, more benchmarks become
-tractable, and previously tractable benchmarks are processed faster.
+demonstrating that as we add in additional optimizations, more benchmarks can be
+solved using our algorithm, and our algorithm completes previously solvable
+benchmarks faster.
 
-Conversion to DNF form, and the use of \RigidSynth{} was critical to the
-tractability of our algorithm; using
+Conversion to DNF form, and the use of \RigidSynth{} was critical for the
+success of our algorithm; using
 a na\"{i}ve type-directed synthesis on Boomerang doesn't work at all.  With a
 na\"{i}ve approach, none of the examples, even the very simple ones, are able to
-be synthesized within the 2 minute timeframe.  Converting into the DNF
-language and performing our synthesis procedure (with \emph{no} intelligent
-intelligent search through expansions)
-immediately allows for 12 benchmarks to be synthesized.
+be synthesized within the 2 minute timeframe.  Our DNF synthesis procedure
+(with \emph{no} intelligent search through expansions) succeeds on
+\afm{12} of the benchmarks.
 
 \begin{figure}
   \includegraphics{UninferredExpansions}
@@ -2557,8 +2545,8 @@ immediately allows for 12 benchmarks to be synthesized.
 \end{figure}
 
 Conversion to DNF form helped significantly, but still left many problems
-intractible.  In particular, with no inference of expansions, only the lenses
-which required few expansions were tractible.  Because of the large fan-out
+unsolved.  In particular, with no inference of expansions, only the lenses
+that required few expansions were solvable.  Because of the large fan-out
 in the search space for expansions, of the \afm{12} could be solved simply
 with DNF conversion and \RigidSynth{}, none required more than \afm{5}
 expansions to be performed.  As up to \afm{30} expansions are needed for
@@ -2573,62 +2561,48 @@ infer quite a large amount: a maximum of 26 expansions, and a median of 11
 expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
-tractable.  This is because inferring forced expansions, in many cases, infers
+solvable.  Inferring forced expansions, in many cases, infers
 \emph{all} the expansions.  In \afm{15} of the \afm{25} examples solvable with
 expansion inference, all expansions
 were forced.  However, the remaining \afm{11} still require random search.
-This allows most of the examples to be tractable, but rather slow.
-This is able to be sped up by directing the search using more than just blind
-breadth-first search, when more information can be used to direct it.  When
+This algorithm will find lenses for most of the benchmarks, but it can take a
+relatively long time for some.
+Directing the search to use more than just blind breadth-first search, when more
+information can be used to direct it, speeds up these slow benchmarks.  When
 using full inference, the synthesis algorithm can recognize that one of a few
 expansions must be performed.  Adding in these types of
 inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
 
-Our final optimization is the use of lenses in the context.  Through using
-lenses present in the context, the synthesis algorithm is not solely
+All these optimizations allow for a very fast synthesis algorithm, which can
+synthesize a wide range of lenses between data formats.  However, some of the
+tasks are still slow, and one remains unsolved.
+Our full synthesis algorithm makes use of lenses in the context.  Through using
+these lenses, the synthesis algorithm is not solely
 responsible for all transformations that must occur, but instead can rely on
 existing lenses included in the Boomerang standard library, written by
 the user, or synthesized by our system.
 
-\afm{should this potentially go elsewhere?}
-In our full synthesis algorithm, two examples take longer than the others to
-infer:  \CF{aug/xml} and \CF{cust/2-cap-prob}. The example \CF{aug/xml} was
-slowest because it was both a large data format, a large number of expansions
-were required, and not all expansions were inferred.  While a fairly large
-number of expansions were forced (15), there were 3 expansions that were
-inferred, but not forced, and 1 expansion that had to be found through random
-search.  This is not always a problem, however, as there were other formats that
-required even more search, both random search and directed search.  What
-differentiated \CF{aug/xml} was that it also was a very large data format: it
-had the \afm{second} largest lens and the \afm{seventh} largest specification.
-The amount of random search it required had a larger impact because, with an
-increased specification size, there is also an increase in the fanout, with
-additional iterations that can be unfolded, and additional user defined data
-types that can be replaced by their definitions. This large fanout, alongside
-the depth that needed to be searched through, made the search very difficult,
-requiring \afm{164} types to be proposed before the correct one was
-found.\footnote{Since xml syntax is regular, the source and target regular
+The benchmark which our algorithm requires contextual information for is also
+the slowest benchmark in the full synthesis algorithm, \CF{aug/xml}.  This
+example required contextual lenses because it was a large data format, a large
+number of expansions were required, and relatively few expansions were forced.
+When not using the lens context, a total of 398
+expansions must be performed for synthesis to be possible.
+With only 105 forced expansions, 293 expansions must be found either through
+random or directed search.
+The synthesis algorithm is able to force so few expansions because of the highly
+repetitive nature of the specification for \CF{aug/xml}.  XML tags occur at many
+different levels, and they all use the same user defined data types.
+This repetitive nature causes our
+expansion inferences to only find a few expansions, compared to the large number
+of required expansions.  The large fanout of expansions present in a large data
+format, combined with the number of expansions which must be performed, creates
+a search space too large for our algorithm to process.  However, the
+synthesis algorithm is able to succeed on the easier task of finding the desired
+transformation while utilizating contextual lenses. 
+\footnote{Since xml syntax is regular, the source and target regular
   expressions describe only xml expressions up to depth 3.}
-
-We constructed the example \CF{cust/2-cap-prob} to
-highlight the exponential blow-up that arises in expanding
-disjunctions in the conversion to DNF form.  This example converts
-between strings of lowercase letters to strings of uppercase letters
-and vice versa, leading to source and target regular expression types
-that contain disjunctions of 26 letters.  The source and target
-regular expressions each contain two references to these disjunctions;
-hence the name ``\CF{2-cap-prob}.''  In this example, the conversion to DNF
-form creates 676 sequences in the first expansion.  This number grows
-to 17576 sequences in subsequent conversions.
-
-We do not expect this kind of situation to be a problem in practice
-because we anticipate users will create auxiliary lenses to manage
-complex conversions between nested data types.  Boomerang, for
-example, provides a \CF{to\_lower} lens for this situation.  By
-defining a user-defined datatype and an associated lens (perhaps via
-synthesis!) to manage the capitalization conversion, users can avoid
-the combinatorial explosion in the search space.
 
 \paragraph*{Importance of Examples}
 
@@ -2651,8 +2625,8 @@ examples by hand out of concern that our knowledge of the synthesis
 algorithm might bias the selection. Figure~\ref{fig:exs-reqd}, shows
 the number of randomly generated examples it takes to synthesize the
 correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only 3 benchmarks need a nonzero number synthesize the correct
-lens. A clever user may be able to reduce the
+any examples: only 3 benchmarks need a nonzero number of examples tosynthesize
+the correct lens. A clever user may be able to reduce the
 number of required examples even further by selecting examples carefully.
 
 These numbers are low because there are relatively few well-typed
@@ -2694,7 +2668,7 @@ evaluation, we used the version of these tools distributed through the
 PROSE project~\cite{prose}.
 
 To generate specifications for FlashFill, we generated input/output
-specifications through generating random elements of the source language, and
+specifications by generating random elements of the source language, and
 running the lens on those elements to generate elements of the target language.
 These were then fed to FlashFill.
 
@@ -2705,10 +2679,10 @@ mapped through use of \ConstLens{}, were considered boilerplate, and so not
 extracted.
 
 As these tools were designed for a broader audience, they put less of a burden
-on the user.  These tools only require the use of IO examples (for Flash
-Fill), or marked text regions (for FlashExtract), as opposed to requiring the
-input of pairs of regular expressions.  However, by requiring the user to
-input regular expressions,
+on the user.  These tools only use IO examples (for Flash
+Fill), or marked text regions (for FlashExtract), as opposed to using the
+input of pairs of regular expressions.  However, by using
+regular expressions,
 \SynthLens{} is able to synthesize significantly more programs
 than either tool.  Unlike these two tools, which must spend a great deal of
 effort figuring out the appearance of the data, SynthLens{} avoids
@@ -12515,8 +12489,9 @@ how they could be typed.  This portion writes about how lens operators have the
 same semantics as lenses with
 very complex properties, up to the existence of an identity lens.  Much of this
 complication comes from the fact that the DNF regular expression operators don't
-have right distributivity.  This also allows for an analogue to the
-commutativity of regular expression $\OrRegexType$ to be expressed.
+have right distributivity.  An analogue to the
+commutativity of regular expression $\OrRegexType$ to be expressed using these
+properties.
 
 \begin{lemma}[Commutativity of $\OrDNF$]
   \label{lem:or-dnf-commutativity}
