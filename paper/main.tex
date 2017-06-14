@@ -9,9 +9,6 @@
 
 \listfiles
 
-\let\proof\relax
-\let\endproof\relax
-
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage{amsmath}
 \usepackage{mathtools}
@@ -301,12 +298,9 @@ forcing programmers to satisfy finicky type systems.
 
 
 
-\ksf{Should we give our system a name?  It
-would make some of the subsequent text less awkward and allow others
-to talk about our work more easily.}
 %
 To make programming with lenses faster and easier, we have
-developed a
+developed \Optician{}, a
 tool for synthesizing lenses from simpler, higher-level specifications
 instead of asking programmers to write lenses explicitly.
 %
@@ -399,7 +393,7 @@ equivalent to our bijective fragment of Boomerang.
     %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
     %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
 
-    %\node (synth-name) [above=.5cm of middle] {\SynthLens{}};
+    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
     %
     %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
   \end{tikzpicture}
@@ -437,31 +431,30 @@ we offer the following technical contributions: \bcp{The way this bit is
 
 \begin{itemize}
 \item 
-We introduce a new lens language (DNF Lenses) that is suitable for synthesis
-(\S\ref{sec:dnf}) based on pseudo-canonical DNF regular expressions  
-(\S\ref{sec:dnfre}).  
-We show how to convert ordinary regular expressions and lenses
-into the corresponding DNF forms. 
-We prove that DNF lenses are sound and complete with
-respect to our high-level lens syntax.
+  We introduce a new lens language (DNF Lenses) that is suitable for synthesis
+  (\S\ref{sec:dnf}) based on pseudo-canonical DNF regular expressions  
+  (\S\ref{sec:dnfre}).  
+  We show how to convert ordinary regular expressions and lenses
+  into the corresponding DNF forms. 
+  We prove that DNF lenses are sound and complete with
+  respect to our high-level lens syntax.
 
-\item We present an efficient, type-directed synthesis algorithm for
-    synthesizing DNF lenses (\S\ref{algorithm}).  We prove that this
-    algorithm gives rise to a sound and complete synthesis algorithm
-    for lenses.  \ksf{are we stating this soundness/completeness
-    result twice or is there a difference between the result in this
-    bullet and the one in the previous bullet?}
+\item
+  We present \Optician{}, an efficient, type-directed synthesis algorithm for
+  synthesizing lenses (\S\ref{algorithm}).  We prove that if there is a lens
+  that satisfies the input specification, \Optician{} will return such a lens.
 
-  \item We evaluate our core algorithm, its optimizations, and
-    existing synthesis tools on \afm{26} benchmarks, including
-    examples derived from Flash Fill~\cite{gulwani-popl-2014} and the
-    Augeas~\cite{augeas} system (\S \ref{evaluation}).  We show our
-    algorithm significantly outperforms previous systems.
-    We show our optimizations are critical for synthesizing many of
-    the complex lenses in our benchmark suite.  Our full
-    algorithm succeeds on all benchmarks in under \afm{5}
-    seconds.  \end{itemize} We close with related work
-    (\S \ref{sec:related}) and conclusions (\S \ref{sec:conc}).
+\item
+  We evaluate our core algorithm, its optimizations, and
+  existing synthesis tools on \afm{26} benchmarks, including
+  examples derived from Flash Fill~\cite{gulwani-popl-2014} and the
+  Augeas~\cite{augeas} system (\S \ref{evaluation}).  We show our
+  algorithm significantly outperforms previous systems.
+  We show our optimizations are critical for synthesizing many of
+  the complex lenses in our benchmark suite.  Our full
+  algorithm succeeds on all benchmarks in under \afm{5}
+  seconds.  \end{itemize} We close with related work
+(\S \ref{sec:related}) and conclusions (\S \ref{sec:conc}).
 
 % end introduction
 
@@ -796,10 +789,9 @@ If the second phase fails, \TypeProp{} learns of that failure,
 and proposes new candiate DNF regular expression pairs.
 
 \paragraph*{Challenge 2: Large Types}
-This algorithm is complete, \ksf{What algorithm?  The one in Fig.3?
-That algorithm doesn't include the conversion to DNF, does it?  Is
-Fig. 3 the ``SynthLEns'' box in Fig. 1?  If so, say so and say the
-algorithm is the one given in Fig 1.}
+\SynthDNFLens{} is quite fast, with \RigidSynth{} running in polynomial time and
+\TypeProp{} using a number of deductive techniques to typically propose a small
+number ot types before finding the correct one,
 but the conversion to DNF incurs an exponential blowup.  In practical
 examples, the regular expressions describing complex {\em ad hoc} data
 formats may be very large, making the exponential blowup have a large
@@ -883,7 +875,8 @@ expressions and lenses.
 %   in just losing things even in the long version.  Just wanted to make sure
 %   we had the long version in mind.}
 
-$\Sigma$ is the alphabet of individual characters $c$; strings $s$ and $t$ are
+$\Sigma$ is the alphabet of individual characters $\Character$;
+strings $\String$ and $\StringAlt$ are
 elements of $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, are
 used to express \emph{languages}, subsets of $\StarOf{\Sigma}$.
 REs over $\Sigma$ are:
@@ -917,31 +910,14 @@ defined as usual.
 %  \end{array}
 %\]
 
-\ksf{It is confusing to have R and T range over regular expressions
-but s and t range over strings.  In particular, the statement
-for all strings ``$\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
-$\String_2,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
-$\String_1\Concat\String_2=\StringAlt_1\Concat\StringAlt_2$ we have
-$\String_1=\StringAlt_1$ and $\String_2=\StringAlt_2$'' is hard to
-parse.
-It would be easier if it read
-``for all strings $s, s'\in\LanguageOf{S}$ and
-$t,t'\in\LanguageOf{T}$, whenever
-$s\Concat t=s' \Concat t'$ we have
-$s=s'$ and $t=t'$''
-The difference is that the string meta-variables s and t are easily
-linked to the regular expression meta-variables S and T.  Currently,
-we have string meta variables s1 and t1 coming from regular expression
-R, but s2 and t2 coming from regular expression T. 
-}
 The typing derivations of lenses require regular expressions to be written in a
 way that parses text unambiguously. $\Regex$ and $\RegexAlt$ are
 \textit{unambiguously concatenable}, written
 $\Regex\UnambigConcat\RegexAlt$ if, 
-for all strings $\String_1,\StringAlt_1\in\LanguageOf{\Regex}$ and
-$\String_2,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
-$\String_1\Concat\String_2=\StringAlt_1\Concat\StringAlt_2$ we have
-$\String_1=\StringAlt_1$ and $\String_2=\StringAlt_2$.
+for all strings $\String_1,\String_2\in\LanguageOf{\Regex}$ and
+$\StringAlt_1,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
+$\String_1\Concat\StringAlt_1=\String_2\Concat\StringAlt_2$ we have
+$\String_1=\String_2$ and $\StringAlt_1=\StringAlt_2$.
 %
 Similarly, $\Regex$ is \textit{unambiguously iterable},
 written $\UnambigItOf{\Regex}$ if,
@@ -1059,23 +1035,24 @@ The syntax for these bijective lenses is given by:
 \subseteq \StringType \Cross \StringType$.  If $(\String_1,\String_2) \in
 \SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
 $\String_2$.
-\ksf{In the iterate form, should this be unioned over all values of n?}.
 \begin{center}
   \begin{tabular}{@{}rcl}
     $\SemanticsOf{const(\String_1,\String_2)}$ &=& $\SetOf{(\String_1,\String_2)}$\\
     
     $\SemanticsOf{\IterateLensOf{\Lens}}$ &=& $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
-                                            \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat$\\
- &&                                           $\hspace*{2em}(\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
+                                              \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+                                              n \in \Nats \BooleanAnd
+                                              \forall i \in \RangeIncInc{1}{n},
+                                              (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
     
     $\SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$ &=&
-                                                      $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat$\\
-                                             & & $\hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                      $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat
+                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
                                                  (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
     
     $\SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$ &=&
-                                                    $\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat$\\
-                                             & & $\hspace*{2em}(\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                    $\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat
+                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
                                                  (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
     
     $\SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$ &=&
@@ -1084,8 +1061,8 @@ $\String_2$.
                                                   \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}$\\
     
     $\SemanticsOf{\ComposeLensOf{\Lens_2}{\Lens_1}}$ &=&
-                                                       $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2$\\
-                                             & & $\hspace*{2em}(\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                       $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2
+                                             (\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
                                                  (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}$\\
     
     $\SemanticsOf{\IdentityLensOf{\Regex}}$ &=& $\SetOf{(\String,\String)
@@ -1162,7 +1139,7 @@ applying $\Lens$ to subparts of a string.
     {
       \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
     }
-\iffull
+    
     \inferrule[]%\OrLensRule{}
     {
       \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
@@ -1184,7 +1161,6 @@ applying $\Lens$ to subparts of a string.
     {
       \Lens_2 ; \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_3
     }
-\fi
 
     \inferrule[]%\IdentityLensRule{}
     {
@@ -1205,10 +1181,7 @@ applying $\Lens$ to subparts of a string.
     }
   \end{mathpar}
 
-  \caption{Lens Typing Rules \iffull\else (except $\mathit{or}$ and
- $;$)
-      \ksf{why are we omitting or and ;?  Should the caption say
- ``Selected typing rules''?} \fi}
+  \caption{Lens Typing Rules}
   \label{fig:lens-typing}
 \end{figure}
 
@@ -1267,8 +1240,6 @@ retyping rule informally.  }
 Type-directed synthesis seeks to construct a lens by searching for a
 well-formed typing derivation using the rules in
 Figure~\ref{fig:lens-typing}.
-\ksf{Do we not use or and ;?  or do we search over all the rules?  If
-we are omitting or and ; from synthesis, we should explain why.}
 The inputs to the algorithm are the source and target
 regular expression types and some examples. The search proceeds
 bottom up.  
@@ -1298,9 +1269,8 @@ To be compatible with our lens synthesis strategy, we require that the
 equivalence relation used in subsumption
 is the equivalence closure of rewrite rules satisfying two properties.
 These properties involve the ability to be well typed with no use of the the
-retyping rule (which we will write as $\Lens \OfRewritelessType \Regex
-\Leftrightarrow \RegexAlt$).  \ksf{The reader doesn't know what the
-retyping rule is.  }
+subsumption rule (which we will write as $\Lens \OfRewritelessType \Regex
+\Leftrightarrow \RegexAlt$).
 We call the first property \textit{confluence}.  It says:
 Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$,
 if $\Regex_1 \Rewrite
@@ -2054,8 +2024,8 @@ types that were discovered in the first step.
 \label{algorithm}
 
 \paragraph*{Synthesis Overview}
-An overview of the full synthesis algorithm, \SynthLens{}, is given in
-Algorithm~\ref{alg:synthlens}.  \SynthLens{} takes the source and target regular
+An overview of the full synthesis algorithm, \Optician{}, is given in
+Algorithm~\ref{alg:synthlens}.  \Optician{} takes the source and target regular
 expressions $\Regex$ and $\RegexAlt$, and a list of examples $\Examples$, as
 input. The algorithm first converts
 $\Regex$ and $\RegexAlt$ into DNF regular expressions
@@ -2069,7 +2039,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 % finally tweaked for readability with \Beautify{}.
 
 \begin{algorithm}
-  \caption{\SynthLens}
+  \caption{\Optician}
   \label{alg:synthlens}
   \begin{algorithmic}[1]
     \Function{SynthDNFLens}{$\DNFRegex_0,\DNFRegexAlt_0,\Examples$}
@@ -2091,7 +2061,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
     \EndFunction
     
     \Statex
-    \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
+    \Function{Optician}{$\Regex,\RegexAlt,\Examples$}
     \State $(\DNFRegex_0,\DNFRegexAlt_0) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
     \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex_0,\DNFRegexAlt_0,\Examples}$
@@ -2527,7 +2497,7 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   \label{thm:alg-soundness}
   For all lenses $\Lens$, regular expressions $\Regex$ and $\RegexAlt$, and
   examples $\Examples$, 
-  if $\Lens = \SynthLens(\Regex,\RegexAlt,\Examples)$, then
+  if $\Lens = \Optician(\Regex,\RegexAlt,\Examples)$, then
   $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
   $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
   \SemanticsOf{\Lens}$.
@@ -2539,7 +2509,7 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   of examples $\Examples$, if
   $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
   $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
-  \SemanticsOf{\Lens}$, then $\SynthLens(\Regex,\RegexAlt,\Examples)$ will
+  \SemanticsOf{\Lens}$, then $\Optician(\Regex,\RegexAlt,\Examples)$ will
   return a lens.
 \end{restatable}
 
@@ -2665,16 +2635,15 @@ in the search space for expansions, of the \afm{12} could be solved simply
 with DNF conversion and \RigidSynth{}, none required more than \afm{5}
 expansions to be performed.  As up to \afm{30} expansions are needed for
 synthesizing some of the lenses, the large fan-out makes an undirected
-traversal of 
-expansions insufficient for many examples.
+traversal of expansions insufficient for many examples.
 However, we can identify that many of these expansions must be performed, so
 the random search is often unnecessary.
 Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
 expansions can be identified as required, minmizing the impact of the
-large fan-out.  While unable to infer all the examples, it is able to
-infer a large number: a maximum of 26 expansions, and a median of 11
-expansions.  \ksf{I don't understand what the previous sentence is
-saying about a maximum and minimum number of expansions.}
+large fan-out.  While unable to infer every expansion for all the benchmarks,
+it is able to infer quite a bit.
+On one benchmark \ForceExpand{} infers \afm{26} expansions, and \ForceExpand{}
+infers a median of \afm{11} expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
 solvable.  Inferring forced expansions, in many cases, infers
@@ -2690,16 +2659,11 @@ expansions must be performed.  Adding in these types of
 inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
 
-\ksf{``lenses in the context'' seems like a complex way of saying we
-can leverage a library of existing lenses. Why not say these lenses
-belong to a library of existing lenses instead of saying they are in
-the context? } 
-
 All these optimizations allow for a very fast synthesis algorithm, which can
 synthesize a wide range of lenses between data formats.  However, some of the
 tasks are still slow, and one remains unsolved.
-Our full synthesis algorithm makes use of lenses in the context.  Through using
-these lenses, the synthesis algorithm is not solely
+Our full synthesis algorithm makes use of previously written lenses.
+Through leveraging these lenses, the synthesis algorithm is not solely
 responsible for all transformations that must occur, but instead can rely on
 existing lenses included in the Boomerang standard library, written by
 the user, or synthesized by our system.
@@ -2804,9 +2768,9 @@ on the user.  These tools only use IO examples (for Flash
 Fill), or marked text regions (for FlashExtract), as opposed to using the
 input of pairs of regular expressions.  However, by using
 regular expressions,
-\SynthLens{} is able to synthesize significantly more programs
+\Optician{} is able to synthesize significantly more programs
 than either tool.  Unlike these two tools, which must spend a great deal of
-effort figuring out the appearance of the data, SynthLens{} avoids
+effort figuring out the appearance of the data, Optician{} avoids
 this problem by having the user input the data formats.
 
 %% \paragraph*{Impact of Incompleteness}
@@ -16207,6 +16171,61 @@ lemma involving rewrites and lens expressibility.
     }
   \]
 \end{proof}
+
+\section{Additional Proofs}
+
+In the paper, some claims were made that aren't necessarily the main theorems.
+In this area we prove those claims.
+
+\begin{definition}
+  Let $\Rewrite$ be a rewrite rule on regular expressions.
+  We define $\Rewrite_{\ToDNFRegex}$ as the rewrite relation on DNF regular
+  expressions defined by $\ToDNFRegexOf{\Regex} \Rewrite_{\ToDNFRegex}
+  \ToDNFRegexOf{\RegexAlt}$ if $\Regex \Rewrite \RegexAlt$.
+\end{definition}
+
+\begin{definition}
+  We overload $\DNFLensHasSemanticsOf{\Lens}$ to extend to regular expressions
+  with rewriteless lenses.  In particular, $\Regex \DNFLensHasSemanticsOf{\Lens}
+  \RegexAlt$ if there exists $\Lens'$ such that $\SemanticsOf{\Lens} =
+  \SemanticsOf{\Lens'}$ and $\Lens' \OfRewritelessType \Regex \Leftrightarrow
+  \RegexAlt$.
+\end{definition}
+
+\begin{lemma}
+  If $\IsConfluentWithPropertyOf{\Rewrite}{\DNFLensHasSemanticsOf}$, then
+  $\IsConfluentWithPropertyOf{\Rewrite_{\ToDNFRegex}}{\DNFLensHasSemanticsOf}$.
+\end{lemma}
+\begin{proof}
+  Let $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$.
+  From the soundness proofs, $\DNFLens$ can be split into multiple compositions
+  of rewriteless lenses, which all have typings of $\ToDNFRegexOf{\Regex} =
+  \DNFRegex$ and $\ToDNFRegexOf{\RegexAlt} = \DNFRegexAlt$.
+  Consider $\DNFRegex \Rewrite_{\ToDNFRegex} \DNFRegex_1$ and $\DNFRegexAlt
+  \Rewrite_{\ToDNFRegex} \DNFRegexAlt_1$.  This means that $\Regex \Rewrite
+  \Regex_1$ and $\RegexAlt \Rewrite \RegexAlt_1$.  By assumption, that means that
+  there exists $\Regex_2$ and $\RegexAlt_2$ such that, for each lens $\Lens'$ in
+  the compositions, there exists $\Lens''$ such that $\Lens'' \OfRewritelessType
+  \Regex_2 \Leftrightarrow \RegexAlt_2$, with the same semantics.  Then, using
+  rewriteless completeness, there are DNF lenses $\DNFLens'' \OfRewritelessType
+  \ToDNFRegexOf{Regex_2} \Leftrightarrow \ToDNFRegexOf{\RegexAlt_2}$.  Then,
+  using composition of rewriteless DNF lenses, we are done.
+\end{proof}
+
+\begin{lemma}
+  If $\IsBisimilarWithPropertyOf{\Rewrite}{\DNFLensHasSemanticsOf}$, then
+  $\IsBisimilarWithPropertyOf{\Rewrite_{\ToDNFRegex}}{\DNFLensHasSemanticsOf}$.
+\end{lemma}
+\begin{proof}
+  The same proof as the previous lemma can be applied with very minor
+  alterations.
+\end{proof}
+
+Thus our claim about having confluence and bisimilarity of lenses as a
+sufficient condition is fulfilled.
+
+\begin{lemma}
+\end{lemma}
 
 \fi
 
