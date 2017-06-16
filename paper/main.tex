@@ -331,7 +331,7 @@ Boomerang is not well-suited to support synthesis directly.
 Specifically, Boomerang's types are regular expression
 pairs, and each regular expression is equivalent to an infinite
 number of other regular expressions.
-To synthesize all Boomerang terms, we
+To synthesize all Boomerang terms, a type-directed synthesizer
 must be able to traverse these equivalences, an infinite space.  
 Furthermore, composition is not
 admissible in Boomerang, making it necessary to search through possible
@@ -350,36 +350,41 @@ equivalent to our bijective fragment of Boomerang.
 \begin{figure}
   \centering
   \begin{tikzpicture}[auto,node distance=1.5cm]
-    \node[text width=2.3cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegexText{}};
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
     
-    \node[align=center] (regex1) [above left = .1cm and .2cm of todnfregex]{ RX1 };
-    \node[align=center] (regex2) [below left = .1cm and .2cm of todnfregex]{ RX2 };
+    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
+    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
+    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
     
-    \node[align=center] (dnfregex1) [above right = .1cm and .2cm of todnfregex]{ DNFRX1 };
-    \node[align=center] (dnfregex2) [below right = .1cm and .2cm of todnfregex]{ DNFRX2 };
+    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
+    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
 
-    \node[text width=2.3cm,align=center,draw,rectangle] [below right = .1cm and .2cm of dnfregex1] (dnflenssynth) {\SynthDNFLens{}};
+    \node[text width=2.3cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
+    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
     
-    \node[align=center] [right = .2cm of dnflenssynth] (dnflens) {DNFLens};
+    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
     
-    \node[text width=2.3cm,align=center,draw,rectangle] [right = .2cm of dnflens] (tolens) {\ToLens{}};
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
     
-    \node[align=center] [right = .2cm of tolens] (lens) {Lens};
+    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
     
-    \path[->] (regex1.south east) edge (todnfregex.north west);
-    \path[->] (regex2.north east) edge (todnfregex.south west);
     
-    \path[->] (todnfregex.north east) edge (dnfregex1.south west);
-    \path[->] (todnfregex.south east) edge (dnfregex2.north west);
+    \path[->] (regex1.east) edge (todnfregex.north west);
+    \path[->] (regex2.east) edge (todnfregex.south west);
     
-    \path[->] (dnfregex1.south east) edge (dnflenssynth.north west);
-    \path[->] (dnfregex2.north east) edge (dnflenssynth.south west);
+    \path[->] (todnfregex.north east) edge (dnfregex1.west);
+    \path[->] (todnfregex.south east) edge (dnfregex2.west);
     
-    \path[->] (dnflenssynth) edge (dnflens);
+    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
+    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
+    
+    \path[->] (synthdnflens) edge (dnflens);
     
     \path[->] (dnflens) edge (tolens);
     
     \path[->] (tolens) edge (lens);
+    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
+    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
     % Now place a relation (ID=rel1)
     %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
     %\node (below-gen) [below=.5cm of sketch-gen] {};
@@ -397,29 +402,32 @@ equivalent to our bijective fragment of Boomerang.
     %
     %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
   \end{tikzpicture}
-  \caption{Schematic Diagram for Synthesis Algorithm.  Regular expressions are
-    given as input, and converted into DNF form.  Then type-directed synthesis
-    techniques synthesize a DNF lens from these DNF regular expressions.
-    Finally, the synthesized DNF lens is converted into a lens in the original
-    language.}
+  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
+    \RegexAlt{}, and examples, \Examples{}, are given as input.
+    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
+    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
+    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
+    \RegexAlt{}, and \Examples{}.
+    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
+    that is equivalent to \DNFLens{}.}
   \label{fig:schematic-diagram-synthesis}
 \end{figure}
 
-Figure~\ref{fig:schematic-diagram-synthesis} shows our synthesis
-algorithm, which makes essential use of DNF regular expressions and DNF lenses.
-First, we convert the
-regular expressions into DNF regular expressions using \ToDNFRegexText{}.  Next,
-\SynthDNFLens{} performs type-directed synthesis on the DNF regular
-expressions to synthesize a DNF lens.  Finally, this DNF lens is converted
-back into a regular lens with \ToLens{}, and returned to the user.
+Figure~\ref{fig:schematic-diagram-synthesis} shows provides a high level
+schematic diagram for \Optician{}.
+First, \Optician{} uses the function \ToDNFRegex{} to convert the input
+regular expressions to DNF regular expressions.  Next,
+\SynthDNFLens{} performs type-directed synthesis on these DNF regular
+expressions and the input examples to synthesize a DNF lens.  Finally, this DNF lens is
+converted back into a regular lens with \ToLens{}, and returned to the user.
 
 \paragraph*{Contributions.}  Our synthesis algorithm makes
 bidirectional programming more accessible by obviating the need for
 programmers to write lenses by hand.
-We begin by motivating our problem
-with an extended, real-world example (\S\ref{motivation}).
-After we briefly review some background on regular expressions and core
-lens combinators (\S\ref{preliminaries}),
+We begin by briefly reviewing some background on regular expressions and core
+lens combinators (\S\ref{preliminaries}).
+After we motivate our problem
+with an extended, real-world example (\S\ref{overview}),
 we offer the following technical contributions: \bcp{The way this bit is
   written makes it sound as though we are claiming ``pseudo-canonical DNF
   regular expressions and DNF lenses'' as our primary contribution, which
@@ -458,8 +466,364 @@ we offer the following technical contributions: \bcp{The way this bit is
 
 % end introduction
 
+% begin preliminaries
+\section{Preliminaries}
+\label{preliminaries}
+
+\SUBSECTION{Regular Expressions}
+% \label{sec:regexp}
+
+$\Sigma$ is the alphabet of individual characters $\Character$;
+strings $\String$ and $\StringAlt$ are
+elements of $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, are
+used to express \emph{languages}, subsets of $\StarOf{\Sigma}$.
+REs over $\Sigma$ are:
+\begin{center}
+  \Regex{},\RegexAlt{} \hspace{1em} \GEq{}
+  \hspace{1em} $\String$ \hspace{1em} 
+  \GBar{} \hspace{1em} $\emptyset$ \hspace{1em} 
+  \GBar{} \hspace{1em} $\StarOf{\Regex}$ \hspace{1em} 
+  \GBar{} \hspace{1em} $\RegexConcat{\Regex_1}{\Regex_2}$ \hspace{1em} 
+  \GBar{} \hspace{1em} $\RegexOr{\Regex_1}{\Regex_2}$
+\end{center}
+$\LanguageOf{\Regex}\subseteq \StarOf{\Sigma}$, the language of $\Regex$, is
+defined as usual. 
+
+\paragraph*{\iffull Regular Expression \fi Unambiguity}
+
+%These regular expressions are used to inductively define languages.
+%\[
+%  \begin{array}{lcl}
+%    \LanguageOf{\String} &=& \{\String\}\\
+%    \LanguageOf{\emptyset} &=& \{\}\\
+%    \LanguageOf{\RegexConcat{\Regex_1}{\Regex_2}} &=&
+%                                                      \{\StringConcat{\String_1}{\String_2} \SuchThat
+%                                                      \String_1\in\LanguageOf{\Regex_1} \BooleanAnd \String_2\in\LanguageOf{\Regex_2}\}\\
+%    \LanguageOf{\RegexOr{\Regex_1}{\Regex_2}} &=&
+%                                                  \{\String \SuchThat
+%                                                  \String\in\LanguageOf{\Regex_1} \BooleanOr \String\in\LanguageOf{\Regex_2}\}\\
+%    \LanguageOf{\StarOf{\Regex}} &=&
+%                                     \{\String_1\Concat\ldots\Concat\String_n \SuchThat
+%                                     n\in\Nats \wedge \String_i\in\LanguageOf{\Regex}\}
+%  \end{array}
+%\]
+
+The typing derivations of lenses require regular expressions to be written in a
+way that parses text unambiguously. $\Regex$ and $\RegexAlt$ are
+\textit{unambiguously concatenable}, written
+$\Regex\UnambigConcat\RegexAlt$ if, 
+for all strings $\String_1,\String_2\in\LanguageOf{\Regex}$ and
+$\StringAlt_1,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
+$\String_1\Concat\StringAlt_1=\String_2\Concat\StringAlt_2$ then
+$\String_1=\String_2$ and $\StringAlt_1=\StringAlt_2$.
+%
+Similarly, $\Regex$ is \textit{unambiguously iterable},
+written $\UnambigItOf{\Regex}$ if,
+for all $n,m\in\Nats$ and for all strings
+$\String_1,\ldots,\String_n,\StringAlt_1,\ldots,\StringAlt_m\in\LanguageOf{\Regex}$,
+whenever
+$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_m$
+it is the case that $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
+
+A regular expression $\Regex$ is \textit{strongly unambiguous} if one
+of the following holds: 
+\begin{enumerate*}[label=(\alph*) ]
+\item $\Regex = \String$,  or
+\item $\LanguageOf{\Regex} = \SetOf{}$, or 
+\item $\Regex = \Regex_1 \Concat \Regex_2$ with $\Regex_1 \UnambigConcat
+  \Regex_2$, or
+\item $\Regex = \Regex_1 \Or \Regex_2$ with $\Regex_1 \Intersect \Regex_2 =
+  \emptyset$, 
+or
+\item $\Regex = \StarOf{(\Regex')}$ with $\UnambigItOf{(\Regex')}$.
+\end{enumerate*}
+\iffull Moreover, i\else I\fi{}n the recursive cases, $\Regex_1$, $\Regex_2$, and $\Regex'$
+must also be strongly unambiguous.
+
+% fig:regex-equivalence-rules
+
+% fig:definitional-equivalence-rules
+\paragraph*{\iffull Regular Expression \fi Equivalences}
+\Regex{} and \RegexAlt{} are \textit{equivalent}, written $\Regex\equiv\RegexAlt$, if 
+$\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
+There exists an equational theory for determining whether two regular expressions
+are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
+\cite{Krob}.
+%
+Conway's axioms consist of the semiring axioms (associativity,
+commutativity, identities, and distributivity for $|$ and $\cdot$) plus the following 
+rules for equivalences involving the Kleene star:
+%
+\begin{center}
+\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
+  \StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
+  \StarOf{(\RegexConcat{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\RegexConcat{\Regex{}}{\StarOf{(\RegexConcat{\RegexAlt{}}{\Regex{}})}}}{\RegexAlt{}})} & \ProductstarRule{} \\
+  ${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
+  \StarOf{(\RegexOr{\Regex}{\RegexAlt})} & $\equiv$ & $\StarOf{(\RegexConcat{(\RegexOr{\Regex}{\RegexAlt})}{\RegexOr{\RegexAlt}{\RegexConcat{{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n}{\Regex}}})}\Concat$
+                                             $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$
+                                             $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$ & \DicyclicityRule{}
+\end{tabular}
+\end{center}
+
+While this equational theory is complete, na\"{i}vely using it in the
+context of lens synthesis presents several problems.  
+In the context of lens synthesis, we instead use the equational theory
+corresponding to the axioms of a \textit{star semiring}~\cite{Droste2009}.
+If two regular expressions are equivalent within this equational theory,
+they are \emph{star semiring equivalent}, written $\Regex \SSREquiv \RegexAlt$.
+The star semiring axioms consist of the semiring axioms plus the following
+rules for equivalences involving the Kleene star:
+%
+\begin{center}
+\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
+  \StarOf{\Regex} & $\SSREquiv$ & \EmptyString \Or (\Regex \Concat \StarOf{\Regex}) & \UnrollstarLeftRule{}\\
+  \StarOf{\Regex} & $\SSREquiv$ & \EmptyString \Or (\StarOf{\Regex} \Concat \Regex) & \UnrollstarRightRule{}\\
+\end{tabular}
+\end{center}
+In \S\ref{overview}, we provide intuition on the problems with using full
+regular expression equivalence in the context of synthesis.
+
+
+\SUBSECTION{Bijective Lenses}
+
+% fig:lens-semantics
+
+All bijections between languages are lenses.  We define \emph{Bijective Lenses} to be
+bijections created from the Boomerang lens combinators, mapping between
+languages of regular expressions.
+The syntax for these bijective lenses is given by:
+\begin{center}
+  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
+    % REGEX
+     \Lens{} & \GEq{} & & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ \\
+            & & \GBar{} & $\IterateLensOf{\Lens}$ \\
+            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\ComposeLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\IdentityLensOf{\Regex}$ 
+  \end{tabular}
+\end{center}
+
+\noindent The denotation of a lens $\Lens$ is  $\SemanticsOf{\Lens}
+\subseteq \StringType \Cross \StringType$.  If $(\String_1,\String_2) \in
+\SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
+$\String_2$.
+\begin{center}
+  \begin{tabular}{@{}rcl}
+    $\SemanticsOf{const(\String_1,\String_2)}$ &=& $\SetOf{(\String_1,\String_2)}$\\
+    
+    $\SemanticsOf{\IterateLensOf{\Lens}}$ &=& $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
+                                              \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
+                                              n \in \Nats \BooleanAnd
+                                              \forall i \in \RangeIncInc{1}{n},
+                                              (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
+    
+    $\SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                      $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat
+                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                    $\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat
+                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                  $\SetOf{(\String,\StringAlt)
+                                                  \SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
+                                                  \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\ComposeLensOf{\Lens_1}{\Lens_2}}$ &=&
+                                                       $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2
+                                             (\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
+                                                 (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}$\\
+    
+    $\SemanticsOf{\IdentityLensOf{\Regex}}$ &=& $\SetOf{(\String,\String)
+                                              \SuchThat \String\in
+                                              \LanguageOf{\Regex}}$
+  \end{tabular}
+\end{center}
+
+The simplest lens in the combinator language is the constant lens between
+strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
+The lens $\ConstLensOf{\String}{\StringAlt}$, when operated left-to-right,
+replaces the string $\String$ with $\StringAlt$, and when operated
+right-to-left, replaces string $\StringAlt$ with $\String$.  The identity lens
+on a regular expression, $\IdentityLensOf{\Regex}$, operates in both
+directions by applying the
+identity function to strings in $\LanguageOf{\Regex}$.  The composition
+combinator, 
+$\ComposeLensOf{\Lens_1}{\Lens_2}$, operates by applying $\Lens_1$ then $\Lens_2$
+when operating left to right, and applying $\Lens_2$ then $\Lens_1$ when
+operating right to left.
+
+Each of the other lenses manipulates structured data.  For instance,
+$\ConcatLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ to the left
+portion of a string, and $\Lens_2$ to the right, and concatenating the results.
+The combinator
+$\SwapLensOf{\Lens_1}{\Lens_2}$ does the same as $\ConcatLensOf{\Lens_1}{\Lens_2}$
+but it swaps the results before concatenating.
+The combinator $\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
+to the string.  The combinator $\IterateLensOf{\Lens}$ operates by repeatedly
+applying $\Lens$ to subparts of a string.
+
+\paragraph{Lens Typing}
+
+\begin{figure}
+  \centering% \footnotesize
+  \begin{mathpar}
+    \inferrule[]% \ConstantLensRule{}
+    {
+      \String_1 \in \StarOf{\Sigma}\\
+      \String_2 \in \StarOf{\Sigma}
+    }
+    {
+      \ConstLensOf{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
+    }
+
+    \inferrule[]
+    {
+      \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
+      \UnambigItOf{\Regex}\\
+      \UnambigItOf{\RegexAlt}
+    }
+    {
+      \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
+    }
+
+    \inferrule[]%\ConcatLensRule{}
+    {
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+      \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+      \UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}
+    }
+    {
+      \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
+    }
+
+    \inferrule[]%\SwapLensRule{}
+    {
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+      \UnambigConcatOf{\Regex_1}{\Regex_2}\\
+      \UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}
+    }
+    {
+      \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
+    }
+    
+    \inferrule[]%\OrLensRule{}
+    {
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+      \UnambigOrOf{\Regex_1}{\Regex_2}\\
+      \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
+    }
+    {
+      \OrLensOf{\Lens_1}{\Lens_2} \OfType
+      \Regex_1 \Or \Regex_2
+      \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
+    }
+    
+    \inferrule[]%\ComposeLensRule{}
+    {
+      \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+      \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+    }
+    {
+      \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
+    }
+
+    \inferrule[]%\IdentityLensRule{}
+    {
+      \Regex \text{ is strongly unambiguous}
+    }
+    {
+      \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
+    }
+
+    \inferrule[]%\RewriteRegexLensRule{}
+    {
+      \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+      \Regex_1 \SSREquiv \Regex_1'\\
+      \Regex_2 \SSREquiv \Regex_2'
+    }
+    {
+      \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
+    }
+  \end{mathpar}
+
+  \caption{Lens Typing Rules}
+  \label{fig:lens-typing}
+\end{figure}
+
+
+The typing judgement for lenses has the form $\Lens \OfType \Regex
+\Leftrightarrow \RegexAlt$, meaning $\Lens$ bijectively maps between
+$\LanguageOf{\Regex}$ and $\LanguageOf{\RegexAlt}$.   
+Figure~\ref{fig:lens-typing} gives the typing relation.  Many of the
+typing derivations require side conditions about
+unambiguity.  These side conditions guarantee that the semantics of the language
+create a bijective function.  For example, if $\Lens_1 \OfType \Regex_1
+\Leftrightarrow \RegexAlt_1$, and $\Lens_2 \OfType \Regex_2 \Leftrightarrow
+\RegexAlt_2$, and $\Regex_1$ is not unambiguously concatenable with $\Regex_2$,
+then there would exist $\String_1,\StringAlt_1\in\LanguageOf{\Regex_1}$, and
+$\String_2,\StringAlt_2\in\LanguageOf{\Regex_2}$ where
+$\String_1\Concat\String_2 = \StringAlt_1\Concat\StringAlt_2$, but $\String_1
+\neq \StringAlt_1$, and $\String_2 \neq \StringAlt_2$.  The lens
+$\ConcatLensOf{\Lens_1}{\Lens_2}$ would no longer necessarily act as a function
+when applied from left to right, as
+$\Lens_1$ could be applied to both $\String_1$ and to $\StringAlt_1$.
+
+For $\IdentityLensOf{\Regex}$, we require the lens being applied to be strongly
+unambiguous.  This unambiguity allows the identity lens to merely be syntactic sugar for
+creating the identity lens from other lenses.\footnote{In practice, we allow regular
+expressions that aren't strongly unambiguous to appear in $\IdentityLensOf{\Regex}$, provided that they are expressed as a user defined regular expression.
+We elide such user-defined regular expression information
+from the theory for the sake of simplicity.}  This requirement does not, however, reduce expressiveness, as any regular
+expression is equivalent to a strongly unambiguous regular
+expression~\cite{unambigregex}.
+
+The last rule in Figure~\ref{fig:lens-typing} is a subsumption rule
+that lets us consider a lens
+$\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2$ to have type
+$\Regex_1' \Leftrightarrow \Regex_2'$ so long as
+$\Regex_1 \SSREquiv \Regex_1$ and
+$\Regex_2 \SSREquiv \Regex_2'$.  Ideally, this rule would use
+the full power of the Conway axiomatization $\equiv$, since that
+theory is complete for regular expression equivalence.  However, for
+the purposes of our synthesis algorithm we use a finer, but more
+tractable notion of equivalence $\SSREquiv \subseteq \equiv$.
+We have not found this restriction to limit
+the expressivity of lenses in practice.
+
+% In this subset, the full generality of \ProductstarRule{} is not present,
+% \DicyclicityRule{} is not present, \StarstarRule{} is not present,
+% and \SumstarRule{} is not present.  \StarstarRule{} is a rule that introduces
+% ambiguity, so removing it no longer allows ambiguity to be introduced.
+% The removal of \SumstarRule{} no longer allows for different choices of an
+% interation to be grouped by when they occur.  \ProductstarRule{} is similar to
+% \UnrollstarLeftRule{} and \UnrollstarRightRule, though different parts of a
+% regular expression can be unrolled
+% on different sides of the star, altering the ordering of the regular expression
+% under the star.
+% Removing \DicyclicityRule{} removes the ability to split the repetition of the
+% star into a quotiented part, and a remainder.
+
+% The primary difference between the regular expression equivalence rules and the
+% definitional equivalence rules is that the regular expression equivalence
+% rules allow for breaking up parts of the regular expression under a star by
+% grouping together different parts of the repetition, whereas the definitional
+% equivalence rules breaks parts of a regular expression under a star up only by
+% how many times the already defined repetition occurs.
+
+% end preliminaries
+
+% begin overview
 \section{Overview}
-\label{motivation}
+\label{overview}
 
 \begin{figure}
   \centering
@@ -597,61 +961,29 @@ while the modern client accepts inputs of the form
 \end{lstlisting}
 %
 where \TextChar{} is a user-defined data type representing what characters can
-be present in a text field.
+be present in a text field (like the title field).
 We would like to be able to synthesize $\Lens$, a lens that satisfies the
-typing judgement $\Lens \OfType \LegacyTitle \Leftrightarrow \ModernTitle$
+typing judgement $\Lens \OfType \LegacyTitle{} \Leftrightarrow \ModernTitle$
 (i.e.\ $\Lens$ maps between the legacy representation \LegacyTitle{}, and the modern
 representation \ModernTitle{}).
 Because the modern API omits the title field if it is blank, the lens must
 perform different 
 actions depending on the number of text characters present,
-functionality proivded by \OrLens{} lenses.  The typing
-derivation for an \OrLens{} lens is:
-\[
-  \inferrule
-  {
-    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-    \UnambigOrOf{\Regex_1}{\Regex_2}\\
-    \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
-  }
-  {
-    \OrLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Or\Regex_2
-    \Leftrightarrow \RegexAlt_1\Or\RegexAlt_2
-  }
-\]
+functionality proivded by \OrLens{} lenses.
+An \OrLens{} lens applies one of two lenses, depending on which of the lenses'
+source types matches the input string.
 
-\noindent
-An \OrLens{} lens applies one of two lenses, depending on which of the
-regular expressions matches the input string.
-The hypothesis that $\UnambigOrOf{\Regex_1}{\Regex_2}$ asserts that $\Regex_1$
-and $\Regex_2$ are \emph{disjoint}.  These constraints guarantee that the
-\emph{get} and \emph{put} operations of $\OrLensOf{\Lens_1}{\Lens_2}$ form a
-bijective pair if $\Lens_1$ and $\Lens_2$ are themselves bijective.
-
-However, the rule above does not suffice to type check lenses that map 
-between \LegacyTitle{} and \ModernTitle{}.  While
+However, the typing rule for \OrLens{} does not suffice to type check lenses
+that map between \LegacyTitle{} and \ModernTitle{}.  While
 \CF{\color{darkbrown} modern\_title} is a regular expression with an
 outermost or operation, \CF{\color{darkbrown} legacy\_title}
-is a regular expression with an outermost concatenation, so the rule above
-cannot be applied directly.  Boomerang's type checker addresses this problem
+is a regular expression with an outermost concatenation, so the rule cannot be
+directly applied.  Boomerang's type checker addresses this problem
 by representing types as {\emph regular languages}, not regular expressions.
 We formalize this behavior by allowing conversions between equivalent
-regular expression types.
-\[
-  \inferrule
-  {
-    \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-    \Regex_1 \equiv \Regex_1'\\
-    \Regex_2 \equiv \Regex_2'
-  }
-  {
-    \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
-  }
-\]
-\noindent
-With this rule, the synthesis algorithm can convert \CF{\color{darkbrown}
-  legacy\_title} into
+regular expression types with the subsumption rule.
+Using this rule, a type-directed synthesis algorithm can convert
+\LegacyTitle{} into
 %
 \begin{lstlisting}
    !legacy_title'! = @"<Field Id=2></Field>"@
@@ -664,7 +996,7 @@ the need to find this equivalent type highlights a signficant challenge in
 synthesizing Boomerang lenses.
 
 \paragraph*{Challenge 1: Multi-dimensional Search Space.}
-Since regular-expression equivalence is decideable, 
+Since regular expression equivalence is decideable, 
 it is easy to \emph{check} whether a given lens $\Lens$ with type 
 $\Regex_1 \Leftrightarrow \Regex_2$
 also has type 
@@ -681,17 +1013,7 @@ the algorithm must first unroll \CF{{\color{darkbrown} text\_char}*} into
 distribute this disjunction on the left and the right.
 
 A related challenge arises from Boomerang's composition operator,
-$\ComposeLensOf{\Lens_2}{\Lens_1}$.  The typing rule for composition
-\[
-\inferrule[]%\ComposeLensRule{}
-{
-  \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-  \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
-}
-{
-  \ComposeLensOf{\Lens_2}{\Lens_1} \OfType \Regex_1 \Leftrightarrow \Regex_3
-}
-\]
+$\ComposeLensOf{\Lens_1}{\Lens_2}$.  The typing rule for composition
 requires that the target type of $l_1$ be the source
 type of $l_2$.  To synthesize a composition lens between
 $\Regex_1$ and $\Regex_3$, a sound synthesizer must find an intermediate type
@@ -722,25 +1044,23 @@ and lenses that reduces the synthesis search space \emph{in all dimensions}.
 In this new language, regular expressions are written in a disjunctive normal
 form, where disjunctions are fully distributed over concatenation and where binary
 operators are replaced by $n$-ary ones, eliminating associativity rules.
-For example, when presented with a synthesis problem with type
+Using DNF regular expressions, when presented with a synthesis problem with type
 $(A | B) C \Leftrightarrow A' C' | B' C'$, our algorithm will first convert this
 type into $\DNFOf{\SequenceOf{A;C};\SequenceOf{B;C}} \Leftrightarrow
 \DNFOf{\SequenceOf{A';C'};\SequenceOf{B';C'}}$, where
 $\DNFOf{\ldots}$ represents $n$-ary disjunction and $\SequenceOf{\ldots}$
 represents $n$-ary concatenation.
-
 Like DNF regular expressions, DNF lenses are stratified, with disjunctions
 outside of concatenations, and they use $n$-ary operators instead of binary
-ones, further reducing the search space.  The DNF syntax also omits the lens
-composition operator because (unlike the standard lens syntax) its other
-operators are already closed under composition: any program that can be
-written with composition can also be written without it.  Omitting
-composition reduces the search space by an entire dimension because the
-synthesis algorithm no longer needs to search through possible intermediate
-regular expressions for compositions.
+ones.  Furthermore, DNF lenses do not composition operator, eliminating
+an entire dimension of search.  From this dual stratification and lack of
+composition, a very tight relationship between the structure of a well typed
+DNF lens and its DNF regular expression types is created.
 
-However, translation to DNF form does not fully normalize the regular expressions,
-nor do we want it to: If a synthesizer normalized $\epsilon \Or BB*$ to $B*$, it
+While translating regular expressions into DNF form does identify many
+equivalent expressions into the same syntactic form,
+this translation does not fully normalize the regular expressions.
+Nor do we want it to: If a synthesizer normalized $\epsilon \Or BB*$ to $B*$, it
 would have trouble synthesizing lenses with types like $\EmptyString \Or BB*
 \Leftrightarrow \EmptyString \Or CD*$
 where the first occurrence of $B$ on the left needs to be transformed into
@@ -753,547 +1073,121 @@ can be applied---i.e., DNF regular expressions are only
 \begin{figure}
   \centering
   \begin{tikzpicture}[auto,node distance=1.5cm]
-    \node[align=center] (spec) { Spec };
-    % Now place a relation (ID=rel1)
-    \node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
-    \node (below-gen) [below=.5cm of sketch-gen] {};
-    \node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
-         [right = .25cm of sketch-gen] {\RigidSynth{}};
-    \node (below-compl) [below=.5cm of sketch-compl] {};
-    \node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
-    % Draw an edge between rel1 and node1; rel1 and node2
-    \path[->] (spec) edge node (start-alg) {} (sketch-gen);
-    \path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
-    \path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
-    \draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
-
-    \node (synth-name) [above=.5cm of middle] {\SynthDNFLens{}};
+    \node[text width=2.3cm,minimum height=.6cm,align=center,draw,rectangle] (typeprop) {\TypeProp{}};
     
-    \node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
+    \node[align=right, anchor=east] (dnfregex1) [left = 1cm of typeprop.north west]{\DNFRegex{}};
+    \node[align=right, anchor=east] (dnfregex2) [left = 1cm of typeprop.south west]{\DNFRegexAlt{}};
+    
+    \node[align=right, anchor=east] (exs) [below = .2cm of dnfregex2]{ \Examples{} };
+    % Now place a relation (ID=rel1)
+    \node (below-gen) [below=.5cm of typeprop] {};
+    \node[align=center] (dnfregex'1) [right = .4cm of typeprop.north east]{\DNFRegex{}'};
+    \node[align=center] (dnfregex'2) [right = .4cm of typeprop.south east]{\DNFRegexAlt{}'};
+    \node[text width=2.3cm,minimum height=.6cm,align=center,draw,rectangle] (rigidsynth) [right = 1.55cm of typeprop] {\RigidSynth{}};
+    \node (below-compl) [below=.5cm of rigidsynth] {};
+    \node[align=center] (dnflens) [right = 1.1cm of rigidsynth.south east] {\DNFLens{}}; 
+    % Draw an edge between rel1 and node1; rel1 and node2
+    
+    \path[->] (dnfregex1.east) edge (typeprop.north west);
+    \path[->] (dnfregex2.east) edge (typeprop.south west);
+    \path[->] (typeprop.north east) edge (dnfregex'1);
+    \path[->] (typeprop.south east) edge (dnfregex'2);
+    \path[->] (dnfregex'1) edge (rigidsynth.north west);
+    \path[->] (dnfregex'2) edge (rigidsynth.south west);
+    \path[->] (rigidsynth.south east) edge  (dnflens);
+    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (rigidsynth);
+    \draw[->] (rigidsynth.north east) -| node[above right, near start](failure){\Failure{}} +(0,.5) -|  (typeprop.north);
+
+    \node (success) [below = .65cm of failure] {\Success{}};
+
+    \node (synth-name) [above=1cm of dnfregex'1] {\SynthDNFLens{}};
+    
+    \node[fit={(typeprop) ($(typeprop.west)+(-.5cm,0)$) (exsedge) (synth-name) (failure) (success)} ,draw] (surrounding) {};
   \end{tikzpicture}
-  \caption{Schematic Diagram for Synthesis Algorithm}
+  \caption{Schematic Diagram for DNF Lens Synthesis Algorithm.  DNF regular
+    expressions, $\DNFRegex$ and $\DNFRegexAlt$, and a set of examples
+    $\Examples$ are given as input.  The synthesizer, \TypeProp, uses these
+    input DNF regular expressions to propose a pair of equivalent DNF regular
+    expressions, $\DNFRegex'$ and $\DNFRegexAlt'$.  The synthesizer
+    \RigidSynth{} then attempts to generate a DNF lens, $\DNFLens$, which goes
+    between $\DNFRegex'$ and $\DNFRegexAlt'$ and satisfies all the examples in
+    $\Examples$.  If \RigidSynth{} is successful, $\DNFLens$
+    is returned.  If 
+    \RigidSynth{} is unsuccessful, information of the failure is returned to
+    \TypeProp{}, which continues proposing candidate DNF regular expressions
+    until \RigidSynth{} finds a satisfying DNF lens.}
   \label{fig:2-phased-schematic-diagram}
 \end{figure}
 
-Consequently, a type-directed synthesis algorithm must still search through some
-regular expression equivalences.
-To handle this, we structure our synthesis algorithm as two
+Consequently, a type-directed synthesis algorithm must still search through
+equivalent regular expressions.
+To handle this, we structure $\SynthDNFLens{}$ as two
 communicating synthesizers, shown in Figure~\ref{fig:2-phased-schematic-diagram}.
 The first synthesizer, \TypeProp{}, proposes DNF regular expressions
-equivalent to the input regular expressions.
+equivalent to the input DNF regular expressions.
 \TypeProp{} uses the axioms of a star semiring to unfold Kleene star
 operators in one or both types, to obtain equivalent (but larger) DNF regular
-expression types. The second synthesizer, \RigidSynth{}, perform a syntax-directed
-search based on the structure of the provided DNF regular expressions.
-If the second phase fails, \TypeProp{} learns of that failure,
-and proposes new candiate DNF regular expression pairs.
+expression types. The second synthesizer, \RigidSynth{}, performs a
+syntax-directed search based on the structure of the provided DNF regular
+expressions, as well as the input examples. If the second synthesizer finds a
+satisfying DNF lens, it returns that lens.  If the second synthesizer fails to
+find such a lens, \TypeProp{} learns of that failure,
+and proposes new candidate DNF regular expression pairs.
 
-\paragraph*{Challenge 2: Large Types}
-\SynthDNFLens{} is quite fast, with \RigidSynth{} running in polynomial time and
-\TypeProp{} using a number of deductive techniques to typically propose a small
-number ot types before finding the correct one,
-but the conversion to DNF incurs an exponential blowup.  In practical
-examples, the regular expressions describing complex {\em ad hoc} data
-formats may be very large, making the exponential blowup have a large
-impact.  The key to addressing this issue is to observe that users
-naturally construct large types incrementally, introducing named
-abbreviations for major subcomponents.  For example, in the
-specification of \LegacyTitle{} and
-\ModernTitle{}, the variable \TextChar{} describes which characters
-can be present in a title.
-To include a large disjunction representing all valid title characters
-instead of the concise variable \TextChar{} in the definitions of \LegacyTitle{}
-and \ModernTitle{} would be unmaintainable and difficult to read.
+\paragraph*{Star Semiring Equivalence and Rewriting}
 
-Our synthesis algorithm can exploit the structure inherent in these named
-abbreviations to speed up the search dramatically.  For example, if
-\TextChar{}
- appears just once in both the source and the target types, the system
-hypothesizes that the identity lens can be used to convert between
-occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
-source but not in the target, the system recognizes that, to find a lens,
-\TextChar{} must be replaced with its
-definition.  In this way, the positions of names
-can serve as a guide for applying equivalence axioms in the synthesis
-algorithm.  \TypeProp{} guides the transformation of regular expression types
-during search by deducing when certain expansions must be taken, or when one of
-a class of expansions must be taken.
-
-Before formally defining DNF regular expressions and DNF
-lenses, we first breifly review the formal definitions of regular
-expressions and lenses.
-
-% begin preliminaries
-\section{Preliminaries}
-\label{preliminaries}
-
-\SUBSECTION{Regular Expressions}
-% \label{sec:regexp}
-
-%\paragraph*{Languages and Alphabets}
-%
-%An \textit{alphabet}, written \Alphabet{}, is a finite set.
-%A \textit{character} is an element of an alphabet.
-%A \textit{string}, written \String{} or \StringAlt{}, is a sequence of characters.
-%The empty string is written \EmptyString{}.
-%The set of all strings is written \StarOf{\Alphabet}.
-%A \textit{language}, written \Language{}, is a subset of \StarOf{\Alphabet}.
-%
-%If \String{} and \StringAlt{} are strings, with
-%$\String=\Character_1\ldots\Character_n$,
-%and $\StringAlt=\CharacterAlt_1\ldots\CharacterAlt_m$,
-%then the \textit{concatenation} of \String{} and \StringAlt{},
-%written \String{}\Concat\StringAlt{}, is defined as
-%$\Character_1\ldots\Character_n\CharacterAlt_1\ldots\CharacterAlt_m$.
-%At times, The $\Concat$ will be omitted, and $\String\StringAlt$ will be used in
-%place of $\String\Concat\StringAlt$.
-%
-%\bcp{Why do we need unambiguity for languages (as opposed to REs)?}%
-%If $\Language_1$ and $\Language_2$ are languages, such that
-%for all strings $\String_1,\StringAlt_1 \in \Language_1$, and for all strings
-%$\String_2,\StringAlt_2 \in \Language_2$, If $\String_1\Concat\String_2 =
-%\StringAlt_1\Concat\StringAlt_2$, then $\Language_1$ is \textit{unambiguously
-%  concatenable} with $\Language_2$, written
-%$\UnambigConcatOf{\Language_1}{\Language_2}$.
-%
-%If $\Language$ is a language, such that
-%for all $n\in\Nats$ and for all strings
-%$\String_1,\ldots,\String_n\in\Language$, and for all strings
-%$\StringAlt_1,\ldots,\StringAlt_m\in\Language$, if
-%$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_m$
-%then $n=m$ and $\String_i=\StringAlt_i$ for all $i$,
-%that language is \textit{unambiguously iterable},
-%written $\UnambigItOf{\Language}$.
-
-% \BCP{When we remove stuff from the short version, we're not removing it
-%   completely (i.e., commenting it out), but rather putting iffull...fi or
-%   some such around it, right?  I had assumed that we were going to submit
-%   (as ``supplemental material'') a long version containing both proofs and
-%   all the stuff elided from the short version...}  \afm{for this I just
-%   removed it, for a lot of things I moved it into the appendix.  In future I
-%   will do the iffull strategy.}  \bcp{OK, for this bit I don't see much harm
-%   in just losing things even in the long version.  Just wanted to make sure
-%   we had the long version in mind.}
-
-$\Sigma$ is the alphabet of individual characters $\Character$;
-strings $\String$ and $\StringAlt$ are
-elements of $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, are
-used to express \emph{languages}, subsets of $\StarOf{\Sigma}$.
-REs over $\Sigma$ are:
-\begin{center}
-  \Regex{},\RegexAlt{} \hspace{1em} \GEq{}
-  \hspace{1em} c \hspace{1em} 
-  \GBar{} \hspace{1em} $\emptyset$ \hspace{1em} 
-  \GBar{} \hspace{1em} $\StarOf{\Regex}$ \hspace{1em} 
-  \GBar{} \hspace{1em} $\RegexConcat{\Regex_1}{\Regex_2}$ \hspace{1em} 
-  \GBar{} \hspace{1em} $\RegexOr{\Regex_1}{\Regex_2}$
-\end{center}
-$\LanguageOf{R}\subseteq \StarOf{\Sigma}$, the language of $R$, is
-defined as usual. 
-
-\paragraph*{\iffull Regular-Expression \fi Unambiguity}
-
-%These regular expressions are used to inductively define languages.
-%\[
-%  \begin{array}{lcl}
-%    \LanguageOf{\String} &=& \{\String\}\\
-%    \LanguageOf{\emptyset} &=& \{\}\\
-%    \LanguageOf{\RegexConcat{\Regex_1}{\Regex_2}} &=&
-%                                                      \{\StringConcat{\String_1}{\String_2} \SuchThat
-%                                                      \String_1\in\LanguageOf{\Regex_1} \BooleanAnd \String_2\in\LanguageOf{\Regex_2}\}\\
-%    \LanguageOf{\RegexOr{\Regex_1}{\Regex_2}} &=&
-%                                                  \{\String \SuchThat
-%                                                  \String\in\LanguageOf{\Regex_1} \BooleanOr \String\in\LanguageOf{\Regex_2}\}\\
-%    \LanguageOf{\StarOf{\Regex}} &=&
-%                                     \{\String_1\Concat\ldots\Concat\String_n \SuchThat
-%                                     n\in\Nats \wedge \String_i\in\LanguageOf{\Regex}\}
-%  \end{array}
-%\]
-
-The typing derivations of lenses require regular expressions to be written in a
-way that parses text unambiguously. $\Regex$ and $\RegexAlt$ are
-\textit{unambiguously concatenable}, written
-$\Regex\UnambigConcat\RegexAlt$ if, 
-for all strings $\String_1,\String_2\in\LanguageOf{\Regex}$ and
-$\StringAlt_1,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
-$\String_1\Concat\StringAlt_1=\String_2\Concat\StringAlt_2$ we have
-$\String_1=\String_2$ and $\StringAlt_1=\StringAlt_2$.
-%
-Similarly, $\Regex$ is \textit{unambiguously iterable},
-written $\UnambigItOf{\Regex}$ if,
-for all $n,m\in\Nats$ and for all strings
-$\String_1,\ldots,\String_n,\StringAlt_1,\ldots,\StringAlt_m\in\LanguageOf{\Regex}$,
-whenever
-$\String_1\Concat\ldots\Concat\String_n=\StringAlt_1\Concat\ldots\Concat\StringAlt_m$
-it is the case that $n=m$ and $\String_i=\StringAlt_i$ for all $i$.
-
-A regular expression $\Regex$ is \textit{strongly unambiguous} if one
-of the following holds: 
-\begin{enumerate*}[label=(\alph*) ]
-\item $\Regex = \String$,  or
-\item $\LanguageOf{\Regex} = \SetOf{}$, or 
-\item $\Regex = \Regex_1 \Concat \Regex_2$ with $\Regex_1 \UnambigConcat
-  \Regex_2$, or
-\item $\Regex = \Regex_1 \Or \Regex_2$ with $\Regex_1 \Intersect \Regex_2 =
-  \emptyset$, 
-or
-\item $\Regex = \StarOf{(\Regex')}$ with $\UnambigItOf{(\Regex')}$.
-\end{enumerate*}
-\iffull Moreover, i\else I\fi{}n the recursive cases, $\Regex_1$, $\Regex_2$, and $\Regex'$
-must also be strongly unambiguous.
-
-% fig:regex-equivalence-rules
-
-% fig:definitional-equivalence-rules
-\paragraph*{\iffull Regular-Expression \fi Equivalences}
-$R$ and $T$ are \textit{equivalent}, written $\Regex\equiv\RegexAlt$, if 
-$\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
-There exists an equational theory for determining whether two regular expressions
-are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
-\cite{Krob}.
-%
-Conway's axioms consist of the semiring axioms (associativity,
-commutativity, identities, and distributivity for $|$ and $\cdot$) plus the following 
-rules for equivalences involving the Kleene star:
-%
-\begin{center}
-\begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-  \StarOf{(\RegexOr{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexConcat{\StarOf{(\RegexConcat{\StarOf{\Regex{}}}{\RegexAlt{}})}}{\StarOf{\Regex{}}} & \SumstarRule{}\\
-  \StarOf{(\RegexConcat{\Regex{}}{\RegexAlt{}})} & $\equiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\RegexConcat{\Regex{}}{\StarOf{(\RegexConcat{\RegexAlt{}}{\Regex{}})}}}{\RegexAlt{}})} & \ProductstarRule{} \\
-  ${(\Regex{}^*)}^*$ & $\equiv$ & \StarOf{\Regex{}} & \StarstarRule{} \\
-  \StarOf{(\RegexOr{\Regex}{\RegexAlt})} & $\equiv$ & $\StarOf{(\RegexConcat{(\RegexOr{\Regex}{\RegexAlt})}{\RegexOr{\RegexAlt}{\RegexConcat{{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n}{\Regex}}})}\Concat$
-                                             $(\EmptyString\Or(\RegexOr{\Regex}{\RegexAlt})\Concat$
-                                             $({(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^0\Or\ldots\Or{(\RegexConcat{\Regex}{\StarOf{\RegexAlt}})}^n))$ & \DicyclicityRule{}
-\end{tabular}
-\end{center}
-
-
-
-% There are a number of proof systems that are complete with respect to
-% determining regular
-% expression equivalence, but equational theories embed a straightforward search
-% procedure for generating equivalent regular expressions, for they provide a
-% rewrite relation that creates equivalent regular expressions.  \afm{Using a
-%   different proof system would achieve the same result: we search through
-%   equivalent regular expressions in synthesizing \RewriteRegexLensRule{},
-%   we would just also be required to keep track of other information, like Horn
-%   clauses.  An equational theory provides rewrite rules associated with the
-%   application of an equivalence rule.}\BCP{This is
-%   not a very strong reason for following this path, given that this complete
-%   search procedure was precisely what we were unable to establish.}
-
-
-% \BCP{This section confusingly blurs the distinction between equational
-%   theories and systems of rewrite rules.  What I've always had in mind when
-%   we've used the phrase ``rewrite rules'' has been an {\em oriented version}
-% of the equational theory, where each equation is replaced by a single rule
-% that rewrites from one side to the other (either left to right or right to
-% left, but not both).}
-
-
-% Can't na\"{i}vely add both directions.
-
-
-% \SumstarRule{} 
-% different regular expressions, and groups together when one regular expression occurs,
-% separated by when the other regular expression occurs.  
-% \ProductstarRule{} is an axiom corresponding to separating the
-% zero case from the one or greater case in stars.
-% \StarstarRule{}
-% introduces ambiguity. 
-%  \DicyclicityRule{} is used to separate out the iteration
-% of two elements into a quotiented portion, and a remainder portion.
-
-
-While this equational theory is complete, na\"{i}vely using it in the
-context of lens synthesis presents several problems.  To understand
-why, we need to see how the equational theory is used to type lenses. 
-
-
-\SUBSECTION{Bijective Lenses}
-
-% fig:lens-semantics
-
-All bijections between languages are lenses.  We define \emph{Bijective Lenses} to be
-bijections created from the Boomerang lens combinators, mapping between
-languages of regular expressions.
-The syntax for these bijective lenses is given by:
-\begin{center}
-  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
-    % REGEX
-     \Lens{} & \GEq{} & & $\ConstLensOf{s_1 \in \StarOf{\Alphabet}}{s_2 \in \StarOf{\Alphabet}}$ \\
-            & & \GBar{} & $\IterateLensOf{\Lens}$ \\
-            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\ComposeLensOf{\Lens_2}{\Lens_1}$ \\
-            & & \GBar{} & $\IdentityLensOf{\Regex}$ 
-  \end{tabular}
-\end{center}
-
-\noindent The denotation of a lens $\Lens$ is  $\SemanticsOf{\Lens}
-\subseteq \StringType \Cross \StringType$.  If $(\String_1,\String_2) \in
-\SemanticsOf{\Lens}$, then $\Lens$ \emph{maps between} $\String_1$ and
-$\String_2$.
-\begin{center}
-  \begin{tabular}{@{}rcl}
-    $\SemanticsOf{const(\String_1,\String_2)}$ &=& $\SetOf{(\String_1,\String_2)}$\\
-    
-    $\SemanticsOf{\IterateLensOf{\Lens}}$ &=& $\SetOf{(\String_1\Concat\ldots\Concat\String_n,
-                                              \StringAlt_1\Concat\ldots\Concat\StringAlt_n)\SuchThat
-                                              n \in \Nats \BooleanAnd
-                                              \forall i \in \RangeIncInc{1}{n},
-                                              (\String_i,\StringAlt_i)\in\SemanticsOf{\Lens}}$\\
-    
-    $\SemanticsOf{\ConcatLensOf{\Lens_1}{\Lens_2}}$ &=&
-                                                      $\SetOf{(\String_1\Concat\String_2,\StringAlt_1\Concat\StringAlt_2)\SuchThat
-                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
-    
-    $\SemanticsOf{\SwapLensOf{\Lens_1}{\Lens_2}}$ &=&
-                                                    $\SetOf{(\String_1\Concat\String_2,\StringAlt_2\Concat\StringAlt_1)\SuchThat
-                                             (\String_1,\StringAlt_1)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                 (\String_2,\StringAlt_2)\in\SemanticsOf{\Lens_2}}$\\
-    
-    $\SemanticsOf{\OrLensOf{\Lens_1}{\Lens_2}}$ &=&
-                                                  $\SetOf{(\String,\StringAlt)
-                                                  \SuchThat(\String,\StringAlt)\in\SemanticsOf{\Lens_1}
-                                                  \BooleanOr(\String,\StringAlt)\in\SemanticsOf{\Lens_2}}$\\
-    
-    $\SemanticsOf{\ComposeLensOf{\Lens_2}{\Lens_1}}$ &=&
-                                                       $\SetOf{(\String_1,\String_3)\SuchThat\exists\String_2
-                                             (\String_1,\String_2)\in\SemanticsOf{\Lens_1}\BooleanAnd
-                                                 (\String_2,\String_3)\in\SemanticsOf{\Lens_2}}$\\
-    
-    $\SemanticsOf{\IdentityLensOf{\Regex}}$ &=& $\SetOf{(\String,\String)
-                                              \SuchThat \String\in
-                                              \LanguageOf{\Regex}}$
-  \end{tabular}
-\end{center}
-
-The simplest lens in the combinator language is the constant lens between
-strings $\String$, and $\StringAlt$, $\ConstLensOf{\String}{\StringAlt}$.
-The lens $\ConstLensOf{\String}{\StringAlt}$, when operated left-to-right,
-replaces the string $\String$ with $\StringAlt$, and when operated
-right-to-left, replaces string $\StringAlt$ with $\String$.  The identity lens
-on a regular expression, $\IdentityLensOf{\Regex}$, operates in both
-directions by applying the
-identity function to strings in $\LanguageOf{\Regex}$.  The composition
-combinator, 
-$\ComposeLensOf{\Lens_2}{\Lens_1}$, operates by applying $\Lens_1$ then $\Lens_2$
-when operating left to right, and applying $\Lens_2$ then $\Lens_1$ when
-operating right to left.
-
-Each of the other lenses manipulates structured data.  For instance,
-$\ConcatLensOf{\Lens_1}{\Lens_2}$ operates by applying $\Lens_1$ to the left
-portion of a string, and $\Lens_2$ to the right, and concatenating the results.
-The combinator
-$\SwapLensOf{\Lens_1}{\Lens_2}$ does the same as $\ConcatLensOf{\Lens_1}{\Lens_2}$
-but it swaps the results before concatenating.
-The combinator $\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
-to the string.  The combinator $\IterateLensOf{\Lens}$ operates by repeatedly
-applying $\Lens$ to subparts of a string.
-
-\paragraph{Lens Typing}
-
-\begin{figure}
-  \centering% \footnotesize
-  \begin{mathpar}
-    \inferrule[]% \ConstantLensRule{}
-    {
-      \String_1 \in \StarOf{\Sigma}\\
-      \String_2 \in \StarOf{\Sigma}
-    }
-    {
-      \ConstLensOf{\String_1}{\String_2} \OfType \String_1 \Leftrightarrow \String_2
-    }
-
-    \inferrule[]
-    {
-      \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
-      \UnambigItOf{\Regex}\\
-      \UnambigItOf{\RegexAlt}
-    }
-    {
-      \IterateLensOf{\Lens} \OfType \StarOf{\Regex} \Leftrightarrow \StarOf{\RegexAlt}
-    }
-
-    \inferrule[]%\ConcatLensRule{}
-    {
-      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
-      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-      \UnambigConcatOf{\Regex_1}{\Regex_2}\\
-      \UnambigConcatOf{\RegexAlt_1}{\RegexAlt_2}
-    }
-    {
-      \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_1\RegexAlt_2
-    }
-
-    \inferrule[]%\SwapLensRule{}
-    {
-      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\\\
-      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-      \UnambigConcatOf{\Regex_1}{\Regex_2}\\
-      \UnambigConcatOf{\RegexAlt_2}{\RegexAlt_1}
-    }
-    {
-      \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1\Regex_2 \Leftrightarrow \RegexAlt_2\RegexAlt_1
-    }
-    
-    \inferrule[]%\OrLensRule{}
-    {
-      \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-      \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
-      \UnambigOrOf{\Regex_1}{\Regex_2}\\
-      \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
-    }
-    {
-      \OrLensOf{\Lens_1}{\Lens_2} \OfType
-      \Regex_1 \Or \Regex_2
-      \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
-    }
-    
-    \inferrule[]%\ComposeLensRule{}
-    {
-      \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-      \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
-    }
-    {
-      \Lens_2 ; \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_3
-    }
-
-    \inferrule[]%\IdentityLensRule{}
-    {
-      \Regex \text{ is strongly unambiguous}
-    }
-    {
-      \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
-    }
-
-    \inferrule[]%\RewriteRegexLensRule{}
-    {
-      \Lens \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-      \Regex_1 \SSREquiv \Regex_1'\\
-      \Regex_2 \SSREquiv \Regex_2'
-    }
-    {
-      \Lens \OfType \Regex_1' \Leftrightarrow \Regex_2'
-    }
-  \end{mathpar}
-
-  \caption{Lens Typing Rules}
-  \label{fig:lens-typing}
-\end{figure}
-
-
-The typing judgement for lenses has the form $\Lens \OfType \Regex
-\Leftrightarrow \RegexAlt$, meaning $\Lens$ bijectively maps between
-$\LanguageOf{\Regex}$ and $\LanguageOf{\RegexAlt}$.   
-Figure~\ref{fig:lens-typing} gives the typing relation.  Many of the
-typing derivations require side conditions about
-unambiguity.  These side conditions guarantee that the semantics of the language
-create a bijective function.  For example, if $\Lens_1 \OfType \Regex_1
-\Leftrightarrow \RegexAlt_1$, and $\Lens_2 \OfType \Regex_2 \Leftrightarrow
-\RegexAlt_2$, and $\Regex_1$ is not unambiguously concatenable with $\Regex_2$,
-then there would exist $\String_1,\StringAlt_1\in\LanguageOf{\Regex_1}$, and
-$\String_2,\StringAlt_2\in\LanguageOf{\Regex_2}$ where
-$\String_1\Concat\String_2 = \StringAlt_1\Concat\StringAlt_2$, but $\String_1
-\neq \StringAlt_1$, and $\String_2 \neq \StringAlt_2$.  The lens
-$\ConcatLensOf{\Lens_1}{\Lens_2}$ would no longer necessarily act as a function
-when applied from left to right, as
-$\Lens_1$ could be applied to both $\String_1$ and to $\StringAlt_1$.
-
-For $\IdentityLensOf{\Regex}$, we require the lens being applied to be strongly
-unambiguous.  This unambiguity allows the identity lens to merely be syntactic sugar for
-creating the identity lens from other lenses.\footnote{In practice, we allow regular
-expressions that aren't strongly unambiguous to appear in $\IdentityLensOf{\Regex}$, provided that they are expressed as a user defined regular expression.
-We elide such user-defined regular expression information
-from the theory for the sake of simplicity.}  This requirement does not, however, reduce expressiveness, as any regular
-expression is equivalent to a strongly unambiguous regular
-expression~\cite{unambigregex}.
-
-The last rule in Figure~\ref{fig:lens-typing} is a subsumption rule
-that lets us consider a lens
-$\Lens \OfType \Regex_1 \Leftrightarrow \Regex_2$ to have type
-$\Regex_1' \Leftrightarrow \Regex_2'$ so long as
-$\Regex_1 \SSREquiv \Regex_1$ and
-$\Regex_2 \SSREquiv \Regex_2'$.  Ideally, this rule would use
-the full power of the Conway axiomatization $\equiv$, since that
-theory is complete for regular-expression equivalence.  However, for
-the purposes of our synthesis algorithm we use a finer, but more
-tractable notion of equivalence $\SSREquiv \subseteq \equiv$,
-as we next explain.  We have not found this restriction to limit
-the expressivity of lenses in practice.
-
-\ksf{The rest of this section doesn't fit with a preliminary
-section focused on ``formal definitions of regular expressions and
-lenses.''  These sections are confusing because the motivation is all
-about the synthesis algorithm that we haven't introduced yet.}
-\ksf{I think we should introduce another section entitled ``algorithm
-overview'' at this piont that describes the high-level view of the
-algorithm.  In describing it, the issue of equivalence and rewriting
-would come up naturally and we would have been able to introduce the
-retyping rule informally.  }
-
-\SUBSECTION{Definitional Equivalence and Rewriting}
-
-Type-directed synthesis seeks to construct a lens by searching for a
-well-formed typing derivation using the rules in
-Figure~\ref{fig:lens-typing}.
-The inputs to the algorithm are the source and target
-regular expression types and some examples. The search proceeds
-bottom up.  
-
-Both composition and subsumption present obstacles 
-since they each require a bottom-up search procedure to \textit{guess} an
-arbitrary regular expression ($\Regex_2$ of the composition rule or
-$\Regex_1$ and $\Regex_2$ of the subsumption rule).  Since there are,
-in general, an infinite number of possible choices for these guesses,
-na\"{i}ve enumeration is hopeless.
-Our synthesis algorithm  solves the first problem by eliminating
-composition altogether; instead it works with regular expressions in
-disjunctive normal form (DNF lenses are described in detail in
-Section~\ref{sec:dnf}).  Handling subsumption is more subtle.
-
-One could try to search the space of regular expressions equivalent to
-$\Regex$ by turning the Conway axioms into (undirected) rewrite rules
+One could try to search the space of DNF regular expressions equivalent to
+the input regular expressions by turning the Conway axioms into (undirected)
+rewrite rules operating on DNF regular expressions
 and then trying all possible combinations of rewrites.  Doing so would
 be problematic because the Conway axiomatization itself is both highly
 nondeterministic and infinitely branching (due to the choice of $n$ in
 the dyclicity axiom).  Furthermore, we must take care in adding
 equivalences to ensure we produce a language that is closed under
-composition (we describe the necessary properties shortly).
+composition (we describe sufficient properties for this shortly).
 
-
-To be compatible with our lens synthesis strategy, we require that the
-equivalence relation used in subsumption
-is the equivalence closure of rewrite rules satisfying two properties.
-These properties involve the ability to be well typed with no use of the the
-subsumption rule (which we will write as $\Lens \OfRewritelessType \Regex
-\Leftrightarrow \RegexAlt$).
+In particular, it is sufficient for the equivalences used in subsumption
+to be the equivalence closure of a rewrite system ($\Rewrite$) satisfying
+four conditions.
+First, if $\Regex \Rewrite \Regex'$, then $\LanguageOf{\Regex} =
+\LanguageOf{\Regex'}$.
+Second, if $\Regex \Rewrite \Regex'$ and $\Regex$ is strongly unambiguous, then
+$\Regex'$ is also strongly unambiguous.
+The remaining two properties relate the rewrite rules to the typing derivations
+of DNF lenses, when those typing derivations do not use subsumption
+(if $\DNFLens$ is a DNF lens which
+goes between DNF regular expressions $\DNFRegex$ and $\DNFRegexAlt$, and the
+typing derivation contains no instances of the subsumption rule, then
+$\DNFLens \OfRewritelessType
+\DNFRegex \Leftrightarrow \DNFRegexAlt$).
 We call the first property \textit{confluence}.  It says:
-Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$,
+Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
+(\ToDNFRegexOf{\RegexAlt_1})$,
 if $\Regex_1 \Rewrite
 \Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there exist regular
 expressions $\Regex_3$, and
-$\RegexAlt_3$ and a lens $\Lens_3$, such that:
+$\RegexAlt_3$ and a DNF lens $\DNFLens_3$, such that:
 \begin{enumerate}
 \item $\Regex_2 \Rewrite \Regex_3$
 \item $\RegexAlt_2 \Rewrite \RegexAlt_3$
-\item $\Lens_3 \OfRewritelessType \Regex_3 \Leftrightarrow \RegexAlt_3$
-\item $\SemanticsOf{\Lens_3} = \SemanticsOf{\Lens_1}$
+\item $\DNFLens_3 \OfRewritelessType (\ToDNFRegexOf{\Regex_3}) \Leftrightarrow
+  (\ToDNFRegexOf{\RegexAlt_3})$
+\item $\SemanticsOf{\DNFLens_3} = \SemanticsOf{\DNFLens_1}$
 \end{enumerate}
 We call the second property \textit{bisimilarity}.  Bisimilarity requires two
 symmetric conditions.
-Whenever $\Lens_1 \OfRewritelessType \Regex_1 \Leftrightarrow \RegexAlt_1$ and 
-$\Regex_1 \to \Regex_2$, there exist a regular expression $\RegexAlt_2$ and a
-lens $\Lens_2$ such that
+Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
+(\ToDNFRegexOf{\RegexAlt_1})$ and 
+$\Regex_1 \Rewrite \Regex_2$, there exist a regular expression $\RegexAlt_2$ and a
+DNF lens $\DNFLens_2$ such that
 \begin{enumerate}
 \item $\RegexAlt_1 \Rewrite \RegexAlt_2$
-\item $\Lens_2 \OfRewritelessType \Regex_2 \Leftrightarrow \RegexAlt_2$
-\item $\SemanticsOf{\Lens_2} = \SemanticsOf{\Lens_1}$
+\item $\DNFLens_2 \OfRewritelessType (\ToDNFRegexOf{\Regex_2}) \Leftrightarrow
+  (\ToDNFRegexOf{\RegexAlt_2})$
+\item $\SemanticsOf{\DNFLens_2} = \SemanticsOf{\DNFLens_1}$
 \end{enumerate}
-To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite \RegexAlt_2$.
+To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite
+\RegexAlt_2$.
 
 
 %  There are a large number of rules that can be
@@ -1349,51 +1243,50 @@ To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite
 % the type.
 
 Our solution for handling subsumption is to use $\SSREquiv$, the equivalence relation
-generated by the axioms of a \textit{star semiring}~\cite{Droste2009}.
-These axioms are
-the semiring axioms, plus two ``unrolling'' rules that
-replace the Conway axioms of \SumstarRule{}, \ProductstarRule{}, \StarstarRule{}, and
-\DicyclicityRule{}:
-\begin{center}
-  \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
-    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\StarOf{{\Regex{}}}})} & \UnrollstarLeftRule{} \\
-    \StarOf{\Regex{}} & $\SSREquiv$ & \RegexOr{\EmptyString{}}{(\RegexConcat{\StarOf{{\Regex{}}}}{\Regex{}})} & \UnrollstarRightRule{} 
-  \end{tabular}
-\end{center}
-\noindent
+generated by the axioms of a star semiring.
 This equivalence relation is compatible with our lens synthesis strategy, as
-orienting these unrolling rules from left to right presents us with a rewrite relation
-that is both confluent and bisimilar, and whose equivalence closure is
+orienting these unrolling rules from left to right presents us with a rewrite
+relation that is both confluent and bisimilar, and whose equivalence closure is
 $\SSREquiv$.
 The star semiring axioms are the 
 coarsest subset of regular expression equivalences we could
 find that is generated by a rewrite relation that are still confluent and
 bisimilar.  We have not been able to prove that it is the coarsest
-such relation possible, but it is sufficient to cover all of the test
+such relation possible, but it is sufficient to cover all the test
 cases in our benchmark suite (see \S\ref{evaluation}).
 
+\paragraph*{Challenge 2: Large Types}
+DNF lenses are equivalent in expressivity to lenses and \SynthDNFLens{} is quite
+fast.
+Unfortunately, the conversion to DNF incurs an exponential blowup.  In practical
+examples, the regular expressions describing complex {\em ad hoc} data
+formats may be very large, making the exponential blowup have a large
+impact.  The key to addressing this issue is to observe that users
+naturally construct large types incrementally, introducing named
+abbreviations for major subcomponents.  For example, in the
+specification of \LegacyTitle{} and
+\ModernTitle{}, the variable \TextChar{} describes which characters
+can be present in a title.
+To include a large disjunction representing all valid title characters
+instead of the concise variable \TextChar{} in the definitions of \LegacyTitle{}
+and \ModernTitle{} would be unmaintainable and difficult to read.
 
-% In this subset, the full generality of \ProductstarRule{} is not present,
-% \DicyclicityRule{} is not present, \StarstarRule{} is not present,
-% and \SumstarRule{} is not present.  \StarstarRule{} is a rule that introduces
-% ambiguity, so removing it no longer allows ambiguity to be introduced.
-% The removal of \SumstarRule{} no longer allows for different choices of an
-% interation to be grouped by when they occur.  \ProductstarRule{} is similar to
-% \UnrollstarLeftRule{} and \UnrollstarRightRule, though different parts of a
-% regular expression can be unrolled
-% on different sides of the star, altering the ordering of the regular expression
-% under the star.
-% Removing \DicyclicityRule{} removes the ability to split the repetition of the
-% star into a quotiented part, and a remainder.
-
-% The primary difference between the regular expression equivalence rules and the
-% definitional equivalence rules is that the regular expression equivalence
-% rules allow for breaking up parts of the regular expression under a star by
-% grouping together different parts of the repetition, whereas the definitional
-% equivalence rules breaks parts of a regular expression under a star up only by
-% how many times the already defined repetition occurs.
-
-% end preliminaries
+Our synthesis algorithm can exploit the structure inherent in these named
+abbreviations to speed up the search dramatically.  For example, if
+\TextChar{} appears just once in both the source and the target types, the system
+hypothesizes that the identity lens can be used to convert between
+occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
+source but not in the target, the system recognizes that, to find a lens,
+\TextChar{} must be replaced with its
+definition.  In this way, the positions of names
+can serve as a guide for applying equivalence axioms in the synthesis
+algorithm.  By using these named abbreviations, \TypeProp{} guides the
+transformation of regular expression types
+during search by deducing when certain expansions must be taken, or when one of
+a class of expansions must be taken.  However, this approach does require
+\TypeProp{} to now do more than merely unroll stars, it must also replace types
+by their definitions.
+% end overview
 
 
 % begin formalisms
@@ -1980,8 +1873,8 @@ characterize the relationship between the two languages.
 \begin{restatable}[Soundness of DNF Lenses]{theorem}{dnfls}
   \label{thm:dnfls}
   If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$,
-  then there exists a lens $\Lens$ and regular expressions $\Regex$ and 
-$\RegexAlt$ such that $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ and
+  then there exist a lens, $\Lens$, and regular expressions, $\Regex$ and 
+$\RegexAlt$, such that $\Lens \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ and
   $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$ and
   $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$ and
   $\SemanticsOf{\Lens}=\SemanticsOf{\DNFLens}$.
@@ -2019,6 +1912,7 @@ types that were discovered in the first step.
 %% correct permutations for each rule application, must be found.
 % end formalisms
 
+
 % begin implementation
 \section{Algorithm}
 \label{algorithm}
@@ -2042,13 +1936,13 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
   \caption{\Optician}
   \label{alg:synthlens}
   \begin{algorithmic}[1]
-    \Function{SynthDNFLens}{$\DNFRegex_0,\DNFRegexAlt_0,\Examples$}
-    \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex_0,\DNFRegexAlt_0),0}$
+    \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
+    \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
     \While{$\True$}
     \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}\quad(* \TypeProp *)$
-    \State $(\DNFRegex,\DNFRegexAlt,\ExpCount) \gets \QueueElement$
+    \State $(\DNFRegex',\DNFRegexAlt',\ExpCount) \gets \QueueElement$
     \State $\DNFLensOption \gets
-    \Call{\RigidSynth}{\DNFRegex,\DNFRegexAlt,\Examples}$
+    \Call{\RigidSynth}{\DNFRegex',\DNFRegexAlt',\Examples}$
     \Switch{\DNFLensOption}
     \CaseTwo {\SomeOf{\DNFLens}}{\ReturnVal{\DNFLens}}
     \EndCaseTwo
@@ -2062,13 +1956,12 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
     
     \Statex
     \Function{Optician}{$\Regex,\RegexAlt,\Examples$}
-    \State $(\DNFRegex_0,\DNFRegexAlt_0) \gets
+    \State $(\DNFRegex,\DNFRegexAlt) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
-    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex_0,\DNFRegexAlt_0,\Examples}$
-    \State $\ReturnVal{\Call{ToLens}{\DNFLens}}$
+    \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
+    \State $\ReturnVal{\ToLensOf{\DNFLens}}$
     \EndFunction
   \end{algorithmic}
-\bcp{I don't like the naming much---DR0 is an ugly name}
 \end{algorithm}
 
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
