@@ -1952,7 +1952,9 @@ types that were discovered in the first step.
 Algorithm~\ref{alg:synthlens} presents the synthesis procedure.
 \SynthLens{} takes the source and target regular
 expressions $\Regex$ and $\RegexAlt$, and a list of examples $\Examples$, as
-input. The algorithm first converts
+input. First, \SynthLens{} validates the unambiguity of the input regular
+expressions, and confirms that the input/output examples are matched by the
+input regular expressions. Next, the algorithm converts
 $\Regex$ and $\RegexAlt$ into DNF regular expressions
 $\DNFRegex$ and $\DNFRegexAlt$
 using the $\ToDNFRegex$ operator.
@@ -1988,6 +1990,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
     
     \Statex
     \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
+    \State $\Call{Validate}{\Regex,\RegexAlt,\Examples}$
     \State $(\DNFRegex,\DNFRegexAlt) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
     \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
@@ -2880,10 +2883,10 @@ Other
 The literature on bidirectional programming languages
 and on lens-like structures is extensive.  We discussed
 highlights in the introduction; readers can also
-consult~\cite{DBLP:conf/icmt/CzarneckiFHLST09} for a (slightly dated)
-survey and~\cite{DBLP:journals/chinaf/FischerHP15,
-DBLP:conf/birthday/Abou-SalehCGMS16} for recent theoretical
-perspectives.
+consult a (slightly dated)
+survey~\cite{DBLP:conf/icmt/CzarneckiFHLST09} and
+recent theoretical perspectives~\cite{DBLP:journals/chinaf/FischerHP15,
+DBLP:conf/birthday/Abou-SalehCGMS16}.
 %We focus here on two closely related type-based synthesis tools for string
 %transformers described by regular expressions.
 
@@ -16296,21 +16299,127 @@ orderings.
 
 We use \IntList{} to denote list of ints.
 
-We use \IntListList{} to denote a list of int lists.
+We use \IntListSet{} to denote a set of int lists.
 
-Define an exampled DNF regular expression as:
+We use \StringIntListSet{} to denote a set of string and int list pairs.
+
+To get the strings out of $\StringIntListSet$, we use $\ProjectStrings$.  In
+particular,
+$\ProjectStringsOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
+= \SetOf{\String_1,\ldots,\String_n}$.
+
+To get the int lists out of $\StringIntListSet$, we use $\ProjectILS$.  In
+particular,
+$\ProjectILSOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
+= \SetOf{\IntList_1,\ldots,\IntList_n}$.
+
+Define an exampled atom, exampled sequence, and exampled DNF regular expression as:
 \begin{center}
   \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
     % DNF_REGEX
-    \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}}
+    \ExampledAtom{},\ExampledAtomAlt{} & \GEq{} & (\StarOf{\ExampledDNFRegex{}},\IntListSet{})
 % & \StarAtomType{}
 \\
-    \Sequence{},\SequenceAlt{} & \GEq{} & $\SequenceOf{\String_0\SeqSep\Atom_1\SeqSep\ldots\SeqSep\Atom_n\SeqSep\String_n}$ 
+    \ExampledSequence{},\ExampledSequenceAlt{} & \GEq{} &
+      $(\SequenceOf{\String_0\SeqSep\ExampledAtom_1\SeqSep\ldots\SeqSep\ExampledAtom_n\SeqSep\String_n},\IntListSet)$
 %& \MultiConcatSequenceType{} 
 \\
-    \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ %& \MultiOrDNFRegexType{} 
+    \ExampledDNFRegex{},\ExampledDNFRegexAlt{} & \GEq{} &
+      $(\DNFOf{\ExampledSequence_1\DNFSep\ldots\DNFSep\ExampledSequence_n},\IntListSet)$ %& \MultiOrDNFRegexType{} 
   \end{tabular}
 \end{center}
+
+Intuitively, an exampled regular expression is a DNF regular expression, with the
+parse trees for a number of strings which match it embedded.  We build the
+typing derivation of the form
+$\StringIntListSet \in \DNFRegex
+\Generates \ExampledDNFRegex$ to express that the strings
+$\ProjectStringsOf{\StringIntListSet}$
+, labelled by the identifiers
+$\ProjectILSOf{\StringIntListSet}$ when they have their parse trees embedded in
+$\DNFRegex$, generate $\ExampledDNFRegex$.
+Similarly for $\Sequence$ and $\ExampledSequence$, and $\Atom$ and
+$\ExampledAtom$.
+
+  \begin{mathpar}
+    \inferrule[]
+    {
+      \SetOf{(\String_{1,1},1::\IntList_{1}),\ldots,(\String_{1,n_1},n_1::\IntList_{1}),
+        \ldots
+        ,(\String_{m,1},1::\IntList_{m}),\ldots,(\String_{m,n_m},n_m::\IntList_{m})}
+      \in \DNFRegex \Generates \ExampledDNFRegex
+    }
+    {
+      \SetOf{(\String_{1,1}\Concat\ldots\Concat\String_{1,n_1},\IntList_1),
+        \ldots,
+        (\String_{m,1}\Concat\ldots\Concat\String_{m,n_m},\IntList_m)} \in
+      \StarOf{\DNFRegex} \Generates (\StarOf{\ExampledDNFRegex},\SetOf{\IntList_1,\ldots,\IntList_m})
+    }
+    
+    \inferrule[]
+    {
+      \SetOf{(\String_{1,1},\IntList_{1}),
+        \ldots
+        ,(\String_{m,1},\IntList_{m})}
+      \in \Atom_1 \Generates \ExampledAtom_1\\
+      \ldots\\
+      \SetOf{(\String_{1,n},\IntList_{1}),
+        \ldots
+        ,(\String_{m,n},\IntList_{m})}
+      \in \Atom_n \Generates \ExampledAtom_n
+    }
+    {
+      \SetOf{(\String_0'\Concat\String_{1,1}\Concat\ldots\Concat\String_{1,n}\Concat\String_n',\IntList_1),
+        \ldots,
+        (\String_0'\Concat\String_{m,1}\Concat\ldots\Concat\String_{m,n}\Concat\String_n',\IntList_m)} \in
+      \SequenceOf{\String_0' \SeqSep \Atom_1 \SeqSep \ldots \SeqSep \Atom_n
+        \SeqSep \String_n'}\\
+      \Generates (\SequenceOf{\String_0' \SeqSep \ExampledAtom_1 \SeqSep \ldots \SeqSep \ExampledAtom_n
+        \SeqSep \String_n'}, \SetOf{\IntList_1,\ldots,\IntList_m})
+    }
+    
+    \inferrule[]
+    {
+      \StringIntListSet_1
+      \in \Sequence_1 \Generates \ExampledSequence_1\\
+      \ldots\\
+      \StringIntListSet_n
+      \in \Sequence_n \Generates \ExampledSequence_n\\
+    }
+    {
+      \BigUnion_{i\in\RangeIncInc{1}{n}} \StringIntListSet_i
+      \in \DNFOf{\Sequence_1 \DNFSep \ldots \DNFSep \Sequence_n}
+      \Generates
+      (\DNFOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep \ExampledSequence_n},
+      \ProjectILSOf{\BigUnion_{i\in\RangeIncInc{1}{n}} \StringIntListSet_i})
+    }
+  \end{mathpar}
+
+  Now, we are going to build up the machinery to define an ordering on exampled
+  DNF regular expressions, exampled sequences, and exampled atoms.
+
+  Let $\leq$ be an ordering on $A$.  Let $\ListOf{x_1,\ldots,\x_n}$ be a list of
+  $A$s.  Define $\SortingOf{\ListOf{x_1,\ldots,x_n}}$ as a permutation $\sigma
+  \in \PermutationSetOf{n}$ such that $\sigma(i) \leq \sigma(j) \BooleanImplies
+  x_{\sigma(i)} \leq x_{\sigma(j)}$.
+
+  Let $\leq$ be an ordering on $A$.  Define 
+
+  Let $\leq$ be an ordering on $A$.  Define $\DictionaryOrderOf{\leq}$ as the
+  ordering on $\ListTypeOf{A}$ as:
+  $\ListOf{x_1;\ldots;x_n} \DictionaryOrderOf{\leq} \ListOf{y_1;\ldots;y_m}$ if
+  $n < m$, or if $n = m = 0$, or if $n = m > 0$ and $x_n \leq y_n$ and
+  $\ListOf{x_1;\ldots;x_{n-1}} \DictionaryOrderOf{\leq}
+  \ListOf{y_1;\ldots;y_{n-1}}$.
+
+  Let $\leq$ be an ordering on $A$.  Define $\DictionaryOrderOf{\leq}$ as the
+  ordering on $\ListTypeOf{A}$ as:
+  $\ListOf{x_1;\ldots;x_n} \DictionaryOrderOf{\leq} \ListOf{y_1;\ldots;y_m}$ if
+  $n < m$, or if $n = m = 0$, or if $n = m > 0$ and $x_n \leq y_n$ and
+  $\ListOf{x_1;\ldots;x_{n-1}} \DictionaryOrderOf{\leq}
+  \ListOf{y_1;\ldots;y_{n-1}}$.
+
+  Let $\leq$ be an orderin on $A$.  Define
 
 \subsection{Additional Proofs}
 \label{additional-proofs}
