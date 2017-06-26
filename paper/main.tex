@@ -48,6 +48,7 @@
 \usepackage{stackengine}
 \usepackage{caption}
 \usepackage{wrapfig}
+\usepackage{remreset}
 
 \usetikzlibrary{
   er,
@@ -144,7 +145,7 @@ ensures that the resulting functions are correct
 while
 reducing programmer tedium. 
 Specifically,
-we present \Optician{}, an algorithm for {\em type-directed synthesis} of bijective
+we present \Optician{}, an tool for {\em type-directed synthesis} of bijective
 string transformers in Boomerang, a bidirectional language based on the
 theory of {\em lenses}.  The inputs to \Optician{} are a pair of ordinary
 regular expressions representing the two data formats
@@ -444,12 +445,12 @@ we offer the following technical contributions: \bcp{The way this bit is
   respect to our high-level lens syntax.
 
 \item
-  We present \Optician{}, an efficient, type-directed synthesis algorithm for
+  We present an efficient, type-directed synthesis algorithm for
   synthesizing lenses (\S\ref{algorithm}).  We prove that if there is a lens
-  that satisfies the input specification, \Optician{} will return such a lens.
+  that satisfies the input specification, this algorithm will return such a lens.
 
 \item
-  We evaluate our core algorithm, its optimizations, and
+  We evaluate \Optician{}, its optimizations, and
   existing synthesis tools on \afm{26} benchmarks, including
   examples derived from Flash Fill~\cite{gulwani-popl-2014} and the
   Augeas~\cite{augeas} system (\S \ref{evaluation}).  We show that our
@@ -1271,21 +1272,29 @@ To include a large disjunction representing all valid title characters
 instead of the concise variable \TextChar{} in the definitions of \LegacyTitle{}
 and \ModernTitle{} would be unmaintainable and difficult to read.
 
+Unfortunately, leaving these variables opaque introduces a new dimension of
+search.  In addition to searching through the rewrites on regular expressions,
+the algorithm must also search through possible \emph{substitutions},
+replacements of variables with their definitions.
+We designate these two types of equivalences \emph{expansions}, using
+``rewrites'' to denote expansions which arise from traversing rewrite rules on
+the regular expressions, and
+using ``substitutions'' to denote expansions which arise from replacing a
+variable with its definition.
+
 \Optician{} can exploit the structure inherent in these named
-abbreviations to speed up the search dramatically.  For example, if
+abbreviations to speed up the search through dramatically.  For example, if
 \TextChar{} appears just once in both the source and the target types, the system
 hypothesizes that the identity lens can be used to convert between
 occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
 source but not in the target, the system recognizes that, to find a lens,
-\TextChar{} must be replaced with its
+\TextChar{} must be substituted by its
 definition.  In this way, the positions of names
-can serve as a guide for applying equivalence axioms in the synthesis
-algorithm.  By using these named abbreviations, \TypeProp{} guides the
+can serve as a guide for applying both substitutions and rewrite in the
+synthesis algorithm.  By using these named abbreviations, \TypeProp{} guides the 
 transformation of regular expression types
 during search by deducing when certain expansions must be taken, or when one of
-a class of expansions must be taken.  However, this approach does require
-\TypeProp{} to now do more than merely unroll stars, it must also replace types
-by their definitions.
+a class of expansions must be taken.
 % end overview
 
 
@@ -1940,28 +1949,29 @@ types that were discovered in the first step.
 \label{algorithm}
 
 \paragraph*{Synthesis Overview}
-An overview of the full synthesis algorithm, \Optician{}, is given in
-Algorithm~\ref{alg:synthlens}.  \Optician{} takes the source and target regular
+Algorithm~\ref{alg:synthlens} presents the synthesis procedure.
+\SynthLens{} takes the source and target regular
 expressions $\Regex$ and $\RegexAlt$, and a list of examples $\Examples$, as
 input. The algorithm first converts
 $\Regex$ and $\RegexAlt$ into DNF regular expressions
-$\DNFRegex_0$ and $\DNFRegexAlt_0$
+$\DNFRegex$ and $\DNFRegexAlt$
 using the $\ToDNFRegex$ operator.
 It then calls \SynthDNFLens{}
-on $\DNFRegex_0$, $\DNFRegexAlt_0$, and the examples
+on $\DNFRegex$, $\DNFRegexAlt$, and the examples
 to create a DNF lens $\DNFLens$.  
 Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 
 % finally tweaked for readability with \Beautify{}.
 
 \begin{algorithm}
-  \caption{\Optician}
+  \caption{\SynthLens}
   \label{alg:synthlens}
   \begin{algorithmic}[1]
     \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
     \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
     \While{$\True$}
-    \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}\quad(* \TypeProp *)$
+    \State $(\QueueElement,\Queue) \gets \Call{\Pop}{\Queue}\quad(* \TypeProp
+    *)$ \label{line:typeprop}
     \State $(\DNFRegex',\DNFRegexAlt',\ExpCount) \gets \QueueElement$
     \State $\DNFLensOption \gets
     \Call{\RigidSynth}{\DNFRegex',\DNFRegexAlt',\Examples}$
@@ -1977,7 +1987,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
     \EndFunction
     
     \Statex
-    \Function{Optician}{$\Regex,\RegexAlt,\Examples$}
+    \Function{SynthLens}{$\Regex,\RegexAlt,\Examples$}
     \State $(\DNFRegex,\DNFRegexAlt) \gets
     (\ToDNFRegexOf{\Regex},\ToDNFRegexOf{\RegexAlt})$
     \State $\DNFLens \gets \Call{SynthDNFLens}{\DNFRegex,\DNFRegexAlt,\Examples}$
@@ -1989,17 +1999,17 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
 the search for a DNF lens.  Each element in the queue
 $\QueueElement$, is a tuple of source and target DNF regular
-expressions $\DNFRegex$ and $\DNFRegexAlt$, and a count of the number
+expressions $\DNFRegex'$ and $\DNFRegexAlt'$, and a count of the number
 of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
 name for its definition used) $\ExpCount$ required to obtain these regular
-expressions from the originals, $\DNFRegex_0$ and
-$\DNFRegexAlt_0$. The priority of each queue element is $\ExpCount$; DNF regular
+expressions from the originals, $\DNFRegex$ and
+$\DNFRegexAlt$. The priority of each queue element is $\ExpCount$; DNF regular
 expressions that have undergone fewer expansions will get popped earlier.
 The algorithm initializes the queue with
-$\DNFRegex_0$ and $\DNFRegexAlt_0$, which have an expansion count of
+$\DNFRegex$ and $\DNFRegexAlt$, which have an expansion count of
 zero.  The algorithm then proceeds by iteratively examining the
-highest priority element from the queue (\TypeProp{} in
-Figure~\ref{fig:2-phased-schematic-diagram}), using the
+highest priority element from the queue (\TypeProp{} at
+Line~\ref{line:typeprop}), using the 
 function \RigidSynth{} to try to find a rewriteless DNF lens
 between the source and target DNF regular expressions that satisfy
 the examples \Examples{}.  If successful, the algorithm returns the
@@ -2075,30 +2085,52 @@ expressions.
 \end{algorithm}
 
 The inference of expansions is much of what allows \Optician{} to be
-efficient.  \Expand{} has three parts: \ExpandRequired{}, \FixProblemElts{}, and
+efficient.  \Expand{} has three major components: \ExpandRequired{}, \FixProblemElts{}, and
 \ExpandOnce{}.  The locations of where user defined data types, in terms of
 \emph{star depth} (the number of nested \Star{}s the data type occurs beneath),
-occur, is critical for \Expand{}.
+occur is critical for \Expand{}.
+Star depth locations are useful because we can quickly compute both the
+current star depths of user defined data types (with \GetCurrentSet{}) and the
+reachable star depths of user defined data types (with \GetTransitiveSet{}).
+Furthermore, the star depths of user defined data types have a useful property.
+
+\begin{restatable}{property}{udpairs}
+  \label{prop:udpairs}
+  If $\UserDef$ is present at star depth $\Int$ in $\DNFRegex$ and there
+  exists a rewriteless
+  DNF lens $\DNFLens$ such that $\DNFLens \OfRewritelessType \DNFRegex
+  \Leftrightarrow \DNFRegexAlt$, then $\UserDef$ is also present at star depth
+  $\Int$ in $\DNFRegexAlt$.  The symmetric property is true if $\UserDef$ is
+  present at star depth $\Int$ in $\DNFRegexAlt$.
+\end{restatable}
+
+Property~\ref{prop:udpairs} means that if we if there is a rewriteless DNF lens
+between two DNF regular expressions, then the same user defined
+data types must be present at the same locations in both of the DNF regular
+expressions. We use
+property to determine when certain rules must be applied, and to direct the search
+to rules that make progress towards this required alignment.
 
 \ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
 if a user defined data type $\UserDef$, at star depth $\Int$ is impossible 
 to reach through any number of expansions on the opposite side, then that user
-defined data type \emph{must} be replaced by its definition at that depth.
-This required expansion is apparent
+defined data type \emph{must} be substituted by its definition at that depth.
+This required substitution is apparent
 in trying to find a lens between $\DNFOf{\SequenceOf{\LegacyTitle}}$ and
 $\DNFOf{\SequenceOf{\ModernTitle}}$.  No matter how many expansions are taken on
 \VarCF{modern\_title}, \VarCF{legacy\_title} will not be exposed at depth 0 (or
 any other depth) as the set of possible reachable pairs of
 data types and star depths in \VarCF{modern\_title} is $\{(\ModernTitle,0),
-$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reach
-$\VarCF{\LegacyTitle}$, it must be expanded for a lens to be found.
-\ExpandRequired{} continues until no more expansions can be forced.
+$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reveal
+$\VarCF{\LegacyTitle}$ on the right, it must be substituted on the left for a
+lens to be found. \ExpandRequired{} continues until no more expansions can be
+forced. 
 
 \ExpandRequired{} finds all the expansions that must be performed, but doesn't
 perform any other expansions.  However, there are many situations where it is
 possible to infer that one of a set of expansions must be performed.
 For any pair of types that have a rewriteless lens
-between them, for each $(\UserDef,\Int)$ pair, in one regular expression, that
+between them, for each $(\UserDef,\Int)$ pair in one regular expression, that
 same pair must be present in the other regular expression.  \FixProblemElts{}
 identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
 expression.  After these problem elements have been identified, it then calls
@@ -2124,10 +2156,12 @@ one from an application of
 \AtomUnrollstarLeftRule{}, and one from an application of
 \AtomUnrollstarRightRule{}.
 
-While \FixProblemElts{} and \ExpandRequired{} are able to infer a huge number
-of expansions, there are still situations where they can't infer all necessary
-expansions. These situations typically appear in data formats with large amounts
-of similar information.  For example, in trying to synthesize the identity
+\FixProblemElts{} and \ExpandRequired{} apply many expansions, but not always
+all of the necessary ones.
+Typically, when \FixProblemElts{} and \ExpandRequired{} don't apply all the
+necessary expansions, the input data formats expect large amounts of similar
+information.
+For example, in trying to synthesize the identity
 transformation between \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
   \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
 \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)},
@@ -2138,7 +2172,7 @@ arises, \ExpandOnce{} performs a purely enumerative search by performing all
 single-step expansions.
 
 \paragraph*{\RigidSynth} 
-The function, \RigidSynth{}, implements the portion of \Optician{} that
+The function, \RigidSynth{}, implements the portion of \SynthLens{} that
 generates the lens from the types and examples.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
@@ -2259,7 +2293,7 @@ permutation used in the lens.
 
 By incorporating information about how examples are parsed in the
 orderings,
-\Optician{} guarantees not only that there will be a lens between the regular
+\SynthLens{} guarantees not only that there will be a lens between the regular
 expressions, but also
 that the lens will satisfy the examples.  For example if
 $\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
@@ -2271,21 +2305,21 @@ satisfies the examples.
 
 As an example, consider trying to find a DNF lens between
 \begin{lstlisting}
-$\DNFLeft \SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
-  $\DNFSep
+   $\DNFLeft$ $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
+  $\DNFSep\hspace*{.33mm}
   \SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
-    \SeqSep \StringCF{"<Field Id=2>"}}\DNFRight$
+    \SeqSep \StringCF{"<Field Id=2>"}}$ $\DNFRight$
 \end{lstlisting}
 and
 \begin{lstlisting}
-$\DNFLeft \SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
+   $\DNFLeft$ $\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{","}}$
-  $\DNFSep
-  \SequenceOf{\StringCF{""}}\DNFRight$
+  $\DNFSep\hspace*{.33mm}
+  \SequenceOf{\StringCF{""}}$ $\DNFRight$
 \end{lstlisting}
 As the legacy DNF regular expression passes to \RigidSynth{}, its two
 sequences get ordered
@@ -2481,7 +2515,7 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   \label{thm:alg-soundness}
   For all lenses $\Lens$, regular expressions $\Regex$ and $\RegexAlt$, and
   examples $\Examples$, 
-  if $\Lens = \Optician(\Regex,\RegexAlt,\Examples)$, then
+  if $\Lens = \SynthLens(\Regex,\RegexAlt,\Examples)$, then
   $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
   $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
   \SemanticsOf{\Lens}$.
@@ -2493,12 +2527,17 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   of examples $\Examples$, if
   $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ and for all
   $(\String,\StringAlt)$ in $\Examples$, $(\String,\StringAlt) \in
-  \SemanticsOf{\Lens}$, then $\Optician(\Regex,\RegexAlt,\Examples)$ will
+  \SemanticsOf{\Lens}$, then $\SynthLens(\Regex,\RegexAlt,\Examples)$ will
   return a lens.
 \end{restatable}
 
-The proofs of these, and the previous theorems, are provided in the extended
-version, and will be published in a tech report.
+Theorem~\ref{thm:alg-soundness} states that when we return a lens, that lens
+lens will match the specifications.  Theorem~\ref{thm:alg-completeness} states
+that if there is a DNF lens that satisfies the specification, then we will
+return a lens, but not necessarily the same one.  However, from
+Theorem~\ref{thm:alg-soundness}, we know that this lens will match the
+specifications.  The proofs of these, and the previous theorems, are provided in
+the extended version.
 
 % end implementation
 
@@ -2869,16 +2908,48 @@ bidirectional languages, we are less expressive in some of the functions
 we can express, as we require the synthesized functions to be bijective.
 
 There are many other recent results showing how to synthesize functions from
-type-based specifications~\cite{augustsson-2004,gvero-pldi-2013,tds-pldi,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,armando+:pldi16}.  While we were inspired by this work,
-we found we needed new techniques to manage the multi-dimensional search
-space generated by regular expression equivalences and other aspects of lens
-combinator languages like Augeas and Boomerang.  Hence, despite the
-similarity of approach, there is not actually much technical similarity
-with past type-directed synthesis algorithms.
+type-based
+specifications~\cite{augustsson-2004,tds-pldi,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,armando+:pldi16}.
+These systems enumerate programs of their target language, orienting their
+search procedures to not process terms which would not be 
+well-typed and matching the specifications.
+Our system is distinctive in that our typing rules have many
+equivalences on their types: subsumption can always be used, and finding the
+correct type to subsume the existing one introduces another infinite search.
+Only \InSynth{}~\cite{gvero-pldi-2013} works on a system with many equivalences
+on the types.  \InSynth{} takes a similar approach of creating an alternative
+language which identifies equivalent types.
+Our types are much more complex; our system handles the equivalences of a star
+semiring instead of those of cartesian closed category.
+Furthermore, the relationship between types and terms in Boomerang does not
+permit us to identify all equivalent terms, instead \Optician{} must
+process some equivalences on the types themselves.
 
-\bcp{Just going by length, the related work section seems a bit skimpy...}
-\afm{Ideas for ways to expand: more in depth on similar type-directed synthesis
-  things; more discussion on similar proofs}
+\Morpheus{}~\cite{morpheus} is a synthesis system which also uses two
+communicating synthesizers to generate programs.  In \Morpheus{} and \Optician{}, 
+one synthesizer provides an 
+outline for the program (as a sketch in \Morpheus{}, as a DNF regular expression
+pair in \Optician{}), and the other fills in that outline with program
+details which satisfy the user's specifications.
+This approach works well in large search spaces, which
+require some enumerative search.  Using two synthesizers allows the first
+synthesizer to perform this enumerative search, and the second to fill in the
+details ensuring the specifications are satisfied.
+However, to na\"ively search through Boomerang lenses 
+with one synthesizer processing type equivalences and the other generating
+lenses, we would lose expressivity; only through changing the language and
+typing derivations did this approach apply.
+
+Many synthesis algorithms work on domain-specific
+languages custom built for
+synthesis~\cite{flashfill,le-pldi-2014,solar-lezama-thesis-2008,yag+:pldi16}.  We
+too built a custom domain-specific 
+language for synthesis -- DNF lenses.  However, we provide the capabilities to
+convert specifications in an existing language, Boomerang, to specifications as
+DNF regular expressions, and provide the 
+capabilities to convert our generated DNF lenses to Boomerang lenses.
+Furthermore, we also provide completeness results stating exactly which terms of
+Boomerang we are able to synthesize.
 
 %% \paragraph*{FlashFill}
 %% FlashFill~\cite{gulwani-popl-2014} is a string transformation
@@ -3170,6 +3241,11 @@ lenses with respect to lenses.
 
 \item Subsection~\ref{completeness} proves the completeness of dnf lenses with
   respect to lenses.
+
+\item Subsection~\ref{alg-correctness} proves the algorithm correct.
+
+\item Subsection~\ref{additional-proofs} proves some random statements we make,
+  but don't formally express, in the paper.
 \end{itemize}
 
 \subsection{Confluence Proofs}
@@ -16209,7 +16285,32 @@ lemma involving rewrites and lens expressibility.
   \]
 \end{proof}
 
-\section{Additional Proofs}
+\subsection{Algorithm Correctness}
+\label{alg-correctness}
+
+We use an auxiliary data structure of a set-of-examples-parse-tree to define the
+orderings.
+
+We use \IntList{} to denote list of ints.
+
+We use \IntListList{} to denote a list of int lists.
+
+Define an exampled DNF regular expression as:
+\begin{center}
+  \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+    % DNF_REGEX
+    \Atom{},\AtomAlt{} & \GEq{} & \StarOf{\DNFRegex{}}
+% & \StarAtomType{}
+\\
+    \Sequence{},\SequenceAlt{} & \GEq{} & $\SequenceOf{\String_0\SeqSep\Atom_1\SeqSep\ldots\SeqSep\Atom_n\SeqSep\String_n}$ 
+%& \MultiConcatSequenceType{} 
+\\
+    \DNFRegex{},\DNFRegexAlt{} & \GEq{} & $\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}$ %& \MultiOrDNFRegexType{} 
+  \end{tabular}
+\end{center}
+
+\subsection{Additional Proofs}
+\label{additional-proofs}
 
 In the paper, some claims were made that aren't necessarily the main theorems.
 In this area we prove those claims.
@@ -16328,10 +16429,50 @@ In this area we prove those claims.
   $\IsBisimilarWithPropertyOf{\Rewrite}{\DNFLensHasSemanticsOf{\Lens}}$.
 \end{proof}
 
-Thus, if we have confluence and bisimilarity on rewrites for regular
-expressions, then we also do for the DNF rewrites they induce.  As such, because
+\begin{lemma}
+  If $\Rewrite$ doesn't introduce ambiguity, then neither does
+  $\Rewrite_{\ToDNFRegex}$.
+\end{lemma}
+\begin{proof}
+  Let $\DNFRegex \Rewrite_{\ToDNFRegex} \DNFRegexAlt$, where $\DNFRegex$ is
+  strongly unambiguous.  This means $\DNFRegex =
+  \ToDNFRegexOf{\Regex}$ and $\DNFRegexAlt = \ToDNFRegexOf{\RegexAlt}$, and
+  $\Regex \Rewrite \RegexAlt$.  As $\ToDNFRegexOf{\Regex}$ is strongly
+  unambiguous iff $\Regex$ is, $\Regex$ is strongly unambiguous.  By assumption,
+  we now have $\RegexAlt$ is strongly unambiguous, so then
+  $\ToDNFRegexOf{\RegexAlt}$ also is.
+\end{proof}
+
+\begin{lemma}
+  If $\Rewrite_{\ToDNFRegex}$ doesn't introduce ambiguity, then neither does
+  $\Rewrite$.
+\end{lemma}
+\begin{proof}
+  Let $\Regex \Rewrite \RegexAlt$, where $\Regex$ is
+  strongly unambiguous.  This means 
+  $\ToDNFRegexOf{Regex} \Rewrite_{\ToDNFRegex} \ToDNFRegexOf{\RegexAlt}$.
+  By assumption, that means $\ToDNFRegexOf{\RegexAlt}$ is strongly unambiguous.
+  As $\ToDNFRegexOf{\RegexAlt}$ strongly unambiguous iff $\RegexAlt$ strongly
+  unambiguous, by assumption we have $\RegexAlt$ is strongly unambiguous.
+\end{proof}
+
+\begin{lemma}
+  $\Rewrite_{\ToDNFRegex}$ maintains the language if, and only if $\Rewrite$ does.
+\end{lemma}
+\begin{proof}
+  $\Regex \Rewrite \RegexAlt$.
+  $\LanguageOf{\Regex} = \LanguageOf{\ToDNFRegexOf{\Regex}}$.
+  $\LanguageOf{\RegexAlt} = \LanguageOf{\ToDNFRegexOf{\RegexAlt}}$. 
+  $\ToDNFRegexOf{\Regex} = \LanguageOf{\ToDNFRegexOf{\RegexAlt}}$.
+  $\ToDNFRegexOf{\Regex} \Rewrite_{\ToDNFRegex} \ToDNFRegexOf{\RegexAlt}$.
+  $\DNFRegex \Rewrite_{\ToDNFRegex} \DNFRegexAlt$.
+\end{proof}
+
+Thus, we have confluence, bisimilarity, unambiguity retention, language
+retention on rewrites for regular
+expressions, iff we also do for the DNF rewrites they induce.  As such, because
 confluence and bisimilarity, alongside not introducing ambiguity or changing the
-language, is sufficient on dNF rewrites, then it is sufficient on rewrite
+language, is sufficient on DNF rewrites, then it is sufficient on rewrite
 rules for regular expressions as a sufficient condition is fulfilled.
 
 \begin{lemma}
