@@ -2,7 +2,7 @@
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
-\newif\ifappendices\appendicesfalse
+\newif\ifappendices\appendicestrue
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \documentclass[acmsmall]{acmart}
@@ -2218,7 +2218,7 @@ corresponding lens.
     \Sequence$
     \State $\SequenceOf{\StringAlt_0 \SeqSep \AtomAlt_1 \SeqSep \ldots \SeqSep
       \AtomAlt_m \SeqSep \StringAlt_m} \gets
-    \Sequence$
+    \SequenceAlt$
     \If {$n \neq m$}
     \State $\ReturnVal{\None}$
     \EndIf
@@ -16300,40 +16300,55 @@ lemma involving rewrites and lens expressibility.
 We use an auxiliary data structure of a set-of-examples-parse-tree to define the
 orderings.
 
-We use \IntList{} to denote list of ints.
+\begin{definition}
+  We use \IntList{} to denote list of ints.
+\end{definition}
 
-We use \IntListSet{} to denote a set of int lists.
+\begin{definition}
+  We use \IntListSet{} to denote a set of int lists.
+\end{definition}
 
-We use \StringIntListSet{} to denote a set of string and int list pairs.
+\begin{definition}
+  We use \StringIntListSet{} to denote a set of string and int list pairs.  We
+  also require that the int lists are distinct.
+\end{definition}
 
-To get the strings out of $\StringIntListSet$, we use $\ProjectStrings$.  In
-particular,
-$\ProjectStringsOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
-= \SetOf{\String_1,\ldots,\String_n}$.
+\begin{definition}
+  To get the strings out of $\StringIntListSet$, we use $\ProjectStrings$.  In
+  particular,
+  $\ProjectStringsOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
+  = \SetOf{\String_1,\ldots,\String_n}$.
+\end{definition}
 
-To get the int lists out of $\StringIntListSet$, we use $\ProjectILS$.  In
-particular,
-$\ProjectILSOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
-= \SetOf{\IntList_1,\ldots,\IntList_n}$.
+\begin{definition}
+  To get the int lists out of $\StringIntListSet$, we use $\ProjectILS$.  In
+  particular,
+  $\ProjectILSOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_n,\IntList_n)}}
+  = \SetOf{\IntList_1,\ldots,\IntList_n}$.
+\end{definition}
 
-Define an exampled atom, exampled sequence, and exampled DNF regular expression as:
-\begin{center}
-  \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
-    % DNF_REGEX
-    \ExampledAtom{},\ExampledAtomAlt{} & \GEq{} & (\StarOf{\ExampledDNFRegex{}},\IntListSet{})
-% & \StarAtomType{}
-\\
-    \ExampledSequence{},\ExampledSequenceAlt{} & \GEq{} &
-      $(\SequenceOf{\String_0\SeqSep\ExampledAtom_1\SeqSep\ldots\SeqSep\ExampledAtom_n\SeqSep\String_n},\IntListSet)$
-%& \MultiConcatSequenceType{} 
-\\
-    \ExampledDNFRegex{},\ExampledDNFRegexAlt{} & \GEq{} &
-      $(\DNFOf{\ExampledSequence_1\DNFSep\ldots\DNFSep\ExampledSequence_n},\IntListSet)$ %& \MultiOrDNFRegexType{} 
-  \end{tabular}
-\end{center}
+\begin{definition}
+  Define an exampled atom, exampled sequence, and exampled DNF regular expression as:
+  \begin{center}
+    \begin{tabular}{l@{\ }c@{\ }l@{\ }>{\itshape\/}r}
+      % DNF_REGEX
+      \ExampledAtom{},\ExampledAtomAlt{} & \GEq{} & (\StarOf{\ExampledDNFRegex{}},\IntListSet{})
+      % & \StarAtomType{}
+      \\
+      \ExampledSequence{},\ExampledSequenceAlt{} & \GEq{} &
+                                                            $(\SequenceOf{\String_0\SeqSep\ExampledAtom_1\SeqSep\ldots\SeqSep\ExampledAtom_n\SeqSep\String_n},\IntListSet)$
+                                                            % & \MultiConcatSequenceType{} 
+      \\
+      \ExampledDNFRegex{},\ExampledDNFRegexAlt{} & \GEq{} &
+                                                            $(\DNFOf{\ExampledSequence_1\DNFSep\ldots\DNFSep\ExampledSequence_n},\IntListSet)$ %& \MultiOrDNFRegexType{} 
+    \end{tabular}
+  \end{center}
+\end{definition}
 
 Intuitively, an exampled regular expression is a DNF regular expression, with the
-parse trees for a number of strings which match it embedded.  We build the
+parse trees for a number of strings which match it embedded.
+
+We build the
 typing derivation of the form
 $\StringIntListSet \in \DNFRegex
 \Generates \ExampledDNFRegex$ to express that the strings
@@ -16344,6 +16359,7 @@ $\DNFRegex$, generate $\ExampledDNFRegex$.
 Similarly for $\Sequence$ and $\ExampledSequence$, and $\Atom$ and
 $\ExampledAtom$.
 
+\begin{definition}
   \begin{mathpar}
     \inferrule[]
     {
@@ -16397,32 +16413,290 @@ $\ExampledAtom$.
       \ProjectILSOf{\BigUnion_{i\in\RangeIncInc{1}{n}} \StringIntListSet_i})
     }
   \end{mathpar}
+\end{definition}
 
-  Now, we are going to build up the machinery to define an ordering on exampled
-  DNF regular expressions, exampled sequences, and exampled atoms.
+This is a big typing derivation, and we feel it is clear that, when a DNF
+regular expression is strongly unambiguous, this typing derivation is unique for
+a given set of strings and DNF regular expression, so it is functional from the
+first two arguments of the derivation.  Furthermore, we can perform this
+function by doing case analysis on all the possible ways the string is split up
+(though it is slow).  We perform this function by performing this embedding the
+function into a NFA matching algorithm.  We elide these details.
 
-  Let $\leq$ be an ordering on $A$.  Let $\ListOf{x_1,\ldots,\x_n}$ be a list of
+\begin{definition}
+  Define \EmbedExamples{} as the function from DNF Regex $\DNFRegex$ and intlist
+  labelled examples $\StringIntListSet$ to
+  exampled DNF regex, such that $\StringIntListSet \in \DNFRegex \Generates
+  \EmbedExamplesOf{\StringIntListSet}{\DNFRegex}$
+\end{definition}
+
+Now, we are going to build up the machinery to define an ordering on exampled
+DNF regular expressions, exampled sequences, and exampled atoms.  We need to
+define some general orderings first.
+
+\begin{definition}
+  Let $\leq$ be an ordering on $A$.  Let $\ListOf{x_1,\ldots,x_n}$ be a list of
   $A$s.  Define $\SortingOf{\ListOf{x_1;\ldots;x_n}}{\leq}$ as a permutation $\sigma
   \in \PermutationSetOf{n}$ such that $\sigma(i) \leq \sigma(j) \BooleanImplies
   x_{\sigma(i)} \leq x_{\sigma(j)}$.
+\end{definition}
 
-  Let $\leq$ be an ordering on $A$.  Let $\ListOf{x_1;\ldots;\x_n}$ be a list of
+\begin{definition}
+  Let $\leq$ be an ordering on $A$.  Let $\ListOf{x_1;\ldots;x_n}$ be a list of
   $A$s.  Define $\SortOf{\ListOf{x_1;\ldots;x_n}}{\leq} =
   \ListOf{x_{\sigma(1)};\ldots;x_{\sigma(n)}}$  where $\sigma =
-  \SortingOf{\ListOf{x_1;\ldots;x_n}}$.
+  \SortingOf{\ListOf{x_1;\ldots;x_n}}{\leq}$.
+\end{definition}
 
-  Let $\leq$ be an ordering on $A$.  Define $\DictionaryOrderOf{\leq}$ as the
-  ordering on $\ListTypeOf{A}$ as:
-  $\ListOf{x_1;\ldots;x_n} \DictionaryOrderOf{\leq} \ListOf{y_1;\ldots;y_m}$ if
-  $n < m$, or if $n = m = 0$, or if $n = m > 0$ and $x_n \leq y_n$ and
-  $\ListOf{x_1;\ldots;x_{n-1}} \DictionaryOrderOf{\leq}
-  \ListOf{y_1;\ldots;y_{n-1}}$.
+\begin{definition}
+  Let $\leq_1$ be an ordering on $A_1$.  Let $\leq_2$ be an ordering on $A_2$.
+  Define the product ordering $(\leq_1,\leq_2)$ on $A_1 \times A_2$ as the
+  lexicographic ordering on the two elements.
+\end{definition}
 
+\begin{definition}
+  Let $\leq$ be an ordering on $A$.  We write $\DictionaryOrderOf{\leq}$ for
+  the lexicographic ordering on $\ListTypeOf{A}$.
+\end{definition}
+
+\begin{definition}
   Let $\leq$ be an ordering on $A$.  Define $\SetOfListOrderOf{\leq}$ as the
   ordering on $\ListTypeOf{A}$ as:
   $\ListOf{x_1;\ldots;x_n} \SetOfListOrderOf{\leq} \ListOf{y_1;\ldots;y_m}$ if
   $\SortOf{x_1;\ldots;x_n}{\leq} \DictionaryOrderOf{\leq}
   \SortOf{y_1;\ldots;y_m}{\leq}$.
+  We also use $\SetOfListOrderOf{\leq}$ to operate on sets, by first converting
+  the set to a list, then using that ordering.
+\end{definition}
+
+\begin{definition}
+  Define an ordering on int list sets, $\ILSLeq$, as
+  $\SetOfListOrderOf{\DictionaryOrderOf{\leq}}$, where $\leq$ is the usual on
+  integers.
+\end{definition}
+
+Now we can define what $\ExampledAtomLeq$, $\ExampledSequenceLeq$ and
+$\ExampledDNFLeq$ are, mutually.
+
+\begin{definition}\leavevmode
+  \begin{itemize}
+  \item We say $(\StarOf{\ExampledDNFRegex}, \IntListSet_1) \ExampledAtomLeq
+    (\StarOf{\ExampledDNFRegexAlt}, \IntListSet_2)$ if
+    $(\ExampledDNFRegex,\IntListSet_1)
+    (\ExampledDNFLeq,\ILSLeq)
+    (\ExampledDNFRegexAlt,\IntListSet_2)$.
+  \item We say
+    $(\SequenceOf{\String_0 \SeqSep \ExampledAtom_1 \SeqSep \ldots
+      \SeqSep \ExampledAtom_n \SeqSep \String_n},\IntListSet_1) \ExampledSequenceLeq
+    (\SequenceOf{\StringAlt_0 \SeqSep \ExampledAtomAlt_1 \SeqSep \ldots \SeqSep
+      \ExampledAtomAlt_m \SeqSep \StringAlt_n},\IntListSet_2)$ if
+    $(\ListOf{\ExampledAtom_1 ; \ldots ; \ExampledAtom_n},\IntListSet_1)
+    (\DictionaryOrderOf{\ExampledAtomLeq},\ILSLeq)
+    (\ListOf{\ExampledAtomAlt_1 ; \ldots ; \ExampledAtomAlt_m},\IntListSet_2)$.
+  \item We say
+    $(\DNFOf{\ExampledSequence_1 \DNFSep \ldots
+      \DNFSep \ExampledSequence_n},\IntListSet_1) \ExampledDNFLeq
+    (\DNFOf{\ExampledSequenceAlt_1 \DNFSep \ldots \DNFSep
+      \ExampledSequenceAlt_n},\IntListSet_2)$ if
+    $(\ListOf{\ExampledSequence_1 ; \ldots ; \ExampledSequence_n},\IntListSet_1)
+    (\DictionaryOrderOf{\ExampledSequenceLeq},\ILSLeq)
+    (\ListOf{\ExampledSequenceAlt_1 ; \ldots ;
+      \ExampledSequenceAlt_m},\IntListSet_2)$.
+  \end{itemize}
+\end{definition}
+
+Now, using this we provide the more formal definition of algorithm, with the
+formal use of the examples in Algorithm~\ref{alg:rigidsynthreal}.  We do not
+include information about user defined data types.
+
+\begin{algorithm}
+  \caption{\RigidSynth}
+  \label{alg:rigidsynthreal}
+  \begin{algorithmic}[1]
+    \Function{\RigidSynthAtom}{$\StarOf{\ExampledDNFRegex},\StarOf{\ExampledDNFRegexAlt{}}$}
+    \Switch{$\RigidSynth(\ExampledDNFRegex,\ExampledDNFRegexAlt)$}
+    \CaseTwo{\SomeOf{\DNFLens}}{\ReturnVal{\IterateLensOf{\DNFLens}}}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
+    \EndSwitch
+    \EndFunction
+
+    \Statex
+
+    \Function{\RigidSynthSequence}{$\ExampledSequence,\ExampledSequenceAlt$}
+    \State $\SequenceOf{\String_0 \SeqSep \ExampledAtom_1 \SeqSep \ldots \SeqSep \ExampledAtom_n
+      \SeqSep \String_n} \gets
+    \ExampledSequence$
+    \State $\SequenceOf{\StringAlt_0 \SeqSep \ExampledAtomAlt_1 \SeqSep \ldots \SeqSep
+      \ExampledAtomAlt_m \SeqSep \StringAlt_m} \gets
+    \ExampledSequenceAlt$
+    \If {$n \neq m$}
+    \State $\ReturnVal{\None}$
+    \EndIf
+    \State $\sigma_1 \gets \SortingOf{\ExampledAtomLeq}{\ListOf{\ExampledAtom_1
+        \SeqSep \ldots \SeqSep \ExampledAtom_n}}$
+    \State $\sigma_2 \gets \SortingOf{\ExampledAtomLeq}{\ListOf{\ExampledAtomAlt_1
+        \SeqSep \ldots \SeqSep \ExampledAtomAlt_n}}$
+    \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
+    \State $\mathit{EABs} \gets
+    \Call{Zip}{\ListOf{\ExampledAtom_1 \SeqSep \ldots \SeqSep
+        \ExampledAtom_n},\ListOf{\ExampledAtomAlt_{\sigma(1)} \SeqSep \ldots \SeqSep \ExampledAtomAlt_{\sigma(n)}}}$
+    \State $\mathit{alos} \gets
+    \Call{\Map}{\RigidSynthAtom,\mathit{EABs}}$
+    \Switch{$\Call{AllSome}{\mathit{alos}}$}
+    \CaseTwo {\SomeOf{\ListOf{\AtomLens_1 \SeqSep \ldots \SeqSep
+          \AtomLens_n}}}{$\ReturnVal{\SomeOf{(\SequenceLensOf{(\String_0,\StringAlt_0)
+            \SeqSep \AtomLens_1 \SeqSep \ldots \SeqSep \AtomLens_n \SeqSep (\String_n,\StringAlt_n)},\sigma)}}$}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
+    \EndSwitch
+    \EndFunction
+
+    \Statex
+ 
+    \Function{\RigidSynthInternal}{$\ExampledDNFRegex,\ExampledDNFRegexAlt$}
+    \State $\DNFOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep \ExampledSequence_n} \gets
+    \ExampledDNFRegex$
+    \State $\DNFOf{\ExampledSequenceAlt_1 \DNFSep \ldots \DNFSep \ExampledSequenceAlt_m} \gets
+    \ExampledDNFRegexAlt$
+    \If {$n \neq m$}
+    \State $\ReturnVal{\None}$
+    \EndIf
+    \State $\sigma_1 \gets
+    \SortingOf{\ExampledSequenceLeq}{\ListOf{\ExampledSequence_1 \DNFSep \ldots
+        \DNFSep \ExampledSequence_n}}$
+    \State $\sigma_2 \gets
+    \SortingOf{\ExampledSequenceLeq}{\ListOf{\ExampledSequenceAlt_1 \DNFSep \ldots
+        \DNFSep \ExampledSequenceAlt_n}}$
+    \State $\sigma \gets \InverseOf{\sigma_2} \circ \sigma_1$
+    \State $\mathit{ESTQs} \gets
+    \Call{Zip}{\ListOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep
+        \ExampledSequence_n},\ListOf{\ExampledSequenceAlt_{\sigma(1)} \DNFSep \ldots \DNFSep \ExampledSequenceAlt_{\sigma(n)}}}$
+    \State $\mathit{sqlos} \gets
+    \Call{\Map}{\RigidSynthSequence,\mathit{ESTQs}}$
+    \Switch{$\Call{AllSome}{\mathit{sqlos}}$}
+    \CaseTwo {\SomeOf{\ListOf{\SequenceLens_1 \DNFSep \ldots \DNFSep
+          \SequenceLens_n}}}{$\ReturnVal{\SomeOf{(\DNFLensOf{\SequenceLens_1
+            \DNFSep \ldots \DNFSep \SequenceLens_n},\sigma)}}$}
+    \EndCaseTwo
+    \CaseTwo {\None}{$\ReturnVal{\None}$}
+    \EndCaseTwo
+    \EndSwitch
+    \EndFunction
+    \Statex
+
+    \Function{\RigidSynth}{$\DNFRegex,\DNFRegexAlt,\Examples$}
+    \State $\ListOf{(\String_1,\StringAlt_1);\ldots;(\String_n,\StringAlt_n)}
+    \gets \Examples$
+    \State $\ExampledDNFRegex \gets
+    \EmbedExamplesOf{\ListOf{([1],\String_1);\ldots;([n],\String_n)}}{\DNFRegex}$
+    \State $\ExampledDNFRegexAlt \gets
+    \EmbedExamplesOf{\ListOf{([1],\StringAlt_1);\ldots;([n],\StringAlt_n)}}{\DNFRegexAlt}$
+    \State $\ReturnVal{\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)}$
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{lemma}\leavevmode
+  \begin{itemize}
+  \item
+    Let $\Atom$ and $\AtomAlt$ be DNF regular expressions.
+    Let $\StringIntListSet_1$ be a string int list set.
+    Let $\StringIntListSet_2$ be a string int list set.
+    Let $\ProjectILSOf{\StringIntListSet_1} =
+    \ProjectILSOf{\StringIntListSet_2}$.
+    Let $\ExampledAtom$ and $\ExampledAtomAlt$ be exampled atoms.
+    Let $\StringIntListSet_1 \in \Atom \Generates \ExampledDNFRegex$.
+    Let $\StringIntListSet_2 \in \AtomAlt \Generates \ExampledDNFRegexAlt$.
+    If $\AtomLens \OfRewritelessType \Atom \Leftrightarrow \AtomAlt$,
+    and for each $(\String,\StringAlt)$ pair with the same int list in
+    $\StringIntListSet_1$ and $\StringIntListSet_2$, $(\String,\StringAlt) \in
+    \SemanticsOf{\AtomLens}$, then
+    $\ExampledAtom \ExampledAtomLeq \ExampledAtomAlt$ and
+    $\ExampledAtomAlt \ExampledAtomLeq \ExampledAtom$.
+  \item
+    Let $\Sequence$ and $\SequenceAlt$ be DNF regular expressions.
+    Let $\StringIntListSet_1$ be a string int list set.
+    Let $\StringIntListSet_2$ be a string int list set.
+    Let $\ProjectILSOf{\StringIntListSet_1} =
+    \ProjectILSOf{\StringIntListSet_2}$.
+    Let $\ExampledSequence$ and $\ExampledSequenceAlt$ be exampled sequences.
+    Let $\StringIntListSet_1 \in \Sequence \Generates \ExampledDNFRegex$.
+    Let $\StringIntListSet_2 \in \SequenceAlt \Generates \ExampledDNFRegexAlt$.
+    If $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$,
+    and for each $(\String,\StringAlt)$ pair with the same int list in
+    $\StringIntListSet_1$ and $\StringIntListSet_2$, $(\String,\StringAlt) \in
+    \SemanticsOf{\SequenceLens}$, then
+    $\ExampledSequence \ExampledSequenceLeq \ExampledSequenceAlt$ and
+    $\ExampledSequenceAlt \ExampledSequenceLeq \ExampledSequence$.
+  \item
+    Let $\DNFRegex$ and $\DNFRegexAlt$ be DNF regular expressions.
+    Let $\StringIntListSet_1$ be a string int list set.
+    Let $\StringIntListSet_2$ be a string int list set.
+    Let $\ProjectILSOf{\StringIntListSet_1} =
+    \ProjectILSOf{\StringIntListSet_2}$.
+    Let $\ExampledDNFRegex$ and $\ExampledDNFRegexAlt$ be exampled DNF regular
+    expressions.
+    Let $\StringIntListSet_1 \in \DNFRegex \Generates \ExampledDNFRegex$.
+    Let $\StringIntListSet_2 \in \DNFRegexAlt \Generates \ExampledDNFRegexAlt$.
+    If $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$,
+    and for each $(\String,\StringAlt)$ pair with the same int list in
+    $\StringIntListSet_1$ and $\StringIntListSet_2$, $(\String,\StringAlt) \in
+    \SemanticsOf{\DNFLens}$, then
+    $\ExampledDNFRegex \ExampledDNFLeq \ExampledDNFRegexAlt$ and
+    $\ExampledDNFRegexAlt \ExampledDNFLeq \ExampledDNFRegex$.
+  \end{itemize}
+\end{lemma}
+
+\begin{lemma}\leavevmode
+  \begin{itemize}
+  \item
+    Let $\ExampledAtom$ and $\ExampledAtomAlt$ be exampled atoms.
+    If $\ExampledAtom \ExampledAtomLeq \ExampledAtomAlt$ and
+    $\ExampledAtomAlt \ExampledAtomLeq \ExampledAtom$, then
+    $\RigidSynthAtom$ returns a lens.
+  \item
+    Let $\ExampledSequence$ and $\ExampledSequenceAlt$ be exampled atoms.
+    If $\ExampledSequence \ExampledSequenceLeq \ExampledSequenceAlt$ and
+    $\ExampledSequenceAlt \ExampledSequenceLeq \ExampledSequence$, then
+    $\RigidSynthSequence$ returns a lens.
+  \item
+    Let $\ExampledDNFRegex$ and $\ExampledDNFRegexAlt$ be exampled atoms.
+    If $\ExampledDNFRegex \ExampledDNFLeq \ExampledDNFRegexAlt$ and
+    $\ExampledDNFRegexAlt \ExampledDNFLeq \ExampledDNFRegex$, then
+    $\RigidSynthInternal$ returns a lens.
+  \end{itemize}
+\end{lemma}
+
+%\begin{lemma}\leavevmode
+%  \begin{itemize}
+%  \item If $\RigidSynthAtom(\ExampledAtom,\ExampledAtomAlt)$
+%    returns a lens, then $\ExampledAtom \ExampledAtomLeq \ExampledAtomAlt$ and
+%    $\ExampledAtomAlt \ExampledAtomLeq \ExampledAtom$.
+%  \item If $\RigidSynthSequence(\ExampledSequence,\ExampledSequenceAlt)$
+%    returns a lens, then $\ExampledSequence \ExampledSequenceLeq \ExampledSequenceAlt$ and
+%    $\ExampledSequenceAlt \ExampledSequenceLeq \ExampledSequence$.
+%  \item If $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$
+%    returns a lens, then $\ExampledDNFRegex \ExampledDNFLeq \ExampledDNFRegexAlt$ and
+%    $\ExampledDNFRegexAlt \ExampledDNFLeq \ExampledDNFRegex$.
+%  \end{itemize}
+%\end{lemma}
+%
+%\begin{lemma}\leavevmode
+%  \begin{itemize}
+%  \item If $\RigidSynthAtom(\ExampledAtom,\ExampledAtomAlt)$
+%    returns a lens, then $\ExampledAtom \ExampledAtomLeq \ExampledAtomAlt$ and
+%    $\ExampledAtomAlt \ExampledAtomLeq \ExampledAtom$.
+%  \item If $\RigidSynthSequence(\ExampledSequence,\ExampledSequenceAlt)$
+%    returns a lens, then $\ExampledSequence \ExampledSequenceLeq \ExampledSequenceAlt$ and
+%    $\ExampledSequenceAlt \ExampledSequenceLeq \ExampledSequence$.
+%  \item If $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$
+%    returns a lens, then $\ExampledDNFRegex \ExampledDNFLeq \ExampledDNFRegexAlt$ and
+%    $\ExampledDNFRegexAlt \ExampledDNFLeq \ExampledDNFRegex$.
+%  \end{itemize}
+%\end{lemma}
 
 \subsection{Additional Proofs}
 \label{additional-proofs}
@@ -16589,9 +16863,6 @@ expressions, iff we also do for the DNF rewrites they induce.  As such, because
 confluence and bisimilarity, alongside not introducing ambiguity or changing the
 language, is sufficient on DNF rewrites, then it is sufficient on rewrite
 rules for regular expressions as a sufficient condition is fulfilled.
-
-\begin{lemma}
-\end{lemma}
 
 \fi
 
