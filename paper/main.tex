@@ -2,7 +2,7 @@
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
-\newif\ifappendices\appendicestrue
+\newif\ifappendices\appendicesfalse
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \documentclass[acmsmall]{acmart}
@@ -425,14 +425,7 @@ We begin by briefly reviewing some background on regular expressions and core
 lens combinators (\S\ref{preliminaries}).
 After we motivate our problem
 with an extended, real-world example (\S\ref{overview}),
-we offer the following technical contributions: \bcp{The way this bit is
-  written makes it sound as though we are claiming ``pseudo-canonical DNF
-  regular expressions and DNF lenses'' as our primary contribution, which
-  comes off as rather weak---these things are not an especially exciting
-  contribution in themselves: they're just a technical device to facilitate
-  synthesis.  } \afm{I tried changing the contributions up a bit (in particular,
-  the second bullet), but I'm not
-  sure if it achieves the desired effect.}
+we offer the following technical contributions:
 
 \begin{itemize}
 \item 
@@ -440,7 +433,7 @@ we offer the following technical contributions: \bcp{The way this bit is
   (\S\ref{sec:dnfre} and \S\ref{sec:dnf}).  
   We show how to convert ordinary regular expressions and lenses
   into the corresponding DNF forms, and we prove that DNF lenses are sound
-  and complete with respect to our\bcp{``the usual''?} high-level lens syntax.
+  and complete with respect to the high-level bijective lens syntax.
 
 \item
   We present an efficient, type-directed synthesis algorithm for
@@ -925,12 +918,12 @@ web APIs for continued support of legacy
 clients~\cite{team-explorer}.  Instead of maintaining server code for each endpoint,
 we envision an architecture that uses a lens to convert resources of
 the old form into resources of the new form and vice versa, as shown in
-Figure~\ref{subfig:vsts-arch}.  To avoid errors and expedite the
-process, we would like synthesize this lens.
-\bcp{Will our system really make it all that much better?
- We'll still have to collect types and examples by hand for the same large
- number of existing endpoints...} \afm{I think so, we're reducing it by a
- constant factor.}
+Figure~\ref{subfig:vsts-arch}.  Writing each of these converters by hand is slow
+and error prone.  We speed up this process by only requiring users to
+input regular expressions and input-output examples.  Furthermore, the generated
+lenses are guaranteed 
+to map between the provided regular expressions and to act correctly on the
+provided examples. 
 
 Consider a ``Work Item,'' a resource that represents a task given to a
 team.  Idealized versions of the representations of work items from the new and
@@ -1965,7 +1958,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 
 \begin{algorithm}
   \caption{\SynthLens}
-  \label{alg:synthlens}
+  \label{alg:synthlens2}
   \begin{algorithmic}[1]
     \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
     \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
@@ -16733,7 +16726,7 @@ include information about user defined data types.
     If  $\RigidSynthSequence(\ExampledSequence,\ExampledSequenceAlt)$ returns
     a sequence lens, $\SomeOf{\SequenceLens}$, then $\SequenceLens
     \OfRewritelessType \Sequence 
-    \Leftrightarrow \SequenceAlt$, and for each $(\String,\StringALt)$ pair with
+    \Leftrightarrow \SequenceAlt$, and for each $(\String,\StringAlt)$ pair with
     the same int list in $\StringIntListSet_1$ and $\StringIntListSet_2$,
     $(\String,\StringAlt) \in \SemanticsOf{\SequenceLens}$.
   \item
@@ -16747,10 +16740,10 @@ include information about user defined data types.
     Let $\StringIntListSet_1 \in \ExampledDNFRegex \Generates \ExampledDNFRegex$.
     Let $\StringIntListSet_2 \in \ExampledDNFRegexAlt \Generates
     \ExampledDNFRegexAlt$.
-    If $\RigidSynthDNFRegex(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
+    If $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
     a sequence lens, $\SomeOf{\DNFLens}$, then $\DNFLens
     \OfRewritelessType \DNFRegex 
-    \Leftrightarrow \DNFRegexAlt$, and for each $(\String,\StringALt)$ pair with
+    \Leftrightarrow \DNFRegexAlt$, and for each $(\String,\StringAlt)$ pair with
     the same int list in $\StringIntListSet_1$ and $\StringIntListSet_2$,
     $(\String,\StringAlt) \in \SemanticsOf{\DNFLens}$.
   \end{itemize}
