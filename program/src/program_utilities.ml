@@ -1,10 +1,12 @@
 open Core
 open Lang
 open Regexcontext
+open Regex_utilities
 open Lenscontext
 open Eval
 open Gen
 open Lens_put
+open Consts
 
 type callback =
   (RegexContext.t *
@@ -64,6 +66,14 @@ let run_declaration
       else
         failwith (s ^ " does not match regex " ^ (Regex.show r))
     | DeclSynthesizeLens (n,r1,r2,exs) ->
+      let (rc,r1,r2) =
+        if !use_iterative_deepen_strategy then
+          let (rc,r1) = iteratively_deepen rc r1 in
+          let (rc,r2) = iteratively_deepen rc r2 in
+          (rc,r1,r2)
+        else
+          (rc,r1,r2)
+      in
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
         | None -> failwith ((Id.show n) ^ " has no satisfying lens")

@@ -1,4 +1,5 @@
 #use "base.decls"
+#use "util.decls"
 
 typedef THINGANDAMOUNT = TEXT DIGIT NUMERICTEXT;;
 typedef AMOUNT_EXTRACTED = "amount: "DIGIT NUMERICTEXT "\nworthless text: " TEXT;;

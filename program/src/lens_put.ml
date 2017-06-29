@@ -5,6 +5,7 @@ open Lang
 open Eval
 open Normalized_lang
 open Typing
+open Permutation
 
 let rec lens_putl_internal
     (rc:RegexContext.t)
@@ -18,7 +19,7 @@ let rec lens_putl_internal
         if s2 = s2' then
           s1
         else
-          failwith "bad typecheck"
+          failwith "bad typecheck const"
     | (Lens.LensVariable n, _) ->
       let relevant_string = extract_string er iteration in
       let limpl = LensContext.lookup_impl_exn lc n in
@@ -66,7 +67,38 @@ let rec lens_putl_internal
       extract_string er iteration
     | (Lens.LensInverse l', _) ->
       lens_putr_internal rc lc l' er iteration
-    | _ -> failwith "bad typecheck"
+    | (Lens.LensPermute (p,ls), _) ->
+      let rec extract_reversed_concat_list
+          (er:exampled_regex)
+          (n:int)
+        : exampled_regex list =
+        if n = 0 then
+          []
+        else if n = 1 then
+          [er]
+        else
+          begin match er with
+            | ERegExConcat(er1,er2,_) ->
+              er2::(extract_reversed_concat_list er1 (n-1))
+            | _ -> failwith "bad typecheck disagreeing types"
+          end
+      in
+      let concat_list =
+        List.rev
+          (extract_reversed_concat_list er (List.length ls))
+      in
+      let permed_concat_list =
+        Permutation.apply_inverse_to_list_exn
+          p
+          concat_list
+      in
+      let er_l_list = List.zip_exn permed_concat_list ls in
+      List.fold
+        ~f:(fun s (er,l) ->
+            s ^ (lens_putl_internal rc lc l er iteration))
+        ~init:""
+        er_l_list
+    | _ -> failwith "bad typecheck disagreeing types"
   end
 
 and lens_putr_internal
@@ -81,7 +113,7 @@ and lens_putr_internal
         if s1 = s1' then
           s2
         else
-          failwith "bad typecheck"
+          failwith "bad typecheck const"
     | (Lens.LensVariable n, _) ->
       let relevant_string = extract_string er iteration in
       let limpl = LensContext.lookup_impl_exn lc n in
@@ -129,7 +161,38 @@ and lens_putr_internal
       extract_string er iteration
     | (Lens.LensInverse l', _) ->
       lens_putl_internal rc lc l' er iteration
-    | _ -> failwith "bad typecheck"
+    | (Lens.LensPermute (p,ls), _) ->
+      let rec extract_reversed_concat_list
+          (er:exampled_regex)
+          (n:int)
+        : exampled_regex list =
+        if n = 0 then
+          []
+        else if n = 1 then
+          [er]
+        else
+          begin match er with
+            | ERegExConcat(er1,er2,_) ->
+              er2::(extract_reversed_concat_list er1 (n-1))
+            | _ -> failwith "bad typecheck disagreeing types"
+          end
+      in
+      let concat_list =
+        List.rev
+          (extract_reversed_concat_list er (List.length ls))
+      in
+      let er_l_list = List.zip_exn concat_list ls in
+      let permed_er_l_list =
+        Permutation.apply_to_list_exn
+          p
+          er_l_list
+      in
+      List.fold
+        ~f:(fun s (er,l) ->
+            s ^ (lens_putl_internal rc lc l er iteration))
+        ~init:""
+        permed_er_l_list
+    | _ -> failwith "bad typecheck disagreeing types"
   end
 
 let lens_putr (rc:RegexContext.t)

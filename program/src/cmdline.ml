@@ -214,9 +214,11 @@ let collect_time (p:program) : unit =
   print_endline (Float.to_string time)
 
 let collect_expansions_performed (p:program) : unit =
+  use_lens_context := true;
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
-  let exps_perfed = Option.value_exn (expansions_performed_for_gen rc lc r1 r2 exs) in
-  print_endline (string_of_int exps_perfed)
+  use_lens_context := false;
+  let _ = gen_lens rc lc r1 r2 exs in
+  ()
 
 let collect_specs_visited (p:program) : unit =
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in

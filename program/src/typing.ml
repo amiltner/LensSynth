@@ -37,7 +37,8 @@ let rec type_lens (lc:LensContext.t) (l:Lens.t) : Regex.t * Regex.t =
       let rdl = List.map ~f:(type_lens lc) ls in
       let (r1s,r2s) = List.unzip rdl in
       let r1 =
-        fold_on_head_with_default          (fun r1 r2 -> Regex.RegExConcat (r1,r2))
+        fold_on_head_with_default
+          (fun r1 r2 -> Regex.RegExConcat (r1,r2))
           (Regex.RegExBase "")
           r1s
       in

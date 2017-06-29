@@ -18,7 +18,7 @@ module RegexContext = struct
 
     let lookup_exn (rc:t) (name:Id.t) : Regex.t =
       begin match lookup rc name with
-        | None -> failwith "lookup_exn: key not found"
+        | None -> failwith ("lookup_exn: " ^ (Id.show name) ^ " not found")
         | Some v -> v
       end
 
@@ -47,7 +47,7 @@ module RegexContext = struct
         let x = Id.Id (Printf.sprintf "%s%d" base n) in
         begin match D.lookup rc x with
           | Some (r',false) ->
-            if r = r' then
+            if is_equal (Regex.compare r r') then
               x
             else
               fresh (n+1)
@@ -68,6 +68,8 @@ module RegexContext = struct
       in
       fresh 1
 
+    let contains = D.member
+
     let lookup_for_expansion_exn (rc:t) (name:Id.t) : Regex.t option =
       begin match lookup_everything rc name with
         | None -> failwith ("bad regex name: " ^ (Id.show name))
@@ -84,6 +86,9 @@ module RegexContext = struct
 
     let compare (rc1:t) (rc2:t) : comparison =
       D.compare rc1 rc2
+
+    let size (rc:t) : int =
+      D.size rc
 end
 
 (***** }}} *****)

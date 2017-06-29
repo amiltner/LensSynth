@@ -18,15 +18,19 @@ typedef CLEAR_DICT = "{\"#clear\"" ("{\"name\"=\""WORD"\"}")* "}";;
 test CLEAR_DICT matches "{\"#clear\"}";;
 test CLEAR_DICT matches "{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}";;
 
-typedef ELEMENT_DICT = "{\"@elem\"=\"" QUOTELESS_STRING "\"}";;
+typedef NO_SLASH_QUOTELESS_STRING = (UPPERCASE | LOWERCASE | DIGIT | " " | "'" | "_" | ":" |  "-" | "." |  "=" | "+" | "[" | "]" | "(" | ")")*;;
+typedef NO_SLASH_WORD = (LOWERCASE | UPPERCASE | "_" | "." | "-" | ":" |  "+" | DIGIT | "," | "=" | "*")+;;
+
+
+typedef ELEMENT_DICT = "{\"@elem\"=\"" NO_SLASH_QUOTELESS_STRING "\"}";;
 test ELEMENT_DICT matches "{\"@elem\"=\"--force-confold\"}";;
 
-typedef KVP_CONF = WORD " \"" DELIMITED_STRING "\"";;
+typedef KVP_CONF = NO_SLASH_WORD " \"" DELIMITED_STRING "\"";;
 test KVP_CONF matches "hello \"testingh ielloo asdfwer s\"";;
-typedef KVP_DICT = "{\""WORD"\"=\""DELIMITED_STRING"\"}";;
+typedef KVP_DICT = "{\""NO_SLASH_WORD"\"=\""DELIMITED_STRING"\"}";;
 test KVP_DICT matches "{\"hello\"=\"testingh ielloo asdfwer s\"}";;
 
-typedef NONRECURSIVE_CONF = (((KVP_CONF | QUOTELESS_STRING) ";") | CLEAR_CONF | MULTILINE_COMMENT | INCLUDE_CONF | SLASH_COMMENT);;
+typedef NONRECURSIVE_CONF = (((KVP_CONF | NO_SLASH_QUOTELESS_STRING) ";") | CLEAR_CONF | MULTILINE_COMMENT | INCLUDE_CONF | SLASH_COMMENT);;
 
 typedef NONRECURSIVE_DICT = (KVP_DICT | ELEMENT_DICT | CLEAR_DICT | MULTILINE_COMMENT_DICT | INCLUDE_DICT | COMMENT_DICT);;
 

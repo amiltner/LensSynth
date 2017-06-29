@@ -3,8 +3,8 @@ open Lenscontext
 open Converter
 open Regexcontext
 open Lang
-open Lens_utilities
 open Regex_utilities
+open Lens_utilities
 open Permutation
 open Normalized_lang
 open Consts
@@ -121,27 +121,32 @@ struct
       (exs:examples)
       (count:int)
     : synthesis_info option =
-    let (lexs,rexs) = List.unzip exs in
-    let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc (QueueElement.get_r1 qe) lexs in
-    let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc (QueueElement.get_r2 qe) rexs in
-    begin match (exampled_r1_opt,exampled_r2_opt) with
-      | (Some exampled_r1,Some exampled_r2) ->
-        let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
-        let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
-        begin match make_matchable (compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2) with
-          | EQ ->
-            Some (
-              {
-                l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
-                specs_visited = count;
-                expansions_performed = (QueueElement.get_expansions_performed qe);
-                expansions_inferred = (QueueElement.get_expansions_inferred qe);
-                expansions_forced = (QueueElement.get_expansions_forced qe);
-              })
-          | _ -> None
-        end
-      | _ -> failwith "bad examples"
-    end
+    let r1 = QueueElement.get_r1 qe in
+    let r2 = QueueElement.get_r2 qe in
+    if (get_dnf_size r1 <> get_dnf_size r2) then
+      None
+    else
+      let (lexs,rexs) = List.unzip exs in
+      let exampled_r1_opt = regex_to_exampled_dnf_regex rc lc r1 lexs in
+      let exampled_r2_opt = regex_to_exampled_dnf_regex rc lc r2 rexs in
+      begin match (exampled_r1_opt,exampled_r2_opt) with
+        | (Some exampled_r1,Some exampled_r2) ->
+          let e_o_r1 = to_ordered_exampled_dnf_regex exampled_r1 in
+          let e_o_r2 = to_ordered_exampled_dnf_regex exampled_r2 in
+          begin match make_matchable (compare_ordered_exampled_dnf_regexs e_o_r1 e_o_r2) with
+            | EQ ->
+              Some (
+                {
+                  l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
+                  specs_visited = count;
+                  expansions_performed = (QueueElement.get_expansions_performed qe);
+                  expansions_inferred = (QueueElement.get_expansions_inferred qe);
+                  expansions_forced = (QueueElement.get_expansions_forced qe);
+                })
+            | _ -> None
+          end
+        | _ -> failwith "bad examples"
+      end
 
   let gen_dnf_lens_and_info_zipper
       (rc:RegexContext.t)
@@ -160,9 +165,9 @@ struct
           incr(count);
           if !verbose then
             (print_endline "popped";
-             print_endline ("r1: " ^ Regex.show r1);
+             print_endline ("r1: " ^ Regex.show (QueueElement.get_r1 qe));
              print_endline "\n\n";
-             print_endline ("r2: " ^ Regex.show r2);
+             print_endline ("r2: " ^ Regex.show (QueueElement.get_r2 qe));
              print_endline "\n\n";
              print_endline ("count: " ^ (string_of_int !count));
              print_endline "\n\n";
@@ -277,19 +282,6 @@ let gen_lens
   if !verbose then
     print_endline "Synthesis Start";
   let rc_orig = rc in
-  let (r1,r2,rc) =
-    if !use_iterative_deepen_strategy then
-      let (r1,c1) = iteratively_deepen r1 in
-      let (r2,c2) = iteratively_deepen r2 in
-      let rc = 
-        RegexContext.merge_contexts_exn
-          rc
-          (RegexContext.merge_contexts_exn c1 c2)
-      in
-      (r1,r2,rc)
-    else
-      (r1,r2,rc)
-  in
   let lens_option =
     if !naive_strategy then
       Some (gen_lens_naive rc lc r1 r2 exs)

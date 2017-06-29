@@ -14,7 +14,7 @@ BOOMERANG_COMMAND = "boomerang"
 TEMP_BOOM_FILENAME = "generated.boom"
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
-BASE_FLAGS = ["-iterativedeepenstrategy"]
+BASE_FLAGS = []
 TIMEOUT = 60
 
 REPETITION_COUNT = 2

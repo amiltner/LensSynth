@@ -304,7 +304,7 @@ let test_rxc_context =
 
 let test_lookup_empty _ =
   assert_raises
-    (Failure "lookup_exn: key not found")
+    (Failure "lookup_exn: (Lang.Id.Id \"none\") not found")
     (fun _ -> RegexContext.lookup_exn RegexContext.empty (Id.make "none"))
 
 let test_lookup_abstract _ =
@@ -373,17 +373,17 @@ let test_lc_context =
 
 let test_lc_lookup_empty _ =
   assert_raises
-    (Failure "lookup_exn: key not found")
+    (Failure "lookup_exn: (Lang.Id.Id \"none\") not found")
     (fun _ -> LensContext.lookup_exn LensContext.empty (Id.make "none"))
 
 let test_lc_lookup_type_empty _ =
   assert_raises
-    (Failure "lookup_exn: key not found")
+    (Failure "lookup_exn: (Lang.Id.Id \"none\") not found")
     (fun _ -> LensContext.lookup_type_exn LensContext.empty (Id.make "none"))
 
 let test_lc_lookup_impl_empty _ =
   assert_raises
-    (Failure "lookup_exn: key not found")
+    (Failure "lookup_exn: (Lang.Id.Id \"none\") not found")
     (fun _ -> LensContext.lookup_impl_exn LensContext.empty (Id.make "none"))
 
 let test_lc_lookup _ =
@@ -1094,6 +1094,19 @@ let test_inverse_putr _ =
        (Lens.LensInverse (Lens.LensConst ("source","target")))
        "target")
 
+let test_lens_putr_perm _ =
+  assert_string_equal
+    "120"
+    (lens_putr
+       RegexContext.empty
+       LensContext.empty
+       (Lens.LensPermute
+          (Permutation.create [1;2;0]
+          ,[Lens.LensConst("0","0")
+           ;Lens.LensConst("1","1")
+           ;Lens.LensConst("2","2")]))
+    "012")
+
 let lens_putr_suite = "lens_putr Unit Tests" >:::
   [
     "test_lens_putr_const" >:: test_lens_putr_const;
@@ -1107,6 +1120,7 @@ let lens_putr_suite = "lens_putr Unit Tests" >:::
     "test_lens_putr_iterate_multiple" >:: test_lens_putr_iterate_multiple;
     "test_lens_putr_identity" >:: test_lens_putr_identity;
     "test_inverse_putr" >:: test_inverse_putr;
+    "test_lens_putr_perm" >:: test_lens_putr_perm;
   ]
 
 let _ = run_test_tt_main lens_putr_suite
@@ -1207,6 +1221,19 @@ let test_lens_putl_inverse _ =
        (Lens.LensInverse (Lens.LensConst ("source","target")))
        "source")
 
+let test_lens_putl_perm _ =
+  assert_string_equal
+    "012"
+    (lens_putl
+       RegexContext.empty
+       LensContext.empty
+       (Lens.LensPermute
+          (Permutation.create [1;2;0]
+          ,[Lens.LensConst("0","0")
+           ;Lens.LensConst("1","1")
+           ;Lens.LensConst("2","2")]))
+    "120")
+
 let lens_putl_suite = "lens_putl Unit Tests" >:::
   [
     "test_lens_putl_const"             >:: test_lens_putl_const;
@@ -1220,6 +1247,7 @@ let lens_putl_suite = "lens_putl Unit Tests" >:::
     "test_lens_putl_iterate_multiple"  >:: test_lens_putl_iterate_multiple;
     "test_lens_putl_identity"          >:: test_lens_putl_identity;
     "test_lens_putl_inverse"           >:: test_lens_putl_inverse;
+    "test_lens_putl_perm"              >:: test_lens_putl_perm;
   ]
 
 let _ = run_test_tt_main lens_putl_suite
@@ -1314,7 +1342,6 @@ let reachables_set_minus_suite = "get_transitive_set Unit Tests" >:::
   ]
 
 let _ = run_test_tt_main reachables_set_minus_suite
-
 
 let gen_dnf_lens = DNFSynth.gen_dnf_lens
 

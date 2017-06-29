@@ -474,7 +474,7 @@ struct
   let lookup_exn (d:t) (k:key) : value =
     begin match lookup d k with
       | Some v -> v
-      | None -> failwith "lookup_exn: key not found"
+      | None -> failwith ("lookup_exn: " ^ (show_key k) ^ " not found")
     end
 
   (* TODO:

@@ -113,67 +113,75 @@ let simplify_regex : Regex.t -> Regex.t =
      % maximally_factor_regex)
 
 
-let rec iteratively_deepen (r:Regex.t) : Regex.t * RegexContext.t =
-  begin match r with
-  | Regex.RegExEmpty -> (r,RegexContext.empty)
-  | Regex.RegExBase _ -> (r,RegexContext.empty)
-  | Regex.RegExConcat (r1,r2) ->
-      let (r1',c1) = iteratively_deepen r1 in
-      let (r2',c2) = iteratively_deepen r2 in
-      let context = RegexContext.merge_contexts_exn c1 c2 in
-      let regex_definition = Regex.RegExConcat(r1',r2') in
-      let regex_variable =
-        RegexContext.autogen_id
-          context
-          regex_definition
-      in
-      let context =
-        RegexContext.insert_exn
-          context
-          regex_variable
-          regex_definition
-          false
+let rec iteratively_deepen
+    (rc:RegexContext.t)
+    (r:Regex.t)
+  : RegexContext.t * Regex.t =
+  let regex_name =
+    RegexContext.autogen_id
+      rc
+      r
+  in
+  let new_r =
+    Regex.make_var regex_name
+  in
+  if (RegexContext.contains rc regex_name) then
+    (rc, new_r)
+  else
+    begin match r with
+      | Regex.RegExEmpty -> (rc,r)
+      | Regex.RegExBase _ -> (rc,r)
+      | Regex.RegExConcat (r1,r2) ->
+        let (rc,r1) = iteratively_deepen rc r1 in
+        let (rc,r2) = iteratively_deepen rc r2 in
+        let regex_definition = Regex.make_concat r1 r2 in
+        let rc =
+          RegexContext.insert_exn
+            rc
+            regex_name
+            regex_definition
+            false
         in
-      (Regex.RegExVariable regex_variable,context)
-  | Regex.RegExOr (r1,r2) ->
-      let (r1',c1) = iteratively_deepen r1 in
-      let (r2',c2) = iteratively_deepen r2 in
-      let context = RegexContext.merge_contexts_exn c1 c2 in
-      let regex_definition = Regex.RegExOr(r1',r2') in
-      let regex_variable =
-        RegexContext.autogen_id
-          context
-          regex_definition
-      in
-      let context =
-        RegexContext.insert_exn
-          context
-          regex_variable
-          regex_definition
-          false
+        (rc, new_r)
+      | Regex.RegExOr (r1,r2) ->
+        let (rc,r1) = iteratively_deepen rc r1 in
+        let (rc,r2) = iteratively_deepen rc r2 in
+        let regex_definition = Regex.make_or r1 r2 in
+        let rc =
+          RegexContext.insert_exn
+            rc
+            regex_name
+            regex_definition
+            false
         in
-      (Regex.RegExVariable regex_variable,context)
-  | Regex.RegExStar r' ->
-      let (r'',c) = iteratively_deepen r' in
-      let regex_definition = Regex.RegExStar r'' in
-      let regex_variable =
-        RegexContext.autogen_id
-          c
-          regex_definition
-      in
-      let context =
-        RegexContext.insert_exn
-          c
-          regex_variable
-          regex_definition
-          false
+        (rc, new_r)
+      | Regex.RegExStar r' ->
+        let (rc,r') = iteratively_deepen rc r' in
+        let regex_definition = Regex.RegExStar r' in
+        let rc =
+          RegexContext.insert_exn
+            rc
+            regex_name
+            regex_definition
+            false
         in
-      (Regex.RegExVariable regex_variable,context)
-  | Regex.RegExVariable _ ->
-      (r,RegexContext.empty)
-  end
+        (rc, new_r)
+      | Regex.RegExVariable _ ->
+        (rc,r)
+    end
 
-(*let rec ordered_exampled_dnf_regex_to_regex
-    (r:ordered_exampled_dnf_regex) : regex =
-  dnf_regex_to_regex (ordered_exampled_dnf_regex_to_dnf_regex r)*)
+let rec get_dnf_size
+  : Regex.t -> int =
+  fst
+  %
+  Regex.fold
+    ~empty_f:(0,0)
+    ~base_f:(fun _ -> (0,1))
+    ~concat_f:(fun (size1,or_size1) (size2,or_size2) ->
+        (size1*or_size2 + size2*or_size1, or_size1 * or_size2))
+    ~or_f:(fun (size1,or_size1) (size2,or_size2) ->
+        (size1+size2,or_size1+or_size2))
+    ~star_f:(fun (size,_) ->
+        (size+1,1))
+    ~var_f:(fun _ -> (1,1))
 

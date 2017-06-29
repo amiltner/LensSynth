@@ -1,4 +1,5 @@
 #use "base.decls"
+#use "util.decls"
 
 typedef PHONENUMBER = DIGIT DIGIT DIGIT "-" DIGIT DIGIT DIGIT "-" DIGIT DIGIT DIGIT DIGIT ;;
 test PHONENUMBER matches "415-342-3622";;
