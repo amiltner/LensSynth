@@ -1897,8 +1897,8 @@ characterize the relationship between the two languages.
   If there exists a derivation of $\DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}$,
   then there exist a lens, $\ToLensOf{\DNFLens}$, and regular expressions, $\Regex$ and 
 $\RegexAlt$, such that $\ToLensOf{\DNFLens} \OfType \MapsBetweenTypeOf{\Regex}{\RegexAlt}$ and
-  $\ToDNFRegexOf{\Regex}=\DNFRegex$ and
-  $\ToDNFRegexOf{\RegexAlt}=\DNFRegexAlt$ and
+  $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$ and
+  $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$ and
   $\SemanticsOf{\ToLensOf{\DNFLens}}=\SemanticsOf{\DNFLens}$.
 \end{restatable}
 
@@ -11366,9 +11366,6 @@ arbitrary permutations can be expressed.
   \]
 
   We call this lens $\ToLensOf{\DNFLens} (constructive proof)$.
-
-  Furthermore, we also know that $\ToDNFRegexOf{\ToRegexOf{\DNFRegex}} =
-  \DNFRegex$, and similarly for $\DNFRegexAlt$.
 \end{proof}
 \subsection{DNF Lens Operators}
 \label{dnf-lens-operators}
@@ -16615,10 +16612,7 @@ include information about user defined data types.
   \caption{\RigidSynth}
   \label{alg:rigidsynthreal}
   \begin{algorithmic}[1]
-    \Function{\RigidSynthAtom}{($\StarOf{\ExampledDNFRegex},\IntListSet_1),(\StarOf{\ExampledDNFRegexAlt{}},\IntListSet_2)$}
-    \If {$\IntListSet_1 \not \ILSLeq \IntListSet_2 \BooleanOr \IntListSet_2 \not \ILSLeq \IntListSet_1$}
-    \State $\ReturnVal{\None}$
-    \EndIf
+    \Function{\RigidSynthAtom}{($\StarOf{\ExampledDNFRegex},\_),(\StarOf{\ExampledDNFRegexAlt{}},\_)$}
     \Switch{$\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$}
     \CaseTwo{\SomeOf{\DNFLens}}{\ReturnVal{\IterateLensOf{\DNFLens}}}
     \EndCaseTwo
@@ -16631,14 +16625,11 @@ include information about user defined data types.
 
     \Function{\RigidSynthSequence}{$\ExampledSequence,\ExampledSequenceAlt$}
     \State $(\SequenceOf{\String_0 \SeqSep \ExampledAtom_1 \SeqSep \ldots \SeqSep \ExampledAtom_n
-      \SeqSep \String_n},\IntListSet_1) \gets
+      \SeqSep \String_n},\_) \gets
     \ExampledSequence$
     \State $(\SequenceOf{\StringAlt_0 \SeqSep \ExampledAtomAlt_1 \SeqSep \ldots \SeqSep
-      \ExampledAtomAlt_m \SeqSep \StringAlt_m},\IntListSet_2) \gets
+      \ExampledAtomAlt_m \SeqSep \StringAlt_m},\_) \gets
     \ExampledSequenceAlt$
-    \If {$\IntListSet_1 \not \ILSLeq \IntListSet_2 \BooleanOr \IntListSet_2 \not \ILSLeq \IntListSet_1$}
-    \State $\ReturnVal{\None}$
-    \EndIf
     \If {$n \neq m$}
     \State $\ReturnVal{\None}$
     \EndIf
@@ -16665,13 +16656,10 @@ include information about user defined data types.
     \Statex
  
     \Function{\RigidSynthInternal}{$\ExampledDNFRegex,\ExampledDNFRegexAlt$}
-    \State $(\DNFOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep \ExampledSequence_n},\IntListSet_1) \gets
+    \State $(\DNFOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep \ExampledSequence_n},\_) \gets
     \ExampledDNFRegex$
-    \State $(\DNFOf{\ExampledSequenceAlt_1 \DNFSep \ldots \DNFSep \ExampledSequenceAlt_m},\IntListSet_2) \gets
+    \State $(\DNFOf{\ExampledSequenceAlt_1 \DNFSep \ldots \DNFSep \ExampledSequenceAlt_m},\_) \gets
     \ExampledDNFRegexAlt$
-    \If {$\IntListSet_1 \not \ILSLeq \IntListSet_2 \BooleanOr \IntListSet_2 \not \ILSLeq \IntListSet_1$}
-    \State $\ReturnVal{\None}$
-    \EndIf
     \If {$n \neq m$}
     \State $\ReturnVal{\None}$
     \EndIf
@@ -16711,7 +16699,6 @@ include information about user defined data types.
 \end{algorithm}
 
 \begin{lemma}\leavevmode
-  \label{lem:rigidsynth-internal-sound}
   \begin{itemize}
   \item
     Let $\Atom$ and $\AtomAlt$ be strongly unambiguous atoms.
@@ -16731,14 +16718,14 @@ include information about user defined data types.
     Let $\Sequence$ and $\SequenceAlt$ be strongly unambiguous sequences.
     Let $\StringIntListSet_1$ be a string int list set.
     Let $\StringIntListSet_2$ be a string int list set.
-    
+    Let $\ProjectILSOf{\StringIntListSet_1} =
+    \ProjectILSOf{\StringIntListSet_2}$.
     Let $\ExampledSequence$ and $\ExampledSequenceAlt$ be exampled sequences.
     Let $\StringIntListSet_1 \in \Sequence \Generates \ExampledSequence$.
     Let $\StringIntListSet_2 \in \SequenceAlt \Generates \ExampledSequenceAlt$.
     If  $\RigidSynthSequence(\ExampledSequence,\ExampledSequenceAlt)$ returns
-    a sequence lens, $\SomeOf{\SequenceLens}$, then $\ProjectILSOf{\StringIntListSet_1} =
-    \ProjectILSOf{\StringIntListSet_2}$.
-    $\SequenceLens \OfRewritelessType \Sequence 
+    a sequence lens, $\SomeOf{\SequenceLens}$, then $\SequenceLens
+    \OfRewritelessType \Sequence 
     \Leftrightarrow \SequenceAlt$, and for each $(\String,\StringAlt)$ pair with
     the same int list in $\StringIntListSet_1$ and $\StringIntListSet_2$,
     $(\String,\StringAlt) \in \SemanticsOf{\SequenceLens}$.
@@ -16746,13 +16733,16 @@ include information about user defined data types.
     Let $\DNFRegex$ and $\DNFRegexAlt$ be strongly unambiguous DNF regular expressions.
     Let $\StringIntListSet_1$ be a string int list set.
     Let $\StringIntListSet_2$ be a string int list set.
-    Let $\ExampledDNFRegex$ and $\ExampledDNFRegexAlt$ be exampled DNF regular expressions.
+    Let $\ProjectILSOf{\StringIntListSet_1} =
+    \ProjectILSOf{\StringIntListSet_2}$.
+    Let $\ExampledDNFRegex$ and $\ExampledDNFRegexAlt$ be exampled DNF regular
+    expressions.
     Let $\StringIntListSet_1 \in \ExampledDNFRegex \Generates \ExampledDNFRegex$.
-    Let $\StringIntListSet_2 \in \ExampledDNFRegexAlt \Generates \ExampledDNFRegexAlt$.
+    Let $\StringIntListSet_2 \in \ExampledDNFRegexAlt \Generates
+    \ExampledDNFRegexAlt$.
     If $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
-    a DNF lens, $\SomeOf{\DNFLens}$, then $\ProjectILSOf{\StringIntListSet_1} =
-    \ProjectILSOf{\StringIntListSet_2}$,
-    $\DNFLens \OfRewritelessType \DNFRegex 
+    a sequence lens, $\SomeOf{\DNFLens}$, then $\DNFLens
+    \OfRewritelessType \DNFRegex 
     \Leftrightarrow \DNFRegexAlt$, and for each $(\String,\StringAlt)$ pair with
     the same int list in $\StringIntListSet_1$ and $\StringIntListSet_2$,
     $(\String,\StringAlt) \in \SemanticsOf{\DNFLens}$.
@@ -16763,471 +16753,42 @@ include information about user defined data types.
     Unfolding definitions.
 
     Let $\StringIntListSet_1 =
-    \SetOf{(\String_1',\IntList_1'),\ldots,(\String_m',\IntList_{m'}')}$.
+    \SetOf{(\String_1,\IntList_1),\ldots,(\String_m,\IntList_m)}$.
 
     Let
     $\StringIntListSet_2 =
-    \SetOf{(\StringAlt_1',\IntList_1''),\ldots,(\StringAlt_{m''}',\IntList_{m''}'')}$
+    \SetOf{(\StringAlt_1,\IntList_1),\ldots,(\StringAlt_m,\IntList_m)}$
     
     By inverison on 
     $\StringIntListSet_1 \in \Atom \Generates \ExampledAtom$ and
     $\StringIntListSet_2 \in \AtomAlt \Generates \ExampledAtomAlt$,
     we know that\\
-    $\SetOf{(\String_{1,1}',1::\IntList_1');\ldots;(\String_{1,n_1'}',n_1'::\IntList_1');
-      \ldots;(\String_{m',1}',1::\IntList_{m'}');\ldots;(\String_{m',n_{m'}'}',n_{m'}'::\IntList_{m'}')}
+    $\SetOf{(\String_{1,1}',1::\IntList_1);\ldots;(\String_{1,n_1'}',n_1'::\IntList_1);
+      \ldots;(\String_{m,1}',1::\IntList_m);\ldots;(\String_{m,n_m'}',n_m'::\IntList_m)}
     \in \DNFRegex \Generates \ExampledDNFRegex$,\\
-    $\SetOf{(\StringAlt_{1,1}',1::\IntList_1'');\ldots;(\StringAlt_{1,n_1''}',n_1''::\IntList_1'');
-      \ldots;(\StringAlt_{m'',1}',1::\IntList_{m''}'');\ldots;(\String_{m'',n_{m''}''}',n_{m''}''::\IntList_{m''}'')}
+    $\SetOf{(\StringAlt_{1,1}',1::\IntList_1);\ldots;(\StringAlt_{1,n_1''}',n_1''::\IntList_1);
+      \ldots;(\StringAlt_{m,1}',1::\IntList_m);\ldots;(\String_{m,n_m''}',n_m''::\IntList_m)}
     \in \DNFRegexAlt \Generates \ExampledDNFRegexAlt$,\\
-    $\String_{i,1}'\Concat\ldots\Concat\String_{i,n_i'}' = \String_i$,\\
-    $\StringAlt_{i,1}'\Concat\ldots\Concat\StringAlt_{i,n_i''}' = \StringAlt_i$,\\
+    $\String_{1,1}'\Concat\ldots\Concat\String_{1,n_1'}' = \String_1$,\\
+    $\StringAlt_{1,1}'\Concat\ldots\Concat\StringAlt_{1,n_1''}' = \StringAlt_1$,\\
     $\ExampledAtom =
-    (\StarOf{\ExampledDNFRegex},\SetOf{\IntList_1',\ldots,\IntList_m'})$, and\\
+    (\StarOf{\ExampledDNFRegex},\SetOf{\IntList_1,\ldots,\IntList_m})$, and\\
     $\ExampledAtomAlt =
-    (\StarOf{\ExampledDNFRegexAlt},\SetOf{\IntList_1'',\ldots,\IntList_m''})$
-
-    As \RigidSynthAtom{} returns, then it must return
-    $\IterateLensOf{\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)}$.
-
-    By IH that means that
-    $\ProjectILSOf{\SetOf{(\String_{1,1}',1::\IntList_1');\ldots;(\String_{1,n_1'}',n_1'::\IntList_1');
-      \ldots;(\String_{m',1}',1::\IntList_{m'}');\ldots;(\String_{m',n_{m'}'}',n_{m'}'::\IntList_{m'}')}}
-    = \ProjectILSOf{\SetOf{(\StringAlt_{1,1}',1::\IntList_1'');\ldots;(\StringAlt_{1,n_1''}',n_1''::\IntList_1'');
-      \ldots;(\StringAlt_{m'',1}',1::\IntList_{m''}'');\ldots;(\String_{m'',n_{m''}''}',n_{m''}''::\IntList_{m''}'')}}$,
+    (\StarOf{\ExampledDNFRegexAlt},\SetOf{\IntList_1,\ldots,\IntList_m})$
     
-    So, by reindexing,
-    $\ProjectILSOf{\SetOf{(\String_{1,1},1::\IntList_1);\ldots;(\String_{1,n_1},n_1::\IntList_1);
-        \ldots;(\String_{m,1},1::\IntList_m);\ldots;(\String_{m,n_m},n_m::\IntList_m)}}
-    = \ProjectILSOf{\SetOf{(\StringAlt_{1,1},1::\IntList_1);\ldots;(\StringAlt_{1,n_1},n_1::\IntList_1);
-        \ldots;(\StringAlt_{m,1},1::\IntList_m);\ldots;(\String_{m,n_m},n_m::\IntList_m)}}$,\\
-    $\StringIntListSet_1 =
-    \SetOf{(\String_1,\IntList_1),\ldots,(\String_m,\IntList_{m})}$, and\\
-    $\StringIntListSet_2 =
-    \SetOf{(\StringAlt_1,\IntList_1),\ldots,(\StringAlt_m,\IntList_{m})}$, so we
-    have
-    $\ProjectILSOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_m,\IntList_{m})}}
-    =
-    \ProjectILSOf{\SetOf{(\StringAlt_1,\IntList_1),\ldots,(\StringAlt_m,\IntList_{m})}}$,
-    as desired. (also we know by the condition which returns $\None$)
+    As $\Atom$ and $\AtomAlt$ are strongly unambiguous, $n_i = n_i' =
+    n_i''$, $\String_{i,j} = \String_{i,j}'$, $\StringAlt_{i,j} =
+    \StringAlt_{i,j}'$, and $\DNFRegex$ and $\DNFRegexAlt$ are strongly unambiguous.
 
-    Furthermore, by IH, for all $i,j$, we have $(\String_{i,j},\StringAlt_{i,j})
-    \in \SemanticsOf{\DNFLens}$.  This means that $(\String_{i,1} \Concat \ldots
-    \Concat \String_{i,n_i}, \StringAlt_{i,1} \Concat \ldots \Concat
-    \StringAlt_{i,n_i}) \in \SemanticsOf{\DNFLens}$ for all $i$, so
-    $(\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}$ for all $i$.
-
-    Furthermore, by IH, $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow
-    \DNFRegexAlt$.  Thusly, as $\Atom$ and $\AtomAlt$ are strongly unambiguous,
-    $\DNFRegex$ and $\DNFRegexAlt$ are unambiguously iterable, so we have
-
-    \[
-      \inferrule*
-      {
-        \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
-        \UnambigItOf{\DNFRegex}\\
-        \UnambigItOf{\DNFRegexAlt}
-      }
-      {
-        \IterateLensOf{\DNFLens} \OfRewritelessType \StarOf{\DNFRegex}
-        \Leftrightarrow \StarOf{\DNFRegexAlt}
-      }
-    \]
   \end{case}
   
   \begin{case}[sequence]
-    Unfolding definitions.
-
-    Let $\StringIntListSet_1 =
-    \SetOf{(\String_1'',\IntList_1'),\ldots,(\String_{m'}'',\IntList_{m'}')}$.
-
-    Let
-    $\StringIntListSet_2 =
-    \SetOf{(\StringAlt_1'',\IntList_1''),\ldots,(\StringAlt_{m''}'',\IntList_{m''}'')}$
-    
-    By inverison on 
-    $\StringIntListSet_1 \in \Sequence \Generates \ExampledSequence$ and
-    $\StringIntListSet_2 \in \SequenceAlt \Generates \ExampledSequenceAlt$,
-    we know that\\
-    $\SetOf{(\String_{1,i}'',\IntList_1');\ldots;(\String_{m',i}'',\IntList_{m'}')}
-    \in \Atom_i \Generates \ExampledAtom_i$,\\
-    $\SetOf{(\StringAlt_{1,i}'',\IntList_1'');\ldots;(\StringAlt_{m'',i}'',\IntList_{m''}'')}
-    \in \AtomAlt_i \Generates \ExampledAtomAlt_i$,\\
-    $\String_0'\Concat\String_{i,1}''\Concat\ldots\Concat\String_{i,n}''\Concat\String_n' = \String_i$,\\
-    $\StringAlt_0'\Concat\StringAlt_{i,1}''\Concat\ldots\Concat\StringAlt_{i,n'}''\Concat\StringAlt_{n'}' = \StringAlt_i''$,\\
-    $\ExampledSequence =
-    (\SequenceOf{\String_0' \SeqSep \ExampledAtom_1 \SeqSep \ldots \SeqSep
-      \ExampledAtom_n \SeqSep \String_n'},\SetOf{\IntList_1',\ldots,\IntList_{m'}'})$, and\\
-    $\ExampledSequenceAlt =
-    (\SequenceOf{\String_0' \SeqSep \ExampledAtomAlt_{1} \SeqSep \ldots \SeqSep
-      \ExampledAtomAlt_{n'} \SeqSep \String_{n'}'},\SetOf{\IntList_1'',\ldots,\IntList_{m''}''})$
-
-    Let $\sigma_1 =
-    \SortingOf{\ListOf{\ExampledAtom_1;\ldots;\ExampledAtom_n}}$.
-    Let $\sigma_2 =
-    \SortingOf{\ListOf{\ExampledAtom_1;\ldots;\ExampledAtom_n}}$.
-    Let $\sigma = \InverseOf{\sigma_1} \Compose \sigma_2$.
-
-    As \RigidSynthSequence{} returns, $\PCF{AllSome}(\mathit{alos})$ must be true, which
-    means that for each $i\in\RangeIncInc{1}{n}$,
-    $\RigidSynthAtom(\ExampledAtom_i,\ExampledAtomAlt_{\sigma(i)})$ returns a
-    lens, $\AtomLens_i$.
-    
-    By IH, that means that
-    $\ProjectILSOf{\SetOf{(\String_{1,i}'',\IntList_1');\ldots;(\String_{m',i}'',\IntList_{m'}')}}
-    =
-    \ProjectILSOf{\SetOf{(\StringAlt_{1,\sigma(i)}'',\IntList_1'');\ldots;(\StringAlt_{m'',\sigma(i)}'',\IntList_{m''}'')}}$,
-    which immediately implies that $m' = m''$.
-    
-    So, by reindexing, and aligning the int lists, 
-    $\ProjectILSOf{\SetOf{(\String_{1,i},\IntList_1);\ldots;(\String_{m,i},\IntList_{m})}}
-    =
-    \ProjectILSOf{\SetOf{(\StringAlt_{1,\sigma(i)},\IntList_1);\ldots;(\StringAlt_{m,\sigma(i)},\IntList_{m})}}$,\\
-    $\StringIntListSet_1 =
-    \SetOf{(\String_1,\IntList_1),\ldots,(\String_m,\IntList_{m})}$, and\\
-    $\StringIntListSet_2 =
-    \SetOf{(\StringAlt_1,\IntList_1),\ldots,(\StringAlt_m,\IntList_{m})}$, so we
-    have
-    $\ProjectILSOf{\SetOf{(\String_1,\IntList_1),\ldots,(\String_m,\IntList_{m})}}
-    =
-    \ProjectILSOf{\SetOf{(\StringAlt_1,\IntList_1),\ldots,(\StringAlt_m,\IntList_{m})}}$,
-    as desired. (also we know by the condition which returns $\None$)
-
-    Furthermore, by IH, for all $(i,j)$ we have
-    $(\String_{i,j},\StringAlt_{i,\sigma(j)})\in\SemanticsOf{\AtomLens_j}$.
-    By the definition of sequence lens semantics,
-    $(\String_0'\Concat\String_{i,1}\Concat\ldots\Concat\String_{i,n}\String_n',
-    \StringAlt_0'\Concat\StringAlt_{i,\InverseOf{\sigma}(\sigma(1))}\Concat\ldots\Concat\StringAlt_{i,\InverseOf{\sigma}(\sigma(n))}\Concat\StringAlt_n')
-    \in \SemanticsOf{(\SequenceLensOf{(\String_0',\StringAlt_0') \SeqLSep \AtomLens_1 \SeqLSep \ldots
-        \SeqLSep \AtomLens_n \SeqLSep
-        (\String_n',\StringAlt_n')},\InverseOf{\sigma})}$.
-    By simplifying, we get 
-    $(\String_0'\Concat\String_{i,1}\Concat\ldots\Concat\String_{i,n}\String_n',
-    \StringAlt_0'\Concat\StringAlt_{i,1}\Concat\ldots\Concat\StringAlt_{i,n}\Concat\StringAlt_n')
-    \in \SemanticsOf{(\SequenceLensOf{(\String_0',\StringAlt_0') \SeqLSep \AtomLens_1 \SeqLSep \ldots
-        \SeqLSep \AtomLens_n \SeqLSep
-        (\String_n',\StringAlt_n')},\InverseOf{\sigma})}$.
-    By simplifying even more, we gets
-    $(\String_i,\StringAlt_i)\in\SemanticsOf{(\SequenceLensOf{(\String_0',\StringAlt_0') \SeqLSep \AtomLens_1 \SeqLSep \ldots
-        \SeqLSep \AtomLens_n \SeqLSep
-        (\String_n',\StringAlt_n')},\InverseOf{\sigma})}$, as desired.
-
-    Furthermore, by IH, $\AtomLens_i \OfRewritelessType \Atom_i \Leftrightarrow
-    \AtomAlt_{\sigma(i)}$.  Thusly, as $\Sequence$ and $\SequenceAlt$ are strongly
-    unambiguous, 
-    they are sequence unambiguously concatenable, so we have:
-
-    \[
-      \inferrule*
-      {
-        \AtomLens_i \OfRewritelessType \Atom_i \Leftrightarrow \AtomAlt_{\sigma(i)}\\
-        \SequenceUnambigConcatOf{\String_0';\Atom_1;\ldots;\Atom_n;\String_n'}\\
-        \SequenceUnambigConcatOf{\StringAlt_0';\AtomAlt_{\InverseOf{\sigma}(\sigma(1))};\ldots;\AtomAlt_{\InverseOf{\sigma}(\sigma(n))};\StringAlt_n'}
-      }
-      {
-        (\SequenceLensOf{(\String_0',\StringAlt_0') \SeqLSep \AtomLens_1
-          \SeqLSep \ldots 
-          \SeqLSep \AtomLens_n \SeqLSep
-          (\String_n',\StringAlt_n')},\InverseOf{\sigma}) \OfRewritelessType
-        \SequenceOf{\String_0' \SeqSep \Atom_1 \SeqSep \ldots \SeqSep \Atom_n
-          \SeqSep \String_n'}
-        \Leftrightarrow
-        \SequenceOf{\String_0' \SeqSep \AtomAlt_{\InverseOf{\sigma}(\sigma(1))}
-          \SeqSep \ldots \SeqSep \AtomAlt_{\InverseOf{\sigma}(\sigma(n))}
-          \SeqSep \String_n'}
-      }
-    \]
-
-    Which, by simplifying is:
-
-    \[
-      \inferrule*
-      {
-        \AtomLens_i \OfRewritelessType \Atom_i \Leftrightarrow \AtomAlt_{\sigma(i)}\\
-        \SequenceUnambigConcatOf{\String_0';\Atom_1;\ldots;\Atom_n;\String_n'}\\
-        \SequenceUnambigConcatOf{\StringAlt_0';\AtomAlt_1;\ldots;\AtomAlt_n;\StringAlt_n'}
-      }
-      {
-        (\SequenceLensOf{(\String_0',\StringAlt_0') \SeqLSep \AtomLens_1
-          \SeqLSep \ldots 
-          \SeqLSep \AtomLens_n \SeqLSep
-          (\String_n',\StringAlt_n')},\InverseOf{\sigma}) \OfRewritelessType
-        \SequenceOf{\String_0' \SeqSep \Atom_1 \SeqSep \ldots \SeqSep \Atom_n
-          \SeqSep \String_n'}
-        \Leftrightarrow
-        \SequenceOf{\String_0' \SeqSep \AtomAlt_{1}
-          \SeqSep \ldots \SeqSep \AtomAlt_{n}
-          \SeqSep \String_n'}
-      }
-    \]
-
-    As desired.
   \end{case}
   
   \begin{case}[dnfregex]
-    Unfolding definitions.
-
-    Let $\StringIntListSet_1 =
-    \SetOf{(\String_1'',\IntList_1'),\ldots,(\String_{m'}'',\IntList_{m'}')}$.
-
-    Let
-    $\StringIntListSet_2 =
-    \SetOf{(\StringAlt_1'',\IntList_1''),\ldots,(\StringAlt_{m''}'',\IntList_{m''}'')}$
-    
-    By inverison on 
-    $\StringIntListSet_1 \in \DNFRegex \Generates \ExampledDNFRegex$ and
-    $\StringIntListSet_2 \in \DNFRegexAlt \Generates \ExampledDNFRegexAlt$,
-    we know that\\
-    $\Set_i = \SetOf{(\String_{i,1}',\IntList_{i,1}');\ldots;(\String_{i,m_i'}',\IntList_{i,m_i'}')}$,\\
-    $\Set_i' =
-    \SetOf{(\StringAlt_{i,1}',\IntList_{i,1}'');\ldots;(\StringAlt_{i,m_i''}',\IntList_{i,m_i''}'')}$,\\
-    $\Set_i \in \Sequence_i \Generates \ExampledSequence_i$,\\
-    $\Set_i' \in \SequenceAlt_i \Generates \ExampledSequenceAlt_i$,\\
-    $\BigUnion_{i\in\RangeIncInc{1}{n}}\Set_i = \StringIntListSet_1$,\\
-    $\BigUnion_{i\in\RangeIncInc{1}{n}}\Set_i' = \StringIntListSet_2$,\\
-    $\ExampledDNFRegex = \DNFOf{\ExampledSequence_1 \DNFSep \ldots \DNFSep
-      \ExampledSequence_n}$, and\\
-    $\ExampledDNFRegexAlt = \DNFOf{\ExampledSequenceAlt_1 \DNFSep \ldots \DNFSep
-      \ExampledSequenceAlt_n}$
-
-    Let $\sigma_1 =
-    \SortingOf{\ListOf{\ExampledAtom_1;\ldots;\ExampledAtom_n}}$.
-    Let $\sigma_2 =
-    \SortingOf{\ListOf{\ExampledAtom_1;\ldots;\ExampledAtom_n}}$.
-    Let $\sigma = \InverseOf{\sigma_1} \Compose \sigma_2$.
-
-    As \RigidSynthInternal{} returns, $\PCF{AllSome}(\mathit{sqlos})$ must be true, which
-    means that for each $i\in\RangeIncInc{1}{n}$,
-    $\RigidSynthSequence(\ExampledSequence_i,\ExampledSequenceAlt_{\sigma(i)})$ returns a
-    lens, $\SequenceLens_i$.
-    
-    By IH, that means that
-    $\ProjectILSOf{\Set_i}
-    =
-    \ProjectILSOf{\Set_{\sigma(i)}'}$.
-    This means that, $\ProjectILSOf{\StringIntListSet_1} =
-    \ProjectILSOf{\StringIntListSet_2}$,as they are each the union of all these
-    sets.   We also know this through the fact we
-    return a value, as desired.
-    This immediately implies that $m' = m''$.
-    Furthermore, we can use this to reindex $\Set_i$ as
-    $\Set_i =
-    \SetOf{(\String_{i,1},\IntList_{i,1});\ldots;(\String_{i,m_i},\IntList_{i,m_i})}$,
-    and $\Set_i'$ as
-    $\Set_{\sigma(i)}' =
-    \SetOf{(\StringAlt_{i,1},\IntList_{i,1});\ldots;(\StringAlt_{i,m_i},\IntList_{i,m_i})}$.
-
-    Furthermore, by IH, for all $(i,j)$ we have
-    $(\String_{i,j},\StringAlt_{i,j})\in\SemanticsOf{\SequenceLens_i}$.
-    By the definition of dnf lens semantics,
-    $\SemanticsOf{(\DNFLensOf{\SequenceLens_1 \DNFLSep \ldots \DNFLSep
-        \SequenceLens_n},\InverseOf{\sigma})} =
-    \BigUnion_{i\in\RangeIncInc{1}{n}}\SemanticsOf{\SequenceLens_i}$.
-    Let $(\String_i,\StringAlt_i)$ arbitrary from $\StringIntListSet_1$ and
-    $\StringIntListSet_2$ sharing the same int list $\IntList_i$.
-    By them being the union of all $\Set_i$ and $\Set_i'$, there exists some $i',j$
-    such that $\String_i = \String_{i,j}$ and $\StringAlt_i = \StringAlt_{i,j}$.
-    As such, $(\String_i,\StringAlt_i) \in \SemanticsOf{(\DNFLensOf{\SequenceLens_1 \DNFLSep \ldots \DNFLSep
-        \SequenceLens_n},\InverseOf{\sigma})}$, as desired.
-
-    Furthermore, by IH, $\SequenceLens_i \OfRewritelessType \Sequence_i \Leftrightarrow
-    \SequenceAlt_{\sigma(i)}$.  Thusly, as $\DNFRegex$ and $\DNFRegexAlt$ are strongly
-    unambiguous, 
-    they are pairwise disjoint in sequences, so we have:
-
-    \[
-      \inferrule*
-      {
-        \SequenceLens_i \OfRewritelessType \Sequence_i \Leftrightarrow \SequenceAlt_{\sigma(i)}\\
-        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
-        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset
-      }
-      {
-        (\DNFLensOf{\SequenceLens_1
-          \DNFLSep \ldots 
-          \DNFLSep \SequenceLens_n},\InverseOf{\sigma}) \OfRewritelessType
-        \DNFOf{\Sequence_1 \DNFSep \ldots \DNFSep \Sequence_n}
-        \Leftrightarrow
-        \DNFOf{\SequenceAlt_{\InverseOf{\sigma}(\sigma(1))} \DNFSep \ldots \DNFSep \SequenceAlt_{\InverseOf{\sigma}(\sigma(n))}}
-      }
-    \]
-
-    Which, by simplifying is:
-
-    \[
-      \inferrule*
-      {
-        \SequenceLens_i \OfRewritelessType \Sequence_i \Leftrightarrow \SequenceAlt_{\sigma(i)}\\
-        i \neq j \Rightarrow \LanguageOf{\Sequence_{i}} \cap \LanguageOf{\Sequence_{j}}=\emptyset\\
-        i \neq j \Rightarrow \LanguageOf{\SequenceAlt_{i}} \cap \LanguageOf{\SequenceAlt_{j}}=\emptyset
-      }
-      {
-        (\DNFLensOf{\SequenceLens_1
-          \DNFLSep \ldots 
-          \DNFLSep \SequenceLens_n},\InverseOf{\sigma}) \OfRewritelessType
-        \DNFOf{\Sequence_1 \DNFSep \ldots \DNFSep \Sequence_n}
-        \Leftrightarrow
-        \DNFOf{\SequenceAlt_1 \DNFSep \ldots \DNFSep \SequenceAlt_n}
-      }
-    \]
-
-    As desired.
   \end{case}
 \end{proof}
-
-
-
-\begin{lemma}
-  \label{lem:rigidsynth-sound}
-  Let $\DNFRegex$ and $\DNFRegexAlt$ be strongly unambiguous DNF regular
-  expressions.
-  Let $ListOf{(\String_1,\StringAlt_1);\ldots;(\String_m,\StringAlt_m)}$ be a
-  list of input-output examples.
-  If $\RigidSynth(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
-  a DNF lens, $\SomeOf{\DNFLens}$, then  $\DNFLens \OfRewritelessType \DNFRegex 
-  \Leftrightarrow \DNFRegexAlt$, and $(\String_i,\StringAlt_i) \in
-  \SemanticsOf{\DNFLens}$. 
-\end{lemma}
-\begin{proof}
-  Let $\ListOf{(\String_1,\StringAlt_1);\ldots;(\String_n,\StringAlt_n)} =
-  \Examples$.
   
-  Let $\ExampledDNFRegex =
-  \EmbedExamplesOf{\ListOf{([1],\String_1);\ldots;([n],\String_n)}}{\DNFRegex}$
-
-  Let $\ExampledDNFRegexAlt = \EmbedExamplesOf{\ListOf{([1],\StringAlt_1);\ldots;([n],\StringAlt_n)}}{\DNFRegexAlt}$
-
-  This means that $\ListOf{([1],\String_1);\ldots;([n],\String_n)} \in \DNFRegex
-  \Generates \ExampledDNFRegex$ and
-  $\ListOf{([1],\StringAlt_1);\ldots;([n],\StringAlt_n)} \in \DNFRegexAlt
-  \Generates \ExampledDNFRegexAlt$.
-
-  As \RigidSynth{} returns a lens, then
-  $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ must return a
-  lens.
-
-  By the above statements, Lemma~\ref{lem:rigidsynth-internal-sound} applies, so
-  the DNF lens returned by it satisfies $\DNFLens \OfRewritelessType \DNFRegex
-  \Leftrightarrow \DNFRegexAlt$, and
-  $(\String_i,\StringAlt_i)\in\SemanticsOf{\DNFLens}$.
-
-  As $\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$, we
-  know that $\DNFRegex$ and $\DNFRegexAlt$ are strongly unambiguous.
-
-  As such the conditions for Lemma~\ref{lem:exampledordercomplete} apply so
-  $\ExampledDNFRegex \ExampledDNFLeq \ExampledDNFRegexAlt$ and
-  $\ExampledDNFRegexAlt \ExampledDNFLeq \ExampledDNFRegex$.
-
-  By Lemma~\ref{lem:exampledrigidcompleteorder}, that means that
-  $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns a DNF
-  lens, so then so too does $\RigidSynth$.
-
-
-
-    Let $\DNFRegex$ and $\DNFRegexAlt$ be strongly unambiguous DNF regular expressions.
-    Let $\StringIntListSet_1$ be a string int list set.
-    Let $\StringIntListSet_2$ be a string int list set.
-    Let $\ExampledDNFRegex$ and $\ExampledDNFRegexAlt$ be exampled DNF regular expressions.
-    Let $\StringIntListSet_1 \in \ExampledDNFRegex \Generates \ExampledDNFRegex$.
-    Let $\StringIntListSet_2 \in \ExampledDNFRegexAlt \Generates \ExampledDNFRegexAlt$.
-    If $\RigidSynthInternal(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
-    a sequence lens, $\SomeOf{\DNFLens}$, then $\ProjectILSOf{\StringIntListSet_1} =
-    \ProjectILSOf{\StringIntListSet_2}$,
-    $\DNFLens \OfRewritelessType \DNFRegex 
-    \Leftrightarrow \DNFRegexAlt$, and for each $(\String,\StringAlt)$ pair with
-    the same int list in $\StringIntListSet_1$ and $\StringIntListSet_2$,
-    $(\String,\StringAlt) \in \SemanticsOf{\DNFLens}$.
-
-
-\end{proof}
-
-
-\begin{lemma}
-  \label{lem:dnfsynth-sound}
-  Let $\DNFRegex$ and $\DNFRegexAlt$ be strongly unambiguous DNF regular
-  expressions.
-  Let $ListOf{(\String_1,\StringAlt_1);\ldots;(\String_m,\StringAlt_m)}$ be a
-  list of input-output examples.
-  If $\SynthDNFLens(\ExampledDNFRegex,\ExampledDNFRegexAlt)$ returns
-  a DNF lens, $\SomeOf{\DNFLens}$, then  $\DNFLens \OfType \DNFRegex 
-  \Leftrightarrow \DNFRegexAlt$, and $(\String_i,\StringAlt_i) \in
-  \SemanticsOf{\DNFLens}$. 
-\end{lemma}
-\begin{proof}
-  If $\SynthDNFLens$ returns, then there must be some $(\Regex',\RegexAlt')$
-  popped from the queue which returned a DNF lens $\DNFLens =
-  \RigidSynthInternal(\Regex',\RegexAlt')$.
-  These regular expressions are 
-  such that $\DNFRegex \StarOf{\RewriteDNF} \DNFRegex'$ and $\DNFRegexAlt
-  \StarOf{\RewriteDNF} \DNFRegexAlt'$, as the regular expressions are always
-  either the originals, or have been added to the queue from an expansion on a
-  previously popped element.  Inductively, everything in the queue is an
-  expansion on $\DNFRegex$ or $\DNFRegexAlt$.
-
-  As $\DNFRegex$ and $\DNFRegexAlt$ are strongly unambiguous DNF regular
-  expressions, $\DNFRegex \StarOf{\RewriteDNF} \DNFRegex'$ means that
-  $\DNFRegex'$ is strongly unambiguous, and similarly for $\DNFRegexAlt$ and
-  $\DNFRegexAlt'$.
-
-  So, by Lemma~\ref{lem:rigidsynth-sound}, $\DNFLens \OfRewritelessType
-  \DNFRegex' \Leftrightarrow \DNFRegexAlt'$.  Furthermore, for each
-  $(\String_i,\StringAlt_i)$ pair in the examples
-  $(\String_i,\StringAlt_i) \in \SemanticsOf{\DNFLens}$.
-
-  Lastly, we can then build the typing derivation:
-  \[
-    \inferrule*
-    {
-      \DNFLens \OfRewritelessType \DNFRegex' \Leftrightarrow \DNFRegexAlt'\\
-      \DNFRegex \StarOf{\RewriteDNF} \DNFRegex'\\
-      \DNFRegexAlt \StarOf{\RewriteDNF} \DNFRegexAlt'
-    }
-    {
-      \DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt\\
-    }
-  \]
-\end{proof}
-
-
-\algs
-\begin{proof}
-  As \SynthLens{} returns, then $\SynthDNFLens(\DNFRegex,\DNFRegexAlt)$ returns,
-  where $\DNFRegex = \ToDNFRegexOf{\Regex}$ and $\DNFRegexAlt =
-  \ToDNFRegexOf{\RegexAlt}$.  As $\PCF{Validate}(\Regex,\RegexAlt,\Examples)$
-  does not error out, then we know $\Regex$ and $\RegexAlt$ are strongly
-  unambiguous, and $\Examples$ matches them.  This then means that $\DNFRegex$
-  and $\DNFRegexAlt$ are also strongly unambiguous.
-
-  As such, by Lemma~\ref{lem:dnfsynth-sound}, we know that $\DNFLens =
-  \SynthDNFLens(\DNFRegex,\DNFRegexAlt)$ returns, that $\DNFLens \OfType
-  \DNFRegex \Leftrightarrow \DNFRegex$, and that for each $(\String,\StringAlt)$
-  in the examples, $(\String,\StringAlt) \in \SemanticsOf{\DNFLens}$.  By Theorem~\ref{thm:dnfls}, there
-  exists $\Regex'$ and $\RegexAlt'$ such that $\ToLensOf{\DNFLens}$ and
-  $\ToDNFRegexOf{\Regex'} = \DNFRegex$ and $\ToDNFRegexOf{\RegexAlt'} =
-  \DNFRegexAlt$ and $\SemanticsOf{\ToLensOf{\DNFLens}} =
-  \SemanticsOf{\DNFLens}$.
-
-  As $\ToDNFRegexOf{\Regex} = \ToDNFRegexOf{\Regex'}$ and
-  $\ToDNFRegexOf{\RegexAlt} = \ToDNFRegexOf{\RegexAlt'}$, we have
-  $\Regex \SSREquiv \Regex'$ and $\RegexAlt \SSREquiv \RegexAlt'$.
-
-  \[
-    \inferrule*
-    {
-      \ToLensOf{\DNFLens} \OfType \Regex' \Leftrightarrow \RegexAlt'\\
-      \Regex \SSREquiv \Regex'\\
-      \RegexAlt \SSREquiv \RegexAlt'\\
-    }
-    {
-      \ToLensOf{\DNFLens} \OfType \Regex \Leftrightarrow \RegexAlt
-    }
-  \]
-
-  Furthermore, as $\SemanticsOf{\DNFLens} = \SemanticsOf{\ToLensOf{\DNFLens}}$,
-  we have for each $(\String,\StringAlt)$ in the examples, $(\String,\StringAlt)
-  \in \SemanticsOf{\ToLensOf{\DNFLens}}$, as desired.
-\end{proof}
-
-
 
 \begin{lemma}\leavevmode
   \label{lem:exampledordercomplete}
