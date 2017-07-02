@@ -1964,7 +1964,7 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 
 \begin{algorithm}
   \caption{\SynthLens}
-  \label{alg:synthlens2}
+  \label{alg:synthlens}
   \begin{algorithmic}[1]
     \Function{SynthDNFLens}{$\DNFRegex,\DNFRegexAlt,\Examples$}
     \State $\Queue \gets \Call{\CreatePQueue}{(\DNFRegex,\DNFRegexAlt),0}$
@@ -2000,11 +2000,13 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 the search for a DNF lens.  Each element in the queue
 $\QueueElement$, is a tuple of source and target DNF regular
 expressions $\DNFRegex'$ and $\DNFRegexAlt'$, and a count of the number
-of \emph{expansions} (\IE, rewrite rule or substitution of user-defined
-name for its definition used) $\ExpCount$ required to obtain these regular
+of \emph{expansions} $\ExpCount$ (\IE, uses of a rewrite rule or the substitution
+of a user-defined
+definition for its name \ksf{Anders, confirm that we are replacing a
+name with its definition.})  required to obtain these regular
 expressions from the originals, $\DNFRegex$ and
 $\DNFRegexAlt$. The priority of each queue element is $\ExpCount$; DNF regular
-expressions that have undergone fewer expansions will get popped earlier.
+expressions that have undergone fewer expansions will get priority.
 The algorithm initializes the queue with
 $\DNFRegex$ and $\DNFRegexAlt$, which have an expansion count of
 zero.  The algorithm then proceeds by iteratively examining the
@@ -2022,7 +2024,7 @@ expressions.
 \paragraph*{\Expand}
 \begin{algorithm}
   \caption{\Expand{}}
-  \label{alg:synthlens}
+  \label{alg:synthlens2}
   \begin{multicols}{2}
   \begin{algorithmic}[1]
     \Function{ExpandRequired}{$\DNFRegex,\DNFRegexAlt$,$\ExpCount$}
@@ -2084,15 +2086,16 @@ expressions.
   \end{multicols}
 \end{algorithm}
 
-The inference of expansions is much of what allows \Optician{} to be
-efficient.  \Expand{} has three major components: \ExpandRequired{}, \FixProblemElts{}, and
-\ExpandOnce{}.  The locations of where user defined data types, in terms of
-\emph{star depth} (the number of nested \Star{}s the data type occurs beneath),
-occur is critical for \Expand{}.
+Intelligent expansion inference is key to the efficiency of \Optician{}.
+\Expand{}, shown in Algorithm~\ref{alg:synthlens2},
+ has three major components: \ExpandRequired{}, \FixProblemElts{}, and
+\ExpandOnce{}.   \Expand{} makes critical use of the 
+locations of user-defined data types, measured 
+by their \emph{star depth}, which is the number of nested \Star{}'s the data type occurs beneath.
 Star depth locations are useful because we can quickly compute both the
 current star depths of user defined data types (with \GetCurrentSet{}) and the
 reachable star depths of user defined data types (with \GetTransitiveSet{}).
-Furthermore, the star depths of user defined data types have a useful property.
+Furthermore, the star depths of user-defined data types have the following useful property:
 
 \begin{restatable}{property}{udpairs}
   \label{prop:udpairs}
@@ -2104,11 +2107,11 @@ Furthermore, the star depths of user defined data types have a useful property.
   present at star depth $\Int$ in $\DNFRegexAlt$.
 \end{restatable}
 
-Property~\ref{prop:udpairs} means that if we if there is a rewriteless DNF lens
+Property~\ref{prop:udpairs} means that if there is a rewriteless DNF lens
 between two DNF regular expressions, then the same user defined
 data types must be present at the same locations in both of the DNF regular
-expressions. We use
-property to determine when certain rules must be applied, and to direct the search
+expressions. We use this
+property to determine when certain rules must be applied and to direct the search
 to rules that make progress towards this required alignment.
 
 \ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
