@@ -145,7 +145,7 @@ ensures that the resulting functions are correct
 while
 reducing programmer tedium. 
 Specifically,
-we present \Optician{}, an tool for {\em type-directed synthesis} of bijective
+we present \Optician{}, a tool for {\em type-directed synthesis} of bijective
 string transformers in Boomerang, a bidirectional language based on the
 theory of {\em lenses}.  The inputs to \Optician{} are a pair of ordinary
 regular expressions representing the two data formats
@@ -225,9 +225,6 @@ under \afm{5} seconds.
 % begin introduction
 \section{Introduction}
 
-\afm{Is big data the best start?  I know it's hip, but I feel like there's a
-  disconnect as we don't talk about big-data types of inputs for the rest of the
-  paper}
 Programs that analyze consumer information, performance statistics, transaction
 logs, scientific records, and many other kinds of data are essential components
 in many software systems.
@@ -415,7 +412,7 @@ First, \Optician{} uses the function \ToDNFRegex{} to convert the input
 regular expressions to DNF regular expressions.  Next,
 \SynthDNFLens{} performs type-directed synthesis on these DNF regular
 expressions and the input examples to synthesize a DNF lens.  Finally, this DNF lens is
-converted back into a regular lens with \ToLens{}, and returned to the user.
+converted back into a regular lens with the function \ToLens{}, and returned to the user.
 
 \paragraph*{Contributions.}  \Optician{} makes
 bidirectional programming more accessible by obviating the need for
@@ -432,7 +429,7 @@ we offer the following technical contributions:
   (\S\ref{sec:dnfre} and \S\ref{sec:dnf}).  
   We show how to convert ordinary regular expressions and lenses
   into the corresponding DNF forms, and we prove that DNF lenses are sound
-  and complete with respect to the high-level bijective lens syntax.
+  and complete with respect to Boomerang bijective lenses.
 
 \item
   We present an efficient, type-directed synthesis algorithm for
@@ -460,10 +457,10 @@ we offer the following technical contributions:
 \SUBSECTION{Regular Expressions}
 % \label{sec:regexp}
 
-$\Sigma$ is the alphabet of individual characters $\Character$;
+We use $\Sigma$ to denote the alphabet of individual characters $\Character$;
 strings $\String$ and $\StringAlt$ are
 elements of $\StarOf{\Sigma}$.  Regular expressions, abbreviated REs, are
-used to express \emph{languages}, subsets of $\StarOf{\Sigma}$.
+used to express \emph{languages}, which are subsets of $\StarOf{\Sigma}$.
 REs over $\Sigma$ are:
 \begin{center}
   \Regex{},\RegexAlt{} \hspace{1em} \GEq{}
@@ -765,15 +762,17 @@ when applied from left to right, as
 $\Lens_1$ could be applied to both $\String_1$ and to $\StringAlt_1$.
 
 The typing rule for $\IdentityLensOf{\Regex}$ requires a strongly unambiguous
-internal regular expression.  This unambiguity allows the identity lens to
-merely be syntactic sugar for 
+regular expression.  This unambiguity allows the identity lens to be
+syntactic sugar for 
 creating the identity lens from other lenses.\footnote{In practice, we allow regular
 expressions that aren't strongly unambiguous to appear in $\IdentityLensOf{\Regex}$, provided that they are expressed as a user defined regular expression.
 We elide such user-defined regular expression information
 from the theory for the sake of simplicity.}  This requirement does not,
 however, reduce expressiveness, as any regular
 expression is equivalent to a strongly unambiguous regular
-expression~\cite{unambigregex}.
+expression~\cite{unambigregex}. \ksf{I don't understand what it means
+that the identity lens is syntatic sugar for something else.  Can
+you clarify?}
 
 The last rule in Figure~\ref{fig:lens-typing} is a type equivalence rule
 that lets the typing rules consider a lens
@@ -1044,9 +1043,9 @@ represents $n$-ary concatenation.
 Like DNF regular expressions, DNF lenses are stratified, with disjunctions
 outside of concatenations, and they use $n$-ary operators instead of binary
 ones.  Furthermore, DNF lenses do not need a composition operator, eliminating
-an entire dimension of search.  From this dual stratification and lack of
-composition, a very tight relationship between the structure of a well typed
-DNF lens and its DNF regular expression types is created.
+an entire dimension of search.  This stratification and the lack of
+composition creates a very tight relationship between the structure of a well-typed
+DNF lens and its DNF regular expression types.
 
 While translating regular expressions into DNF form does identify many
 equivalent expressions into the same syntactic form,
@@ -1135,9 +1134,11 @@ be problematic because the Conway axiomatization itself is both highly
 nondeterministic and infinitely branching (due to the choice of $n$ in
 the dyclicity axiom).  Furthermore, we must take care in adding
 equivalences to ensure we produce a language that is closed under
-composition (we describe sufficient properties for this closure shortly).
+composition (we describe sufficient properties for this closure
+shortly). \ksf{are these the properties in the next paragraph?  If so,
+you can delete the parenthetical.}
 
-In particular, it is sufficient for the equivalences used in type equivalence
+In particular, it is sufficient \ksf{For what purpose?} for the equivalences used in type equivalence
 to be the equivalence closure of a rewrite system ($\Rewrite$) satisfying
 four conditions.
 First, if $\Regex \Rewrite \Regex'$, then $\LanguageOf{\Regex} =
@@ -1145,13 +1146,16 @@ First, if $\Regex \Rewrite \Regex'$, then $\LanguageOf{\Regex} =
 Second, if $\Regex \Rewrite \Regex'$ and $\Regex$ is strongly unambiguous, then
 $\Regex'$ is also strongly unambiguous.
 The remaining two properties relate the rewrite rules to the typing derivations
-of DNF lenses, when those typing derivations do not use type equivalence
-(if $\DNFLens$ is a DNF lens that
-goes between DNF regular expressions $\DNFRegex$ and $\DNFRegexAlt$, and the
-typing derivation contains no instances of the type equivalence rule, then
-$\DNFLens \OfRewritelessType
-\DNFRegex \Leftrightarrow \DNFRegexAlt$).
-We call the first property \textit{confluence}.  It says:
+of DNF lenses, when those typing derivations do not use type
+equivalence.
+To express these properties, 
+we use the notation
+$\DNFLens \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$
+to mean that
+if $\DNFLens$ is a DNF lens that
+goes between DNF regular expressions $\DNFRegex$ and $\DNFRegexAlt$, then the
+typing derivation contains no instances of the type equivalence rule.
+Using this notation, we can express the \textit{confluence} property, which says:
 Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
 (\ToDNFRegexOf{\RegexAlt_1})$,
 if $\Regex_1 \Rewrite
@@ -1165,7 +1169,7 @@ $\RegexAlt_3$ and a DNF lens $\DNFLens_3$, such that:
   (\ToDNFRegexOf{\RegexAlt_3})$
 \item $\SemanticsOf{\DNFLens_3} = \SemanticsOf{\DNFLens_1}$
 \end{enumerate}
-We call the second property \textit{bisimilarity}.  Bisimilarity requires two
+We call the final property \textit{bisimilarity}.  Bisimilarity requires two
 symmetric conditions.
 Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
 (\ToDNFRegexOf{\RegexAlt_1})$ and 
@@ -1241,8 +1245,8 @@ relation that is both confluent and bisimilar, and whose equivalence closure is
 $\SSREquiv$.
 The star semiring axioms are the 
 coarsest subset of regular expression equivalences we could
-find that is generated by a rewrite relation that are still confluent and
-bisimilar.  We have not been able to prove that it is the coarsest
+find that is generated by a rewrite relation and is still confluent and
+bisimilar.  We have not been able to prove that this relation is the coarsest
 such relation possible, but it is sufficient to cover all the test
 cases in our benchmark suite (see \S\ref{evaluation}).
 
@@ -1273,14 +1277,14 @@ using ``substitutions'' to denote expansions which arise from replacing a
 variable with its definition.
 
 \Optician{} can exploit the structure inherent in these named
-abbreviations to speed up the search through dramatically.  For example, if
+abbreviations to speed up the search dramatically.  For example, if
 \TextChar{} appears just once in both the source and the target types, the system
 hypothesizes that the identity lens can be used to convert between
 occurrences of \TextChar{}.  On the other hand, if \TextChar{} appears in the
 source but not in the target, the system recognizes that, to find a lens,
-\TextChar{} must be substituted by its
+\TextChar{} must be replaced by its
 definition.  In this way, the positions of names
-can serve as a guide for applying both substitutions and rewrite in the
+can serve as a guide for applying substitutions and rewrites in the
 synthesis algorithm.  By using these named abbreviations, \TypeProp{} guides the 
 transformation of regular expression types
 during search by deducing when certain expansions must be taken, or when one of
@@ -1355,7 +1359,7 @@ that each DNF regular expression denotes:
     \LanguageOf{\DNFOf{\Sequence_1\DNFSep\ldots\DNFSep\Sequence_n}}\ =\  &
 %\\
 %\multicolumn{2}{L}{\ \ \ \ 
-\{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{and $i\in\RangeIncInc{1}{n}$}\}
+\{\String \SuchThat \String \in \LanguageOf{\Sequence_i} \text{\ and $i\in\RangeIncInc{1}{n}$}\}
 %}
   \end{tabular}
 %\end{center}
@@ -1591,9 +1595,9 @@ are semantically identical.
 Figure~\ref{fig:dnf-regex-rewrites} defines a collection of rewrite rules on DNF regular expressions
 designed to search the space of equivalent DNF REs.  
 %We write $\StarOf{\Rewrite}$ for the reflexive, transitive closure of $\Rewrite{}$.
-This directed rewrite system help limit
+This directed rewrite system helps limit
 the search space more than the non-directional equivalence $\SSREquiv$ relation.
-However, because the rewrite rules are confluent, we will show that it is just as powerful as the
+However, because the rewrite rules are confluent, it is just as powerful as the
 $\SSREquiv$ relation.
  
 %% Intuitively, applications of these rewrite rules correspond to traversing
