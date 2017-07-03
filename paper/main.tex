@@ -2134,49 +2134,60 @@ on the left in order to find a lens.
 \ExpandRequired{} continues until it finds all forced expansions.
 
 
-\ExpandRequired{} finds all the expansions that must be performed, but doesn't
+\ExpandRequired{} finds all the expansions that must be performed, but
+it does not
 perform any other expansions.  However, there are many situations where it is
-possible to infer that one of a set of expansions must be performed.
-For any pair of types that have a rewriteless lens
-between them, for each $(\UserDef,\Int)$ pair in one regular expression, that
-same pair must be present in the other regular expression.  \FixProblemElts{}
-identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
-expression.  After these problem elements have been identified, it then calls
-\Reveal{} to find the expansions that will reveal this element.  For example,
-after $\DNFOf{\SequenceOf{\LegacyTitle{}}}$ and
-$\DNFOf{\SequenceOf{\ModernTitle{}}}$ have been expanded into
-$\DNFOf{\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep
+possible to infer that one of a set of expansions must be performed
+without forcing any individual expansion.
+In particular, for any pair of types that have a rewriteless lens
+between them, for each (user-defined type, star depth) pair $(\UserDef,\Int)$ on one side, that
+same pair must be present on the other side.  \FixProblemElts{}
+identifies when there is a $(\UserDef,\Int)$ pair present on only one
+side.  After identifying these problem elements, it 
+calls 
+\Reveal{} to find the expansions that will reveal this element.  
+For example,
+after $\DNFOf{\SequenceOf{\LegacyTitle{}}}$ has been expanded to
+\[\DNFOf{\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep
     \StarOf{\DNFOf{\SequenceOf{\TextChar}}} \SeqSep
-    \StringCF{"</Field>"}}}$
-and
-$\DNFOf{\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
+    \StringCF{"</Field>"}}}
+\]
+\noindent
+and $\DNFOf{\SequenceOf{\ModernTitle{}}}$ has been expanded to
+\[\DNFOf{\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{","}}
   \DNFSep
-  \SequenceOf{\StringCF{""}}}$, we can see that the modern expansion
+  \SequenceOf{\StringCF{""}}}
+\]
+\noindent
+we can see that the modern expansion
 has an instance of \TextChar{} at depth 0, where the legacy one does not.
 For a lens to exist between the two types,
 \TextChar{} must be revealed at star depth 0 in the legacy expansion.
-Revealing \TextChar{} at depth zero will give back 2 candidate DNF
+Revealing \TextChar{} at depth zero will give back two candidate DNF
 regular expressions,
 one from an application of
 \AtomUnrollstarLeftRule{}, and one from an application of
 \AtomUnrollstarRightRule{}.
+\ksf{In the algorithm for FixProblemElts, should it return qes instead
+of t?}
 
-\FixProblemElts{} and \ExpandRequired{} apply many expansions, but not always
-all of the necessary ones.
-Typically, when \FixProblemElts{} and \ExpandRequired{} don't apply all the
+Together \ExpandRequired{} and \FixProblemElts{} apply many
+expansions, but by themselves they are not sufficient.
+Typically, when \FixProblemElts{} and \ExpandRequired{} do not find all the
 necessary expansions, the input data formats expect large amounts of similar
 information.
 For example, in trying to synthesize the identity
 transformation between \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
   \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
 \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)},
-\ExpandRequired{} and \FixProblemElts{} infer no expansions.
-Another expansion must be applied, but the set of pairs
-($\SetOf{(\VarCF{U},0),(\VarCF{U},1)}$) is the same.  When this situation
-arises, \ExpandOnce{} performs a purely enumerative search by performing all
+\ExpandRequired{} and \FixProblemElts{} find no forced expansions.
+An expansion is necessary, but the set of pairs
+($\SetOf{(\VarCF{U},0),(\VarCF{U},1)}$) is the same for both sides.  
+When this situation arises, the algorithm uses the \ExpandOnce{}
+function to conduct a purely enumerative search, implemented by performing all
 single-step expansions.
 
 \paragraph*{\RigidSynth} 
