@@ -1987,14 +1987,16 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 \end{algorithm}
 
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
-the search for a DNF lens.  Each element in the queue
-$\QueueElement$, is a tuple of source and target DNF regular
-expressions $\DNFRegex'$ and $\DNFRegexAlt'$, and a count of the number
-of \emph{expansions} $\ExpCount$ (\IE, uses of a rewrite rule or the substitution
-of a user-defined
-definition for its name required to obtain these regular
-expressions from the originals, $\DNFRegex$ and
-$\DNFRegexAlt$. The priority of each queue element is $\ExpCount$; DNF regular
+the search for a DNF lens.  Each element $\QueueElement$  in the queue
+is a tuple of 
+the source DNF regular expression $\DNFRegex'$, 
+the target DNF regular expression $\DNFRegexAlt'$, 
+and a count $\ExpCount$ of the number
+of expansions needed to produce this pair of DNF
+regular expressions from the originals $\DNFRegex$ and
+$\DNFRegexAlt$.  (Recall that an expansion is a 
+use of a rewrite rule or the substitution of a user-defined
+definition for its name.) The priority of each queue element is $\ExpCount$; DNF regular
 expressions that have undergone fewer expansions will get priority.
 The algorithm initializes the queue with
 $\DNFRegex$ and $\DNFRegexAlt$, which have an expansion count of
@@ -2076,14 +2078,15 @@ expressions.
 \end{algorithm}
 
 Intelligent expansion inference is key to the efficiency of \Optician{}.
-\Expand{}, shown in Algorithm~\ref{alg:synthlens2},
- has three major components: \ExpandRequired{}, \FixProblemElts{}, and
-\ExpandOnce{}.   \Expand{} makes critical use of the 
-locations of user-defined data types, measured 
+\Expand{}, shown in Algorithm~\ref{alg:synthlens2}, codifies this inference.
+It makes critical use of the locations of user-defined data types, measured 
 by their \emph{star depth}, which is the number of nested \Star{}'s the data type occurs beneath.
-Star depth locations are useful because we can quickly compute both the
-current star depths of user defined data types (with \GetCurrentSet{}) and the
-reachable star depths of user defined data types (with \GetTransitiveSet{}).
+Star depth locations are useful because we can quickly compute the
+current star depths of user-defined data types (with \GetCurrentSet{}) and the
+star depths of user-defined data types reachable via expansions
+(with \GetTransitiveSet{}).
+\ksf{Anders, can you confirm that the description of GetTransitiveSet
+is correct?}
 Furthermore, the star depths of user-defined data types have the following useful property:
 
 \begin{restatable}{property}{udpairs}
@@ -2103,69 +2106,89 @@ expressions. We use this
 property to determine when certain rules must be applied and to direct the search
 to rules that make progress towards this required alignment.
 
+\Expand{} has three major components: \ExpandRequired{}, \FixProblemElts{}, and
+\ExpandOnce{}, which we discuss in turn.
 \ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
-if a user defined data type $\UserDef$, at star depth $\Int$ is impossible 
-to reach through any number of expansions on the opposite side, then that user
-defined data type \emph{must} be substituted by its definition at that depth.
-This required substitution is apparent
-in trying to find a lens between $\DNFOf{\SequenceOf{\LegacyTitle}}$ and
-$\DNFOf{\SequenceOf{\ModernTitle}}$.  No matter how many expansions are taken on
-\VarCF{modern\_title}, \VarCF{legacy\_title} will not be exposed at depth 0 (or
-any other depth) as the set of possible reachable pairs of
+if a user-defined data type $\UserDef$ at star depth $\Int$ is impossible 
+to reach through any number of expansions on the opposite side, then that 
+user-defined data type \emph{must} be replaced by its definition at
+that depth.
+For example, 
+consider trying to find a lens between $\DNFOf{\SequenceOf{\LegacyTitle}}$ and
+$\DNFOf{\SequenceOf{\ModernTitle}}$.
+No matter how many expansions are performed on
+\VarCF{modern\_title}, the user-defined type \VarCF{legacy\_title}
+will not be exposed 
+%at depth 0 (or any other depth) 
+because the set of possible reachable pairs of
 data types and star depths in \VarCF{modern\_title} is $\{(\ModernTitle,0),
-$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reveal
-$\VarCF{\LegacyTitle}$ on the right, it must be substituted on the left for a
-lens to be found. \ExpandRequired{} continues until no more expansions can be
-forced. 
+$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions will reveal
+$\VarCF{\LegacyTitle}$ on the right, 
+the algorithm must replace $\VarCF{\LegacyTitle}$ with its definition
+on the left in order to find a lens.
+\ExpandRequired{} continues until it finds all forced expansions.
 
-\ExpandRequired{} finds all the expansions that must be performed, but doesn't
+
+\ExpandRequired{} finds all the expansions that must be performed, but
+it does not
 perform any other expansions.  However, there are many situations where it is
-possible to infer that one of a set of expansions must be performed.
-For any pair of types that have a rewriteless lens
-between them, for each $(\UserDef,\Int)$ pair in one regular expression, that
-same pair must be present in the other regular expression.  \FixProblemElts{}
-identifies when there is a $(\UserDef,\Int)$ pair present in only one regular
-expression.  After these problem elements have been identified, it then calls
-\Reveal{} to find the expansions that will reveal this element.  For example,
-after $\DNFOf{\SequenceOf{\LegacyTitle{}}}$ and
-$\DNFOf{\SequenceOf{\ModernTitle{}}}$ have been expanded into
-$\DNFOf{\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep
+possible to infer that one of a set of expansions must be performed
+without forcing any individual expansion.
+In particular, for any pair of types that have a rewriteless lens
+between them, for each (user-defined type, star depth) pair $(\UserDef,\Int)$ on one side, that
+same pair must be present on the other side.  \FixProblemElts{}
+identifies when there is a $(\UserDef,\Int)$ pair present on only one
+side.  After identifying these problem elements, it 
+calls 
+\Reveal{} to find the expansions that will reveal this element.  
+For example,
+after $\DNFOf{\SequenceOf{\LegacyTitle{}}}$ has been expanded to
+\[\DNFOf{\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep
     \StarOf{\DNFOf{\SequenceOf{\TextChar}}} \SeqSep
-    \StringCF{"</Field>"}}}$
-and
-$\DNFOf{\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
+    \StringCF{"</Field>"}}}
+\]
+\noindent
+and $\DNFOf{\SequenceOf{\ModernTitle{}}}$ has been expanded to
+\[\DNFOf{\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{","}}
   \DNFSep
-  \SequenceOf{\StringCF{""}}}$, we can see that the modern expansion
+  \SequenceOf{\StringCF{""}}}
+\]
+\noindent
+we can see that the modern expansion
 has an instance of \TextChar{} at depth 0, where the legacy one does not.
 For a lens to exist between the two types,
 \TextChar{} must be revealed at star depth 0 in the legacy expansion.
-Revealing \TextChar{} at depth zero will give back 2 candidate DNF
+Revealing \TextChar{} at depth zero will give back two candidate DNF
 regular expressions,
 one from an application of
 \AtomUnrollstarLeftRule{}, and one from an application of
 \AtomUnrollstarRightRule{}.
+\ksf{In the algorithm for FixProblemElts, should it return qes instead
+of t?}
 
-\FixProblemElts{} and \ExpandRequired{} apply many expansions, but not always
-all of the necessary ones.
-Typically, when \FixProblemElts{} and \ExpandRequired{} don't apply all the
+Together \ExpandRequired{} and \FixProblemElts{} apply many
+expansions, but by themselves they are not sufficient.
+Typically, when \FixProblemElts{} and \ExpandRequired{} do not find all the
 necessary expansions, the input data formats expect large amounts of similar
 information.
 For example, in trying to synthesize the identity
 transformation between \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U} |
   \textcolor{darkbrown}{UU}(\textcolor{darkbrown}{U}*)} and
 \CF{\textcolor{blue}{""} | \textcolor{darkbrown}{U}(\textcolor{darkbrown}{U}*)},
-\ExpandRequired{} and \FixProblemElts{} infer no expansions.
-Another expansion must be applied, but the set of pairs
-($\SetOf{(\VarCF{U},0),(\VarCF{U},1)}$) is the same.  When this situation
-arises, \ExpandOnce{} performs a purely enumerative search by performing all
+\ExpandRequired{} and \FixProblemElts{} find no forced expansions.
+An expansion is necessary, but the set of pairs
+($\SetOf{(\VarCF{U},0),(\VarCF{U},1)}$) is the same for both sides.  
+When this situation arises, the algorithm uses the \ExpandOnce{}
+function to conduct a purely enumerative search, implemented by performing all
 single-step expansions.
 
 \paragraph*{\RigidSynth} 
-The function, \RigidSynth{}, implements the portion of \SynthLens{} that
-generates the lens from the types and examples.
+The function \RigidSynth{}, shown in Algorithm~\ref{alg:rigidsynth},
+implements the portion of \SynthLens{} that
+generates a lens from the types and examples without using any equivalences.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
 and nested atoms, taking into account the information contained in the
@@ -2274,12 +2297,14 @@ the source and target DNF regular expressions that match and to
 leverage that information to create candidate permutations.
 
 \RigidSynth{} performs this identification via orderings on
-sequences (\SequenceLeq), and atoms (\AtomLeq).  For
+sequences (\SequenceLeq), and atoms (\AtomLeq).  
+\ksf{Say something about where these orderings come from.}
+For
 example, between two sequences, $\Sequence$ and $\SequenceAlt$, there is a lens
 $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$ if,
 and only if, $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt
 \SequenceLeq \Sequence$.  Through these orderings, aligning the components
-becomes merely sorting and zipping lists.  Furthermore, through composing the
+reduces to merely sorting and zipping lists.  Furthermore, through composing the
 permutations required to sort the sequences, the algorithm discovers the
 permutation used in the lens.
 
@@ -2295,6 +2320,7 @@ then there is not only a
 sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
 satisfies the examples.
 
+\ksf{make sure this type sets with the full example on one page.}
 As an example, consider trying to find a DNF lens between
 \begin{lstlisting}
    $\DNFLeft$ $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
@@ -2313,24 +2339,27 @@ and
   $\DNFSep\hspace*{.33mm}
   \SequenceOf{\StringCF{""}}$ $\DNFRight$
 \end{lstlisting}
-As the legacy DNF regular expression passes to \RigidSynth{}, its two
-sequences get ordered
+As \RigidSynth{} considers the legacy DNF regular expression, it
+orders its two sequences
 by maintaining the existing order:  first $\SequenceOf{\StringCF{"<Field
     Id=2></Field>"}}$, then
 $\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{"<Field Id=2>"}}$.
-However, the two sequences of the modern DNF regular expression get
-reordered, making $\SequenceOf{\StringCF{""}}$ first,
+In contrast,
+\RigidSynth{} reorders 
+the two sequences of the modern DNF regular expression,
+making $\SequenceOf{\StringCF{""}}$ first,
 and $\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{","}}$ second;
-the overall permutation is a swap.  The two sequences that consist
-only of a string get aligned, and the complex sequences also get aligned.
+the overall permutation is a swap.  
+As a result, the two string sequences become aligned, as do the two
+complex sequences. 
 
-Then, \RigidSynthSequence{} gets called on the two aligned sequence pairs.
+Then, the algorithm calls \RigidSynthSequence{} on the two aligned sequence pairs.
 There are no atoms in both
 $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$ and
 $\SequenceOf{\StringCF{""}}$, trivially creating the 
@@ -2523,13 +2552,13 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   return a lens.
 \end{restatable}
 
-Theorem~\ref{thm:alg-soundness} states that when we return a lens, that lens
+Theorem~\ref{thm:alg-soundness} states that when we return a lens, that 
 lens will match the specifications.  Theorem~\ref{thm:alg-completeness} states
 that if there is a DNF lens that satisfies the specification, then we will
 return a lens, but not necessarily the same one.  However, from
 Theorem~\ref{thm:alg-soundness}, we know that this lens will match the
-specifications.  The proofs of these, and the previous theorems, are provided in
-the extended version.
+specifications.  The proofs of these theorems, and the previous ones,
+are provided in the extended version of this paper.
 
 % end implementation
 
