@@ -1992,14 +1992,16 @@ Finally, it uses \ToLens{} to convert $\DNFLens$ to a Boomerang lens.
 \end{algorithm}
 
 \SynthDNFLens{} starts by creating a priority queue $\Queue$ to manage
-the search for a DNF lens.  Each element in the queue
-$\QueueElement$, is a tuple of source and target DNF regular
-expressions $\DNFRegex'$ and $\DNFRegexAlt'$, and a count of the number
-of \emph{expansions} $\ExpCount$ (\IE, uses of a rewrite rule or the substitution
-of a user-defined
-definition for its name required to obtain these regular
-expressions from the originals, $\DNFRegex$ and
-$\DNFRegexAlt$. The priority of each queue element is $\ExpCount$; DNF regular
+the search for a DNF lens.  Each element $\QueueElement$  in the queue
+is a tuple of 
+the source DNF regular expression $\DNFRegex'$, 
+the target DNF regular expression $\DNFRegexAlt'$, 
+and a count $\ExpCount$ of the number
+of expansions needed to produce this pair of DNF
+regular expressions from the originals $\DNFRegex$ and
+$\DNFRegexAlt$.  (Recall that an expansion is a 
+use of a rewrite rule or the substitution of a user-defined
+definition for its name.) The priority of each queue element is $\ExpCount$; DNF regular
 expressions that have undergone fewer expansions will get priority.
 The algorithm initializes the queue with
 $\DNFRegex$ and $\DNFRegexAlt$, which have an expansion count of
@@ -2081,14 +2083,15 @@ expressions.
 \end{algorithm}
 
 Intelligent expansion inference is key to the efficiency of \Optician{}.
-\Expand{}, shown in Algorithm~\ref{alg:synthlens2},
- has three major components: \ExpandRequired{}, \FixProblemElts{}, and
-\ExpandOnce{}.   \Expand{} makes critical use of the 
-locations of user-defined data types, measured 
+\Expand{}, shown in Algorithm~\ref{alg:synthlens2}, codifies this inference.
+It makes critical use of the locations of user-defined data types, measured 
 by their \emph{star depth}, which is the number of nested \Star{}'s the data type occurs beneath.
-Star depth locations are useful because we can quickly compute both the
-current star depths of user defined data types (with \GetCurrentSet{}) and the
-reachable star depths of user defined data types (with \GetTransitiveSet{}).
+Star depth locations are useful because we can quickly compute the
+current star depths of user-defined data types (with \GetCurrentSet{}) and the
+star depths of user-defined data types reachable via expansions
+(with \GetTransitiveSet{}).
+\ksf{Anders, can you confirm that the description of GetTransitiveSet
+is correct?}
 Furthermore, the star depths of user-defined data types have the following useful property:
 
 \begin{restatable}{property}{udpairs}
@@ -2108,20 +2111,28 @@ expressions. We use this
 property to determine when certain rules must be applied and to direct the search
 to rules that make progress towards this required alignment.
 
+\Expand{} has three major components: \ExpandRequired{}, \FixProblemElts{}, and
+\ExpandOnce{}, which we discuss in turn.
 \ExpandRequired{} performs expansions that \emph{must} be taken.  In particular,
-if a user defined data type $\UserDef$, at star depth $\Int$ is impossible 
-to reach through any number of expansions on the opposite side, then that user
-defined data type \emph{must} be substituted by its definition at that depth.
-This required substitution is apparent
-in trying to find a lens between $\DNFOf{\SequenceOf{\LegacyTitle}}$ and
-$\DNFOf{\SequenceOf{\ModernTitle}}$.  No matter how many expansions are taken on
-\VarCF{modern\_title}, \VarCF{legacy\_title} will not be exposed at depth 0 (or
-any other depth) as the set of possible reachable pairs of
+if a user-defined data type $\UserDef$ at star depth $\Int$ is impossible 
+to reach through any number of expansions on the opposite side, then that 
+user-defined data type \emph{must} be replaced by its definition at
+that depth.
+For example, 
+consider trying to find a lens between $\DNFOf{\SequenceOf{\LegacyTitle}}$ and
+$\DNFOf{\SequenceOf{\ModernTitle}}$.
+No matter how many expansions are performed on
+\VarCF{modern\_title}, the user-defined type \VarCF{legacy\_title}
+will not be exposed 
+%at depth 0 (or any other depth) 
+because the set of possible reachable pairs of
 data types and star depths in \VarCF{modern\_title} is $\{(\ModernTitle,0),
-$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions can reveal
-$\VarCF{\LegacyTitle}$ on the right, it must be substituted on the left for a
-lens to be found. \ExpandRequired{} continues until no more expansions can be
-forced. 
+$ $(\TextChar,0),(\TextChar,1)\}$.  Because no number of expansions will reveal
+$\VarCF{\LegacyTitle}$ on the right, 
+the algorithm must replace $\VarCF{\LegacyTitle}$ with its definition
+on the left in order to find a lens.
+\ExpandRequired{} continues until it finds all forced expansions.
+
 
 \ExpandRequired{} finds all the expansions that must be performed, but doesn't
 perform any other expansions.  However, there are many situations where it is
