@@ -2098,7 +2098,7 @@ Furthermore, the star depths of user-defined data types have the following usefu
 \end{restatable}
 
 Property~\ref{prop:udpairs} means that if there is a rewriteless DNF lens
-between two DNF regular expressions, then the same user defined
+between two DNF regular expressions, then the same user-defined
 data types must be present at the same locations in both of the DNF regular
 expressions. We use this
 property to determine when certain rules must be applied and to direct the search
@@ -2567,8 +2567,10 @@ are provided in the extended version of this paper.
 \label{evaluation}
 
 We have implemented \Optician{} in \afm{5515} lines
-of OCaml code.  We have integrated our synthesis algorithm with Boomerang, so
-users can input synthesis tasks in place of lenses.
+of OCaml code.  We have integrated our synthesis algorithm into Boomerang, so
+users can input synthesis tasks in place of lenses. 
+\ksf{Is the code publicly available?  (or will it be once we don't
+have to preserve anonymity?  We should say something about it here.}
 
 We evaluate our synthesis algorithm by applying it to \afm{26}
 benchmark programs.
@@ -2600,7 +2602,7 @@ with the letters `A', `B', and `C' as well as the lenses
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
 by the `A' lenses.
 Furthermore, the synthesis problems derived
-from Augeas with the letters `B' and `C' were tested after \Optician was
+from Augeas with the letters `B' and `C' were tested after \Optician{} was
 finalized, demonstrating that the optimizations were not
 overtuned to perform well on the testing data.
 
@@ -2610,7 +2612,7 @@ Many of the examples from FlashFill are non-bijective because
 the user's goal is often to extract information.  We were able to
 adapt some examples by adding information to the target so the
 resulting transformation was bijective.
-We derived 3 benchmarks from examples in the
+We derived three benchmarks from examples in the
 FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
 
 Finally, we added custom examples to highlight weaknesses of
@@ -2624,19 +2626,24 @@ We have both complex and simple synthesis tasks in our benchmark suite.
 We generate lenses of sizes between \afm{5} AST
 nodes, for simple problems like changing how dates are represented, and
 \afm{211} AST nodes, for complex tasks like transforming arbitrary XML to a
-dictionary representation. 
+dictionary representation. \ksf{Arbitrary XML of a fixed depth?}
 
 \begin{figure}
   \includegraphics{SynthesisTimes}
   \caption{
+   \ksf{Make the labels in the graph match the labels in the caption.
+  Ie, instead of Full write DNF+UD+FE+IE+PD.}
     Number of benchmarks that can be solved by a given algorithm in a given
-    amount of time. {\bf DNF+UD+FE+IE+PD} is the full synthesis algorithm.
+    amount of time. {\bf DNF+UD+FE+IE+PD} is the full synthesis
+    algorithm.
     {\bf DNF+UD+FE+IE} is
-    the synthesis algorithm using all optimizations but without applying
-    pre-written lenses.  {\bf DNF+UD+FE} is the core DNF synthesis algorithm
-    incorporating user defined data types with
-    forced expansions performed.  {\bf DNF+UD} is the core synthesis incorporating 
-    user defined data types.  {\bf DNF} is the core synthesis algorithm.  {\bf
+    the synthesis algorithm using all optimizations but without using
+    a library of
+    existing lenses.  {\bf DNF+UD+FE} is the core DNF synthesis algorithm
+    augmented with user-defined data types with
+    forced expansions performed.  {\bf DNF+UD} is the core synthesis
+    augmented with
+    user-defined data types.  {\bf DNF} is the core synthesis algorithm.  {\bf
       FlashExtract} is the existing FlashExtract system.  {\bf Flash Fill} is
     the existing Flash Fill system.  {\bf Na\"{i}ve} is na\"{i}ve type-directed 
     synthesis on Boomerang combinators.  Our synthesis algorithm performs
@@ -2654,14 +2661,16 @@ Our optimizations were:
 \begin{itemize}
 \item[\textbf{DNF:}]  The synthesis algorithm performs type-directed synthesis
   on the typing derivations for DNF lenses, instead of type-directed synthesis on the typing
-  derivation for base lenses.
-\item[\textbf{UD:}]  The synthesis algorithm treats user defined data types as
-  abstract variables, which can only have the identity lens applied to them,
-  unless they are expanded.
-\item[\textbf{FE:}] When an expansion must be taken for a lens to be
-  synthesized, that expansion is automatically performed.
-\item[\textbf{IE:}] When one of a class of expansions must be taken, only those
-  expansions are tested, instead of performing a fully enumerative search.
+  derivation for base lenses. \ksf{What are base lenses?  Do you mean
+  unrestricted lenses where equalities can be applied anywhere?}
+\item[\textbf{UD:}]  The synthesis algorithm treats user-defined data types as
+  abstract variables that can only have the identity lens applied to them
+  unless they are selected for expansion by \Expand{}.
+\item[\textbf{FE:}] \ExpandRequired{} identifies necessary expansions
+   and performs them immediately.
+\item[\textbf{IE:}] \FixProblemElts{} identifies when one of a class
+  of expansions must be taken and tries those expansions
+  instead of performing a fully enumerative search.
 \item[\textbf{PD:}] When possible, the synthesis algorithm applies
   previously defined lenses.
 \end{itemize}
@@ -2671,26 +2680,30 @@ be synthesized in a reasonable amount of time without these optimizations.
 To demonstrate how critical these optimizations
 are for a resilient synthesis algorithm, we ran our algorithm on our test suite
 with optimizations enabled and disabled.
-We summarize the results of these tests in Figure~\ref{fig:synthesis-times},
-demonstrating that as we add in additional optimizations, more benchmarks can be
-solved using our algorithm, and our algorithm completes previously solvable
-benchmarks faster.
+We summarize the results of these tests in
+Figure~\ref{fig:synthesis-times}.
+The graph demonstrates that as we add optimizations, 
+more benchmarks become solvable at all and 
+the time required to synthesize lenses for previously
+solved benchmarks goes down significantly.
 
-Conversion to DNF form, and the use of \RigidSynth{} was critical for the
-success of our algorithm; using
+The success of the algorithm depends on converting to
+DNF form and using \RigidSynth{}. 
+Attempting
 a na\"{i}ve type-directed synthesis on Boomerang doesn't work at all.  With a
-na\"{i}ve approach, none of the examples, even the very simple ones, are able to
-be synthesized within the 10 minute timeframe.  Our DNF synthesis procedure
-(with \emph{no} intelligent search through expansions and with no use of user
-defined data types) succeeds on \afm{7} of the benchmarks.
+na\"{i}ve approach, none of the examples, even the very simple ones, can
+be synthesized with a ten minute timeout.  Our core DNF synthesis
+procedure, labeled \textbf{DNF} in the graph, that performs 
+\emph{no} intelligent expansion search and makes no use
+of user-defined data types succeeds on \afm{7} of the benchmarks. 
 
 However, the exponential blowup when converting to DNF form makes most tasks
-take unreasonably long.
+take an unreasonably long time.
 Despite requiring significantly more input from the users, \textbf{DNF} only
 performs slightly better than FlashExtract.
-Keeping the variables for data
-types abstract until their internals must be exposed nearly doubles the number
-of completed synthesis tasks.
+Keeping the user-defined types abstract until their internals must be
+exposed nearly doubles the number 
+of completed synthesis tasks, shown in the graph as the line labeled \textbf{DNF+UD}.
 Even though this optimization introduces additional search, it minimizes the
 impact of the exponential explosion caused by converting to DNF.
 This minimization lets our synthesis algorithm work on the
@@ -2698,74 +2711,79 @@ large format specifications encountered in real-life data.
 
 \begin{figure}
   \includegraphics{UninferredExpansions}
-  \caption{Number of expansions found through enumerative search for tasks
+  \caption{Number of expansions found using enumerative search for tasks
     requiring a given number of
-    expansions.  {\bf Full Inference} is using the full inference algorithm.
-    {\bf Forced Only} only counts forced inferences.  Both systems are able
-    to infer the vast majority of expansions, with full inference only rarely
-    requiring any enumerative search.}
+    expansions.  {\bf Full Inference} is using the full inference
+  algorithm.
+    {\bf Forced Only} only counts forced inferences as found by
+  the \ExpandRequired{} function.  Both systems are able
+    to infer the vast majority of expansions. Full inference only rarely
+    requires enumerative search.}
   \label{fig:uninferred-exps}
 \end{figure}
 
-These core optimizations helped significantly, but still left many problems
-unsolved.  In particular, with no inference of expansions, only the lenses
-that required few expansions were synthesized.  Because of the large fan-out
-in the search space for expansions, of the \afm{12} could be solved simply
-with DNF conversion and \RigidSynth{}, none required more than \afm{5}
-expansions to be performed.  As up to \afm{30} expansions are needed for
-synthesizing some of the lenses, the large fan-out makes an undirected
-traversal of expansions insufficient for many examples.
-However, we can identify that many of these expansions must be performed, so
-the enumerative search is often unnecessary.
+The \textbf{DNF} and \textbf{UD} optimizations help significantly,
+but still leave many problems 
+unsolved.  In particular, with no intelligent expansion inference, only lenses
+that require few expansions can be synthesized because of the large fan-out
+in the search space for expansions. Of the \afm{12} benchmarks that
+could be solved simply with \textbf{DNF+UD}, none
+required more than \afm{5} 
+expansions.  As some of the lenses require up to \afm{30} expansions,
+the large fan-out makes a na\"{i}ve expansion search
+insufficient for many examples.
+However, by adding the optimization \textbf{FE} to the mix, we can
+determine that many of these expansions are forced, so 
+an enumerative search is often unnecessary.
 Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
-expansions can be identified as required, minmizing the impact of the
+expansions can be identified as required, minimizing the impact of the
 large fan-out.  While unable to infer every expansion for all the benchmarks,
-it is able to infer quite a bit.
-On one benchmark \ForceExpand{} infers \afm{26} expansions, and \ForceExpand{}
-infers a median of \afm{11} expansions.
+the full algorithm is able to infer quite a bit.
+In our benchmark suite, \ForceExpand{} infers a median of \afm{11}
+and a maximum of \afm{26} expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
-solvable.  Inferring forced expansions, in many cases, infers
+solvable.  In many cases, \textbf{DNF+UD+FE} infers
 \emph{all} the expansions.  In \afm{15} of the \afm{25} examples solvable with
 expansion inference, all expansions
-were forced.  However, the remaining \afm{11} still require enumerative search.
-This algorithm will find lenses for most of the benchmarks, but it can take a
-relatively long time for some.
-Directing the search to use more than just blind breadth-first search, when more
-information can be used to direct it, speeds up these slow benchmarks.  When
-using full inference, the synthesis algorithm can recognize that one of a few
-expansions must be performed.  Adding in these types of
+were forced.  However, the remaining \afm{11} \ksf{these numbers don't
+add up!} still require enumerative search.
+The \textbf{DNF+UD+FE} version of the algorithm will find lenses for
+most of the benchmarks, but it can take a relatively long time for some.
+Incorporating the next optimization \textbf{IE} speeds up these slow benchmarks.  When
+using full inference (\textbf{FE+IE}), the synthesis algorithm can
+recognize that one of a few expansions must be performed.  Adding in these types of
 inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
 
-All these optimizations allow for a very fast synthesis algorithm, which can
-synthesize a wide range of lenses between data formats.  However, some of the
+When combined, these optimizations implement an efficient synthesis algorithm, which can
+synthesize a lenses between a wide range of data formats.  However, some of the
 tasks are still slow, and one remains unsolved.
-Our full synthesis algorithm makes use of previously written lenses.
-Through leveraging these lenses, the synthesis algorithm is not solely
-responsible for all transformations that must occur, but instead can rely on
-existing lenses included in the Boomerang standard library, written by
-the user, or synthesized by our system.
+Our full synthesis algorithm (\textbf{DNF+UD+FE+IE+PD}) makes use of
+previously defined (\textbf{PD}) lenses to 
+simplify the synthesis task at hand.  These 
+lenses included in the Boomerang standard library, written by the
+user, or previously synthesized by \Optician{}.
 
-The benchmark that our algorithm requires contextual information for is also
-the slowest benchmark in the full synthesis algorithm, \CF{aug/xml}.  This
-example required contextual lenses because it was a large data format, a large
-number of expansions were required, and relatively few expansions were forced.
-When not using the lens context, a total of 398
-expansions must be performed for synthesis to be possible.
-With only 105 forced expansions, 293 expansions must be found either through
-enumerative or directed search.
+The benchmark that requires the \textbf{PD} optimization is also
+the slowest benchmark, \CF{aug/xml}.  This
+example requires using previously defined lenses because it is a
+complex data format, it requires a
+number of expansions, and relatively few expansions are forced.
+When not using previously defined lenses, the algorithm must perform a
+total of 
+398~expansions, of which only 105 are forced.  
 The synthesis algorithm is able to force so few expansions because of the highly
-repetitive nature of the specification for \CF{aug/xml}.  XML tags occur at many
-different levels, and they all use the same user defined data types.
+repetitive nature of the \CF{aug/xml} specification.  XML tags occur at many
+different levels, and they all use the same user-defined data types.
 This repetitive nature causes our
-expansion inferences to only find a few expansions, compared to the large number
-of required expansions.  The large fan-out of expansions present in a large data
-format, combined with the number of expansions that must be performed, creates
-a search space too large for our algorithm to process.  However, the
+expansion inference to find only a few of the large number of required
+expansions.  The large fan-out of expansions, combined with the large number
+of expansions that must be performed, creates 
+a search space too large for our algorithm to effectively search.  However, the
 synthesis algorithm is able to succeed on the easier task of finding the desired
-transformation while utilizating contextual lenses. 
-\footnote{Since xml syntax is regular, the source and target regular
+transformation while using existing lenses. 
+\footnote{Since xml syntax is regular \ksf{context-free?}, the source and target regular
   expressions describe only xml expressions up to depth 3.}
 
 \paragraph*{Importance of Examples}
