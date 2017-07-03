@@ -2191,8 +2191,9 @@ function to conduct a purely enumerative search, implemented by performing all
 single-step expansions.
 
 \paragraph*{\RigidSynth} 
-The function, \RigidSynth{}, implements the portion of \SynthLens{} that
-generates the lens from the types and examples.
+The function \RigidSynth{}, shown in Algorithm~\ref{alg:rigidsynth},
+implements the portion of \SynthLens{} that
+generates a lens from the types and examples without using any equivalences.
 Intuitively, it aligns the structures of the source and target regular
 expressions by finding appropriate permutations of nested sequences
 and nested atoms, taking into account the information contained in the
@@ -2301,12 +2302,14 @@ the source and target DNF regular expressions that match and to
 leverage that information to create candidate permutations.
 
 \RigidSynth{} performs this identification via orderings on
-sequences (\SequenceLeq), and atoms (\AtomLeq).  For
+sequences (\SequenceLeq), and atoms (\AtomLeq).  
+\ksf{Say something about where these orderings come from.}
+For
 example, between two sequences, $\Sequence$ and $\SequenceAlt$, there is a lens
 $\SequenceLens \OfRewritelessType \Sequence \Leftrightarrow \SequenceAlt$ if,
 and only if, $\Sequence \SequenceLeq \SequenceAlt$ and $\SequenceAlt
 \SequenceLeq \Sequence$.  Through these orderings, aligning the components
-becomes merely sorting and zipping lists.  Furthermore, through composing the
+reduces to merely sorting and zipping lists.  Furthermore, through composing the
 permutations required to sort the sequences, the algorithm discovers the
 permutation used in the lens.
 
@@ -2322,6 +2325,7 @@ then there is not only a
 sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
 satisfies the examples.
 
+\ksf{make sure this type sets with the full example on one page.}
 As an example, consider trying to find a DNF lens between
 \begin{lstlisting}
    $\DNFLeft$ $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
@@ -2340,24 +2344,27 @@ and
   $\DNFSep\hspace*{.33mm}
   \SequenceOf{\StringCF{""}}$ $\DNFRight$
 \end{lstlisting}
-As the legacy DNF regular expression passes to \RigidSynth{}, its two
-sequences get ordered
+As \RigidSynth{} considers the legacy DNF regular expression, it
+orders its two sequences
 by maintaining the existing order:  first $\SequenceOf{\StringCF{"<Field
     Id=2></Field>"}}$, then
 $\SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{"<Field Id=2>"}}$.
-However, the two sequences of the modern DNF regular expression get
-reordered, making $\SequenceOf{\StringCF{""}}$ first,
+In contrast,
+\RigidSynth{} reorders 
+the two sequences of the modern DNF regular expression,
+making $\SequenceOf{\StringCF{""}}$ first,
 and $\SequenceOf{\StringCF{"Title:"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
     \SeqSep \StringCF{","}}$ second;
-the overall permutation is a swap.  The two sequences that consist
-only of a string get aligned, and the complex sequences also get aligned.
+the overall permutation is a swap.  
+As a result, the two string sequences become aligned, as do the two
+complex sequences. 
 
-Then, \RigidSynthSequence{} gets called on the two aligned sequence pairs.
+Then, the algorithm calls \RigidSynthSequence{} on the two aligned sequence pairs.
 There are no atoms in both
 $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$ and
 $\SequenceOf{\StringCF{""}}$, trivially creating the 
@@ -2550,13 +2557,13 @@ We have proven two theorems demonstrating the correctness of our algorithm.
   return a lens.
 \end{restatable}
 
-Theorem~\ref{thm:alg-soundness} states that when we return a lens, that lens
+Theorem~\ref{thm:alg-soundness} states that when we return a lens, that 
 lens will match the specifications.  Theorem~\ref{thm:alg-completeness} states
 that if there is a DNF lens that satisfies the specification, then we will
 return a lens, but not necessarily the same one.  However, from
 Theorem~\ref{thm:alg-soundness}, we know that this lens will match the
-specifications.  The proofs of these, and the previous theorems, are provided in
-the extended version.
+specifications.  The proofs of these theorems, and the previous ones,
+are provided in the extended version of this paper.
 
 % end implementation
 
