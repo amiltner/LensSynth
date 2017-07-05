@@ -258,7 +258,7 @@ Programmers often need to reliably transform back-and-forth between
 formats, not only transforming source data into a target
 format but also safely transforming target data back into the source format.
 \emph{Lenses}~\cite{Focal2005-long} are back-and-forth
-transformations which provide strong guarantees about their round-trip behavior,
+transformations that provide strong guarantees about their round-trip behavior,
 guarding against data corruption
 while reading, editing, and writing data sources.  
 
@@ -272,7 +272,7 @@ to express both
 \emph{get} and \emph{put}.
 Furthermore, well-typed lenses give rise to 
 \emph{get} and \emph{put} functions 
-guaranteed to satisfy the desired invertibility properties.
+guaranteed to satisfy desirable invertibility properties.
 
 Lens-based languages are present in variety of tools and have found mainstream
 industrial use.
@@ -327,7 +327,7 @@ many guided by
 types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015,morpheus}.  
 Specifically, \Optician{} supports the synthesis of \emph{bijective lenses}, a
 useful subset of Boomerang. 
-As inputs, it takes specifications of the source and target formats, plus
+As inputs, \Optician{} takes specifications of the source and target formats, plus
 a collection of concrete examples of the desired 
 transformation.  Format specifications are supplied as ordinary regular
 expressions.
@@ -348,20 +348,29 @@ Specifically, Boomerang's types are regular expression
 pairs, and each regular expression is equivalent to an infinite
 number of other regular expressions.
 To synthesize all Boomerang terms, a type-directed synthesizer
-must be able to traverse these equivalences, an infinite space.  
-Furthermore, composition is not
-admissible in Boomerang, making it necessary to search through possible
-intermediate types.
+must sometimes be able to find, amongst all possible equivalent
+regular expressions, the one with the right
+syntactic structure to guide the subsequent search for a 
+well-typed, example-compatible Boomerang term.  Search for the
+right Boomerang term is then made even more difficult by the fact that
+there exist function compositions ($f \circ g$) that cannot be written
+using some alternative single function $f'$ without composition.
+The inadmissability of function composition in Boomerang
+will force any na\"ive, but complete synthesis engine to guess haphazardly, and
+inefficiently, at intermediate lens types.
 
-To resolve these issues, we introduce two new languages: 
-``Disjunctive Normal Form (DNF) Lenses'' and ``DNF Regular Expressions.''
+
+To resolve these issues, we introduce a new language of
+\emph{Disjunctive Normal Form (DNF) lenses}.
 Just as string lenses have pairs of regular expressions as types, DNF lenses
-have pairs of DNF regular expressions as types.
+have pairs of \emph{DNF regular expressions} as types.
 The typing judgements for DNF lenses limit how equivalences can be
 used  and require no composition operator, greatly reducing the size
 of the search space.
-Despite the restrictive syntax and type system of DNF lenses, we prove they are
-equivalent to our bijective fragment of Boomerang.
+Despite the restrictive syntax and type system of DNF lenses, we prove our
+new language is
+equivalent to a natural, declarative specification of the 
+bijective fragment of Boomerang.
 
 \begin{figure}
   \centering
@@ -429,10 +438,10 @@ equivalent to our bijective fragment of Boomerang.
   \label{fig:schematic-diagram-synthesis}
 \end{figure}
 
-Figure~\ref{fig:schematic-diagram-synthesis} shows a high level
+Figure~\ref{fig:schematic-diagram-synthesis} shows a high-level,
 schematic diagram for \Optician{}.
 First, \Optician{} uses the function \ToDNFRegex{} to convert the input
-regular expressions to DNF regular expressions.  Next,
+regular expressions into DNF regular expressions.  Next,
 \SynthDNFLens{} performs type-directed synthesis on these DNF regular
 expressions and the input examples to synthesize a DNF lens.  Finally, this DNF lens is
 converted back into a regular lens with the function \ToLens{}, and returned to the user.
@@ -463,12 +472,24 @@ we offer the following technical contributions:
   We evaluate \Optician{}, its optimizations, and
   existing synthesis tools on \afm{26} benchmarks, including
   examples derived from Flash Fill~\cite{gulwani-popl-2014} and the
-  Augeas~\cite{augeas} system (\S \ref{evaluation}).  We show that our
-  algorithm significantly outperforms previous systems.
+  Augeas~\cite{augeas} system (\S \ref{evaluation}).  
   We show that our optimizations are critical for synthesizing many of
-  the complex lenses in our benchmark suite.  Our full
+  the complex lenses in our benchmark suite and that our full
   algorithm succeeds on all benchmarks in under \afm{5}
-  seconds.  \end{itemize} We close with related work
+  seconds.  
+
+\item While we are not aware of any other systems for automatically
+ synthesizing bijective transformations, we establish a baseline for
+ our the effectiveness of our techniques by comparing our synthesis algorithm
+ with the one used in FlashFill~\cite{gulwani-popl-2014}, a well-known
+ and influential synthesis system deployed in MicroSoft Excel.  FlashFill only
+ synthesizes transformations in one direction, but it was only able to
+ complete synthesis of \afm{X out of Y of our benchmarks}.  We conjecture
+ that the extra information we supply the synthesis system via our 
+ regular format descriptions, allows it to scale to significantly more
+ complex and varied formats and transformations than is possible in 
+ current string transformation systems that do not use this information.
+\end{itemize} We close with related work
 (\S \ref{sec:related}) and conclusions (\S \ref{sec:conc}).
 
 % end introduction
