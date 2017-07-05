@@ -298,11 +298,14 @@ def generate_uninferred_expansions_data(input_csv):
 
 def generate_time_vs_tasks_data(input_csv):
     def create_step_plot(colname, outputname):
-        col_vals = project_column_from_csv(input_csv, colname)
-        col_vals_and_endpoints = [x for x in col_vals if x != "-1"] + [0,600000]
-        x_vals = sorted([float(x) for x in set(col_vals_and_endpoints)])
-
+        col_vals = [float(x) for x in project_column_from_csv(input_csv, colname) if x != "-1"]
+        col_vals_and_endpoints = col_vals + [0,600000]
+        x_vals = sorted([x for x in set(col_vals_and_endpoints)])
         print(x_vals)
+        x_count_dict = {key: 0 for key in x_vals}
+        for val in col_vals:
+            x_count_dict[val] = x_count_dict[val]+1
+        print(x_count_dict)
         return 0
     create_step_plot("FlashExtract","FlashExtract")
 

@@ -2576,6 +2576,17 @@ permutation to create the final DNF lens.
 %has not improved performance because the relatively large number of
 %inferred types enlarges the search space too much.
 
+\paragraph*{Simplification of Generated Lenses}
+While our system takes in only partial specifications, there can be multiple
+lenses that satisfy the specifications.  To help users
+determine if the synthesized lens is correct, \Optician{} transforms the
+generated code to make it easily readable.  \Optician{} (1) maximally 
+factors the $\ConcatLens$s and $\OrLens$s, (2) turns lenses that perform identity
+transformations into identity lenses, and (3) simplifies the regular expressions
+the identity lenses take as an argument.  Performing these transformations and
+pretty printing the generated lenses make the synthesized lenses easy to
+understand.
+
 \paragraph*{Correctness}
 We have proven two theorems demonstrating the correctness of our algorithm.
 
@@ -2665,7 +2676,7 @@ FlashFill paper~\cite{gulwani-popl-2014} that were close to bijections.
 Finally, we added custom examples to highlight weaknesses of
 our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
 and to test situations for which we thought the tool would be
-particularly useful (\CF{workitem-probsTODO}, \CF{date-probs}, \CF{bib-prob},
+particularly useful (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
 and \CF{addr-probs}).   These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
@@ -2836,55 +2847,33 @@ transformation while using existing lenses.
 
 \begin{figure}
   \includegraphics{ExsReqd}
-  \begin{tikzpicture}
-    \begin{axis}[
-      xticklabels={0,1-5,6-10,11-15,16-20,>20},
-      xtick={1,...,6},
-    ybar,
-    enlargelimits=0.15,
-    legend style={at={(0.5,-0.15)},
-      anchor=north,legend columns=-1},
-    ylabel={\#participants},
-    xtick=data,
-    nodes near coords,
-    nodes near coords align={vertical},
-    ]
-    \addplot table [col sep=comma] {transformed-data/determinizing-example-counts.txt};
-    \legend{used}
-\end{axis}
-\end{tikzpicture}
   \caption{Average number of random examples required to synthesize benchmark
     programs.  {\bf Experimental Average} is the average number of randomly
-    generated examples needed to correctly synthesize the lens.  {\bf Exercise
-      All Paths} is the theoretical number of examples required to exercise all
-    code paths of the synthesized lens.  In practice, far fewer examples are
+    generated examples needed to correctly synthesize the lens.  {\bf
+      Determinize Permutations} is the theoretical number of examples required
+    to determinize the choice all the permutations in \RigidSynth{}.
+    In practice, far fewer examples are
     needed to synthesize the correct lens than would be predicted by the number
-    required for full code coverage. \ksf{Does this mean we may have
-      latent bugs in that we randomly pick one option but the user doesn't
-      have any data to tell us whether we picked the right one or not?  \afm{No,
-        it's more that we pick one option that requires minimal amounts of
-        swaps, but there are other possible lenses with different semantics
-        which satisfy the specification.}}}
+    required to determinize permutations.}
   \label{fig:exs-reqd}
 \end{figure}
-
 
 To evaluate how many user-supplied examples the algorithm requires in
 practice, we \textit{randomly} generated appropriate source/target
 pairs, mimicking what a na\"{i}ve user might do.  We did not write the
 examples by hand out of concern that our knowledge of the synthesis
-algorithm might bias the selection. Figure~\ref{fig:exs-reqd}, shows
+algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
 the number of randomly generated examples it takes to synthesize the
 correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only three benchmarks need a nonzero number of examples to synthesize
-the correct lens. A clever user may be able to reduce the
+any examples: only \afm{three} benchmarks need a nonzero number of examples to
+synthesize the correct lens. A clever user may be able to reduce the
 number of required examples even further by selecting examples carefully.
 
 These numbers are low because there are relatively few well-typed
 bijective lenses between any two source and target regular expressions. 
 As one would expect, the benchmarks where there are multiple ways to
 map source data to the target (and vice versa) require the most examples.
-For example, the benchmark \CF{aug/addr-probs} requires examples because it
+For example, the benchmark \CF{cust/addr-probs} requires examples because it
 must differentiate between and first and last names in both the
 source and target and map between them appropriately.
 
@@ -2895,10 +2884,12 @@ all the supplied examples.  This inferred lens may or may not
 correctly handle unseen examples that correspond to
 unexercised portions of the source and target regular expressions.
 Figure~\ref{fig:exs-reqd} lists
-the number of examples that are required to exercise all choice
-points.  Intuitively, this number represents the maximum number of
+the number of examples that are required to determinize the generation of
+permutations in \RigidSynth{}.
+Intuitively, this number represents the maximum number of
 examples that a user must supply to guide the synthesis engine if it
-always guesses the wrong mapping when multiple mappings are possible.
+always guesses the wrong permutation when multiple permutations can be used to
+satisfy the specification. 
 
 The average number of examples is so much lower than the maximum
 number of required examples because of correspondances in how we wrote
