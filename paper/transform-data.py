@@ -302,13 +302,15 @@ def generate_uninferred_expansions_data(input_csv):
 
     ax.legend((rects1[0],rects2[0]),("Full Inference","Forced Only"))
 
-    fig = plt.figure(1,tight_layout=True)
+    fig = plt.figure(2,tight_layout=True)
     fig.set_figheight(1.8)
     fig.set_figwidth(5)
 
     fig.savefig("generated-graphs/uninferred.eps", bbox_inches='tight')
 
 def generate_time_vs_tasks_data(input_csv):
+    fig, ax = plt.subplots()
+
     def create_step_plot(colname, outputname):
         col_vals = [float(x) for x in project_column_from_csv(input_csv, colname) if x != "-1"]
         col_vals_and_endpoints = col_vals + [0,600000]
@@ -323,8 +325,23 @@ def generate_time_vs_tasks_data(input_csv):
             acc = acc + x_count_dict[val]
             x_completed_counts.append(acc)
         print(x_completed_counts)
-        return 0
-    create_step_plot("ComputationTime","Full")
+
+
+        ax.step(x_vals,x_completed_counts,label=outputname)
+
+    create_step_plot("ComputationTime","DNF+UD+FE+IE+PD")
+    create_step_plot("NoLensContext","DNF+UD+FE+IE")
+    create_step_plot("OnlyForcedExpansionsNoLC","DNF+UD+FE")
+    create_step_plot("OnlyForcedExpansionsNoLC","DNF+UD")
+    create_step_plot("NaiveExpansionNoLC","DNF+UD")
+    create_step_plot("NoUDTypes","DNF")
+    create_step_plot("NaiveStrategy","Naive")
+
+    ax.legend()
+
+    fig = plt.figure(3,tight_layout=True)
+       
+    fig.savefig("generated-graphs/times.eps", bbox_inches='tight')
 
 def main(args):
     if len(args) == 2:
