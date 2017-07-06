@@ -18,142 +18,17 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 plt.rc('font', size=10)
 plt.rc('legend', fontsize=10)
 
-TEST_EXT = '.ls'
-BASELINE_EXT = '.out'
-BASE_FLAGS = []
-TIMEOUT_TIME = 600
-GENERATE_EXAMPLES_TIMEOUT_TIME = 600000
-
-REPETITION_COUNT = 10
+generated_graphs_base = "generated-graphs/"
+transformed_data_base = "transformed-data/"
 
 def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
 
-def transpose(matrix):
-    return zip(*matrix)
-
-def find_tests(root):
-    tests = []
-    for path, dirs, files in os.walk(root):
-        files = [(f[0], f[1]) for f in [splitext(f) for f in files]]
-        tests.extend([(path, f[0]) for f in files if f[1] == TEST_EXT])
-    return tests
-
-def gather_datum(prog, path, base, additional_flags, timeout):
-    process_output = EasyProcess([prog] + BASE_FLAGS + additional_flags + [join(path, base + TEST_EXT)]).call(timeout=timeout)
-    return (process_output.stdout,process_output.stderr)
-
-
-def gather_data(rootlength, prog, path, base):
-    current_data = {"Test":join(path, base).replace("_","-")[rootlength:]}
-
-    def gather_col(flags, run_combiner, col_name, timeout_time, repetition_count):
-        print(col_name)
-        run_data = []
-        timeout = False
-        error = False
-        for iteration in range(repetition_count):
-    	    (datum,err) = gather_datum(prog, path, base,flags,timeout_time)
-            if datum == "":
-                if err == "":
-                    timeout = True
-                else:
-                    error = True
-                break
-            else:
-	            run_data.append(datum.split(","))
-        if error:
-            current_data[col_name]=-1
-        elif timeout:
-	        current_data[col_name]=-1
-        else:
-            run_data_transpose = transpose(run_data)
-            current_data[col_name]=run_combiner(run_data_transpose)
-
-    def ctime_combiner(run_data_transpose):
-        computation_time_col = [float(x) for x in run_data_transpose[0]]
-        ans = sum(computation_time_col)/len(computation_time_col)
-        ans = (int)(ans * 1000)
-        return ans
-
-    def exs_reqd_combiner(run_data_transpose):
-	    example_number_col = [float(x) for x in run_data_transpose[0]]
-	    return "{:.1f}".format(sum(example_number_col)/len(example_number_col))
-
-    def max_exs_reqd_combiner(run_data_transpose):
-	    example_number_col = [float(x) for x in run_data_transpose[0]]
-	    return int(sum(example_number_col)/len(example_number_col))
-
-    def specsize_combiner(run_data_transpose):
-	    example_number_col = [float(x) for x in run_data_transpose[0]]
-	    return int(sum(example_number_col)/len(example_number_col))
-
-
-    gather_col(['-time'],ctime_combiner,"ComputationTime",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-forceexpand','-time'],ctime_combiner,"ForceExpandTime",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-naive_strategy','-time'],ctime_combiner,"NaiveStrategy",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-naive_pqueue','-time'],ctime_combiner,"NaivePQueue",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-no_short_circuit','-time'],ctime_combiner,"NoShortCircuit",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-no_lens_context','-time'],ctime_combiner,"NoLensContext",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-no_short_circuit','-no_inferred_expansions','-no_lens_context','-time'],ctime_combiner,"NoInferenceNoLCNoSC",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-no_short_circuit','-no_lens_context','-time'],ctime_combiner,"NoLCNoSC",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-naive_expansion_search','-no_lens_context','-time'],ctime_combiner,"NaiveExpansionNoLC",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-use_only_forced_expansions','-no_lens_context','-time'],ctime_combiner,"OnlyForcedExpansionsNoLC",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-naive_expansion_search','-time'],ctime_combiner,"NaiveExpansion",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-use_only_forced_expansions','-time'],ctime_combiner,"OnlyForcedExpansions",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-forceexpand','-naive_expansion_search','-time'],ctime_combiner,"NoUDTypes",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-generatedexamples'],exs_reqd_combiner,"ExamplesRequired",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-max_to_specify'],max_exs_reqd_combiner,"MaxExampleCount",TIMEOUT_TIME,1)
-    gather_col(['-spec_size'],max_exs_reqd_combiner,"SpecSize",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-lens_size'],max_exs_reqd_combiner,"LensSize",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-lens_size','-no_lens_context'],max_exs_reqd_combiner,"LensSizeNoLensContext",TIMEOUT_TIME,REPETITION_COUNT)
-    gather_col(['-expansions_inferred'],max_exs_reqd_combiner,"ExpansionsInferred",TIMEOUT_TIME,1)
-    gather_col(['-expansions_inferred','-no_lens_context'],max_exs_reqd_combiner,"ExpansionsInferredNoLensContext",TIMEOUT_TIME,1)
-    gather_col(['-expansions_forced'],max_exs_reqd_combiner,"ExpansionsForced",TIMEOUT_TIME,1)
-    gather_col(['-expansions_forced','-no_lens_context'],max_exs_reqd_combiner,"ExpansionsForcedNoLensContext",TIMEOUT_TIME,1)
-    gather_col(['-specs_visited'],max_exs_reqd_combiner,"SpecsVisited",TIMEOUT_TIME,1)
-    gather_col(['-specs_visited','-naive_expansion_search'],max_exs_reqd_combiner,"SpecsVisitedNaiveExpansion",TIMEOUT_TIME,1)
-    gather_col(['-specs_visited','-use_only_forced_expansions'],max_exs_reqd_combiner,"SpecsVisitedOnlyForcedExpansions",TIMEOUT_TIME,1)
-    gather_col(['-specs_visited','-no_lens_context'],max_exs_reqd_combiner,"SpecsVisitedNoLensContext",TIMEOUT_TIME,1)
-    gather_col(['-expansions_performed'],max_exs_reqd_combiner,"ExpansionsPerformed",TIMEOUT_TIME,1)
-    gather_col(['-expansions_performed','-no_lens_context'],max_exs_reqd_combiner,"ExpansionsPerformedNoLensContext",TIMEOUT_TIME,1)
-    #gather_col(['-naive_pqueue','-no_lens_context','-time'],ctime_combiner,"NoLensContextNPQ",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-naive_pqueue','-no_short_circuit','-no_inferred_expansions','-no_lens_context','-time'],ctime_combiner,"NoInferenceNoLCNoSCNPQ",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-naive_pqueue','-no_short_circuit','-no_lens_context','-time'],ctime_combiner,"NoLCNoSCNPQ",TIMEOUT_TIME,REPETITION_COUNT)
-    #gather_col(['-naive_pqueue','-no_inferred_expansions','-no_lens_context','-time'],ctime_combiner,"NoInferenceNoLCNPQ",TIMEOUT_TIME,REPETITION_COUNT)
-
-    return current_data
-
-def specsize_compare(x,y):
-    return int(x["SpecSize"])-int(y["SpecSize"])
-
-def sort_data(data):
-    return sorted(data,cmp=specsize_compare)
-
-def print_data(data):
-    ensure_dir("generated_data/")
-    with open("generated_data/data.csv", "wb") as csvfile:
-	datawriter = csv.DictWriter(csvfile,fieldnames=data[0].keys())
-	datawriter.writeheader()
-	datawriter.writerows(data)
 
 def print_usage(args):
     print("Usage: {0} <file1>".format(args[0]))
-
-def transform_data(path, base, run_data):
-    current_data = {"Test":join(path, base + TEST_EXT).replace("_","-")[6:]}
-    run_data_transpose = transpose(run_data)
-    for index in range(len(run_data_transpose)/2):
-	col_name = run_data_transpose[index][0]
-	col_data = run_data_transpose[index+1]
-        if "" in col_data:
-	    current_data[col_name]=-1
-        else:
-            col = [float(x) for x in col_data]
-            current_data[col_name] = str(sum(col)/len(col))
-    return current_data
 
 def retrieve_csv(filename):
     csv_rows = []
@@ -170,7 +45,7 @@ def write_to_filename(filename, s):
     with open(filename, "wb") as f:
         f.write(s)
 
-def generate_examples_required_data(input_csv):
+def generate_examples_required_graph(input_csv):
     zero_count_ind = 0
     one_to_five_count_ind = 1
     six_to_ten_count_ind = 2
@@ -238,9 +113,9 @@ def generate_examples_required_data(input_csv):
     fig.set_figheight(1.8)
     fig.set_figwidth(5)
 
-    fig.savefig("generated-graphs/examples.eps", bbox_inches='tight')
+    fig.savefig(generated_graphs_base + "examples.eps", bbox_inches='tight')
 
-def generate_uninferred_expansions_data(input_csv):
+def generate_uninferred_expansions_graph(input_csv):
     zero_count_ind = 0
     one_to_five_count_ind = 1
     six_to_ten_count_ind = 2
@@ -306,16 +181,15 @@ def generate_uninferred_expansions_data(input_csv):
     fig.set_figheight(1.8)
     fig.set_figwidth(5)
 
-    fig.savefig("generated-graphs/uninferred.eps", bbox_inches='tight')
+    fig.savefig(generated_graphs_base + "uninferred.eps", bbox_inches='tight')
 
-def generate_time_vs_tasks_data(input_csv):
+def generate_time_vs_tasks_graph(input_csv):
     fig, ax = plt.subplots()
 
-    def create_step_plot(colname, outputname):
-        col_vals = [float(x) for x in project_column_from_csv(input_csv, colname) if x != "-1"]
-        col_vals_and_endpoints = col_vals + [0,600000]
+    def create_step_plot(colname, outputname,style,width):
+        col_vals = [float(x)/1000.0 for x in project_column_from_csv(input_csv, colname) if x != "-1"]
+        col_vals_and_endpoints = col_vals + [0,600]
         x_vals = sorted([x for x in set(col_vals_and_endpoints)])
-        print(x_vals)
         x_count_dict = {key: 0 for key in x_vals}
         for val in col_vals:
             x_count_dict[val] = x_count_dict[val]+1
@@ -324,36 +198,56 @@ def generate_time_vs_tasks_data(input_csv):
         for val in x_vals:
             acc = acc + x_count_dict[val]
             x_completed_counts.append(acc)
-        print(x_completed_counts)
 
+        ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
 
-        ax.step(x_vals,x_completed_counts,label=outputname)
+    normal_size = 2
+    full_size = 3
 
-    create_step_plot("ComputationTime","DNF+UD+FE+IE+PD")
-    create_step_plot("NoLensContext","DNF+UD+FE+IE")
-    create_step_plot("OnlyForcedExpansionsNoLC","DNF+UD+FE")
-    create_step_plot("NaiveExpansionNoLC","DNF+UD")
-    create_step_plot("NoUDTypes","DNF")
-    create_step_plot("NaiveStrategy","Naive")
+    create_step_plot("ComputationTime","Full",'-',full_size)
+    create_step_plot("NoLensContext","NoPD",':',normal_size)
+    create_step_plot("OnlyForcedExpansionsNoLC","NoFPE",'-',normal_size)
+    create_step_plot("NoUDTypes","NoUD",':',normal_size)
+    create_step_plot("NaiveExpansionNoLC","NoER",'-',normal_size)
+    create_step_plot("NaiveStrategy","FlashExtract",':',normal_size)
+    create_step_plot("NaiveStrategy","Flash Fill",'-',normal_size)
+    create_step_plot("NaiveStrategy",u"Na\u00EFve",':',normal_size)
 
     ax.set_ylabel('Benchmarks Completed')
-    ax.set_xlabel('Time (ms)')
+    ax.set_xlabel('Time (s)')
     ax.set_title("Time vs Benchmarks Completed")
 
-    ax.legend(bbox_to_anchor=(1.4,1),borderaxespad=0)
+    l = ax.legend(bbox_to_anchor=(1.45,1),borderaxespad=0)
+    plt.setp(l.texts, weight='bold')
 
     fig = plt.figure(3,tight_layout=True)
+    fig.set_figheight(3)
+    fig.set_figwidth(4)
        
-    fig.savefig("generated-graphs/times.eps", bbox_inches='tight')
+    fig.savefig(generated_graphs_base + "times.eps", bbox_inches='tight')
+
+def generate_benchmark_count(input_csv):
+    write_to_filename(transformed_data_base + "benchmark-count.txt", str(len(input_csv)))
+
+def generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv):
+    times = project_column_from_csv(input_csv,"ComputationTime")
+    maxtime = max([float(x)/1000 for x in times])
+    num = 0.0
+    while (num < maxtime):
+        num = num+5.0
+    write_to_filename(transformed_data_base + "multiple-of-five-number-of-seconds-synthesized-under.txt", str(int(num)))
 
 def main(args):
     if len(args) == 2:
         input_filepath = args[1]
         input_csv = retrieve_csv(input_filepath)
-        ensure_dir("generated-graphs/")
-        generate_examples_required_data(input_csv)
-        generate_uninferred_expansions_data(input_csv)
-        generate_time_vs_tasks_data(input_csv)
+        ensure_dir(generated_graphs_base)
+        ensure_dir(transformed_data_base)
+        generate_examples_required_graph(input_csv)
+        generate_uninferred_expansions_graph(input_csv)
+        generate_time_vs_tasks_graph(input_csv)
+        generate_benchmark_count(input_csv)
+        generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv)
     else:
         print_usage(args)
 
