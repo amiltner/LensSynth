@@ -2753,22 +2753,21 @@ na\"{i}ve approach, none of the examples, even the very simple ones, can
 be synthesized with a ten minute timeout.  Our core DNF synthesis
 procedure, labeled \textbf{DNF} in the graph, that performs 
 \emph{no} intelligent expansion search and makes no use
-of user-defined data types succeeds on \afm{7} of the benchmarks. 
+of user-defined data types succeeds on \afm{7} of the benchmarks.
 
-However, the exponential blowup when converting to DNF form makes most tasks
-take an unreasonably long time.
-Despite requiring significantly more input from the users, \textbf{DNF} only
-performs slightly better than FlashExtract.
-Keeping the user-defined types abstract until their internals must be
-exposed nearly doubles the number 
-of completed synthesis tasks, shown in the graph as the line labeled \textbf{DNF+UD}.
-Even though this optimization introduces additional search, it minimizes the
-impact of the exponential explosion caused by converting to DNF.
-This minimization lets our synthesis algorithm work on the
-large format specifications encountered in real-life data.
+Interestingly, \textbf{DNF+UD} performs \emph{worse} than \textbf{DNF}.
+Adding in \textbf{UD} introduces the additional search through substitutions.
+The cost of this additional search outweighs the savings that these data type
+abstractions provide.  In particular, because of the large fanout of possible 
+expansions, \textbf{DNF+UD} can only synthesize lenses which
+require \afm{5} or fewer expansions.  However, some lenses require over 50
+expansions.  Without a way to intelligently traverse
+expansions, the need to search through substitutions makes synthesis
+unreasonably slow.  To leverage the benefit of keeping data types abstract, we
+need a more intelligent way to traverse expansions.
 
 \begin{figure}
-  \includegraphics{UninferredExpansions}
+  \includegraphics[width=\textwidth]{generated-graphs/uninferred}
   \caption{Number of expansions found using enumerative search for tasks
     requiring a given number of
     expansions.  {\bf Full Inference} is using the full inference
@@ -2780,18 +2779,8 @@ large format specifications encountered in real-life data.
   \label{fig:uninferred-exps}
 \end{figure}
 
-The \textbf{DNF} and \textbf{UD} optimizations help significantly,
-but still leave many problems 
-unsolved.  In particular, with no intelligent expansion inference, only lenses
-that require few expansions can be synthesized because of the large fan-out
-in the search space for expansions. Of the \afm{12} benchmarks that
-could be solved simply with \textbf{DNF+UD}, none
-required more than \afm{5} 
-expansions.  As some of the lenses require up to \afm{30} expansions,
-the large fan-out makes a na\"{i}ve expansion search
-insufficient for many examples.
-However, by adding the optimization \textbf{FE} to the mix, we can
-determine that many of these expansions are forced, so 
+By adding the optimization \textbf{FE} to the mix, we can
+determine that many expansions are forced, so 
 an enumerative search is often unnecessary.
 Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
 expansions can be identified as required, minimizing the impact of the
@@ -2846,7 +2835,8 @@ transformation while using existing lenses.
 \paragraph*{Importance of Examples}
 
 \begin{figure}
-  \includegraphics{ExsReqd}
+  \centering
+  \includegraphics[width=\textwidth]{generated-graphs/examples.eps}
   \caption{Average number of random examples required to synthesize benchmark
     programs.  {\bf Experimental Average} is the average number of randomly
     generated examples needed to correctly synthesize the lens.  {\bf
@@ -2865,17 +2855,26 @@ examples by hand out of concern that our knowledge of the synthesis
 algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
 the number of randomly generated examples it takes to synthesize the
 correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only \afm{three} benchmarks need a nonzero number of examples to
-synthesize the correct lens. A clever user may be able to reduce the
-number of required examples even further by selecting examples carefully.
+any examples: only \afm{five} benchmarks need a nonzero number of examples to
+synthesize the correct lens and only one, \CF{cust/workitem-probs} required over
+10 randomly generated examples.
+A clever user may be able to reduce the
+number of examples further by selecting examples carefully; we
+synthesized \CF{cust/workitem-probs} with only 8 examples.
 
 These numbers are low because there are relatively few well-typed
 bijective lenses between any two source and target regular expressions. 
 As one would expect, the benchmarks where there are multiple ways to
 map source data to the target (and vice versa) require the most examples.
-For example, the benchmark \CF{cust/addr-probs} requires examples because it
-must differentiate between and first and last names in both the
-source and target and map between them appropriately.
+For example, the benchmark \CF{cust/workitem-probs} requires a large number of
+examples because it
+must differentiate between data in different text fields in both the
+source and target and map between them appropriately.  As these text fields are
+heavily permuted
+(the legacy format ordered fields by a numeric ID, where
+the modern format ordered fields alphabetically) and fields can be
+omitted, a number of examples are needed to correctly identify which field maps
+to which.
 
 The average number of examples to
 infer the correct lens does not tell the whole story.  The system will

@@ -224,14 +224,15 @@ def generate_examples_required_data(input_csv):
     rects1 = ax.bar(ind, experimental_values, width, color='#ffffb3', align='center')
     rects2 = ax.bar(ind+width, determinizing_values, width, color='#998ec3', align='center')
 
-    ax.set_ylabel('Count')
+    ax.set_ylabel('Benchmark Count')
+    ax.set_xlabel('Example Count')
     ax.set_title("Examples Required for Benchmarks")
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(ind_to_text)
 
     ax.legend((rects1[0],rects2[0]),("Experimental Average", "Determinize Permutations"))
 
-    plt.savefig("examples.eps")
+    plt.savefig("generated-graphs/examples.eps")
 
 def generate_uninferred_expansions_data(input_csv):
     zero_count_ind = 0
@@ -287,14 +288,15 @@ def generate_uninferred_expansions_data(input_csv):
     rects1 = ax.bar(ind, uninferred_values, width, color='#ffffb3', align='center')
     rects2 = ax.bar(ind+width, unforced_values, width, color='#998ec3', align='center')
 
-    ax.set_ylabel('Count')
-    ax.set_title("Examples Required for Benchmarks")
+    ax.set_ylabel('Benchmark Count')
+    ax.set_xlabel('Expansions Not Inferred')
+    ax.set_title("Number of Benchmarks with Uninferred Expansions")
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(ind_to_text)
 
     ax.legend((rects1[0],rects2[0]),("Full Inference","Forced Only"))
 
-    plt.savefig("uninferred.eps")
+    plt.savefig("generated-graphs/uninferred.eps")
 
 def generate_time_vs_tasks_data(input_csv):
     def create_step_plot(colname, outputname):
@@ -307,7 +309,7 @@ def generate_time_vs_tasks_data(input_csv):
             x_count_dict[val] = x_count_dict[val]+1
         print(x_count_dict)
         return 0
-    create_step_plot("FlashExtract","FlashExtract")
+    create_step_plot("ComputationTime","Full")
 
 def main(args):
     if len(args) == 2:
