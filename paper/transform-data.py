@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 
 matplotlib.rcParams['mathtext.fontset'] = 'stix'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
+plt.rc('font', size=10)
+plt.rc('legend', fontsize=10)
 
 TEST_EXT = '.ls'
 BASELINE_EXT = '.out'
@@ -232,7 +234,11 @@ def generate_examples_required_data(input_csv):
 
     ax.legend((rects1[0],rects2[0]),("Experimental Average", "Determinize Permutations"))
 
-    plt.savefig("generated-graphs/examples.eps")
+    fig = plt.figure(1,tight_layout=True)
+    fig.set_figheight(1.8)
+    fig.set_figwidth(5)
+
+    fig.savefig("generated-graphs/examples.eps", bbox_inches='tight')
 
 def generate_uninferred_expansions_data(input_csv):
     zero_count_ind = 0
@@ -296,7 +302,11 @@ def generate_uninferred_expansions_data(input_csv):
 
     ax.legend((rects1[0],rects2[0]),("Full Inference","Forced Only"))
 
-    plt.savefig("generated-graphs/uninferred.eps")
+    fig = plt.figure(1,tight_layout=True)
+    fig.set_figheight(1.8)
+    fig.set_figwidth(5)
+
+    fig.savefig("generated-graphs/uninferred.eps", bbox_inches='tight')
 
 def generate_time_vs_tasks_data(input_csv):
     def create_step_plot(colname, outputname):
@@ -307,7 +317,12 @@ def generate_time_vs_tasks_data(input_csv):
         x_count_dict = {key: 0 for key in x_vals}
         for val in col_vals:
             x_count_dict[val] = x_count_dict[val]+1
-        print(x_count_dict)
+        x_completed_counts = []
+        acc = 0
+        for val in x_vals:
+            acc = acc + x_count_dict[val]
+            x_completed_counts.append(acc)
+        print(x_completed_counts)
         return 0
     create_step_plot("ComputationTime","Full")
 
