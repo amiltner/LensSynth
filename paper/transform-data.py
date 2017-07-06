@@ -332,12 +332,15 @@ def generate_time_vs_tasks_data(input_csv):
     create_step_plot("ComputationTime","DNF+UD+FE+IE+PD")
     create_step_plot("NoLensContext","DNF+UD+FE+IE")
     create_step_plot("OnlyForcedExpansionsNoLC","DNF+UD+FE")
-    create_step_plot("OnlyForcedExpansionsNoLC","DNF+UD")
     create_step_plot("NaiveExpansionNoLC","DNF+UD")
     create_step_plot("NoUDTypes","DNF")
     create_step_plot("NaiveStrategy","Naive")
 
-    ax.legend()
+    ax.set_ylabel('Benchmarks Completed')
+    ax.set_xlabel('Time (ms)')
+    ax.set_title("Time vs Benchmarks Completed")
+
+    ax.legend(bbox_to_anchor=(1.4,1),borderaxespad=0)
 
     fig = plt.figure(3,tight_layout=True)
        

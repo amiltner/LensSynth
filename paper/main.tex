@@ -2689,21 +2689,19 @@ nodes, for simple problems like changing how dates are represented, and
 \begin{figure}
   \includegraphics{SynthesisTimes}
   \caption{
-   \ksf{Make the labels in the graph match the labels in the caption.
-  Ie, instead of Full write DNF+UD+FE+IE+PD.}
     Number of benchmarks that can be solved by a given algorithm in a given
-    amount of time. {\bf DNF+UD+FE+IE+PD} is the full synthesis
+    amount of time. \FullMode{} is the full synthesis
     algorithm.
-    {\bf DNF+UD+FE+IE} is
+    \NoPDMode{} is
     the synthesis algorithm using all optimizations but without using
     a library of
-    existing lenses.  {\bf DNF+UD+FE} is the core DNF synthesis algorithm
+    existing lenses.  \NoFPEMode{} is the core DNF synthesis algorithm
     augmented with user-defined data types with
-    forced expansions performed.  {\bf DNF+UD} is the core synthesis
+    forced expansions performed.  \NoERMode{} is the core synthesis
     augmented with
-    user-defined data types.  {\bf DNF} is the core synthesis algorithm.  {\bf
-      FlashExtract} is the existing FlashExtract system.  {\bf Flash Fill} is
-    the existing Flash Fill system.  {\bf Na\"{i}ve} is na\"{i}ve type-directed 
+    user-defined data types.  \NoUDMode{} is the core synthesis algorithm.
+    \FlashExtractMode{} is the existing FlashExtract system.  \FlashFillMode{} is
+    the existing Flash Fill system.  \NaiveMode{} is na\"{i}ve type-directed 
     synthesis on the bijective lens combinators.  Our synthesis algorithm performs
     better than the na\"{i}ve approach and other string transformation systems,
     and our optimizations speed up the algorithm enough that all tasks become
@@ -2714,22 +2712,24 @@ nodes, for simple problems like changing how dates are represented, and
 
 \paragraph*{Impact of Optimizations}
 We developed a series of optimizations that improve the performance of the
-synthesis algorithm dramatically.
-Our optimizations were:
+synthesis algorithm dramatically.  To determine the relative importance of these
+optimizations, we developed the 5 different modes that run the synthesis
+algorithm with various optimizations enabled.  These modes are:
+
 \begin{itemize}
-\item[\textbf{DNF:}]  The synthesis algorithm performs type-directed synthesis
-  on the typing derivations for DNF lenses, instead of type-directed synthesis
-  on the typing derivation for bijective lenses.
-\item[\textbf{UD:}]  The synthesis algorithm treats user-defined data types as
-  abstract variables that can only have the identity lens applied to them
-  unless they are selected for expansion by \Expand{}.
-\item[\textbf{FE:}] \ExpandRequired{} identifies necessary expansions
-   and performs them immediately.
-\item[\textbf{IE:}] \FixProblemElts{} identifies when one of a class
-  of expansions must be taken and tries those expansions
-  instead of performing a fully enumerative search.
-\item[\textbf{PD:}] When possible, the synthesis algorithm applies
-  previously defined lenses.
+\item[\FullMode{}] All optimizations are enabled.  We run the core synthesis
+  algorithm presented in \SynthLens{} and apply previously
+  defined lenses whenever possible.
+\item[\NoPDMode{}:] Like \FullMode{}, but previously
+  defined lenses are not applied.
+\item[\NoFPEMode{}:] Like \NoPDMode{}, but \FixProblemElts{} is never called,
+  expansions are only forced through \ExpandRequired{} or processed enumeratively
+  through \ExpandOnce{}.
+\item[\NoERMode{}:]  Like \NoFPEMode{}, but there is expansions are only processed
+  through enumerative search from \ExpandOnce{}.
+\item[\NoUDMode{}:]  User-defined data types are no longer kept abstract until
+  needed.  All user-defined regular expressions get replaced by their
+  definition at the start of synthesis.
 \end{itemize}
 
 A number of benchmark lenses cannot
@@ -2751,15 +2751,16 @@ a na\"{i}ve type-directed synthesis on the bijective lens combinators doesn't
 work at all.  With a 
 na\"{i}ve approach, none of the examples, even the very simple ones, can
 be synthesized with a ten minute timeout.  Our core DNF synthesis
-procedure, labeled \textbf{DNF} in the graph, that performs 
+procedure, labeled \NoUDMode{} in the graph, that performs 
 \emph{no} intelligent expansion search and makes no use
 of user-defined data types succeeds on \afm{7} of the benchmarks.
 
-Interestingly, \textbf{DNF+UD} performs \emph{worse} than \textbf{DNF}.
-Adding in \textbf{UD} introduces the additional search through substitutions.
+Interestingly, \NoERMode{} performs \emph{worse} than \NoUDMode{}.
+Adding in user defined data types introduces the additional search through
+substitutions. 
 The cost of this additional search outweighs the savings that these data type
 abstractions provide.  In particular, because of the large fanout of possible 
-expansions, \textbf{DNF+UD} can only synthesize lenses which
+expansions, \NoERMode{} can only synthesize lenses which
 require \afm{5} or fewer expansions.  However, some lenses require over 50
 expansions.  Without a way to intelligently traverse
 expansions, the need to search through substitutions makes synthesis
@@ -2779,25 +2780,25 @@ need a more intelligent way to traverse expansions.
   \label{fig:uninferred-exps}
 \end{figure}
 
-By adding the optimization \textbf{FE} to the mix, we can
-determine that many expansions are forced, so 
+In \NoFPEMode{}, we can determine that many expansions are forced, so 
 an enumerative search is often unnecessary.
 Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
 expansions can be identified as required, minimizing the impact of the
 large fan-out.  While unable to infer every expansion for all the benchmarks,
 the full algorithm is able to infer quite a bit.
-In our benchmark suite, \ForceExpand{} infers a median of \afm{11}
+In our benchmark suite, \ExpandRequired{} infers a median of \afm{11}
 and a maximum of \afm{26} expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
-solvable.  In many cases, \textbf{DNF+UD+FE} infers
+solvable.  In many cases, \NoFPEMode{} infers
 \emph{all} the expansions.  In \afm{15} of the \afm{26} examples solvable with
 expansion inference, all expansions
 were forced.  However, the remaining \afm{11} still require enumerative search.
-The \textbf{DNF+UD+FE} version of the algorithm will find lenses for
+The \NoFPEMode{} version of the algorithm will find lenses for
 most of the benchmarks, but it can take a relatively long time for some.
-Incorporating the next optimization \textbf{IE} speeds up these slow benchmarks.  When
-using full inference (\textbf{FE+IE}), the synthesis algorithm can
+Incorporating \FixProblemElts{} speeds up these slow benchmarks.  When
+using full inference (\FixProblemElts{} and \ExpandRequired), the synthesis
+algorithm can 
 recognize that one of a few expansions must be performed.  Adding in these types of
 inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
@@ -2805,16 +2806,16 @@ existing problems and solving previously unmanageable benchmarks.
 When combined, these optimizations implement an efficient synthesis algorithm, which can
 synthesize a lenses between a wide range of data formats.  However, some of the
 tasks are still slow, and one remains unsolved.
-Our full synthesis algorithm (\textbf{DNF+UD+FE+IE+PD}) makes use of
-previously defined (\textbf{PD}) lenses to 
+Our full synthesis algorithm (\FullMode{}) makes use of
+previously defined lenses to 
 simplify the synthesis task at hand.  These 
 lenses included in the Boomerang standard library, written by the
 user, or previously synthesized by \Optician{}.
 
-The benchmark that requires the \textbf{PD} optimization is also
+The benchmark that requires using previously define lenses is also
 the slowest benchmark, \CF{aug/xml}.  This
 example requires using previously defined lenses because it is a
-complex data format, it requires a
+complex data format, it requires a large
 number of expansions, and relatively few expansions are forced.
 When not using previously defined lenses, the algorithm must perform a
 total of 
