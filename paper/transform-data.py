@@ -199,7 +199,10 @@ def generate_time_vs_tasks_graph(input_csv):
             acc = acc + x_count_dict[val]
             x_completed_counts.append(acc)
 
-        ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
+        if (style != '-'):
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
+        else:
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
 
     normal_size = 2
     full_size = 3
