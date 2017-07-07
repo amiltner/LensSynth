@@ -502,6 +502,10 @@ we offer the following technical contributions:
 \section{Preliminaries}
 \label{preliminaries}
 
+\paragraph*{Technical Report} Throughout the paper, we will state a number of
+theorems.  We have omitted these theorems for space, and have included these
+details in the auxiliary technical report.
+
 \SUBSECTION{Regular Expressions}
 % \label{sec:regexp}
 
@@ -546,7 +550,7 @@ way that parses text unambiguously. $\Regex$ and $\RegexAlt$ are
 $\Regex\UnambigConcat\RegexAlt$ if, 
 for all strings $\String_1,\String_2\in\LanguageOf{\Regex}$ and
 $\StringAlt_1,\StringAlt_2\in\LanguageOf{\RegexAlt}$, whenever
-$\String_1\Concat\StringAlt_1=\String_2\Concat\StringAlt_2$ then
+$\String_1\Concat\StringAlt_1=\String_2\Concat\StringAlt_2$ it is the case that
 $\String_1=\String_2$ and $\StringAlt_1=\StringAlt_2$.
 %
 Similarly, $\Regex$ is \textit{unambiguously iterable},
@@ -580,7 +584,10 @@ must also be strongly unambiguous.
 $\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
 There exists an equational theory for determining whether two regular expressions
 are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
-\cite{Krob}.
+\cite{Krob}.\footnote{There are other complete axiomitizations for
+  regular expression equivalence, such as Kozen's\cite{?} and Solomaa's\cite{?}.
+  We focus on Conways for the sake of specificity, but discuss alternative
+  theories in \S\ref{sec:related}.} 
 %
 Conway's axioms consist of the semiring axioms (associativity,
 commutativity, identities, and distributivity for $|$ and $\cdot$) plus the following 
@@ -612,18 +619,17 @@ rules for equivalences involving the Kleene star:
   \StarOf{\Regex} & $\SSREquiv$ & \EmptyString \Or (\StarOf{\Regex} \Concat \Regex) & \UnrollstarRightRule{}\\
 \end{tabular}
 \end{center}
-In \S\ref{overview}, we provide intuition on the problems with using full
-regular expression equivalence in the context of synthesis.
+In \S\ref{overview}, we provide intuition for why synthesis with full regular
+expression equivalence is problematic and justify our choice of using star
+semiring equivalence instead.
 
 
 \SUBSECTION{Bijective Lenses}
 
 % fig:lens-semantics
 
-All bijections between languages are lenses.  We define \emph{Bijective Lenses} to be
-bijections created from the following Boomerang lens combinators, mapping between
-languages of regular expressions.
-The syntax for these bijective lenses is given by:
+All bijections between languages are lenses.  We define \emph{bijective lenses} to be
+bijections created from the following Boomerang lens combinators, $\Lens$.
 \begin{center}
   \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
     % REGEX
@@ -807,7 +813,10 @@ $\String_1\Concat\String_2 = \String_1'\Concat\String_2'$, but $\String_1
 \neq \String_1'$, and $\String_2 \neq \String_2'$.  The lens
 $\ConcatLensOf{\Lens_1}{\Lens_2}$ would no longer necessarily act as a function
 when applied from left to right, as
-$\Lens_1$ could be applied to both $\String_1$ and to $\StringAlt_1$.
+$\Lens_1$ could be applied to both $\String_1$ and to $\String_1'$.
+Because any ambiguous RE can be replaced by an equivalent unambiguous one, these
+ambiguity constraints do not have an impact on the computational power
+of the language.
 
 The typing rule for $\IdentityLensOf{\Regex}$ requires a strongly unambiguous
 regular expression.  This unambiguity allows the identity lens to be
@@ -1040,7 +1049,7 @@ Using this rule, a type-directed synthesis algorithm can convert
                   | (@"<Field Id=2>"@ !text_char! !text_char!* @"</Field>"@)
 \end{lstlisting}
 %
-There exist \OrLens{} lenses with this new type, and the two cases of an empty
+There exist \OrLens{} lenses between \LegacyTitle{}' and \ModernTitle{}, and the two cases of an empty
 and a nonempty number of text characters can be handled separately.  However,
 the need to find this equivalent type highlights a signficant challenge in
 synthesizing bijective lenses.
@@ -1108,9 +1117,9 @@ an entire dimension of search.  This stratification and the lack of
 composition creates a very tight relationship between the structure of a well-typed
 DNF lens and its DNF regular expression types.
 
-While translating regular expressions into DNF form does identify many
-equivalent expressions into the same syntactic form,
-this translation does not fully normalize the regular expressions.
+Translating regular expressions into DNF form collapses many equivalent REs
+into the same syntactic form.  However, this translation does not fully
+normalize regular expressions.
 Nor do we want it to: If a synthesizer normalized $\epsilon \Or BB*$ to $B*$, it
 would have trouble synthesizing lenses with types like $\EmptyString \Or BB*
 \Leftrightarrow \EmptyString \Or CD*$
@@ -1171,7 +1180,7 @@ can be applied---i.e., DNF regular expressions are only
 \end{figure}
 
 Consequently, a type-directed synthesis algorithm must still search through
-equivalent regular expressions.
+some equivalent regular expressions.
 To handle this search, $\SynthDNFLens{}$ is structured as two
 communicating synthesizers, shown in Figure~\ref{fig:2-phased-schematic-diagram}.
 The first synthesizer, \TypeProp{}, proposes DNF regular expressions
@@ -1193,11 +1202,11 @@ rewrite rules operating on DNF regular expressions
 and then trying all possible combinations of rewrites.  Doing so would
 be problematic because the Conway axiomatization itself is both highly
 nondeterministic and infinitely branching (due to the choice of $n$ in
-the dyclicity axiom).  Furthermore, we must take care in adding
-equivalences to ensure we produce a language that is closed under
-composition.
+the dyclicity axiom).
 
-In particular, for DNF lenses to be closed under composition, it is sufficient
+We also want DNF lenses to be closed under composition -- if it is not then we
+need to be able to synthesize lenses containing composition operators.  To be
+closed under composition, it is sufficient
 for the equivalence relation used in the type equivalence rule
 to be the equivalence closure of a rewrite system ($\Rewrite$) satisfying
 four conditions.
@@ -1215,34 +1224,42 @@ to mean that
 if $\DNFLens$ is a DNF lens that
 goes between DNF regular expressions $\DNFRegex$ and $\DNFRegexAlt$, then the
 typing derivation contains no instances of the type equivalence rule.
-Using this notation, we can express the \textit{confluence} property, which says:
-Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
-(\ToDNFRegexOf{\RegexAlt_1})$,
-if $\Regex_1 \Rewrite
-\Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there exist regular
-expressions $\Regex_3$, and
-$\RegexAlt_3$ and a DNF lens $\DNFLens_3$, such that:
-\begin{enumerate}
-\item $\Regex_2 \Rewrite \Regex_3$
-\item $\RegexAlt_2 \Rewrite \RegexAlt_3$
-\item $\DNFLens_3 \OfRewritelessType (\ToDNFRegexOf{\Regex_3}) \Leftrightarrow
-  (\ToDNFRegexOf{\RegexAlt_3})$
-\item $\SemanticsOf{\DNFLens_3} = \SemanticsOf{\DNFLens_1}$
-\end{enumerate}
+Using this notation, we can express the \textit{confluence} property, as
+follows:
+% 
+\begin{definition}[Confluence]
+  Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
+  (\ToDNFRegexOf{\RegexAlt_1})$,
+  if $\Regex_1 \Rewrite
+  \Regex_2$ and $\RegexAlt_1 \Rewrite \RegexAlt_2$, there exist regular
+  expressions $\Regex_3$, and
+  $\RegexAlt_3$ and a DNF lens $\DNFLens_3$, such that:
+  \begin{enumerate}
+  \item $\Regex_2 \Rewrite \Regex_3$
+  \item $\RegexAlt_2 \Rewrite \RegexAlt_3$
+  \item $\DNFLens_3 \OfRewritelessType (\ToDNFRegexOf{\Regex_3}) \Leftrightarrow
+    (\ToDNFRegexOf{\RegexAlt_3})$
+  \item $\SemanticsOf{\DNFLens_3} = \SemanticsOf{\DNFLens_1}$
+  \end{enumerate}
+\end{definition}
+%
 We call the final property \textit{bisimilarity}.  Bisimilarity requires two
 symmetric conditions.
-Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
-(\ToDNFRegexOf{\RegexAlt_1})$ and 
-$\Regex_1 \Rewrite \Regex_2$, there exist a regular expression $\RegexAlt_2$ and a
-DNF lens $\DNFLens_2$ such that
-\begin{enumerate}
-\item $\RegexAlt_1 \Rewrite \RegexAlt_2$
-\item $\DNFLens_2 \OfRewritelessType (\ToDNFRegexOf{\Regex_2}) \Leftrightarrow
-  (\ToDNFRegexOf{\RegexAlt_2})$
-\item $\SemanticsOf{\DNFLens_2} = \SemanticsOf{\DNFLens_1}$
-\end{enumerate}
-To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite
-\RegexAlt_2$.
+%
+\begin{definition}[Bisimilarity]
+  Whenever $\DNFLens_1 \OfRewritelessType (\ToDNFRegexOf{\Regex_1}) \Leftrightarrow
+  (\ToDNFRegexOf{\RegexAlt_1})$ and 
+  $\Regex_1 \Rewrite \Regex_2$, there exist a regular expression $\RegexAlt_2$ and a
+  DNF lens $\DNFLens_2$ such that
+  \begin{enumerate}
+  \item $\RegexAlt_1 \Rewrite \RegexAlt_2$
+  \item $\DNFLens_2 \OfRewritelessType (\ToDNFRegexOf{\Regex_2}) \Leftrightarrow
+    (\ToDNFRegexOf{\RegexAlt_2})$
+  \item $\SemanticsOf{\DNFLens_2} = \SemanticsOf{\DNFLens_1}$
+  \end{enumerate}
+  To be bisimilar, the symmetric property must also hold for $\RegexAlt_1 \Rewrite
+  \RegexAlt_2$.
+\end{definition}
 
 
 %  There are a large number of rules that can be
@@ -1308,16 +1325,18 @@ coarsest subset of regular expression equivalences we could
 find that is generated by a rewrite relation and is still confluent and
 bisimilar.  We have not been able to prove that this relation is the coarsest
 such relation possible, but it is sufficient to cover all the test
-cases in our benchmark suite (see \S\ref{evaluation}).
+cases in our benchmark suite (see \S\ref{evaluation}).  However, it is easy to
+show that Conway's axioms (\ProductstarRule{} in particular) are not bisimilar,
+which is why we avoid this in our system.
 
 \paragraph*{Challenge 2: Large Types}
-DNF lenses are equivalent in expressivity to lenses and \SynthDNFLens{} is quite
-fast.
+DNF lenses are equivalent in expressivity to lenses and the algorithm
+\SynthDNFLens{} is quite fast.
 Unfortunately, the conversion to DNF incurs an exponential blowup.  In practical
 examples, the regular expressions describing complex {\em ad hoc} data
-formats may be very large, making the exponential blowup have a large
-impact.  The key to addressing this issue is to observe that users
-naturally construct large types incrementally, introducing named
+formats may be very large, causing the exponential blowup to have a significant
+impact on synthesis time.  The key to addressing this issue is to observe that
+users naturally construct large types incrementally, introducing named
 abbreviations for major subcomponents.  For example, in the
 specification of \LegacyTitle{} and
 \ModernTitle{}, the variable \TextChar{} describes which characters
@@ -2641,12 +2660,12 @@ are provided in the extended version of this paper.
 \section{Evaluation}
 \label{evaluation}
 
-We have implemented \Optician{} in \afm{5515} lines
+We have implemented \Optician{} in \LOC{} lines
 of OCaml code.  We have integrated our synthesis algorithm into Boomerang, so
 users can input synthesis tasks in place of lenses.  We have published this code
 on GitHub, with a link given in the non-anonymized supplementary material.
 
-We evaluate our synthesis algorithm by applying it to \afm{26}
+We evaluate our synthesis algorithm by applying it to \BenchmarkCount{}
 benchmark programs.
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS Sierra.

@@ -209,8 +209,8 @@ def generate_time_vs_tasks_graph(input_csv):
     create_step_plot("OnlyForcedExpansionsNoLC","NoFPE",'-',normal_size)
     create_step_plot("NoUDTypes","NoUD",':',normal_size)
     create_step_plot("NaiveExpansionNoLC","NoER",'-',normal_size)
-    create_step_plot("NaiveStrategy","FlashExtract",':',normal_size)
-    create_step_plot("NaiveStrategy","Flash Fill",'-',normal_size)
+    create_step_plot("FlashExtract","FlashExtract",':',normal_size)
+    create_step_plot("FlashFill","Flash Fill",'-',normal_size)
     create_step_plot("NaiveStrategy",u"Na\u00EFve",':',normal_size)
 
     ax.set_ylabel('Benchmarks Completed')
