@@ -115,6 +115,66 @@ def generate_examples_required_graph(input_csv):
 
     fig.savefig(generated_graphs_base + "examples.eps", bbox_inches='tight')
 
+def generate_compositional_lenses_graph(input_csv):
+    zero_count_ind = 0
+    one_to_five_count_ind = 1
+    six_to_ten_count_ind = 2
+    eleven_to_fifteen_count_ind = 3
+    sixteen_to_twenty_count_ind = 4
+
+    zero_count_text = "0"
+    one_to_five_count_text = "1"
+    six_to_ten_count_text = "2"
+    eleven_to_fifteen_count_text = "3"
+    sixteen_to_twenty_count_text = "4"
+    ind_to_text = [zero_count_text,
+                   one_to_five_count_text,
+                   six_to_ten_count_text,
+                   eleven_to_fifteen_count_text,
+                   sixteen_to_twenty_count_text]
+
+    experimental_values = [0,0,0,0,0,]
+    determinizing_values = [0,0,0,0,0,]
+
+    def add_to_correct_group(count_values, n):
+        if n < 0.0:
+            raise Exception("SOMETHING WENT WRONG")
+        if n == 0.0:
+            count_values[zero_count_ind] = count_values[zero_count_ind]+1
+        elif n == 1.0:
+            count_values[one_to_five_count_ind] = count_values[one_to_five_count_ind]+1
+        elif n == 2.0:
+            count_values[six_to_ten_count_ind] = count_values[six_to_ten_count_ind]+1
+        elif n == 3.0:
+            count_values[eleven_to_fifteen_count_ind] = count_values[eleven_to_fifteen_count_ind]+1
+        elif n == 4.0:
+            count_values[sixteen_to_twenty_count_ind] = count_values[sixteen_to_twenty_count_ind]+1
+        else:
+            raise Exception("SOMETHING WENT WRONG")
+
+    vals = project_column_from_csv(input_csv, "CompositionalLensesUsed")
+    for example_num in vals:
+        add_to_correct_group(experimental_values, float(example_num))
+
+    ind = np.arange(5)
+    width = 0.35
+
+    fig, ax = plt.subplots()
+
+    rects1 = ax.bar(ind, experimental_values, width, color='#ffffb3', align='center')
+
+    ax.set_ylabel('Benchmark Count')
+    ax.set_xlabel('Subtasks Specified')
+    ax.set_title("Subtasks Specified During Compositional Synthesis")
+    ax.set_xticks(ind)
+    ax.set_xticklabels(ind_to_text)
+
+    fig = plt.figure(3,tight_layout=True)
+    fig.set_figheight(1.8)
+    fig.set_figwidth(5)
+
+    fig.savefig(generated_graphs_base + "compositional.eps", bbox_inches='tight')
+
 def generate_uninferred_expansions_graph(input_csv):
     zero_count_ind = 0
     one_to_five_count_ind = 1
@@ -175,7 +235,7 @@ def generate_uninferred_expansions_graph(input_csv):
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(ind_to_text)
 
-    l = ax.legend((rects1[0],rects2[0]),("NoPD","NoFPE"))
+    l = ax.legend((rects1[0],rects2[0]),("NoCS","NoFPE"))
     plt.setp(l.texts, weight='bold')
 
     fig = plt.figure(2,tight_layout=True)
@@ -209,7 +269,7 @@ def generate_time_vs_tasks_graph(input_csv):
     full_size = 3
 
     create_step_plot("ComputationTime","Full",'-',full_size)
-    create_step_plot("NoLensContext","NoPD",':',normal_size)
+    create_step_plot("NoLensContext","NoCS",':',normal_size)
     create_step_plot("OnlyForcedExpansionsNoLC","NoFPE",'-',normal_size)
     create_step_plot("NoUDTypes","NoUD",':',normal_size)
     create_step_plot("NaiveExpansionNoLC","NoER",'-',normal_size)
@@ -224,7 +284,7 @@ def generate_time_vs_tasks_graph(input_csv):
     l = ax.legend(bbox_to_anchor=(1.45,1),borderaxespad=0)
     plt.setp(l.texts, weight='bold')
 
-    fig = plt.figure(3,tight_layout=True)
+    fig = plt.figure(4,tight_layout=True)
     fig.set_figheight(3)
     fig.set_figwidth(4)
        
@@ -274,6 +334,7 @@ def main(args):
         ensure_dir(transformed_data_base)
         generate_examples_required_graph(input_csv)
         generate_uninferred_expansions_graph(input_csv)
+        generate_compositional_lenses_graph(input_csv)
         generate_time_vs_tasks_graph(input_csv)
         generate_benchmark_count(input_csv)
         generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv)
