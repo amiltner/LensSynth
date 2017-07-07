@@ -175,7 +175,8 @@ def generate_uninferred_expansions_graph(input_csv):
     ax.set_xticks(ind + width / 2)
     ax.set_xticklabels(ind_to_text)
 
-    ax.legend((rects1[0],rects2[0]),("Full Inference","Forced Only"))
+    l = ax.legend((rects1[0],rects2[0]),("NoPD","NoFPE"))
+    plt.setp(l.texts, weight='bold')
 
     fig = plt.figure(2,tight_layout=True)
     fig.set_figheight(1.8)
@@ -240,6 +241,31 @@ def generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv):
         num = num+5.0
     write_to_filename(transformed_data_base + "multiple-of-five-number-of-seconds-synthesized-under.txt", str(int(num)))
 
+def generate_number_augeas(input_csv):
+    names = project_column_from_csv(input_csv,"Test")
+    augeasnames = [x for x in names if x.startswith("aug")]
+    write_to_filename(transformed_data_base + "augeas-count.txt", str(len(augeasnames)))
+
+def generate_min_lens_size(input_csv):
+    sizes_strings = project_column_from_csv(input_csv,"LensSize")
+    sizes = [int(x) for x in sizes_strings]
+    write_to_filename(transformed_data_base + "min_lens_size.txt", str(min(sizes)))
+
+def generate_min_lens_size(input_csv):
+    sizes_strings = project_column_from_csv(input_csv,"LensSize")
+    sizes = [int(x) for x in sizes_strings]
+    write_to_filename(transformed_data_base + "max_lens_size.txt", str(max(sizes)))
+
+def generate_median_expands_forced(input_csv):
+    sizes_strings = project_column_from_csv(input_csv,"ExpansionsForcedNoLensContext")
+    exps = [int(x) for x in sizes_strings]
+    write_to_filename(transformed_data_base + "median_expansions_forced.txt", str(int(np.median(exps))))
+
+def generate_maximum_expands_forced(input_csv):
+    sizes_strings = project_column_from_csv(input_csv,"ExpansionsForcedNoLensContext")
+    exps = [int(x) for x in sizes_strings]
+    write_to_filename(transformed_data_base + "maximum_expansions_forced.txt", str(int(max(exps))))
+
 def main(args):
     if len(args) == 2:
         input_filepath = args[1]
@@ -251,6 +277,10 @@ def main(args):
         generate_time_vs_tasks_graph(input_csv)
         generate_benchmark_count(input_csv)
         generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv)
+        generate_number_augeas(input_csv)
+        generate_min_lens_size(input_csv)
+        generate_median_expands_forced(input_csv)
+        generate_maximum_expands_forced(input_csv)
     else:
         print_usage(args)
 

@@ -491,7 +491,7 @@ we offer the following technical contributions:
  with the one used in FlashFill~\cite{gulwani-popl-2014}, a well-known
  and influential synthesis system deployed in MicroSoft Excel.  FlashFill only
  synthesizes transformations in one direction, but it was only able to
- complete synthesis of \afm{X out of Y of our benchmarks}.  We conjecture
+ complete synthesis of \FlashFillSuccesses{} out of \BenchmarkCount of our benchmarks.  We conjecture
  that the extra information we supply the synthesis system via our 
  regular format descriptions, allows it to scale to significantly more
  complex and varied formats than is possible in 
@@ -588,7 +588,7 @@ $\LanguageOf{\Regex}=\LanguageOf{\RegexAlt}$.
 There exists an equational theory for determining whether two regular expressions
 are equivalent, presented by Conway \cite{conway}, and proven complete by Krob
 \cite{Krob}.\footnote{There are other complete axiomitizations for
-  regular expression equivalence, such as Kozen's\cite{?} and Solomaa's\cite{?}.
+  regular expression equivalence, such as Kozen's\cite{kozen-complete} and Solomaa's\cite{salomaa-complete}.
   We focus on Conways for the sake of specificity, but discuss alternative
   theories in \S\ref{sec:related}.} 
 %
@@ -2405,7 +2405,6 @@ then there is not only a
 sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
 satisfies the examples.
 
-\ksf{make sure this type sets with the full example on one page.}
 As an example, consider trying to find a DNF lens between
 \begin{lstlisting}
    $\DNFLeft$ $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
@@ -2654,7 +2653,7 @@ that if there is a DNF lens that satisfies the specification, then we will
 return a lens, but not necessarily the same one.  However, from
 Theorem~\ref{thm:alg-soundness}, we know that this lens will match the
 specifications.  The proofs of these theorems, and the previous ones,
-are provided in the extended version of this paper.
+are provided submitted to POPL 2018 as a part of the anonymous gi \afm{fill}.
 
 % end implementation
 
@@ -2692,13 +2691,12 @@ which are more general than the bijective lenses \Optician{} can synthesize.
 We adapted these examples by adding extra fields to the
 target to make the transfomations bijective and thus suitable
 for our study.
-We derived \afm{17} of the benchmark tests by
-adapting all of the lenses from the Augeas distribution that started
-with the letters `A', `B', and `C' as well as the lenses
+We derived \AugeasCount of the benchmark tests by
+adapting the first 27 lenses in alphabetical order, as well as the lenses
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
 by the `A' lenses.
-Furthermore, the synthesis problems derived
-from Augeas with the letters `B' and `C' were tested after \Optician{} was
+Furthermore, the 12 last synthesis problems derived
+from Augeas were tested after \Optician{} was
 finalized, demonstrating that the optimizations were not
 overtuned to perform well on the testing data.
 
@@ -2719,9 +2717,9 @@ and \CF{addr-probs}).   These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
 We have both complex and simple synthesis tasks in our benchmark suite.
-We generate lenses of sizes between \afm{5} AST
+We generate lenses of sizes between \MinLensSize AST
 nodes, for simple problems like changing how dates are represented, and
-\afm{211} AST nodes, for complex tasks like transforming arbitrary XML of depth
+\MaxLensSize AST nodes, for complex tasks like transforming arbitrary XML of depth
 3 or less to a dictionary representation.
 
 \begin{figure}
@@ -2791,7 +2789,7 @@ na\"{i}ve approach, none of the examples, even the very simple ones, can
 be synthesized with a ten minute timeout.  Our core DNF synthesis
 procedure, labeled \NoUDMode{} in the graph, that performs 
 \emph{no} intelligent expansion search and makes no use
-of user-defined data types succeeds on \afm{7} of the benchmarks.
+of user-defined data types succeeds on \NoUDSuccessCount{} of the benchmarks.
 
 Interestingly, \NoERMode{} performs \emph{worse} than \NoUDMode{}.
 Adding in user defined data types introduces the additional search through
@@ -2799,7 +2797,7 @@ substitutions.
 The cost of this additional search outweighs the savings that these data type
 abstractions provide.  In particular, because of the large fanout of possible 
 expansions, \NoERMode{} can only synthesize lenses which
-require \afm{5} or fewer expansions.  However, some lenses require over 50
+require \ExpansionsPerformedNaiveExpansionSuccess{} or fewer expansions.  However, some lenses require over 50
 expansions.  Without a way to intelligently traverse
 expansions, the need to search through substitutions makes synthesis
 unreasonably slow.  To leverage the benefit of keeping data types abstract, we
@@ -2824,14 +2822,15 @@ Figure~\ref{fig:uninferred-exps} shows that in a majority of examples, all the
 expansions can be identified as required, minimizing the impact of the
 large fan-out.  While unable to infer every expansion for all the benchmarks,
 the full algorithm is able to infer quite a bit.
-In our benchmark suite, \ExpandRequired{} infers a median of \afm{11}
-and a maximum of \afm{26} expansions.
+In our benchmark suite, \ExpandRequired{} infers a median of \MedianExpansionsForcedNoLC
+and a maximum of \MaxExpansionsForcedNoLC expansions.
 
 Merely inferring the forced expansions makes almost all the synthesis tasks
 solvable.  In many cases, \NoFPEMode{} infers
-\emph{all} the expansions.  In \afm{15} of the \afm{26} examples solvable with
-expansion inference, all expansions
-were forced.  However, the remaining \afm{11} still require enumerative search.
+\emph{all} the expansions.  In \ExpansionsAllForcedNoLC{} of the
+\BenchmarksCompletedNoLC{} examples 
+solvable by \NoPDMode{}, all expansions
+were forced.  However, the remaining \ExpansionsNotAllForcedNoLC{} still require enumerative search.
 The \NoFPEMode{} version of the algorithm will find lenses for
 most of the benchmarks, but it can take a relatively long time for some.
 Incorporating \FixProblemElts{} speeds up these slow benchmarks.  When
@@ -2894,7 +2893,7 @@ examples by hand out of concern that our knowledge of the synthesis
 algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
 the number of randomly generated examples it takes to synthesize the
 correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only \afm{five} benchmarks need a nonzero number of examples to
+any examples: only \ExamplesRequiringNonzeroExamples benchmarks need a nonzero number of examples to
 synthesize the correct lens and only one, \CF{cust/workitem-probs} required over
 10 randomly generated examples.
 A clever user may be able to reduce the
@@ -3216,7 +3215,8 @@ general, we found our system to be robust, to require few examples,
 and to finish in seconds, even on complex data formats.  We found that our
 type-directed synthesis algorithm is able to generate data
 transformations too complex for both existing example-directed systems and for a
-na\"{i}ve type-directed algorithm, succeeding on \afm{22} more benchmarks than
+na\"{i}ve type-directed algorithm, succeeding on \NumMoreThanFlashFill more
+benchmarks than 
 the tested existing alternatives.
 We attribute its success to a combination of (1) the information provided
 by format specifications, (2) the structure induced by user-specified
