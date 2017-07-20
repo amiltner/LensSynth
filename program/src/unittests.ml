@@ -920,8 +920,8 @@ let test_priority_queue_pop_values _ =
      Option.map ~f:(fun (x,_,_) -> (x)) vo)
 
 let test_priority_queue_pop_priority _ =
-  assert_int_option_equal
-    (Some 1)
+  assert_float_option_equal
+    (Some 1.0)
     (let vo = ModTenPQueue.pop (ModTenPQueue.from_list [2;1]) in
      Option.map ~f:(fun (_,y,_) -> (y)) vo)
 
@@ -1855,3 +1855,266 @@ let gen_element_on_off_portions_suite = "gen_element_on_off_portions" >:::
   ]
 
 let _ = run_test_tt_main gen_element_on_off_portions_suite
+
+let test_cost_none _ =
+  assert_float_equal
+    (1.0)
+    (IntTreeAlignment.cost None)
+
+let test_cost_empty _ =
+  assert_float_equal
+    (0.0)
+    (IntTreeAlignment.cost (Some EmptyTree))
+
+let test_cost_singleton _ =
+  assert_float_equal
+    0.0
+    (IntTreeAlignment.cost
+       (Some
+          (NonemptyTree
+             (Node
+                (IntTreeAlignment.create_alignment_node
+                   ~perm:(Permutation.create [])
+                   ~pleft:[]
+                   ~pright:[],
+                 [])))))
+
+let test_cost_singleton_unmapped_left _ =
+  assert_float_equal
+    0.5
+    (IntTreeAlignment.cost
+       (Some
+          (NonemptyTree
+             (Node
+                (IntTreeAlignment.create_alignment_node
+                   ~perm:(Permutation.create [])
+                   ~pleft:[1]
+                   ~pright:[],
+                 [])))))
+
+let test_cost_singleton_unmapped_right _ =
+  assert_float_equal
+    0.5
+    (IntTreeAlignment.cost
+       (Some
+          (NonemptyTree
+             (Node
+                (IntTreeAlignment.create_alignment_node
+                   ~perm:(Permutation.create [])
+                   ~pleft:[]
+                   ~pright:[1],
+                 [])))))
+
+
+let test_cost_singleton_recursive _ =
+  assert_float_equal
+    (1.0 /. 3.0)
+    (IntTreeAlignment.cost
+       (Some
+          (NonemptyTree
+             (Node
+                (IntTreeAlignment.create_alignment_node
+                   ~perm:(Permutation.create [0])
+                   ~pleft:[]
+                   ~pright:[1],
+                 [Node
+                    (IntTreeAlignment.create_alignment_node
+                       ~perm:(Permutation.create [])
+                       ~pleft:[]
+                       ~pright:[],
+                     [])])))))
+
+
+let test_cost_singleton_recursive_imperfectred _ =
+  assert_float_equal
+    (1.0 /. 4.0)
+    (IntTreeAlignment.cost
+       (Some
+          (NonemptyTree
+             (Node
+                (IntTreeAlignment.create_alignment_node
+                   ~perm:(Permutation.create [0])
+                   ~pleft:[]
+                   ~pright:[],
+                 [Node
+                    (IntTreeAlignment.create_alignment_node
+                       ~perm:(Permutation.create [])
+                       ~pleft:[]
+                       ~pright:[1]
+                    ,[])])))))
+
+let test_get_minimal_alignment_empty_empty _ =
+  assert_int_tree_alignment_equal
+    (Some EmptyTree)
+    (IntTreeAlignment.get_minimal_alignment EmptyTree EmptyTree)
+
+
+let test_get_minimal_alignment_empty_nonempty _ =
+  assert_int_tree_alignment_equal
+    None
+    (IntTreeAlignment.get_minimal_alignment
+       EmptyTree
+       (NonemptyTree (Node (1,[]))))
+
+let test_get_minimal_alignment_nonempty_empty _ =
+  assert_int_tree_alignment_equal
+    None
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[])))
+       EmptyTree)
+
+let test_get_minimal_alignment_different_nonempty _ =
+  assert_int_tree_alignment_equal
+    None
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[])))
+       (NonemptyTree (Node (2,[]))))
+
+let test_get_minimal_alignment_trivial _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [])
+                ~pleft:[]
+                ~pright:[]
+             ,[]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[])))
+       (NonemptyTree (Node (1,[]))))
+
+let test_get_minimal_alignment_singleton_bijection _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [0])
+                ~pleft:[]
+                ~pright:[]
+             ,[(Node
+                  (IntTreeAlignment.create_alignment_node
+                     ~perm:(Permutation.create [])
+                     ~pleft:[]
+                     ~pright:[]
+                  ,[]))]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[Node (2,[])])))
+       (NonemptyTree (Node (1,[Node (2,[])]))))
+
+let test_get_minimal_alignment_easy_bijection _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [0;1])
+                ~pleft:[]
+                ~pright:[]
+             ,[(Node
+                  (IntTreeAlignment.create_alignment_node
+                     ~perm:(Permutation.create [])
+                     ~pleft:[]
+                     ~pright:[]
+                  ,[]))
+              ;(Node
+                  (IntTreeAlignment.create_alignment_node
+                     ~perm:(Permutation.create [])
+                     ~pleft:[]
+                     ~pright:[]
+                  ,[]))]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[Node (2,[]);Node (2,[])])))
+       (NonemptyTree (Node (1,[Node (2,[]);Node (2,[])]))))
+
+let test_get_minimal_alignment_hard_bijection _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [1;0])
+                ~pleft:[]
+                ~pright:[]
+             ,[(Node
+                  (IntTreeAlignment.create_alignment_node
+                     ~perm:(Permutation.create [])
+                     ~pleft:[]
+                     ~pright:[]
+                  ,[]))
+              ;(Node
+                  (IntTreeAlignment.create_alignment_node
+                     ~perm:(Permutation.create [])
+                     ~pleft:[]
+                     ~pright:[]
+                  ,[]))]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[Node (2,[]);Node (3,[])])))
+       (NonemptyTree (Node (1,[Node (3,[]);Node (2,[])]))))
+
+let test_get_minimal_alignment_projected_left _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [])
+                ~pleft:[0]
+                ~pright:[]
+             ,[]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[Node (2,[])])))
+       (NonemptyTree (Node (1,[]))))
+
+let test_get_minimal_alignment_projected_right _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [])
+                ~pleft:[]
+                ~pright:[0]
+             ,[]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[])))
+       (NonemptyTree (Node (1,[Node (2,[])]))))
+
+let test_get_minimal_alignment_projected_nomatches _ =
+  assert_int_tree_alignment_equal
+    (Some
+       (NonemptyTree
+          (Node
+             (IntTreeAlignment.create_alignment_node
+                ~perm:(Permutation.create [])
+                ~pleft:[0]
+                ~pright:[0]
+             ,[]))))
+    (IntTreeAlignment.get_minimal_alignment
+       (NonemptyTree (Node (1,[Node (3,[])])))
+       (NonemptyTree (Node (1,[Node (2,[])]))))
+
+let tree_alignment_suite = "tree_alignment" >:::
+  [
+    "test_cost_none" >:: test_cost_none;
+    "test_cost_empty" >:: test_cost_empty;
+    "test_cost_singleton" >:: test_cost_singleton;
+    "test_cost_singleton_unmapped_left" >:: test_cost_singleton_unmapped_left;
+    "test_cost_singleton_unmapped_right" >:: test_cost_singleton_unmapped_right;
+    "test_cost_singleton_recursive" >:: test_cost_singleton_recursive;
+    "test_cost_singleton_recursive_imperfectred" >:: test_cost_singleton_recursive_imperfectred;
+    "test_get_minimal_alignment_empty_empty" >:: test_get_minimal_alignment_empty_empty;
+    "test_get_minimal_alignment_empty_nonempty" >:: test_get_minimal_alignment_empty_nonempty;
+    "test_get_minimal_alignment_nonempty_empty" >:: test_get_minimal_alignment_nonempty_empty;
+    "test_get_minimal_alignment_different_nonempty" >:: test_get_minimal_alignment_different_nonempty;
+    "test_get_minimal_alignment_trivial" >:: test_get_minimal_alignment_trivial;
+    "test_get_minimal_alignment_singleton_bijection" >:: test_get_minimal_alignment_singleton_bijection;
+    "test_get_minimal_alignment_easy_bijection" >:: test_get_minimal_alignment_easy_bijection;
+    "test_get_minimal_alignment_hard_bijection" >:: test_get_minimal_alignment_hard_bijection;
+    "test_get_minimal_alignment_projected_left" >:: test_get_minimal_alignment_projected_left;
+    "test_get_minimal_alignment_projected_right" >:: test_get_minimal_alignment_projected_right;
+    "test_get_minimal_alignment_projected_nomatches" >:: test_get_minimal_alignment_projected_nomatches;
+  ]
+
+let _ = run_test_tt_main tree_alignment_suite

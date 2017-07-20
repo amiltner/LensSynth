@@ -5,7 +5,6 @@ open Regexcontext
 open Lang
 open Regex_utilities
 open Lens_utilities
-open Permutation
 open Normalized_lang
 open Consts
 open Naive_gen

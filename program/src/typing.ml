@@ -1,7 +1,6 @@
 open Stdlib
 open Lang
 open Lenscontext
-open Permutation
 
 let rec type_lens (lc:LensContext.t) (l:Lens.t) : Regex.t * Regex.t =
   begin match l with

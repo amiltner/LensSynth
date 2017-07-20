@@ -3,7 +3,6 @@ open String_utilities
 open Lang
 open Format
 open Boom_lang
-open Permutation
 
 (***** Helpers  *****)
 

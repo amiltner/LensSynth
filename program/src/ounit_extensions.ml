@@ -1,12 +1,12 @@
 open Stdlib
 open Normalized_lang
-open Permutation
 open Lang
 open String_utilities
 open Ounit_general_extensions
 open Boom_lang
 open Gen_exs
 open Expand
+open Tree_alignment
 
 
 let assert_dnf_equal (expected:dnf_regex) (actual:dnf_regex) =
@@ -18,14 +18,14 @@ let assert_dnf_equal (expected:dnf_regex) (actual:dnf_regex) =
 
 let assert_swap_concat_compose_tree_equal =
   assert_equal
-    ~printer:pp_swap_concat_compose_tree
-    ~cmp:compare_swap_concat_compose_tree
+    ~printer:Permutation.pp_swap_concat_compose_tree
+    ~cmp:Permutation.compare_swap_concat_compose_tree
 
 let assert_permutation_option_equal =
   assert_equal
     ~printer:(fun x -> begin match x with
         | None -> "None"
-        | Some p -> "Some " ^ (Permutation.pp p)
+        | Some p -> "Some " ^ (Permutation.show p)
       end)
 
 let assert_permutation_guesses_option_equal =
@@ -34,7 +34,7 @@ let assert_permutation_guesses_option_equal =
         | None -> "None"
         | Some (p,g) ->
           "Some (" ^
-          (Permutation.pp p) ^ "   ,   [" ^
+          (Permutation.show p) ^ "   ,   [" ^
           String.concat
             ~sep:" ; "
             (List.map
@@ -128,7 +128,7 @@ let assert_boom_program_equal =
 module ModTenPQueue = PriorityQueueOf(
   struct
     include IntModule
-    let priority = (fun x -> (x mod 10))
+    let priority = (fun x -> Float.of_int (x mod 10))
   end)
 
 let assert_int_int_int_priority_queue_option_equal =
@@ -136,7 +136,7 @@ let assert_int_int_int_priority_queue_option_equal =
     string_of_option
       (string_of_triple
          string_of_int
-         string_of_int
+         string_of_float
          ModTenPQueue.show)
   in
   let comparer =
@@ -236,3 +236,10 @@ let assert_reachables_set_minus_equal =
   assert_equal
     ~printer:(string_of_pair IdIntSet.show IdIntSet.show)
     ~cmp:(pair_compare IdIntSet.compare IdIntSet.compare)
+
+module IntTreeAlignment = TreeAlignmentOf(IntModule)
+
+let assert_int_tree_alignment_equal =
+  assert_equal
+    ~printer:IntTreeAlignment.show
+    ~cmp:IntTreeAlignment.compare

@@ -2,7 +2,6 @@ open Stdlib
 open Lang
 open Regexcontext
 open Regex_utilities
-open Permutation
 open Lenscontext
 
 let retrieve_transitive_referenced_lenses

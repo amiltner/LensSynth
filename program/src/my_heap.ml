@@ -51,6 +51,12 @@ struct
       | Node (lh, e, rh, _) -> Some (e, merge lh rh)
     end
 
+  let peek (h:t) : element option =
+    begin match h with
+      | Leaf -> None
+      | Node (_, e, _, _) -> Some e
+    end
+
   (*let rec to_string (h:heap) : string =
     begin match h with
       | Leaf -> "Leaf"

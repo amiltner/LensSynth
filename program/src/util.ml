@@ -17,6 +17,21 @@ type 'a shower = 'a -> string
 type 'a hash_folder = Base__Hash.state -> 'a -> Base__Hash.state
 type 'a hasher = 'a -> int
 
+let fst_trip
+    ((x,_,_) : ('a*'b*'c))
+  : 'a =
+  x
+
+let snd_trip
+    ((_,y,_) : ('a*'b*'c))
+  : 'b =
+  y
+
+let trd_trip
+    ((_,_,z) : ('a*'b*'c))
+  : 'c =
+  z
+
 let thunk_of
     (x:'a)
   : 'a thunk =
@@ -86,6 +101,16 @@ let compare_to_equals
   comparison_to_equality
     (f x y)
 
+type 'a metric = 'a -> 'a -> float
+
+type 'a nonempty_tree = Node of ('a * ('a nonempty_tree list))
+[@@deriving ord, show, hash]
+
+type 'a tree =
+  | NonemptyTree of 'a nonempty_tree
+  | EmptyTree
+[@@deriving ord, show, hash]
+
 module type Data = sig
   type t
   val show : t shower
@@ -110,14 +135,25 @@ module BoolModule = struct
   [@@deriving ord, show, hash]
 end
 
+module FloatModule = struct
+  type t = float
+  [@@deriving ord, show, hash]
+end
+
 module RefOf(D:Data) : Data with type t = D.t ref = struct
   type t = D.t ref
-  [@@deriving ord, show]
+  [@@deriving show]
+
+  let compare
+      (x:t)
+      (y:t)
+    : int =
+    Int.compare (Obj.magic x) (Obj.magic y)
 
   let hash_fold_t : ('a ref) hash_folder =
-    fun hs -> (D.hash_fold_t hs) % (fun xr -> !xr)
+    fun hs -> (Int.hash_fold_t hs) % (fun xr -> ((Obj.magic xr)))
 
-  let hash : 'a hasher = D.hash % (fun xr -> !xr)
+  let hash : 'a hasher = Int.hash % (fun xr -> ((Obj.magic xr)))
 end
 
 module PairOf
@@ -144,6 +180,14 @@ module ListOf
   : Data with type t = D.t list =
 struct
   type t = D.t list
+  [@@deriving ord, show, hash]
+end
+
+module TreeOf
+    (D:Data)
+  : Data with type t = D.t tree =
+struct
+  type t = D.t tree
   [@@deriving ord, show, hash]
 end
 
@@ -175,22 +219,22 @@ type ('a, 'b, 'c) of_three =
   | TMiddle of 'b
   | TRight of 'c
 
-let rec fold_until_completion (f: 'a -> ('a,'b) either) (acc:'a) : 'b =
+let rec fold_until_completion ~f:(f: 'a -> ('a,'b) either) (acc:'a) : 'b =
   begin match f acc with
-  | Left acc' -> fold_until_completion f acc'
+  | Left acc' -> fold_until_completion ~f:f acc'
   | Right answer -> answer
   end
 
 let fold_until_fixpoint (f:'a -> 'a) : 'a -> 'a =
   fold_until_completion
-    (fun x ->
+    ~f:(fun x ->
        let x' = f x in
        if x = x' then
          Right x
        else
          Left x')
 
-let cartesian_map (f:'a -> 'b -> 'c) (l1:'a list) (l2:'b list) : 'c list =
+let cartesian_map ~f:(f:'a -> 'b -> 'c) (l1:'a list) (l2:'b list) : 'c list =
   (List.fold_right
     ~f:(fun x acc ->
       (List.fold_right
@@ -772,11 +816,6 @@ let rec assoc_value_mem (value:'b) (l:('a * 'b) list) : 'a option =
   | [] -> None
   end
 
-
-type ('a,'b) tagged_list_tree =
-  | Leaf of 'b
-  | Node of 'a * ((('a,'b) tagged_list_tree) list)
-
 let rec insert_into_correct_list (l:('a * 'b list) list) (k:'a) (v:'b)
     : ('a * 'b list) list =
   begin match l with
@@ -817,31 +856,6 @@ let group_by_keys (kvl:('a * 'b) list) : ('a * 'b list) list =
     ~init:empty_key_list
     kvl
 
-
-let rec tagged_list_tree_keygrouped (tlt:('a,'b) tagged_list_tree) : ('a
-list,'b) tagged_list_tree =
-  begin match tlt with
-  | Leaf v -> Leaf v
-  | Node (k,tltl) ->
-      let is_noded = (begin match List.hd_exn tltl with
-          | Leaf _ -> false
-          | Node _ -> true
-      end) in
-      let tltl' = List.map ~f:tagged_list_tree_keygrouped tltl in
-      if is_noded then
-        Node ([k],handle_noded_tltl tltl')
-      else
-        Node ([k],tltl')
-  end
-
-and handle_noded_tltl (tltl:('a list,'b) tagged_list_tree list) : ('a list,'b)
-tagged_list_tree list =
-  let kvps = List.map ~f:(fun tlt -> begin match tlt with
-              | Leaf _ -> failwith "bad"
-              | Node (k,tltl) -> (k,tltl)
-              end) tltl in
-  let kvpg = group_by_values kvps in
-  List.map ~f:(fun (k,tltl) -> Node (k,tltl)) kvpg
 
 module Operators = struct 
     let (>?>) (x : 'a option) (f : 'a -> 'b option) : 'b option = match x with
@@ -904,3 +918,21 @@ let rec app_seq
     | SNil -> s2
     | SCons (x,s1't) -> SCons (x,fun () -> (app_seq (s1't ()) s2))
   end
+
+module UnorderedNonemptyTreeOf
+    (D:Data)
+  : Data with type t = D.t nonempty_tree =
+struct
+  type t = D.t nonempty_tree
+  [@@deriving show, hash]
+
+  let compare
+      (Node n1:t)
+      (Node n2:t)
+    : int =
+    pair_compare
+      D.compare
+      (ordered_partition_order compare)
+      n1
+      n2
+end

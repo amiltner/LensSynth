@@ -13,7 +13,7 @@ let rec to_dnf_regex (r:Regex.t) : dnf_regex =
   | Regex.RegExBase c -> [([],[c])]
   | Regex.RegExConcat (r1,r2) ->
       cartesian_map
-        (fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
+        ~f:(fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
         (to_dnf_regex r1)
         (to_dnf_regex r2)
   | Regex.RegExOr (r1, r2) -> (to_dnf_regex r1) @ (to_dnf_regex r2)

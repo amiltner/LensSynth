@@ -41,7 +41,10 @@ let assert_not_equal_int (expected_not:int) (actual:int) =
 
 let assert_int_equal = assert_equal ~printer:string_of_int ~cmp:compare_int
 
-let assert_float_equal = assert_equal ~printer:Float.to_string
+let assert_float_equal =
+  assert_equal
+    ~printer:Float.to_string
+    ~cmp:Float.compare
 
 let assert_int_option_equal =
   assert_equal
@@ -51,6 +54,7 @@ let assert_int_option_equal =
 let assert_float_option_equal =
   assert_equal
     ~printer:(string_of_option Float.to_string)
+    ~cmp:(option_compare Float.compare)
 
 let assert_string_double_option_equal
   (expected:(string*string) option) (actual:(string*string) option) =

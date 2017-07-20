@@ -150,7 +150,7 @@ let boom_program_of_program
   : boom_statement list =
   let p =
     fold_until_completion
-      (fun (lc,p) ->
+      ~f:(fun (lc,p) ->
          let inversed_vars = retrieve_inverses_of_lens_variables_exn p in
          if inversed_vars = [] then
            Right p

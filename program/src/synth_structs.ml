@@ -61,6 +61,6 @@ module QueueElement = struct
 
     let priority
         (qe : t)
-      : int =
-      qe.expansions_performed
+      : float =
+      Float.of_int qe.expansions_performed
 end

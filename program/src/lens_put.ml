@@ -1,11 +1,10 @@
-open Core
+open Stdlib
 open Regexcontext
 open Lenscontext
 open Lang
 open Eval
 open Normalized_lang
 open Typing
-open Permutation
 
 let rec lens_putl_internal
     (rc:RegexContext.t)

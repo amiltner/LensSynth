@@ -79,7 +79,7 @@ let concat_exampled_dnf_regexs ((r1,_):exampled_dnf_regex)
     ((r2,_):exampled_dnf_regex)
   : exampled_clause list =
   cartesian_map
-    (fun (a1s,s1s,c1s) (a2s,s2s,c2s) ->
+    ~f:(fun (a1s,s1s,c1s) (a2s,s2s,c2s) ->
        let choices_taken = intersect_lose_order_no_dupes
            (compare_list ~cmp:compare)
            c1s

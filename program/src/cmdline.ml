@@ -262,7 +262,7 @@ let collect_example_number (p:program) : unit =
   let cb = fun (rc,lc,r1,r2,exs) ->
     let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
     let exs_required = fold_until_completion
-        (fun acc ->
+        ~f:(fun acc ->
            let l' = Option.value_exn
                (gen_lens rc lc r1 r2 acc) in
            if l' = l then

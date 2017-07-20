@@ -122,7 +122,7 @@ let rec regexes_of_size
       List.concat_map
         ~f:(fun (frs,srs) ->
             cartesian_map
-              make_or
+              ~f:make_or
               frs
               srs)
         ps_regexs
@@ -131,7 +131,7 @@ let rec regexes_of_size
       List.concat_map
         ~f:(fun (frs,srs) ->
             cartesian_map
-              make_concat
+              ~f:make_concat
               frs
               srs)
         ps_regexs
@@ -654,7 +654,7 @@ let rec gen_concat_lens_naive_of_size
             let l1s = gen_lens_naive_of_size rc lc r11 r21 s1 in
             let l2s = gen_lens_naive_of_size rc lc r12 r22 s2 in
             cartesian_map
-              (fun l1 l2 -> Lens.LensConcat(l1,l2))
+              ~f:(fun l1 l2 -> Lens.LensConcat(l1,l2))
               l1s
               l2s)
         ps
@@ -677,7 +677,7 @@ and gen_or_lens_naive_of_size
               let l1s = gen_lens_naive_of_size rc lc r11 r21 s1 in
               let l2s = gen_lens_naive_of_size rc lc r12 r22 s2 in
               cartesian_map
-                (fun l1 l2 -> Lens.LensUnion(l1,l2))
+                ~f:(fun l1 l2 -> Lens.LensUnion(l1,l2))
                 l1s
                 l2s)
           ps
@@ -777,7 +777,7 @@ and gen_retype_lens_of_size
           let r2s = apply_rewrite_of_size rc r2 s2 in
           List.concat
             (cartesian_map
-               (fun r1' r2' -> gen_lens_naive_of_size rc lc r1' r2' s3)
+               ~f:(fun r1' r2' -> gen_lens_naive_of_size rc lc r1' r2' s3)
                r1s
                r2s))
       tps
@@ -790,7 +790,7 @@ and gen_retype_lens_of_size
           let r2s = [r2] in
           List.concat
             (cartesian_map
-               (fun r1' r2' -> gen_lens_naive_of_size rc lc r1' r2' s3)
+               ~f:(fun r1' r2' -> gen_lens_naive_of_size rc lc r1' r2' s3)
                r1s
                r2s))
       dps
@@ -802,7 +802,7 @@ and gen_retype_lens_of_size
           let r2s = apply_rewrite_of_size rc r2 s2 in
           List.concat
             (cartesian_map
-               (fun r1' r2' ->
+               ~f:(fun r1' r2' ->
                   gen_lens_naive_of_size rc lc r1' r2' s3)
                r1s
                r2s))

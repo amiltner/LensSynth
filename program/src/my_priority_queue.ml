@@ -11,7 +11,7 @@ sig
   val compare : t comparer
   val hash : t hasher
   val hash_fold_t : t hash_folder
-  val priority : t -> int
+  val priority : t -> float
 end
 
 module PriorityQueueOf(D:DataWithPriority) =
@@ -19,12 +19,12 @@ struct
   module QueueHeap =
     HeapOf(
     struct
-      type t = (D.t * int)
+      type t = (D.t * float)
       [@@deriving show, hash]
 
       let compare =
         (fun (_,f1) (_,f2) ->
-             (compare_int f1 f2))
+             (Float.compare f1 f2))
       let to_string = fun _ -> "hi"
     end)
 
@@ -59,22 +59,34 @@ struct
   let singleton (e:element) : t =
     from_list [e]
 
-  let pop ((h,s):t) : ('a * int * t) option =
+  let pop ((h,s):t) : (D.t * float * t) option =
     Option.map ~f:(fun ((e,p),h') -> (e,p,(h',s))) (QueueHeap.pop h)
 
-  let pop_exn (q:t) : 'a * int * t =
+  let pop_exn (q:t) : D.t * float * t =
     begin match pop q with
       | None -> failwith "failure: pop_exn"
       | Some e -> e
     end
 
-  let all_remaining ((h,_):t) : ('a * int) list =
+  let peek : t -> D.t option =
+    Option.map ~f:fst_trip % pop
+
+  let peek_exn : t -> D.t =
+    fst_trip % pop_exn
+
+  let delete : t -> t option =
+    Option.map ~f:trd_trip % pop
+
+  let delete_exn : t -> t =
+    trd_trip % pop_exn
+
+  let all_remaining ((h,_):t) : (D.t * float) list =
     QueueHeap.to_list h
 
   let rec pop_until_min_pri_greater_than
       (q:t)
-      (f:int)
-    : (element * int) list * t =
+      (f:float)
+    : (element * float) list * t =
       begin match pop q with
         | None -> ([],q)
         | Some (e,f',q') ->

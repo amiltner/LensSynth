@@ -328,116 +328,182 @@ struct
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
   (* DO NOT EDIT THIS *)
-  let rec remove_downward (d: t) (k: key) : hole =
+  let rec remove_downward (updater:value -> value option) (d: t) (k: key) : hole =
     match d with
       | Leaf -> Absorbed(None,d)
       | Two(Leaf,(k1,v1),Leaf) ->
         if is_equal (compare_key k k1) then
-          Hole(Some(k1,v1),Leaf)
+          let rem = Some (k1,v1) in
+          begin match updater v1 with
+            | None -> Hole(rem,Leaf)
+            | Some v1 -> Absorbed(rem,Two(Leaf,(k1,v1),Leaf))
+          end
         else
           Absorbed(None,d)
       | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) ->
-        (match
-           make_matchable (compare_key k k1),
-           make_matchable (compare_key k k2) with
-          | EQ, _ -> Absorbed(Some(k1,v1),Two(Leaf,(k2,v2),Leaf))
-          | _, EQ -> Absorbed(Some(k2,v2),Two(Leaf,(k1,v1),Leaf))
-          | _, _ -> Absorbed(None,d)
+        (begin match
+            make_matchable (compare_key k k1),
+            make_matchable (compare_key k k2) with
+        | EQ, _ ->
+          let rem = Some (k1,v1) in
+          begin match updater v1 with
+            | None -> Absorbed(rem,Two(Leaf,(k2,v2),Leaf))
+            | Some v1 -> Absorbed(rem,Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf))
+          end
+        | _, EQ ->
+          let rem = Some (k2,v2) in
+          begin match updater v2 with
+            | None -> Absorbed(rem,Two(Leaf,(k1,v1),Leaf))
+            | Some v2 -> Absorbed(rem,Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf))
+          end
+        | _, _ -> Absorbed(None,d)
+        end
         )
-      | Two(l,n,r) -> remove_downward_two k n l r
-      | Three(l,n1,m,n2,r) -> remove_downward_three k n1 n2 l m r
+      | Two(l,n,r) -> remove_downward_two updater k n l r
+      | Three(l,n1,m,n2,r) -> remove_downward_three updater k n1 n2 l m r
 
   (* DO NOT EDIT THIS *)
-  and remove_downward_two (k: key) ((k1,v1): pair) 
-      (left: t) (right: t) : hole =
+  and remove_downward_two
+      (updater:value -> value option)
+      (k: key)
+      ((k1,v1): pair)
+      (left: t)
+      (right: t)
+    : hole =
     let cmp = compare_key k k1 in
     if is_equal cmp then
-      begin match remove_min right with
-          | Hole(None,_) -> Hole(None,left)
-          | Hole(Some n,new_right) -> 
-            remove_upward_two n None left new_right Right2
-          | Absorbed(None,_) -> Hole(None,left)
-          | Absorbed(Some n,new_right) -> Absorbed(None,Two(left,n,new_right))
+      let rem = Some (k1,v1) in
+      begin match updater v1 with
+        | None ->
+          begin match remove_min right with
+            | Hole(None,_) ->
+              Hole(rem,left)
+            | Hole(Some n,new_right) -> 
+              remove_upward_two n rem left new_right Right2
+            | Absorbed(None,_) ->
+              Hole(rem,left)
+            | Absorbed(Some n,new_right) ->
+              Absorbed(rem,Two(left,n,new_right))
+          end
+        | Some v1 ->
+          Absorbed(None,Two(left,(k1,v1),right))
       end
     else if is_lt cmp then
-      begin match remove_downward left k with
-        | Hole(rem,t) -> remove_upward_two (k1,v1) rem t right Left2
-        | Absorbed(rem,t) -> Absorbed(rem,Two(t,(k1,v1),right))
+      begin match remove_downward updater left k with
+        | Hole(rem,t) ->
+          remove_upward_two (k1,v1) rem t right Left2
+        | Absorbed(rem,t) ->
+          Absorbed(rem,Two(t,(k1,v1),right))
       end
     else
-        begin match remove_downward right k with
-          | Hole(rem,t) -> remove_upward_two (k1,v1) rem left t Right2
-          | Absorbed(rem,t) -> Absorbed(rem,Two(left,(k1,v1),t))
+        begin match remove_downward updater right k with
+          | Hole(rem,t) ->
+            remove_upward_two (k1,v1) rem left t Right2
+          | Absorbed(rem,t) ->
+            Absorbed(rem,Two(left,(k1,v1),t))
         end
 
   (* DO NOT EDIT THIS *)
-  and remove_downward_three (k: key) ((k1,v1): pair) ((k2,v2): pair)
+  and remove_downward_three (updater:value -> value option) (k: key) ((k1,v1): pair) ((k2,v2): pair)
       (left: t) (middle: t) (right: t) : hole =
     match
       make_matchable (compare_key k k1),
       make_matchable (compare_key k k2) with
-      | EQ, _ ->
-        begin match remove_min middle with
-          | Hole(None,_) -> Hole(None,Two(left,(k2,v2),right))
-          | Hole(Some n,new_middle) -> 
-            remove_upward_three n (k2,v2) None left new_middle right Mid3
-          | Absorbed(None,_) -> Absorbed(None,Two(left,(k1,v1),right))
-          | Absorbed(Some n,new_middle) -> 
-            Absorbed(None,Three(left,n,new_middle,(k2,v2),right))
-        end
-      | _ , EQ ->
-        begin match remove_min right with
-          | Hole(None,_) -> Hole(None,Two(left,(k1,v1),middle))
-          | Hole(Some n,new_right) -> 
-            remove_upward_three (k1,v1) n None left middle new_right Right3
-          | Absorbed(None,_) -> Absorbed(None,Two(left,(k1,v1),middle))
-          | Absorbed(Some n,new_right) -> 
-            Absorbed(None,Three(left,(k1,v1),middle,n,new_right))
-        end
-      | LT, _ ->
-        begin match remove_downward left k with
-          | Hole(rem,t) -> 
-            remove_upward_three (k1,v1) (k2,v2) rem t middle right Left3
-          | Absorbed(rem,t) -> 
-            Absorbed(rem,Three(t,(k1,v1),middle,(k2,v2),right))
-        end
-      | _, GT ->
-        begin match remove_downward right k with
-          | Hole(rem,t) -> 
-            remove_upward_three (k1,v1) (k2,v2) rem left middle t Right3
-          | Absorbed(rem,t) -> 
-            Absorbed(rem,Three(left,(k1,v1),middle,(k2,v2),t))
-        end
-      | GT, LT ->
-        begin match remove_downward middle k with
-          | Hole(rem,t) -> 
-            remove_upward_three (k1,v1) (k2,v2) rem left t right Mid3
-          | Absorbed(rem,t) -> 
-            Absorbed(rem,Three(left,(k1,v1),t,(k2,v2),right))
-        end
+    | EQ, _ ->
+      let rem = Some (k1,v2) in
+      begin match updater v1 with
+        | None ->
+          begin match remove_min middle with
+            | Hole(None,_) ->
+              Hole(rem,Two(left,(k2,v2),right))
+            | Hole(Some n,new_middle) -> 
+              remove_upward_three n (k2,v2) rem left new_middle right Mid3
+            | Absorbed(None,_) ->
+              Absorbed(rem,Two(left,(k1,v1),right))
+            | Absorbed(Some n,new_middle) -> 
+              Absorbed(rem,Three(left,n,new_middle,(k2,v2),right))
+          end
+        | Some v1 ->
+          Absorbed(None,Three(left,(k1,v1),middle,(k2,v2),right))
+      end
+    | _ , EQ ->
+      let rem = Some (k2,v2) in
+      begin match updater v2 with
+        | None ->
+          begin match remove_min right with
+            | Hole(None,_) -> Hole(rem,Two(left,(k1,v1),middle))
+            | Hole(Some n,new_right) -> 
+              remove_upward_three (k1,v1) n rem left middle new_right Right3
+            | Absorbed(None,_) -> Absorbed(rem,Two(left,(k1,v1),middle))
+            | Absorbed(Some n,new_right) -> 
+              Absorbed(None,Three(left,(k1,v1),middle,n,new_right))
+          end
+        | Some v2' ->
+          Absorbed(rem,Three(left,(k1,v1),middle,(k2,v2'),right))
+      end
+    | LT, _ ->
+      begin match remove_downward updater left k with
+        | Hole(rem,t) -> 
+          remove_upward_three (k1,v1) (k2,v2) rem t middle right Left3
+        | Absorbed(rem,t) -> 
+          Absorbed(rem,Three(t,(k1,v1),middle,(k2,v2),right))
+      end
+    | _, GT ->
+      begin match remove_downward updater right k with
+        | Hole(rem,t) -> 
+          remove_upward_three (k1,v1) (k2,v2) rem left middle t Right3
+        | Absorbed(rem,t) -> 
+          Absorbed(rem,Three(left,(k1,v1),middle,(k2,v2),t))
+      end
+    | GT, LT ->
+      begin match remove_downward updater middle k with
+        | Hole(rem,t) -> 
+          remove_upward_three (k1,v1) (k2,v2) rem left t right Mid3
+        | Absorbed(rem,t) -> 
+          Absorbed(rem,Three(left,(k1,v1),t,(k2,v2),right))
+      end
 
   (* DO NOT EDIT THIS *)
   and remove_min (d: t) : hole =
     match d with
-      | Leaf -> Hole(None,Leaf)
-      | Two(Leaf,n,_) -> Hole(Some n,Leaf)
-      | Three(Leaf,n1,middle,n2,right) -> Absorbed(Some n1,Two(middle,n2,right))
-      | Two(left,n,right) -> 
-        (match remove_min left with
-          | Hole(rem,t) -> remove_upward_two n rem t right Left2
-          | Absorbed(rem,t) -> Absorbed(rem,Two(t,n,right))
-        )
-      | Three(left,n1,middle,n2,right) ->
+    | Leaf -> Hole(None,Leaf)
+    | Two(Leaf,n,_) -> Hole(Some n,Leaf)
+    | Three(Leaf,n1,middle,n2,right) -> Absorbed(Some n1,Two(middle,n2,right))
+    | Two(left,n,right) -> 
+      (match remove_min left with
+       | Hole(rem,t) -> remove_upward_two n rem t right Left2
+       | Absorbed(rem,t) -> Absorbed(rem,Two(t,n,right))
+      )
+    | Three(left,n1,middle,n2,right) ->
         (match remove_min left with
           | Hole(rem,t) -> remove_upward_three n1 n2 rem t middle right Left3
           | Absorbed(rem,t) -> Absorbed(rem,Three(t,n1,middle,n2,right))
         )
 
+  let remove_or_update_and_retrieve_old
+      ~updater:(updater:value -> value option)
+      (d: t)
+      (k: key)
+    : (value option * t) =
+    begin match remove_downward updater d k with
+      | Hole(kvo,d') -> (Option.map ~f:snd kvo,d')
+      | Absorbed(kvo,d') -> (Option.map ~f:snd kvo,d')
+    end
+
+  let remove_or_update_and_retrieve_old_exn
+      ~updater:(updater:value -> value option)
+      (d: t)
+      (k: key)
+    : (value * t) =
+    let (vo,t) = remove_or_update_and_retrieve_old ~updater:updater d k in
+    (Option.value_exn vo, t)
+
+  let remove_or_update ~updater:(updater:value -> value option) (d: t) (k: key) : t =
+    snd (remove_or_update_and_retrieve_old ~updater:updater d k)
+
   (* DO NOT EDIT THIS *)
-  let remove (d: t) (k: key) : t =
-    match remove_downward d k with
-      | Hole(_,d') -> d'
-      | Absorbed(_,d') -> d'
+  let remove : t -> key -> t =
+    remove_or_update ~updater:(fun _ -> None)
 
   (* TODO:
    * Write a lookup function that returns the value of the given key
@@ -532,6 +598,13 @@ struct
     : key list =
     List.map
       ~f:fst
+      (as_kvp_list d)
+
+  let value_list
+      (d:t)
+    : value list =
+    List.map
+      ~f:snd
       (as_kvp_list d)
 
   let compare

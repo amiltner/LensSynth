@@ -1,5 +1,4 @@
 open Stdlib
-open Permutation
 open Lang
 open String_utilities
 
@@ -165,7 +164,7 @@ let rec compare_exampled_atoms (a1:exampled_atom) (a2:exampled_atom) :
         let cmp = Id.compare s1 s2 in
         if (is_equal cmp) then
           ordered_partition_order
-            (fun x y -> (compare x y))
+            compare
             el1
             el2
         else
@@ -280,7 +279,7 @@ let rec dnf_lens_to_string ((clause_lenses, permutation):dnf_lens) : string =
       )
       ^ " , " ^
       paren (
-        Permutation.pp permutation
+        Permutation.show permutation
       )
       ^ " , " ^
       paren (
@@ -297,7 +296,7 @@ let rec dnf_lens_to_string ((clause_lenses, permutation):dnf_lens) : string =
   )
   ^ " , " ^
   paren (
-    Permutation.pp permutation
+    Permutation.show permutation
   )
 
 let rec compare_dnf_lens
@@ -351,7 +350,7 @@ let empty_dnf_string : dnf_regex = [([],[""])]
 
 let concat_dnf_regexs (r1:dnf_regex) (r2:dnf_regex) : dnf_regex =
   cartesian_map
-    (fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
+    ~f:(fun (a1s,s1s) (a2s,s2s) -> (a1s@a2s,weld_lists (^) s1s s2s))
     r1
     r2
 
