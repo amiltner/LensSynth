@@ -1,0 +1,194 @@
+We thank the reviewers for their feedback.
+
+...
+
+Detailed Responses to individual questions by the reviewers follow below.
+
+
+Review #18A
+===========================================================================
+
+Strengths/weaknesses
+
++ Interesting and potentially useful application of program synthesis to bidirectional programming
++ Nontrivial design/technical development
++ Approach implemented and evaluated on real(ish) examples
+- Restriction of focus to bijective "lenses" not clearly justified
+- Important parts of algorithm not explained (regarding how examples are used)
+- Not clear how much work it is to adapt examples to be suitable for bijective lens synthesis, or how useful the results are w.r.t. the original task
+
+But the main part of the paper is not self-contained - for example the
+algorithm description relies on (example-dependent) orderings of sequences and atoms that
+are not described; this is a key part of the algorithm since it is
+where the provided examples are actually used.
+
+I also have a concern: sicne the approach is
+limited to bijective lenses, but many of the test examples were not
+bijective, how much work was it to modify the examples
+and how easy is it to manually hack the resulting bijective
+lenses to make them work on the real data?  Is there any chance of
+automating this or generalizing to handle non-bijective lenses
+(perhaps with this algorithm as a subroutine)?
+
+I could see future work building on this to handle the non-bijective case 
+being a separate (and also interesting) paper.  But I would want the algorithm
+to be described more clearly and more caveats about the examples.
+
+p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
+applied as the LHS uses the operators defined in fig. 5, rather than syntax
+
+p17.  The desription of RigidSynth is incomplete.  It mentions orders
+$\leq_{Seq}$ and $\leq_{Atom}$ (and variants that use the examples) that do
+not appear to be defined.  What happens if there is ambiguity?  for
+example what if we are trying to infer a lens of type (a | b | c) <->
+(d|e|f) and we only have one example that says a <-> c?  If these
+orderings are standard things then please give a reference.  If not,
+they really need to be described in the paper.  The way examples are
+used to align parts of regular expressions seems really critical to
+this approach and is hardly explained.
+
+p18: AllSome (alg. 3): I assume this is the obvious function of type
+'a option list -> 'a list option (that is None if there is a None in
+the list or Some [a1..an] if the list is [Some a1...Some an]) but
+please clarify
+
+p19: "easy to understand" - can you present any evidence for this?
+Easy for whom?
+
+p20: "We adapted these examples" please say mor about how many of the
+examples needed to be adapted (all? a handful?) and how much work it
+was, and how useful the resulting isomorphic lenses were w.r.t the
+original data / how much additional work was needed to adapt them.
+
+p20: "We developed a series of optimizations" - clarify that the
+algorithm already described includes all of these, and what you are
+going to do is disable them, rather than add more optimizations that
+weren't discussed earlier.  Might be helpful to signpost what parts of
+the algorithm are the "basic" algorithm and what parts are optional optimizations
+
+p21: Fig 9 "Number of expansions" --> "Number of solutions"??
+
+p21.  Also interesting to evaluate would be how time / number of
+solutions varies (e.g. for the full algorithm) as the number of
+examples provided varies.  Is the number of examples small? An active
+approach where the algorithm asks the user for examples might also be
+worth exploring (future work).
+
+p24: "because our types do not have full canonical forms" - this is
+the case for the equations presented in the paper, but what about
+e.g. translating to automata and minimizing?
+
+
+
+
+
+
+Review #18B
+===========================================================================
+Paper summary
+-------------
+
+However, I’m not sure what exact advantage the proposed approach brings to the
+table. In particular, the user is still required to write exact input and output
+types of the transformations via regular expressions. How hard is to write
+lenses after one has such expressions? I’ll further detail my comparison now.
+Also, the language has big limitations in terms of expressiveness.
+
+### CONS:
+- In the reviewer’s opinion, the specification mechanism is not very natural and
+it’s unclear whether it actually simplifies writing bijective transformations.
+This aspect is not evaluated and it would be nice to at least see the difference
+in sizes between the domain/range regexes vs the Boomerang lenses. In general,
+there is no report of the sizes of benchmarks.
+
+- Very limited DSL for transformations. The proposed DSL can only describe
+transformations that use identities and constant functions over input subparts.
+For example, one cannot synthesize the function toUpperCase, which I imagine
+could be useful for the kind of transformations appearing in the motivation.
+Moreover, the functions can use each word in the input only once: one cannot
+express the transformation abc->abcabc. Most bijective functions I can think of
+(string encoders, compression algorithms, encryption algorithms) require complex
+transformations over the input that go beyond identities. On this note, there
+was a paper this year at PLDI on inverting string encoders (Automatic program
+inversion using symbolic transducers, by Hu et al.), a topic which seems very
+related, but for which I couldn’t find a citation.
+
+- Somewhat limited evaluation. The evaluation is performed on two families of
+benchmarks. The first family is an adaptation of format translation problems
+from Augeas a tool for configuration editing and the second family is from
+FlashFill a tool for synthesis of string transformations. All the benchmarks
+presented are “adaptation” and it’s unclear whether the authors only picked
+benchmarks for which they knew a priori a program in their DSL existed. Based
+on the presented data, I cannot assess how often the presented technique could
+be applied. Next, the comparison with the tool FlashFill/FlashExtract is somewhat
+confusing. I suspect the authors had to provide some domain and range regular
+expressions for the flash fill benchmarks, but this aspect, which is crucial to
+help the search, is not mentioned. What happens if someone provides Sigma* and
+Sigma* as domains and ranges to Optician. Also, a better explanation of the
+difference between the DSLs of Lenses and Flash fill is required. For example,
+FlashFill can reverse a string, but the proposed language can’t.
+
+### QUESTIONS FOR REBUTTAL
+- What is the difference in size between the regexes for domain/range spec and
+the full lenses?
+- What is the difference in size between manually written lenses and synthesized
+ones?
+- Clarify how the benchmarks were selected and whether any were not selected a
+priori. Especially the flash* ones. Did you omit those that used character
+transformations such as upper-case?
+- Can the proposed DSL express any transformation that FlashFill can’t and
+vice-versa?
+- P19: maximally factors the concats and ors. What does this mean? Regex
+minimization is a hard problem, what is that one factors exactly? I think it
+would help to show one example of fully synthesized lens in the paper.
+
+Minor:
+- Eval the text says Full synthesized 49 benchmarks, but the plot in fig 8 only
+shows 38/39?
+
+
+
+
+
+Review #18C
+===========================================================================
+
+Overall merit
+-------------
+3. Weak reject - will not argue against
+
+Reviewer expertise
+------------------
+Z. Outsider
+
+Paper summary
+-------------
+Overall, this paper looks like a solid and useful contribution to the lens
+literature. However, this reviewer has never used, let alone designed, a lens
+library. As such, I found the paper very hard to read and assess. I would have
+liked to see a clear problem statement (such as an example where it's annoying
+to write the Boomerang code but easy to synthesize the lens using your approach
+- why is there no Boomerang code for your example in Sec. 3?). It was also not
+very clear to me what subset of Boomerang your approach supports. The
+introduction says it is a "useful subset of Boomerang" - but what does that
+mean?
+
+I was also a bit confused about the preliminaries in Sec. 2. In particular, it
+is not clear whether all or most of those preliminaries are from related work
+(but there are no references) or whether they are contributions of this paper.
+
+Minor comments:
+
+- p.4, "naively using it in the context of lens synthesis presents several
+problems"? Which problems? At this point I have no clue what "using it" may
+even mean. The "big picture" is not clear at all.
+
+- p. 3, "We have ommitted these theorems for space..." - maybe you mean
+"proofs"?
+
+-p. 7, "instead of maintaining server code for each endpoint, we envision..."
+- but surely the changes to an API involve more than just data format changes.
+For instance, single calls may have to be split into multiple calls. Hence it
+does not seem to be realistic to maintain the old API using _only_ synthesized
+lenses.
+
