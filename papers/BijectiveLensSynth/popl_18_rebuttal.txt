@@ -1,5 +1,72 @@
 We thank the reviewers for their feedback.
 
+*Talk about where we and FlashFill are different in expressivity of DSL*
+First, we detail the differences between the DSL of FlashFill and our DSL.
+FlashFill allows for non-bijective transformations, which lets it express
+transformations which project information.
+
+Our DSL is less expressive than Flash Fill, but encodes reverse transformations
+as well.  Furthermore, while our DSL is less expressive, we are able to
+synthesize significantly more transformations than Flash Fill.  In particular,
+Flash Fill has difficulties synthesizing transformations with nested iterations.
+In the original Flash Fill paper, the tool does not even attempt to synthesize
+terms with nested iterations for performance reasons (the last sentence of
+Section 4.4).  We could not find documentation detailing whether the same
+restriction of non-nested iterations is present in the version of Flash Fill
+bundled in the Prose API.  While the language detailed in the Flash Fill can
+express nested iterations we found it could not synthesize any, significantly
+limiting its capabilities for synthesizing the types of transformations we
+encountered in Augeas.
+
+*Talk about why bijective restriction is not an issue*
+We simplified our task to handling bijective lenses as this is an initial
+approach into this area.  This restriction did require some alterations of the
+benchmarks.  These alterations fall in 2 major categories:
+1) Whitespace was present in one format but not the other.
+2) Information was projected away in the original example.
+
+Category 1 was by far the most prevalent, and encountered in many of the Augeas
+examples.  To handle this, we added additional whitespace in the other format.
+However, this process can be automated using quotient lenses.  Quotient lenses
+canonize strings into representative elements: a large amount of whitespace
+would be canonized into a single whitespace character.  Putting these canonizers
+at the edges would allow us to not need to put the additional whitespace
+information in the target language.  We have since developed a language to
+express canonizers within regular expressions, providing the ability to write a
+"whitespace token" that allows for whitespace to be input, but also canonizes
+that whitespace intended format.
+
+Category 2 was less prevalent, but still present, typically in the FlashFill
+examples.  To address this category, we added additional information to the end
+of the target format containing the projected information.  Composing this
+generated lens with one that deletes that information at the tail of the file,
+when going left to right, and restores that information going back would provide
+the full lens.  This wrapper is not very difficult to write, and we think that
+discovering this projection automatically is possible, but we still need to do
+the research on it.
+
+This research we believe can be used in future work to solve these problems.
+This was our primary motivation to solving this first, if we can solve this
+problem we can use the generalize to more complex problems, but this step
+is an important one in making those more general problems more tractable.
+
+*Talk about how writing down the regular expressions is easier than writing down
+the lenses (for B and C)*
+
+Thinking about the ambiguity of concatenations and unions of the languages is
+hard to think about.  
+One example of this is highlighted in the BibTeX to EndNote author fields.
+
+      let bibtex_to_endnote_au
+        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
+        del "author={"
+          . ins "au - "
+          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
+          . (del " and "
+               . ins "\n au - "
+               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
+          . del "}" 
+
 ...
 
 Detailed Responses to individual questions by the reviewers follow below.
@@ -10,17 +77,21 @@ Review #18A
 
 Strengths/weaknesses
 
-+ Interesting and potentially useful application of program synthesis to bidirectional programming
-+ Nontrivial design/technical development
-+ Approach implemented and evaluated on real(ish) examples
 - Restriction of focus to bijective "lenses" not clearly justified
 - Important parts of algorithm not explained (regarding how examples are used)
 - Not clear how much work it is to adapt examples to be suitable for bijective lens synthesis, or how useful the results are w.r.t. the original task
 
 But the main part of the paper is not self-contained - for example the
-algorithm description relies on (example-dependent) orderings of sequences and atoms that
-are not described; this is a key part of the algorithm since it is
+algorithm description relies on (example-dependent) orderings of sequences and
+atoms that are not described; this is a key part of the algorithm since it is
 where the provided examples are actually used.
+
+    We omitted the formal description of these orderings for space.  A full
+    description of the algorithm is present in algorithm 4 in the appendix, on
+    page 119, with the orderings defined in Definition 33 on page 118 (the
+    definitions of related structures begin at page 115).  We embed the parse
+    trees of the examples into the DNF regular expressions, and make an ordering
+    on the DNF regular expression with embedded parse trees.
 
 I also have a concern: sicne the approach is
 limited to bijective lenses, but many of the test examples were not
@@ -37,6 +108,12 @@ to be described more clearly and more caveats about the examples.
 p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
 applied as the LHS uses the operators defined in fig. 5, rather than syntax
 
+    We merely included that syntax as a means to make the derivation more
+    readable.  One can evaluate those operators, and it will be an arbitrary
+    DNF regular expression, we just use the operators to show the relationship
+    between the atom involved in the structural rewrite, and what it is
+    rewritten to.
+
 p17.  The desription of RigidSynth is incomplete.  It mentions orders
 $\leq_{Seq}$ and $\leq_{Atom}$ (and variants that use the examples) that do
 not appear to be defined.  What happens if there is ambiguity?  for
@@ -52,8 +129,17 @@ p18: AllSome (alg. 3): I assume this is the obvious function of type
 the list or Some [a1..an] if the list is [Some a1...Some an]) but
 please clarify
 
+    This is correct.
+
 p19: "easy to understand" - can you present any evidence for this?
 Easy for whom?
+
+    We feel that they are easy to understand because they look similar to
+    handwritten lenses, but we have not done any user studies to justify that
+    they are easy to understand.  Evidence to the fact that they are easier to
+    understand than non-pretty printed versions is given by the sizes of the
+    generated lenses.  Without minimization, the lenses sizes averaged at (SIZE)
+    AST nodes, whereas minimization made the sizes average at (SIZE) ast nodes.
 
 p20: "We adapted these examples" please say mor about how many of the
 examples needed to be adapted (all? a handful?) and how much work it
@@ -101,6 +187,7 @@ This aspect is not evaluated and it would be nice to at least see the difference
 in sizes between the domain/range regexes vs the Boomerang lenses. In general,
 there is no report of the sizes of benchmarks.
 
+
 - Very limited DSL for transformations. The proposed DSL can only describe
 transformations that use identities and constant functions over input subparts.
 For example, one cannot synthesize the function toUpperCase, which I imagine
@@ -112,6 +199,13 @@ transformations over the input that go beyond identities. On this note, there
 was a paper this year at PLDI on inverting string encoders (Automatic program
 inversion using symbolic transducers, by Hu et al.), a topic which seems very
 related, but for which I couldn’t find a citation.
+
+    Our DSL contains transformations that cannot be expressed by Extended Symbolic
+    Finite Transducers.  The finite lookahead does not allow for transformations
+    which swaps the locations of data, a common pattern in Boomerang lenses.
+    We will add a citation to this work and a comment detailing the restrictions
+    extended symbolic finite transducers put in place.
+
 
 - Somewhat limited evaluation. The evaluation is performed on two families of
 benchmarks. The first family is an adaptation of format translation problems
@@ -127,6 +221,10 @@ help the search, is not mentioned. What happens if someone provides Sigma* and
 Sigma* as domains and ranges to Optician. Also, a better explanation of the
 difference between the DSLs of Lenses and Flash fill is required. For example,
 FlashFill can reverse a string, but the proposed language can’t.
+
+    Boomerang doesn't currently provide such capabilities.  However, there is no
+    technical reason this can't be done by adding in a reverse-and-iterate
+    operator.  Furthermore, we can
 
 ### QUESTIONS FOR REBUTTAL
 - What is the difference in size between the regexes for domain/range spec and
@@ -145,6 +243,8 @@ would help to show one example of fully synthesized lens in the paper.
 Minor:
 - Eval the text says Full synthesized 49 benchmarks, but the plot in fig 8 only
 shows 38/39?
+
+    The text is wrong, there are only 39 benchmarks.
 
 
 
@@ -168,14 +268,17 @@ literature. However, this reviewer has never used, let alone designed, a lens
 library. As such, I found the paper very hard to read and assess. I would have
 liked to see a clear problem statement (such as an example where it's annoying
 to write the Boomerang code but easy to synthesize the lens using your approach
+
 - why is there no Boomerang code for your example in Sec. 3?). It was also not
 very clear to me what subset of Boomerang your approach supports. The
 introduction says it is a "useful subset of Boomerang" - but what does that
 mean?
 
+
 I was also a bit confused about the preliminaries in Sec. 2. In particular, it
 is not clear whether all or most of those preliminaries are from related work
 (but there are no references) or whether they are contributions of this paper.
+
 
 Minor comments:
 
@@ -186,9 +289,18 @@ even mean. The "big picture" is not clear at all.
 - p. 3, "We have ommitted these theorems for space..." - maybe you mean
 "proofs"?
 
+    Correct
+
 -p. 7, "instead of maintaining server code for each endpoint, we envision..."
 - but surely the changes to an API involve more than just data format changes.
 For instance, single calls may have to be split into multiple calls. Hence it
 does not seem to be realistic to maintain the old API using _only_ synthesized
 lenses.
+
+    Yes, there are certainly times where more than lenses needs to be added.
+    However, the specific instance of single calls being split into multiple
+    calls can be handled by this paradigm if the server allows for batch
+    requests.  In particular, APIs of the running example we use, the modern
+    format does have batching capabilities because of this type of issue,
+    https://www.visualstudio.com/en-us/docs/integrate/api/wit/batch .
 
