@@ -7,69 +7,28 @@ addressing specific concerns.
 
 We are able to synthesize some transformations that Flash Fill cannot, and
 Flash Fill is able to synthesize some transformations that we cannot.
-In particular, by restricting ourselves to bijections, we are unable to express
-a large class of functions.  In alternative string synthesis systems, this
-bijective restriction is not in place, and additional strings can be
-synthesized.  However, we do not see this as a failure, but as a design choice.
-Our system is not targeting single direction transformations: we feel
-programmers already have the tools they need to write these by hand.  Instead,
-we are aiming to alleviate the difficulties in programming bidirectional
-transformations, which have languages that are very difficult to write in.
+
+By restricting ourselves to bijections, we are unable to express functions that
+don't preserve data, such as: mapping from a format with whitespace to one
+without whitespace, turning a mix of uppercase and lowercase characters into
+purely uppercase characters, and extracting a file name from a file path.
 
 However, Optician can still solve certain classes of problems other string
-synthesis systems cannot.  In particular, existing techniques that only use
+synthesis systems cannot - in particular, existing techniques that only use
 input-output examples are unable to synthesize programs with nested loops.
-In particular, while Flash Fill's DSL does permit nested loops, for efficiency
+While Flash Fill's DSL does permit nested loops, for efficiency
 reasons, the synthesis algorithm only synthesizes programs with no nesting (this
-is stated at the end of section 4.4).  While a single nesting of loops is
-sufficient for the types of problems encountered in transforming Excel
+is stated at the end of section 4.4 of "Automating String Processing in
+Spreadsheets Using Input-Output Examples", POPL '11).  While a single nesting of
+loops is sufficient for the types of problems encountered in transforming Excel
 spreadsheet data, our tool is aimed at building large transformations between
-highly complex formats.  The types of formats Augeas is built to handle have
-many deep layers of nesting, with very complex transformations at each layer.
-Nested iteration is necessary for these types of transformations, and existing
-techniques are insufficient for synthesizing them.
+more complex formats.  The types of formats Augeas is built to handle have
+deep layers of nested transformations, with very complex transformations at each
+layer, making existing techniques insufficient.
 
 
-- Why did we make the bijective restriction, and what transformations did we
-  make to our benchmark suite to make them bijective.
-
-We simplified our task to handling bijective lenses as this is an initial
-approach into this research.  There are a large number of
-formats which are in bijective correspondence: for example https://www.data.gov/
-provides data in a variety of formats in bijective correspondence with each
-other.  However, we began with synthesizing bijective
-lenses primarily because we believe this bijective core can be extended in a
-principled way to handle more complex lenses.
-
-Many of our transformations were nearly bijective, but had unnecessary
-information, like whitespace or casing, that prevented them from being bijective.
-Quotient lenses provide the capabilities to ignore unnecessary information like
-whitespace.  While the combinators for quotient lenses, canonizers, can be
-intermixed with basic lenses in the original paper, we believe that a
-"canonizers-at-the-edge" approach is just as expressive.  In particular,
-we can express a transformation that is bijective up to a quotient by having a
-bijective lens core, with a canonizer at each side that normalizes the input.
-Indeed, we already have a prototype that does this, allowing specialized
-tokens that encodes both the full description of viable inpout as well as the
-information on how to canonize the data.
-
-The remaining transformations that needed to be altered were also nearly
-bijective, but projected away useful information, and this projection prevented
-them from being bijective.  Unlike with quotient lenses, we do not want to
-remove this information - we want the information to be preserved through
-round-trips.  Furthermore, there are formats where each format contains
-information not present in the other format.  Symmetric lenses provide the
-capabilities for writing such transformations.  Similarly to quotient lenses,
-projection combinators can be intermixed with bijection capabilities,
-but we can view symmetric lenses as having a bijective core with a projection
-combinator on each side that removes data in one direction, and restores it in
-the other.
-
-While we simplified our task to bijective lenses, we did this because we felt
-a synthesis algorithm for bijective lenses could form the core of a synthesis
-algorithm for other types of lenses.  We agree this motivation looking towards
-future work is currently lacking in the paper, and we can add this in for the
-final version.
+- What transformations did we make to our benchmark suite to make them
+  bijective, and does this restriction give rise to useful systems.
 
 The changes we put on our benchmark suite fall in 2 major categories that mirror
 the intended extensions to our system.
@@ -79,9 +38,18 @@ the intended extensions to our system.
 Category 1 was by far the most prevalent, and encountered in many of the Augeas
 examples.  To handle this, we added additional whitespace to the other format,
 where typically whitespace is unnecessary.
-This can be solved by using quotients on the side with whitespace.  We think the
-strategy of using specialized tokens to represent both a language and a
-canonizer can solve this problem.
+
+Instead of changing the formats, we could have extended the system to involve
+canonizers.  Canonizers can be placed on the ends of lenses to
+normalize the input data.  Canonizers can normalize an arbitrarily long sequence
+of whitespace to a single space.  Canonizers also can be used to handle casing
+issues: normalizing a sequence of uppercase and lowercase characters into purely
+uppercase characters.  We have already developed a framework to annotate a
+regular expression with additional canonizing information, allowing for a single
+term to represent an arbitrary sequence of whitespace and a means to normalize
+it to a single space.  Using this framework, non-bijective lenses can be
+generated using our framework, as long as the canonized
+forms of their source and target types are in bijective correspondence.
 
 Category 2 was less prevalent, but still present, typically in the FlashFill
 examples.  To address this category, we added additional information to the end
@@ -91,6 +59,16 @@ when going left to right, and restores that information going back would provide
 the full lens.  This wrapper is not very difficult to write, and we think that
 discovering this projection automatically is possible, but we still need to do
 the research on it.
+
+There are a large number of formats that are in bijective correspondence: for
+example https://www.data.gov/ provides data in a variety of formats in bijective
+correspondence with each other.  Much of the encountered formats present in
+existing lens libraries uses either canonizers or projections.  The theories
+developed to handle synchronization tasks for real world data (quotient lenses
+for Category 1, and symmetric lenses for Category 2), have a bijective core,
+surrounded by either canonizers or projections.  We feel that our system can be
+used as a drop-in component for synthesis algorithms on these more complex lens
+structures.
 
 
 - After having written the regular expressions, is it very difficult for users
@@ -184,14 +162,13 @@ See general responses.
 - Important parts of algorithm not explained (regarding how examples are used)
 
 We omitted the formal description of these orderings for space.  A full
-description of the algorithm is present in algorithm 4 in the appendix, on page
+description of the algorithm is present in algorithm 4 in the appendix (see the
+supplemental pdf submitted with the paper), on page
 119, with the orderings defined in Definition 33 on page 118 (the definitions of
 related structures begin at page 115).  We embed the parse trees of the examples
 into the DNF regular expressions, and make an ordering on the DNF regular
-expression with embedded parse trees.  While we think the formal description of
-these orderings is too long to be included in the paper, we can provide a more
-involved informal description in the text, and provide a reference to an
-extended version with the formal descriptions of the orderings.
+expression with embedded parse trees.  We would be happy to rewrite the paper to
+include whatever information the reviewer believes is most important.
 
 
 - Not clear how much work it is to adapt examples to be suitable for bijective
@@ -229,7 +206,7 @@ algorithm in the final version of this paper.
 - p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
   applied as the LHS uses the operators defined in fig. 5, rather than syntax
 
-We merely included that syntax as a means to make the derivation more
+We merely wrote the rule with operators as a means to make the derivation more
 readable.  One can evaluate those operators, and it will be an arbitrary
 DNF regular expression, we just use the operators to show the relationship
 between the atom involved in the structural rewrite, and what it is
@@ -246,29 +223,35 @@ rewritten to.
   used to align parts of regular expressions seems really critical to
   this approach and is hardly explained.
 
-We can go into more detail in the paper on this.  Intuitively,
-we group the subcomponents of a DNF regular expression into equivalence classes
-based on if they can map to the same subcomponents of the DNF regular expression
-on the other side.  Then, no swaps are performed within subcomponents of the
-same equivalence class, they are merely swapped with subcomponents of different
-equivalence classes, if one removed all other subcomponents, the orderings would
-be merely the identity.
+First, we think the reviewer intended to write "we have only one example that
+says a <-> d".  We see two cases for this scenario.
+Case 1: The structure of the other two determines where they must map
+Case 2: The structure does not determine where they must mapped
 
-For example, in the provided scenario (caveat, I think the reviewer intended to
-say an example that says a <-> e) the example makes a map to e, so the
-equivalence classes are:
+For Case 1, consider the scenario where
+b = Name
+c = Name*
+e = Name*
+f = Name
+The structures of b, c, e, and f determine where they will be mapped: b <-> f
+and c <-> e.  In particular, RigidSynth will order them as:
+[a;b;c]
+[d;f;e]
+that then creates the maps previously provided.
 
-{a}, {b,c} on the left
-{d,f}, {e} on the right
-
-Then, the algorithm will sort these equivalence classes
-
-{a}, {b,c}
-{e}, {d,f}
-
-and the equivalence classes will be mapped to each other through zipping
-
-a <-> e, b <-> d, c <-> f
+For Case 2, consider the scenario where
+b = Name
+c = Name
+e = Name
+f = Name
+In this case, the structures do not determine where they will be mapped.
+The maps (a <-> d , b <-> e , c <-> f)
+     and (a <-> d , b <-> f , c <-> e) are both valid.  In this situation, the
+one we choose is based on a heuristic that minimizes swaps.  In particular,
+Rigidsynth will order them as:
+[a;b;c]
+[d;e;f]
+that creates the maps (a <-> d , b <-> e , c <-> f).
 
 
 - p18: AllSome (alg. 3): I assume this is the obvious function of type
@@ -332,12 +315,12 @@ See general response.
   optimizations.
 
 The algorithm described includes all but compositional synthesis.  We don't
-include in the formal algorithm the means to which we use previously defined
-lenses to synthesize new ones.  The way we do it is we develop equivalence
-classes between user defined data types that have lenses, choose a
+include in the formal algorithm a description of how we use previously defined
+lenses to synthesize new ones.  For compositional synthesis, we develop
+equivalence classes between user defined data types that have lenses, choose a
 representative, and transform the user defined data types into that
 representative, and convert the strings into elements of that representative
-data type.
+data type.  Then we proceed with synthesis as described by the formal algorithm.
 
 
 - p21: Fig 9 "Number of expansions" --> "Number of solutions"??
@@ -389,49 +372,51 @@ Paper summary
 
 See general response.  We also provide data on the sizes below.
 
----------------------------------------------------
-|Test                | SpecSize | LensSize | TODO |
-|------------------------------------------|------|
-|cust/date-probs     | 85       | 79       |
-|cust/cap-prob       | 112      | 108      |
-|cust/2-cap-prob     | 122      | 66       |
-|ff/extr-fname-err   | 143      | 151      |
-|ff/extr-fname       | 149      | 168      |
-|ff/extr-quant       | 150      | 145      |
-|ff/extr-num         | 171      | 166      |
-|aug/activemq        | 194      | 184      |
-|cust/bib-prob       | 202      | 181      |
-|cust/workitem-probs | 221      | 252      |
-|aug/xml-l1          | 235      | 214      |
-|cust/addr-probs     | 244      | 239      |
-|aug/aptcrngsec      | 265      | 204      |
-|aug/alias           | 271      | 210      |
-|aug/backuppchosts   | 272      | 249      |
-|aug/approx          | 277      | 264      |
-|aug/apt-upd-mgr     | 278      | 210      |
-|aug/aptsources      | 278      | 238      |
-|aug/cachefilesd     | 294      | 233      |
-|aug/aptprefs        | 297      | 280      |
-|aug/afs-cellalias   | 298      | 246      |
-|aug/avahi           | 301      | 234      |
-|aug/chrony          | 308      | 289      |
-|aug/xml             | 311      | 383      |
-|aug/carbon          | 325      | 377      |
-|aug/access          | 335      | 253      |
-|aug/anacron         | 342      | 315      |
-|aug/hosts           | 343      | 328      |
-|aug/bootconf        | 350      | 271      |
-|aug/auth-keys       | 354      | 424      |
-|aug/cgrules         | 378      | 295      |
-|aug/cgconfig        | 415      | 347      |
-|aug/automaster      | 475      | 377      |
-|aug/cron            | 475      | 414      |
-|aug/channels        | 512      | 367      |
-|aug/automounter     | 535      | 432      |
-|aug/aptconf         | 540      | 450      |
-|aug/aptconf-l1      | 564      | 503      |
-|aug/bbhosts         | 670      | 651      |
---------------------------------------------
+|-------------------------------------------------------------|
+| Test                | SpecSize | LensSize | LensAndSpecSize |
+|-------------------------------------------------------------|
+| cust/date-probs     | 85       | 79       | 97              |
+| cust/cap-prob       | 112      | 108      | 169             |
+| cust/2-cap-prob     | 122      | 66       | 188             |
+| ff/extr-fname-err   | 143      | 151      | 172             |
+| ff/extr-fname       | 149      | 168      | 195             |
+| ff/extr-quant       | 150      | 145      | 161             |
+| ff/extr-num         | 171      | 166      | 186             |
+| aug/activemq        | 194      | 184      | 204             |
+| cust/bib-prob       | 202      | 181      | 265             |
+| cust/workitem-probs | 221      | 252      | 330             |
+| aug/xml-l1          | 235      | 214      | 301             |
+| cust/addr-probs     | 244      | 239      | 308             |
+| aug/aptcrngsec      | 265      | 204      | 336             |
+| aug/alias           | 271      | 210      | 348             |
+| aug/backuppchosts   | 272      | 249      | 318             |
+| aug/approx          | 277      | 264      | 345             |
+| aug/apt-upd-mgr     | 278      | 210      | 355             |
+| aug/aptsources      | 278      | 238      | 351             |
+| aug/cachefilesd     | 294      | 233      | 368             |
+| aug/aptprefs        | 297      | 280      | 409             |
+| aug/afs-cellalias   | 298      | 246      | 370             |
+| aug/avahi           | 301      | 234      | 370             |
+| aug/chrony          | 308      | 289      | 331             |
+| aug/xml             | 311      | 383      | 546             |
+| aug/carbon          | 325      | 377      | 507             |
+| aug/access          | 335      | 253      | 436             |
+| aug/anacron         | 342      | 315      | 447             |
+| aug/hosts           | 343      | 328      | 449             |
+| aug/bootconf        | 350      | 271      | 457             |
+| aug/auth-keys       | 354      | 424      | 553             |
+| aug/cgrules         | 378      | 295      | 487             |
+| aug/cgconfig        | 415      | 347      | 612             |
+| aug/automaster      | 475      | 377      | 621             |
+| aug/cron            | 475      | 414      | 667             |
+| aug/channels        | 512      | 367      | 682             |
+| aug/automounter     | 535      | 432      | 710             |
+| aug/aptconf         | 540      | 450      | 700             |
+| aug/aptconf-l1      | 564      | 503      | 777             |
+| aug/bbhosts         | 670      | 651      | 1041            |
+|-------------------------------------------------------------|
+| average             | 310      | 277      | 414             |
+|-------------------------------------------------------------|
 
 We can make sure we can provide at least some description of the sizes of specs
 and lenses in the final version of the paper.
