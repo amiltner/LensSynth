@@ -177,22 +177,7 @@ Strengths/weaknesses
 
 - Restriction of focus to bijective "lenses" not clearly justified
 
-The focus on bijective lenses is twofold.  Firstly, there are a large number of
-formats which are in bijective correspondence: for example https://www.data.gov/
-provides data in a variety of formats in bijective correspondence with each
-other.  Secondly, bijective lenses can be viewed as the core of many other types
-of lenses.  For example, standard lenses can be viewed in two parts: a bijective
-part that moves the location of data around and adds in boilerplate, and a
-projecting part that removes data in one direction, and adds it back in when
-transforming in the reverse direction.  This approach can further be extended to
-symmetric lenses by having that projection component on each side of the
-transformation.  Quotient lenses can also be viewed in two parts: a
-transformation component and a canonizing component.  This transformation
-component could be a bijective core that is transformed, and the canonizing
-component appears surrounding it.  In this way, finding a synthesis algorithm
-for bijective lenses provides great progress in synthesizing more complex
-lenses, it can be plugged into other systems in a principled way to extend the
-algorithm to more general lens forms.
+See general responses.
 
 
 - Important parts of algorithm not explained (regarding how examples are used)
@@ -202,38 +187,16 @@ description of the algorithm is present in algorithm 4 in the appendix, on page
 119, with the orderings defined in Definition 33 on page 118 (the definitions of
 related structures begin at page 115).  We embed the parse trees of the examples
 into the DNF regular expressions, and make an ordering on the DNF regular
-expression with embedded parse trees.
+expression with embedded parse trees.  While we think the formal description of
+these orderings is too long to be included in the paper, we can provide a more
+involved informal description in the text, and provide a reference to an
+extended version with the formal descriptions of the orderings.
 
 
 - Not clear how much work it is to adapt examples to be suitable for bijective
   lens synthesis, or how useful the results are w.r.t. the original task
 
-We simplified our task to handling bijective lenses as this is an initial
-approach into this area.  This restriction did require some alterations of the
-benchmarks.  The alterations were adding data into the target format that wasn't
-there originally.  These alterations fall in 2 major categories:
-1) Whitespace was present in one format but not the other.
-2) Information was projected away in the original example.
-
-Category 1 was by far the most prevalent, and encountered in many of the Augeas
-examples.  To handle this, we added additional whitespace in the other format.
-However, this process can be automated using quotient lenses.  Quotient lenses
-canonize strings into representative elements: a large amount of whitespace
-would be canonized into a single whitespace character.  Putting these canonizers
-at the edges would allow us to not need to put the additional whitespace
-information in the target language.  We have since developed a language to
-express canonizers within regular expressions, providing the ability to write a
-"whitespace token" that allows for whitespace to be input, but also canonizes
-that whitespace intended format.
-
-Category 2 was less prevalent, but still present, typically in the FlashFill
-examples.  To address this category, we added additional information to the end
-of the target format containing the projected information.  Composing this
-generated lens with one that deletes that information at the tail of the file,
-when going left to right, and restores that information going back would provide
-the full lens.  This wrapper is not very difficult to write, and we think that
-discovering this projection automatically is possible, but we still need to do
-the research on it.
+See general responses.
 
 
 - But the main part of the paper is not self-contained - for example the
@@ -241,7 +204,7 @@ the research on it.
   atoms that are not described; this is a key part of the algorithm since it is
   where the provided examples are actually used.
 
-See above
+See above.
 
 - I also have a concern: sicne the approach is
   limited to bijective lenses, but many of the test examples were not
@@ -251,15 +214,15 @@ See above
   automating this or generalizing to handle non-bijective lenses
   (perhaps with this algorithm as a subroutine)?
 
-See above
+See above.
 
 - I could see future work building on this to handle the non-bijective case 
   being a separate (and also interesting) paper.  But I would want the algorithm
   to be described more clearly and more caveats about the examples.
 
-It is difficult to go into more formal detail about the orderings within the
-page limits.  We will provide a more detailed informal description, and include
-an explicit reference to the extended version in the final paper.
+We agree the non-bijective case would also be an interesting paper.  We can
+provide additional caveats about the examples and a better description of the
+algorithm in the final version of this paper.
 
 
 - p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
@@ -282,9 +245,29 @@ rewritten to.
   used to align parts of regular expressions seems really critical to
   this approach and is hardly explained.
 
-We can go into more detail in the paper on this.  If two subcomponents can each
-map to two subcomponents on the opposite side, a permutation which does not swap
-the order of those subcomponents is best.
+We can go into more detail in the paper on this.  Intuitively,
+we group the subcomponents of a DNF regular expression into equivalence classes
+based on if they can map to the same subcomponents of the DNF regular expression
+on the other side.  Then, no swaps are performed within subcomponents of the
+same equivalence class, they are merely swapped with subcomponents of different
+equivalence classes, if one removed all other subcomponents, the orderings would
+be merely the identity.
+
+For example, in the provided scenario (caveat, I think the reviewer intended to
+say an example that says a <-> e) the example makes a map to e, so the
+equivalence classes are:
+
+{a}, {b,c} on the left
+{d,f}, {e} on the right
+
+Then, the algorithm will sort these equivalence classes
+
+{a}, {b,c}
+{e}, {d,f}
+
+and the equivalence classes will be mapped to each other through zipping
+
+a <-> e, b <-> d, c <-> f
 
 
 - p18: AllSome (alg. 3): I assume this is the obvious function of type
@@ -303,8 +286,33 @@ would handwrite the lenses,
 but we have not done any user studies to justify that
 they are easy to understand.  Evidence to the fact that they are easier to
 understand than non-pretty printed versions is given by the sizes of the
-generated lenses.  Without minimization, the lenses sizes averaged at (SIZE)
+generated lenses.  Without minimization, the lenses sizes average at (SIZE)
 AST nodes, whereas minimization made the sizes average at (SIZE) ast nodes.
+In the general response, we show what a minimized vs handwritten lens look like.
+Below we the difference between a non-minimized title field and a minimized
+title field for a work item.
+
+In the title field, without minimization, the title field transformation would
+appear as:
+
+const("<Field Id=2></Field>","")
+  | (const("<Field Id=2>","Title: ")
+      . Id(text_char)
+      . const("","")
+      . iterate(const("","") . Id(text_char) . const("",""))
+      . const("","")
+      . const("</Field>",", "))
+
+With minimization, the title field transformation would appear as:
+
+const("<Field Id=2>","")
+  . (Id("")
+       | (Id(text_char) . iterate(Id(text_char)) . const("", ",")))
+  . const("</Field>",""))
+
+In particular, the useless concatenations of const("","") are removed and
+the field boilerplate is removed from being on both sides of the disjunct.
+Furthermore, when const(s,s) is present, it is converted into Id(s).
 
 
 - p20: "We adapted these examples" please say mor about how many of the
@@ -312,10 +320,7 @@ AST nodes, whereas minimization made the sizes average at (SIZE) ast nodes.
   was, and how useful the resulting isomorphic lenses were w.r.t the
   original data / how much additional work was needed to adapt them.
 
-All of the examples taken from existing programs needed to be adapted in some
-way.  In particular, while there were many examples that didn't have projected
-information that would have necessitated projection aspects of lens
-capabilities, those examples all used whitespace.
+See general response.
 
 
 - p20: "We developed a series of optimizations" - clarify that the
@@ -381,61 +386,11 @@ Paper summary
   in sizes between the domain/range regexes vs the Boomerang lenses. In general,
   there is no report of the sizes of benchmarks.
 
-We provide an example below on mapping the author field of BibTeX to EndNote:
+See general response.  We also provide data on the sizes below.
 
-      typedef NAME = UPPERCASE (LOWERCASE)*;;
-
-      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
-      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
-      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
-      
-      typedef AUTAG = "au - ";;
-      typedef STARTTOEND = (NAME WSP)* NAME;;
-      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
-
-      let bibtex_to_endnote_au_synthed =
-        synth
-          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
-
-      let bibtex_to_endnote_au
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        del "author={"
-          . ins "au - "
-          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
-          . (del " and "
-               . ins "\n au - "
-               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
-          . del "}" 
-
-      let bibtex_to_endnote_au_human_written
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        let single_author_convert =
-          ins " au - "
-            . lens_swap
-                (NAME . del ",")
-                (lens_swap WSP NAME)*
-        in
-        del "author={"
-          . single_author_convert
-          . (del " and "
-               . ins "\n"
-               . single_author_convert)* 
-          . del "}" 
-
-We feel the specification is easier to read and write than the explicit lens.
-Furthermore, even the relatively simple permutation of only 3 elements needed
-for single_author_convert is fairly complex.  Beyond this, we find it is best
-practices to include the type explicitly when writing the lens, both as
-documentation and as additional assurance to correctness.  As we already spend
-the effort writing these types manually for these benefits, there is no
-additional work needed to use our synthesis algorithm, there is instead only
-saved effort.
-
-We provide the size of specifications and lenses below:
-
---------------------------------------------
-|Test                | SpecSize | LensSize |
-|------------------------------------------|
+---------------------------------------------------
+|Test                | SpecSize | LensSize | TODO |
+|------------------------------------------|------|
 |cust/date-probs     | 85       | 79       |
 |cust/cap-prob       | 112      | 108      |
 |cust/2-cap-prob     | 122      | 66       |
@@ -478,26 +433,34 @@ We provide the size of specifications and lenses below:
 --------------------------------------------
 
 We can make sure we can provide at least some description of the sizes of specs
-and lenses in the paper.
+and lenses in the final version of the paper.
 
 
 - Very limited DSL for transformations. The proposed DSL can only describe
   transformations that use identities and constant functions over input subparts.
   For example, one cannot synthesize the function toUpperCase, which I imagine
   could be useful for the kind of transformations appearing in the motivation.
-  Moreover, the functions can use each word in the input only once: one cannot
+
+We can convert between all uppercase and all lowercase.  Quotient lenses can be
+used to normalize the data into fully uppercase and fully lowercase data.
+
+
+- Moreover, the functions can use each word in the input only once: one cannot
   express the transformation abc->abcabc. Most bijective functions I can think of
   (string encoders, compression algorithms, encryption algorithms) require complex
-  transformations over the input that go beyond identities. On this note, there
-  was a paper this year at PLDI on inverting string encoders (Automatic program
-  inversion using symbolic transducers, by Hu et al.), a topic which seems very
-  related, but for which I couldn’t find a citation.
+  transformations over the input that go beyond identities. 
+
+See general response for more detailed information about the bijective
+restriction.
+- On this note, there was a paper this year at PLDI on inverting string encoders
+  (Automatic program inversion using symbolic transducers, by Hu et al.), a
+  topic which seems very related, but for which I couldn’t find a citation.
 
 Our DSL contains transformations that cannot be expressed by Extended Symbolic
 Finite Transducers.  The finite lookahead does not allow for transformations
-which swaps the locations of data, a common pattern in Boomerang lenses.
-We will add a citation to this work and a comment detailing the restrictions
-extended symbolic finite transducers put in place.
+which swaps data, a common pattern and important pattern in Boomerang lenses. We
+will add a citation to this work and a comment detailing the restrictions of
+symbolic finite transducers.
 
 
 - Somewhat limited evaluation. The evaluation is performed on two families of
@@ -509,14 +472,16 @@ extended symbolic finite transducers put in place.
   on the presented data, I cannot assess how often the presented technique could
   be applied.
 
+See general response.
+
 
 - Next, the comparison with the tool FlashFill/FlashExtract is somewhat
   confusing. I suspect the authors had to provide some domain and range regular
   expressions for the flash fill benchmarks, but this aspect, which is crucial to
   help the search, is not mentioned.
 
-  We do require regular expressions describing the input of FlashFill specs, we
-  will make sure that is more explicitly stated in the paper.
+We do require regular expressions describing the input of FlashFill specs, we
+will make sure that is more explicitly stated in the paper.
 
 
 - What happens if someone provides Sigma* and Sigma* as domains and ranges to
@@ -531,7 +496,7 @@ examples, and some others to handle the readjustment.
 
 Optician is meant to work on finding mappings between the regular expressions
 specified.  It is not intended to find subsets of the provided regular
-expressions that can be mapped.
+expressions that can be mapped, as those would be ill-typed programs.
 
 
 - Also, a better explanation of the
@@ -548,60 +513,8 @@ would be needed to incorporate this into the algorithm.
   the full lenses?
 
 On average, the domain and range specs are slightly larger than the lens itself.
-
-We do not think that this means the work is useless, but rather it is used to
-alleviate the pain of reasoning about nested swaps and concatenations, allow for
-more simple maintenance of the code.
-
-We provide an example below on mapping the author field of BibTeX to EndNote:
-
-      typedef NAME = UPPERCASE (LOWERCASE)*;;
-
-      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
-      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
-      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
-      
-      typedef AUTAG = "au - ";;
-      typedef STARTTOEND = (NAME WSP)* NAME;;
-      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
-
-      let bibtex_to_endnote_au_synthed =
-        synth
-          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
-
-      let bibtex_to_endnote_au
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        del "author={"
-          . ins "au - "
-          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
-          . (del " and "
-               . ins "\n au - "
-               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
-          . del "}" 
-
-      let bibtex_to_endnote_au_human_written
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        let single_author_convert =
-          ins " au - "
-            . lens_swap
-                (NAME . del ",")
-                (lens_swap WSP NAME)*
-        in
-        del "author={"
-          . single_author_convert
-          . (del " and "
-               . ins "\n"
-               . single_author_convert)* 
-          . del "}" 
-
-We feel the specification is easier to read and write than the explicit lens.
-Furthermore, even the relatively simple permutation of only 3 elements needed
-for single_author_convert is fairly complex.  Beyond this, we find it is best
-practices to include the type explicitly when writing the lens, both as
-documentation and as additional assurance to correctness.  As we already spend
-the effort writing these types manually for these benefits, there is no
-additional work needed to use our synthesis algorithm, there is instead only
-saved effort.
+See the above chart.  See the general response for a detailed commentary on the
+intent of our work.
 
 
 - What is the difference in size between manually written lenses and synthesized
@@ -621,22 +534,14 @@ they corresponded to the first two examples in the paper.
 The problem extr-fname only allowed input paths with a file at the end, where
 extr-fname-err provided an error message if no file was present.
 The final example, extr-num was used because extracting a phone number was used
-as an extended example.  We could not find any examples in the paper which
-applied a to_upper conversion.
+as an extended example, so we used it.  We could not find any examples in the
+paper which applied a to_upper conversion.
 
 
 - Can the proposed DSL express any transformation that FlashFill can’t and
   vice-versa?
 
-While Flash Fill's DSL permits nested iterations, for performance reasons Flash
-Fill only synthesizes a single nesting of loops.  While this is sufficient for
-the types of applications present in an Excel file, the examples we found in
-Augeas were significantly more complex, requiring complex transformations with 
-many nested iterations.
-
-Flash Fill can express many transformation our DSL cannot.  For example, we
-currently cannot handle losing information, which prevents us from projecting
-information.
+See the general response.
 
 
 - P19: maximally factors the concats and ors. What does this mean? Regex
@@ -660,12 +565,13 @@ const("<Field Id=2></Field>","")
 With minimization, the title field transformation would appear as:
 
 const("<Field Id=2>","")
-  . (const("","")
+  . (Id("")
        | (Id(text_char) . iterate(Id(text_char)) . const("", ",")))
   . const("</Field>",""))
 
 In particular, the useless concatenations of const("","") are removed and
 the field boilerplate is removed from being on both sides of the disjunct.
+Furthermore, when const(s,s) is present, it is converted into Id(s).
 
 Minor:
 - Eval the text says Full synthesized 49 benchmarks, but the plot in fig 8 only
@@ -686,55 +592,8 @@ Review #18C
   liked to see a clear problem statement (such as an example where it's annoying
   to write the Boomerang code but easy to synthesize the lens using your approach
 
-We provide an example below on mapping the author field of BibTeX to EndNote:
-
-      typedef NAME = UPPERCASE (LOWERCASE)*;;
-
-      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
-      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
-      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
-      
-      typedef AUTAG = "au - ";;
-      typedef STARTTOEND = (NAME WSP)* NAME;;
-      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
-
-      let bibtex_to_endnote_au_synthed =
-        synth
-          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
-
-      let bibtex_to_endnote_au
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        del "author={"
-          . ins "au - "
-          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
-          . (del " and "
-               . ins "\n au - "
-               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
-          . del "}" 
-
-      let bibtex_to_endnote_au_human_written
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        let single_author_convert =
-          ins " au - "
-            . lens_swap
-                (NAME . del ",")
-                (lens_swap WSP NAME)*
-        in
-        del "author={"
-          . single_author_convert
-          . (del " and "
-               . ins "\n"
-               . single_author_convert)* 
-          . del "}" 
-
-We feel the specification is easier to read and write than the explicit lens.
-Furthermore, even the relatively simple permutation of only 3 elements needed
-for single_author_convert is fairly complex.  Beyond this, we find it is best
-practices to include the type explicitly when writing the lens, both as
-documentation and as additional assurance to correctness.  As we already spend
-the effort writing these types manually for these benefits, there is no
-additional work needed to use our synthesis algorithm, there is instead only
-saved effort.
+We provide an extended example in the general response.  We will make the
+problem statement more clear in the final version.
 
 
 - why is there no Boomerang code for your example in Sec. 3?).
@@ -750,8 +609,9 @@ programmer must encounter while writing their programs.
 The subset our approach supports are the bijective lenses where all regular
 expression equivalences used in the typing derivation can be proven with
 the star-semiring equivalence rules.  We find this useful in that all lenses can
-easily be converted into a bijective lens, and we could not find a lens that
-requires a courser notion of equivalence than star-semiring equivalence.
+easily be converted into a bijective lens, and we could not find a lens in
+Boomerang or Augeas that requires a courser notion of equivalence than
+star-semiring equivalence.
 
 
 - I was also a bit confused about the preliminaries in Sec. 2. In particular, it
@@ -770,9 +630,9 @@ support.
 
 In this context, "using it" refers to allowing retyping on the specified
 equivalences.  We are trying to carve out a specific subset of Boomerang that
-we want to synthesize, and are not allowing that subset to be included.
-The problems with including full language equivalence is detailed on pages 8
-through 10.
+we want to synthesize, and are not allowing the subset requiring a courser
+notion of equivalence to be included. The problems with including full language
+equivalence is detailed on pages 8 through 10.
 
 
 - p. 3, "We have ommitted these theorems for space..." - maybe you mean
