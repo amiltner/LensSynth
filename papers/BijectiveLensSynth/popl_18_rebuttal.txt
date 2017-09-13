@@ -35,7 +35,7 @@ transformations.  In particular, these formats tend to have deep layers of
 iterated data, with complex transformations at each layer, requiring the
 synthesis of many layers of nested loops.  FlashFill cannot handle such
 examples.  Our experiments demonstrate this fact by showing that FlashFill
-only succeeds on [x] out of our [y] benchmarks, whereas our system succeeds on
+only succeeds on 3 out of our 39 benchmarks, whereas our system succeeds on
 all our benchmarks.
 
                                 -------------
@@ -114,58 +114,6 @@ translate back and forth between them.  This is a non-standard programming task.
 
 * One must sometimes compute in their own head how to unroll or transform the
 regular expression into the right form, before writing the lens.
-
-TODO: move to appropriate places in other users, and remove *s from 18B
-To highlight these difficulties, we show an
-example program for mapping the author field of a BibTeX entry:
-
-      typedef NAME = UPPERCASE (LOWERCASE)*;;
-
-      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
-      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
-      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
-      
-      typedef AUTAG = "au - ";;
-      typedef STARTTOEND = (NAME WSP)* NAME;;
-      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
-
-      let bibtex_to_endnote_au =
-        synth
-          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
-
-      let bibtex_to_endnote_au_synthesized_result
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        del "author={"
-          . ins "au - "
-          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
-          . (del " and "
-               . ins "\n au - "
-               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
-          . del "}" 
-
-      let bibtex_to_endnote_au_human_written
-        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
-        let single_author_convert =
-          ins " au - "
-            . lens_swap
-                (NAME . del ",")
-                (lens_swap WSP NAME)*
-        in
-        del "author={"
-          . single_author_convert
-          . (del " and "
-               . ins "\n"
-               . single_author_convert)* 
-          . del "}" 
-
-Even the relatively simple lens that permutes the 3 elements needed for
-single_author_convert is fairly complex.  The complexity becomes even more
-apparent when working with large lenses comprised of many sub-lenses (though
-for brevity we give here the more minimal example above).  Lenses provide
-great power with their invertibility guarantees, but they come at the cost
-of thinking about many fiddly details when writing the terms.  Worrying
-about these fiddly details while ALSO thinking about unambiguity
-restrictions is a very difficult task!
 
 
 ===========================================================================
@@ -439,21 +387,58 @@ Review #18B
        regexes vs the Boomerang lenses. In general, there is no report of the
        sizes of benchmarks.
 
-See general response.  We also provide data on the sizes below.  However, we
-do not think that purely lines of code is the best metric for our data, as our
-system provides benefits beyond saving keystrokes for the programmer, detailed
-below:
+See general response.  We provide an example program (and specification) below:
 
-* Regular expressions are common - almost every programmer has a firm grip on
-regular expressions.  In contrast, almost _no_ programmers know anything about
-programming with lenses.
+      typedef WSP = (" " | "\t" | "\n")+;;
+      typedef NAME = UPPERCASE (LOWERCASE)*;;
 
-* A regular expression describes one piece of data.  When writing a lens, one
-must think about both pieces of data at the same time, and simultaneously
-translate back and forth between them.
+      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
+      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
+      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
+      
+      typedef AUTAG = "au - ";;
+      typedef STARTTOEND = (NAME WSP)* NAME;;
+      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
 
-* One must sometimes compute in their own head how to unroll or transform the
-regular expression into the right form.
+      let bibtex_to_endnote_au =
+        synth
+          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
+
+      let bibtex_to_endnote_au_synthesized_result
+        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
+        del "author={"
+          . ins "au - "
+          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
+          . (del " and "
+               . ins "\n au - "
+               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
+          . del "}" 
+
+      let bibtex_to_endnote_au_human_written
+        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
+        let single_author_convert =
+          ins " au - "
+            . lens_swap
+                (NAME . del ",")
+                (lens_swap WSP NAME)*
+        in
+        del "author={"
+          . single_author_convert
+          . (del " and "
+               . ins "\n"
+               . single_author_convert)* 
+          . del "}" 
+
+Even the relatively simple lens that permutes the 3 elements needed for
+single_author_convert is fairly complex.  The complexity becomes even more
+apparent when working with large lenses comprised of many sub-lenses (though
+for brevity we give here the more minimal example above).  Lenses provide
+great power with their invertibility guarantees, but they come at the cost
+of thinking about many fiddly details when writing the terms.  Worrying
+about these fiddly details while ALSO thinking about unambiguity
+restrictions is a very difficult task!
+
+We also provide data on the sizes below:
 
 |-------------------------------------------------------------|
 | Test                | SpecSize | LensAndTypeSize | LensSize |
@@ -693,15 +678,65 @@ Review #18C
        an example where it's annoying to write the Boomerang code but easy to
        synthesize the lens using your approach
 
-We provide an extended example in the general response.  We will make the
-problem statement more clear in the final version.
+We provide an example program below.
+
+      typedef WSP = (" " | "\t" | "\n")+;;
+      typedef NAME = UPPERCASE (LOWERCASE)*;;
+
+      typedef LASTCOMMASTART = NAME "," (WSP NAME)*;;
+      typedef BIBTEXAUTHORLIST = LASTCOMMASTART (" and " LASTCOMMASTART)*;;
+      typedef BIBTEXAUTHORINFO = "author={" BIBTEXAUTHORLIST "}";;
+      
+      typedef AUTAG = "au - ";;
+      typedef STARTTOEND = (NAME WSP)* NAME;;
+      typedef TAGGEDAUTHORDEFNS = AUTAG STARTTOEND ("\n " AUTAG STARTTOEND)*;;
+
+      let bibtex_to_endnote_au =
+        synth
+          BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS
+
+      let bibtex_to_endnote_au_synthesized_result
+        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
+        del "author={"
+          . ins "au - "
+          . lens_swap (NAME . del ",") (lens_swap WSP NAME)* 
+          . (del " and "
+               . ins "\n au - "
+               . lens_swap (NAME . del ",") (lens_swap WSP NAME)* )* 
+          . del "}" 
+
+      let bibtex_to_endnote_au_human_written
+        : (lens in BIBTEXAUTHORINFO <=> TAGGEDAUTHORDEFNS) =
+        let single_author_convert =
+          ins " au - "
+            . lens_swap
+                (NAME . del ",")
+                (lens_swap WSP NAME)*
+        in
+        del "author={"
+          . single_author_convert
+          . (del " and "
+               . ins "\n"
+               . single_author_convert)* 
+          . del "}" 
+
+Even the relatively simple lens that permutes the 3 elements needed for
+single_author_convert is fairly complex.  The complexity becomes even more
+apparent when working with large lenses comprised of many sub-lenses (though
+for brevity we give here the more minimal example above).  Lenses provide
+great power with their invertibility guarantees, but they come at the cost
+of thinking about many fiddly details when writing the terms.  Worrying
+about these fiddly details while ALSO thinking about unambiguity
+restrictions is a very difficult task!
+
+We will make the problem statement more clear in the final version.
 
                                 -------------
 
      - why is there no Boomerang code for your example in Sec. 3?).
 
-We can include example code like this to highlight the frustrations a lens
-programmer must encounter while writing their programs.
+We can include example code like we did above to highlight the frustrations a
+lens programmer must encounter while writing their programs.
 
                                 -------------
 
