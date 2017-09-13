@@ -288,7 +288,7 @@ understand than non-pretty printed versions is given by the sizes of the
 generated lenses.  Without minimization, the lenses sizes average at (SIZE)
 AST nodes, whereas minimization made the sizes average at (SIZE) ast nodes.
 In the general response, we show what a minimized vs handwritten lens look like.
-Below we the difference between a non-minimized title field and a minimized
+Below we show the difference between a non-minimized title field and a minimized
 title field for a work item.
 
 In the title field, without minimization, the title field transformation would
@@ -329,9 +329,16 @@ See general response.
   the algorithm are the "basic" algorithm and what parts are optional
   optimizations.
 
-The algorithm described includes all but compositional synthesis.  We don't
-include in the formal algorithm a description of how we use previously defined
-lenses to synthesize new ones.  For compositional synthesis, we develop
+The algorithm described includes all but compositional synthesis, which uses
+predefined lenses.  To use a predefined lens, l : A <-> B, the implementation
+develops equivalence classes between user defined data types with lenses between
+them (in the above example, A and B would be placed in the same equivalence
+class).  Next, a representative element of each equivalence class is chosen.
+All user defined data types are then transformed into their representative, and
+the string examples are converted into examples in the language of the
+representative.
+
+
 equivalence classes between user defined data types that have lenses, choose a
 representative, and transform the user defined data types into that
 representative, and convert the strings into elements of that representative
@@ -349,24 +356,23 @@ perform.
 
 - p21.  Also interesting to evaluate would be how time / number of
   solutions varies (e.g. for the full algorithm) as the number of
-  examples provided varies.  Is the number of examples small? An active
-  approach where the algorithm asks the user for examples might also be
-  worth exploring (future work).
+  examples provided varies.  Is the number of examples small?
 
 The number of examples provided doesn't typically have an impact on runspeed,
 only correctness.  The number of valid solutions does vary with the number of
 examples provided.  Typically, a small number of examples can greatly reduce the
 number of possible solutions (TODO data).  The number of examples is indeed
-small, as is shown in Figure 11.  An active approach we agree is an
-interesting one, and one we too have considered.
+small, as is shown in Figure 11.
 
 
 - p24: "because our types do not have full canonical forms" - this is
   the case for the equations presented in the paper, but what about
   e.g. translating to automata and minimizing?
 
-You are correct, regular expressions do have canonical forms in that manner.
-We will change the phrasing to more accurately represent our meaning.
+This is an interesting idea.  It is unclear how an automataton for a type
+can be used to direct synthesis.  Nevertheless, this may lead to interesting
+research.
+
 
 
 ===========================================================================
@@ -385,52 +391,66 @@ Paper summary
   in sizes between the domain/range regexes vs the Boomerang lenses. In general,
   there is no report of the sizes of benchmarks.
 
-See general response.  We also provide data on the sizes below.
+See general response.  We also provide data on the sizes below.  However, we
+do not think that purely lines of code is the best metric for our data, as our
+system provides benefits beyond saving keystrokes for the programmer, detailed
+below:
+
+* Regular expressions are common - almost every programmer has a firm grip on
+regular expressions.  In contrast, almost _no_ programmers know anything about
+programming with lenses.
+
+* A regular expression describes one piece of data.  When writing a lens, one
+must think about both pieces of data at the same time, and simultaneously
+translate back and forth between them.
+
+* One must sometimes compute in their own head how to unroll or transform the
+regular expression into the right form.
 
 |-------------------------------------------------------------|
-| Test                | SpecSize | LensSize | LensAndSpecSize |
+| Test                | SpecSize | LensAndTypeSize | LensSize |
 |-------------------------------------------------------------|
-| cust/date-probs     | 85       | 79       | 97              |
-| cust/cap-prob       | 112      | 108      | 169             |
-| cust/2-cap-prob     | 122      | 66       | 188             |
-| ff/extr-fname-err   | 143      | 151      | 172             |
-| ff/extr-fname       | 149      | 168      | 195             |
-| ff/extr-quant       | 150      | 145      | 161             |
-| ff/extr-num         | 171      | 166      | 186             |
-| aug/activemq        | 194      | 184      | 204             |
-| cust/bib-prob       | 202      | 181      | 265             |
-| cust/workitem-probs | 221      | 252      | 330             |
-| aug/xml-l1          | 235      | 214      | 301             |
-| cust/addr-probs     | 244      | 239      | 308             |
-| aug/aptcrngsec      | 265      | 204      | 336             |
-| aug/alias           | 271      | 210      | 348             |
-| aug/backuppchosts   | 272      | 249      | 318             |
-| aug/approx          | 277      | 264      | 345             |
-| aug/apt-upd-mgr     | 278      | 210      | 355             |
-| aug/aptsources      | 278      | 238      | 351             |
-| aug/cachefilesd     | 294      | 233      | 368             |
-| aug/aptprefs        | 297      | 280      | 409             |
-| aug/afs-cellalias   | 298      | 246      | 370             |
-| aug/avahi           | 301      | 234      | 370             |
-| aug/chrony          | 308      | 289      | 331             |
-| aug/xml             | 311      | 383      | 546             |
-| aug/carbon          | 325      | 377      | 507             |
-| aug/access          | 335      | 253      | 436             |
-| aug/anacron         | 342      | 315      | 447             |
-| aug/hosts           | 343      | 328      | 449             |
-| aug/bootconf        | 350      | 271      | 457             |
-| aug/auth-keys       | 354      | 424      | 553             |
-| aug/cgrules         | 378      | 295      | 487             |
-| aug/cgconfig        | 415      | 347      | 612             |
-| aug/automaster      | 475      | 377      | 621             |
-| aug/cron            | 475      | 414      | 667             |
-| aug/channels        | 512      | 367      | 682             |
-| aug/automounter     | 535      | 432      | 710             |
-| aug/aptconf         | 540      | 450      | 700             |
-| aug/aptconf-l1      | 564      | 503      | 777             |
-| aug/bbhosts         | 670      | 651      | 1041            |
+| cust/date-probs     | 85       | 97              | 79       |
+| cust/cap-prob       | 112      | 169             | 108      |
+| cust/2-cap-prob     | 122      | 188             | 66       |
+| ff/extr-fname-err   | 143      | 172             | 151      |
+| ff/extr-fname       | 149      | 195             | 168      |
+| ff/extr-quant       | 150      | 161             | 145      |
+| ff/extr-num         | 171      | 186             | 166      |
+| aug/activemq        | 194      | 204             | 184      |
+| cust/bib-prob       | 202      | 265             | 181      |
+| cust/workitem-probs | 221      | 330             | 252      |
+| aug/xml-l1          | 235      | 301             | 214      |
+| cust/addr-probs     | 244      | 308             | 239      |
+| aug/aptcrngsec      | 265      | 336             | 204      |
+| aug/alias           | 271      | 348             | 210      |
+| aug/backuppchosts   | 272      | 318             | 249      |
+| aug/approx          | 277      | 345             | 264      |
+| aug/apt-upd-mgr     | 278      | 355             | 210      |
+| aug/aptsources      | 278      | 351             | 238      |
+| aug/cachefilesd     | 294      | 368             | 233      |
+| aug/aptprefs        | 297      | 409             | 280      |
+| aug/afs-cellalias   | 298      | 370             | 246      |
+| aug/avahi           | 301      | 370             | 234      |
+| aug/chrony          | 308      | 331             | 289      |
+| aug/xml             | 311      | 546             | 383      |
+| aug/carbon          | 325      | 507             | 377      |
+| aug/access          | 335      | 436             | 253      |
+| aug/anacron         | 342      | 447             | 315      |
+| aug/hosts           | 343      | 449             | 328      |
+| aug/bootconf        | 350      | 457             | 271      |
+| aug/auth-keys       | 354      | 553             | 424      |
+| aug/cgrules         | 378      | 487             | 295      |
+| aug/cgconfig        | 415      | 612             | 347      |
+| aug/automaster      | 475      | 621             | 377      |
+| aug/cron            | 475      | 667             | 414      |
+| aug/channels        | 512      | 682             | 367      |
+| aug/automounter     | 535      | 710             | 432      |
+| aug/aptconf         | 540      | 700             | 450      |
+| aug/aptconf-l1      | 564      | 777             | 503      |
+| aug/bbhosts         | 670      | 1041            | 651      |
 |-------------------------------------------------------------|
-| average             | 310      | 277      | 414             |
+| average             | 310      | 414             | 277      |
 |-------------------------------------------------------------|
 
 We can make sure we can provide at least some description of the sizes of specs
@@ -443,7 +463,8 @@ and lenses in the final version of the paper.
   could be useful for the kind of transformations appearing in the motivation.
 
 We can convert between all uppercase and all lowercase.  Quotient lenses can be
-used to normalize the data into fully uppercase and fully lowercase data.
+used to normalize a format (or portions of a format) into fully uppercase or
+fully lowercase data.
 
 
 - Moreover, the functions can use each word in the input only once: one cannot
@@ -481,8 +502,9 @@ See general response.
   expressions for the flash fill benchmarks, but this aspect, which is crucial to
   help the search, is not mentioned.
 
-We do require regular expressions describing the input of FlashFill specs, we
-will make sure that is more explicitly stated in the paper.
+We do require regular expressions describing the input of FlashFill specs (we
+require them for all), we will make sure that is more explicitly stated in the
+paper.
 
 
 - What happens if someone provides Sigma* and Sigma* as domains and ranges to
@@ -494,10 +516,6 @@ and Sigma* with some examples, we expect it will unroll the iterations until
 the number of characters in the largest example has been enumerated, and
 return something close to identity, but performing differently on those
 examples, and some others to handle the readjustment.
-
-Optician is meant to work on finding mappings between the regular expressions
-specified.  It is not intended to find subsets of the provided regular
-expressions that can be mapped, as those would be ill-typed programs.
 
 
 - Also, a better explanation of the
@@ -514,8 +532,10 @@ would be needed to incorporate this into the algorithm.
   the full lenses?
 
 On average, the domain and range specs are slightly larger than the lens itself.
-See the above chart.  See the general response for a detailed commentary on the
-intent of our work.
+See the above chart.  See the general response for a detailed commentary
+explaining why we believe writing lenses is harder than writing regular
+expressions, despite the fact that lenses alone are sometimes shorter than
+regular expression specifications.
 
 
 - What is the difference in size between manually written lenses and synthesized
