@@ -5,7 +5,7 @@ a (long and very optional) appendix addressing all questions in detail.
 
                                 -------------
 
-      - What is the difference in expressiveness between our work and
+     - What is the difference in expressiveness between our work and
         existing algorithms like FlashFill?
 
 Formally, they are incomparable: each can synthesize some transformations
@@ -24,26 +24,25 @@ existing synthesis systems cannot.  In particular, techniques that only use
 input-output examples are unable to synthesize programs with nested loops.
 
 One more technical note about point: FlashFill's DSL does permit nested
-loops, but for efficiency reasons the synthesis algorithm only synthesizes
+loops, but for efficiency reasons the algorithm only synthesizes
 programs with no nesting (this is discussed at the end of section 4.4 of
 "Automating String Processing in Spreadsheets Using Input-Output
 Examples", POPL '11).  While a single nesting of loops seems to be
-sufficient FlashFIll's intended uses, our benchmark suite (based on
+sufficient for FlashFill's intended uses, our benchmark suite (based on
 real-world uses of the Augeas tool) includes many more complex formats and
 transformations.  In particular, these formats tend to have deep layers of
-nested loops, with complex transformations at each layer.
-FlashFill cannot handle such examples.
-
-[BCP: The last sentence or two are not convincing yet!
+iterated data, with complex transformations at each layer, requiring the
+synthesis of many layers of nested loops.  FlashFill cannot handle such
+examples.
 
                                 -------------
 
-     - What modifications did we need to make to examples in the Augeas
-       benchmark suite to make them bijective?
+     - What modifications did we need to make to examples in the Augeas and
+       FlashFill benchmark suite to make them bijective?
 
-Many reviewers expressed concern that the changes made to the formats in our
-benchmark suite to make them bijective were major and time consuming. The
-changes we made to the benchmark suite were of two forms:
+Many reviewers expressed concern that major changes were added to the formats in
+our benchmark suite to make them bijective. We made changes to the benchmark
+suite to handle two forms of non-bijectivity:
 1) Whitespace was present in one format but not the other.
 2) Useful information was projected away going from one format to the other.
 
@@ -51,36 +50,26 @@ Category 1 was by far the most common, applying to many of the Augeas
 examples.  To handle this, we added additional whitespace to the other format,
 where typically whitespace is unnecessary.
 
-Instead of changing the formats, we could have extended the system to
-involve canonizers.  Canonizers can be placed on the ends of lenses to
-normalize the input data.  Canonizers can normalize an arbitrarily long
-sequence of whitespace to a single space.  Canonizers also can be used to
-handle casing issues: normalizing a sequence of uppercase and lowercase
-characters into purely uppercase characters.  We have recently developed a
-framework to annotate a regular expression with canonizing information,
-allowing for a single term to represent an arbitrary sequence of whitespace
-and a means to normalize it to a single space.  Using this framework, we can
-generate non-bijective lenses using our framework, as long as the canonized
-forms of their source and target types are in bijective correspondence.
-
 Category 2 was less prevalent, but still present, typically in the FlashFill
 examples.  To address this category, we added additional information to the end
-of the target format containing the projected information.  Composing this
-generated lens with one that deletes that information at the tail of the
-file, when going left to right, and restores that information going back
-would provide the full lens.  This wrapper is not difficult to write, and we
-think that discovering this projection automatically is possible, but we
-have not yet done it.
+of the target format containing the projected information.
 
-There are a large number of formats that are in bijective
-correspondence. For example https://www.data.gov/ provides data in a variety
-of formats in bijective correspondence with each other.  Many of the formats
-present in existing lens libraries use either canonizers or projections.
-The theories developed to handle synchronization tasks for real world
-data (quotient lenses for Category 1, and symmetric lenses for Category 2),
-have a bijective core, surrounded by either canonizers or projections.  We
-believe that our system can be used as a drop-in component for synthesis
-algorithms on these more complex lens structures.
+                                -------------
+
+     - The restriction to bijective lenses is not fully justified
+
+There are still many formats kept in bijective correspondence with each other,
+like those present at https://www.data.gov/ .
+
+There are lens theories developed to handle synchronization tasks for data
+formats not kept in bijective correspondence (quotient lenses to handle Category
+1 non-bijectivity, and symmetric lenses to handle Category 2 non-bijectivity).
+These theories have a bijective core, surrounded by either canonizers (for
+quotient lenses) or projections (for symmetric lenses).  We believe that our
+system can be used as a drop-in component for synthesis algorithms on these more
+complex lens structures.
+
+These justifications can be added to the paper.
 
                                 -------------
 
@@ -140,7 +129,7 @@ example program for mapping the author field of a BibTeX entry:
                . single_author_convert)* 
           . del "}" 
 
-Even the relatively simple lens that permuts the 3 elements needed for
+Even the relatively simple lens that permutes the 3 elements needed for
 single_author_convert is fairly complex.  The complexity becomes even more
 apparent when working with large lenses comprised of many sub-lenses (though
 for brevity we give here the more minimal example above).  Lenses provide
@@ -170,14 +159,14 @@ Review #18A
 
                                 -------------
 
-    - Restriction of focus to bijective "lenses" not clearly justified
+     - Restriction of focus to bijective "lenses" not clearly justified
 
 See general responses.
 
                                 -------------
 
-    - Important parts of algorithm not explained (regarding how examples are
-      used)
+     - Important parts of algorithm not explained (regarding how examples are
+       used)
 
 We omitted the formal description of these orderings for space.  A full
 description of the algorithm is present in algorithm 4 in the appendix (see the
@@ -190,39 +179,60 @@ include whatever information the reviewer believes is most important.
 
                                 -------------
 
-    - Not clear how much work it is to adapt examples to be suitable for
-      bijective lens synthesis, or how useful the results are w.r.t. the
-      original task
+     - Not clear how much work it is to adapt examples to be suitable for
+       bijective lens synthesis, or how useful the results are w.r.t. the
+       original task
 
 See general responses.
 
                                 -------------
 
-    - But the main part of the paper is not self-contained - for example the
-      algorithm description relies on (example-dependent) orderings of
-      sequences and atoms that are not described; this is a key part of the
-      algorithm since it is where the provided examples are actually used.
+     - But the main part of the paper is not self-contained - for example the
+       algorithm description relies on (example-dependent) orderings of
+       sequences and atoms that are not described; this is a key part of the
+       algorithm since it is where the provided examples are actually used.
 
 See above.
 
                                 -------------
 
-    - I also have a concern: since the approach is
-      limited to bijective lenses, but many of the test examples were not
-      bijective, how much work was it to modify the examples
-      and how easy is it to manually hack the resulting bijective
-      lenses to make them work on the real data?  Is there any chance of
-      automating this or generalizing to handle non-bijective lenses
-      (perhaps with this algorithm as a subroutine)?
+     - I also have a concern: since the approach is
+       limited to bijective lenses, but many of the test examples were not
+       bijective, how much work was it to modify the examples
+       and how easy is it to manually hack the resulting bijective
+       lenses to make them work on the real data?  Is there any chance of
+       automating this or generalizing to handle non-bijective lenses
+       (perhaps with this algorithm as a subroutine)?
 
-See above.
+See general responses.
+
+For Category 1 non-bijectivity, instead of changing the formats, we could have
+placed canonizers on the edges of formats with large amounts of whitespace.
+Canonizers can normalize an arbitrarily long sequence of whitespace to a single
+space.  Canonizers also can be used to handle casing issues: normalizing a
+sequence of uppercase and lowercase characters into purely uppercase characters.
+In this manner, whitespace (or casing) information can be normalized, and no
+longer would need to be propagated to the target format. We have recently
+developed a framework to annotate a regular expression with canonizing
+information, allowing for a single term to represent an arbitrary sequence of
+whitespace and a means to normalize it to a single space.  Using this framework,
+we can generate non-bijective lenses using our framework, as long as the
+canonized forms of their source and target types are in bijective
+correspondence.
+
+For Category 2 non-bijectivity, we could compose the generated lens (that has
+projected information at the end) with one that deletes that information at the
+tail of the file, when going left to right, and restores that information when
+going back. This wrapper is not difficult to write, and we think that
+discovering this projection automatically is possible, but we have not yet done
+it.
 
                                 -------------
 
-    - I could see future work building on this to handle the non-bijective
-      case being a separate (and also interesting) paper.  But I would want
-      the algorithm to be described more clearly and more caveats about the
-      examples.
+     - I could see future work building on this to handle the non-bijective
+       case being a separate (and also interesting) paper.  But I would want
+       the algorithm to be described more clearly and more caveats about the
+       examples.
 
 We agree the non-bijective case would also be an interesting paper.  We can
 provide additional caveats about the examples and a better description of the
@@ -230,9 +240,9 @@ algorithm in the final version of this paper.
 
                                 -------------
 
-    - p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
-      applied as the LHS uses the operators defined in fig. 5, rather than
-      syntax
+     - p12 fig 6. I'm not sure how ule "DNF structural rewrite" could be
+       applied as the LHS uses the operators defined in fig. 5, rather than
+       syntax
 
 We merely wrote the rule with operators as a means to make the derivation more
 readable.  One can evaluate those operators, and it will be an arbitrary
@@ -242,15 +252,15 @@ rewritten to.
 
                                 -------------
 
-    - p17.  The desription of RigidSynth is incomplete.  It mentions orders
-      $\leq_{Seq}$ and $\leq_{Atom}$ (and variants that use the examples) that
-      do not appear to be defined.  What happens if there is ambiguity?  for
-      example what if we are trying to infer a lens of type (a | b | c) <->
-      (d|e|f) and we only have one example that says a <-> c?  If these
-      orderings are standard things then please give a reference.  If not,
-      they really need to be described in the paper.  The way examples are
-      used to align parts of regular expressions seems really critical to
-      this approach and is hardly explained.
+     - p17.  The desription of RigidSynth is incomplete.  It mentions orders
+       $\leq_{Seq}$ and $\leq_{Atom}$ (and variants that use the examples) that
+       do not appear to be defined.  What happens if there is ambiguity?  for
+       example what if we are trying to infer a lens of type (a | b | c) <->
+       (d|e|f) and we only have one example that says a <-> c?  If these
+       orderings are standard things then please give a reference.  If not,
+       they really need to be described in the paper.  The way examples are
+       used to align parts of regular expressions seems really critical to
+       this approach and is hardly explained.
 
 First, we think the reviewer intended to write "we have only one example that
 says a <-> d".  We see two cases for this scenario.
@@ -284,17 +294,17 @@ that creates the maps (a <-> d , b <-> e , c <-> f).
 
                                 -------------
 
-    - p18: AllSome (alg. 3): I assume this is the obvious function of type
-      'a option list -> 'a list option (that is None if there is a None in
-      the list or Some [a1..an] if the list is [Some a1...Some an]) but
-      please clarify
+     - p18: AllSome (alg. 3): I assume this is the obvious function of type
+       'a option list -> 'a list option (that is None if there is a None in
+       the list or Some [a1..an] if the list is [Some a1...Some an]) but
+       please clarify
 
 This is correct.
 
                                 -------------
 
-    - p19: "easy to understand" - can you present any evidence for this?
-      Easy for whom?
+     - p19: "easy to understand" - can you present any evidence for this?
+       Easy for whom?
 
 We feel that they are easy to understand because they look similar to how we
 would handwrite the lenses,
@@ -331,21 +341,21 @@ Furthermore, when const(s,s) is present, it is converted into Id(s).
 
                                 -------------
 
-    - p20: "We adapted these examples" please say mor about how many of the
-      examples needed to be adapted (all? a handful?) and how much work it
-      was, and how useful the resulting isomorphic lenses were w.r.t the
-      original data / how much additional work was needed to adapt them.
+     - p20: "We adapted these examples" please say mor about how many of the
+       examples needed to be adapted (all? a handful?) and how much work it
+       was, and how useful the resulting isomorphic lenses were w.r.t the
+       original data / how much additional work was needed to adapt them.
 
 See general response.
 
                                 -------------
 
-    - p20: "We developed a series of optimizations" - clarify that the
-      algorithm already described includes all of these, and what you are
-      going to do is disable them, rather than add more optimizations that
-      weren't discussed earlier.  Might be helpful to signpost what parts of
-      the algorithm are the "basic" algorithm and what parts are optional
-      optimizations.
+     - p20: "We developed a series of optimizations" - clarify that the
+       algorithm already described includes all of these, and what you are
+       going to do is disable them, rather than add more optimizations that
+       weren't discussed earlier.  Might be helpful to signpost what parts of
+       the algorithm are the "basic" algorithm and what parts are optional
+       optimizations.
 
 The algorithm described includes all but compositional synthesis, which uses
 predefined lenses.  To use a predefined lens, l : A <-> B, the implementation
@@ -356,15 +366,9 @@ All user defined data types are then transformed into their representative, and
 the string examples are converted into examples in the language of the
 representative.
 
-
-equivalence classes between user defined data types that have lenses, choose a
-representative, and transform the user defined data types into that
-representative, and convert the strings into elements of that representative
-data type.  Then we proceed with synthesis as described by the formal algorithm.
-
                                 -------------
 
-    - p21: Fig 9 "Number of expansions" --> "Number of solutions"??
+     - p21: Fig 9 "Number of expansions" --> "Number of solutions"??
 
 Number of expansions is the correct phrase.  Figure 9 shows how much random
 search through expansions is required before RigidSynth terminates.  In
@@ -374,9 +378,9 @@ perform.
 
                                 -------------
 
-    - p21.  Also interesting to evaluate would be how time / number of
-      solutions varies (e.g. for the full algorithm) as the number of
-      examples provided varies.  Is the number of examples small?
+     - p21.  Also interesting to evaluate would be how time / number of
+       solutions varies (e.g. for the full algorithm) as the number of
+       examples provided varies.  Is the number of examples small?
 
 The number of examples provided doesn't typically have an impact on runspeed,
 only correctness.  The number of valid solutions does vary with the number of
@@ -386,9 +390,9 @@ small, as is shown in Figure 11.
 
                                 -------------
 
-    - p24: "because our types do not have full canonical forms" - this is
-      the case for the equations presented in the paper, but what about
-      e.g. translating to automata and minimizing?
+     - p24: "because our types do not have full canonical forms" - this is
+       the case for the equations presented in the paper, but what about
+       e.g. translating to automata and minimizing?
 
 This is an interesting idea.  It is unclear how an automataton for a type
 can be used to direct synthesis.  Nevertheless, this may lead to interesting
@@ -401,16 +405,16 @@ Review #18B
 
                                 -------------
 
-    - However, I’m not sure what exact advantage the proposed approach brings
-      to the table. In particular, the user is still required to write exact
-      input and output types of the transformations via regular expressions.
-      How hard is to write lenses after one has such expressions? ...
-      In the reviewer’s opinion, the specification mechanism is not very
-      natural and it’s unclear whether it actually simplifies writing
-      bijective transformations. This aspect is not evaluated and it would be
-      nice to at least see the difference in sizes between the domain/range
-      regexes vs the Boomerang lenses. In general, there is no report of the
-      sizes of benchmarks.
+     - However, I’m not sure what exact advantage the proposed approach brings
+       to the table. In particular, the user is still required to write exact
+       input and output types of the transformations via regular expressions.
+       How hard is to write lenses after one has such expressions? ...
+       In the reviewer’s opinion, the specification mechanism is not very
+       natural and it’s unclear whether it actually simplifies writing
+       bijective transformations. This aspect is not evaluated and it would be
+       nice to at least see the difference in sizes between the domain/range
+       regexes vs the Boomerang lenses. In general, there is no report of the
+       sizes of benchmarks.
 
 See general response.  We also provide data on the sizes below.  However, we
 do not think that purely lines of code is the best metric for our data, as our
@@ -479,11 +483,11 @@ lenses in the final version of the paper.
 
                                 -------------
 
-    - Very limited DSL for transformations. The proposed DSL can only describe
-      transformations that use identities and constant functions over input
-      subparts. For example, one cannot synthesize the function toUpperCase,
-      which I imagine could be useful for the kind of transformations
-      appearing in the motivation.
+     - Very limited DSL for transformations. The proposed DSL can only describe
+       transformations that use identities and constant functions over input
+       subparts. For example, one cannot synthesize the function toUpperCase,
+       which I imagine could be useful for the kind of transformations
+       appearing in the motivation.
 
 We can convert between all uppercase and all lowercase.  Quotient lenses can be
 used to normalize a format (or portions of a format) into fully uppercase or
@@ -491,21 +495,19 @@ fully lowercase data.
 
                                 -------------
 
-    - Moreover, the functions can use each word in the input only once: one
-      cannot
-      express the transformation abc->abcabc. Most bijective functions I can
-      think of (string encoders, compression algorithms, encryption
-      algorithms) require complex transformations over the input that go
-      beyond identities.
+     - Moreover, the functions can use each word in the input only once: one
+       cannot express the transformation abc->abcabc. Most bijective functions I
+       can think of (string encoders, compression algorithms, encryption
+       algorithms) require complex transformations over the input that go
+       beyond identities.
 
-See general response for more detailed information about the bijective
-restriction.
+See general response.
 
                                 -------------
 
-    - On this note, there was a paper this year at PLDI on inverting string encoders
-      (Automatic program inversion using symbolic transducers, by Hu et al.), a
-      topic which seems very related, but for which I couldn’t find a citation.
+     - On this note, there was a paper this year at PLDI on inverting string encoders
+       (Automatic program inversion using symbolic transducers, by Hu et al.), a
+       topic which seems very related, but for which I couldn’t find a citation.
 
 Our DSL contains transformations that cannot be expressed by Extended Symbolic
 Finite Transducers.  The finite lookahead does not allow for transformations
@@ -515,23 +517,23 @@ symbolic finite transducers.
 
                                 -------------
 
-    - Somewhat limited evaluation. The evaluation is performed on two families
-      of benchmarks. The first family is an adaptation of format translation
-      problems from Augeas a tool for configuration editing and the second
-      family is from FlashFill a tool for synthesis of string transformations.
-      All the benchmarks presented are “adaptation” and it’s unclear whether
-      the authors only picked benchmarks for which they knew a priori a
-      program in their DSL existed. Based on the presented data, I cannot
-      assess how often the presented technique could be applied.
+     - Somewhat limited evaluation. The evaluation is performed on two families
+       of benchmarks. The first family is an adaptation of format translation
+       problems from Augeas a tool for configuration editing and the second
+       family is from FlashFill a tool for synthesis of string transformations.
+       All the benchmarks presented are “adaptation” and it’s unclear whether
+       the authors only picked benchmarks for which they knew a priori a
+       program in their DSL existed. Based on the presented data, I cannot
+       assess how often the presented technique could be applied.
 
 See general response.
 
                                 -------------
 
-    - Next, the comparison with the tool FlashFill/FlashExtract is somewhat
-      confusing. I suspect the authors had to provide some domain and range
-      regular expressions for the flash fill benchmarks, but this aspect,
-      which is crucial to help the search, is not mentioned.
+     - Next, the comparison with the tool FlashFill/FlashExtract is somewhat
+       confusing. I suspect the authors had to provide some domain and range
+       regular expressions for the flash fill benchmarks, but this aspect,
+       which is crucial to help the search, is not mentioned.
 
 We do require regular expressions describing the input of FlashFill specs (we
 require them for all), we will make sure that is more explicitly stated in the
@@ -539,8 +541,8 @@ paper.
 
                                 -------------
 
-    - What happens if someone provides Sigma* and Sigma* as domains and ranges to
-      Optician.
+     - What happens if someone provides Sigma* and Sigma* as domains and ranges to
+       Optician.
 
 If someone provides Sigma* and Sigma* as domains and ranges to optician it
 will merely return the identity between those two.  If a user presents Sigma*
@@ -551,10 +553,10 @@ examples, and some others to handle the readjustment.
 
                                 -------------
 
-    - Also, a better explanation of the
-      difference between the DSLs of Lenses and Flash fill is required. For
-      example, FlashFill can reverse a string, but the proposed language
-      can’t.
+     - Also, a better explanation of the
+       difference between the DSLs of Lenses and Flash fill is required. For
+       example, FlashFill can reverse a string, but the proposed language
+       can’t.
 
 Boomerang doesn't currently provide such capabilities.  However, there is no
 technical reason this can't be done by adding in a reverse-and-iterate
@@ -563,8 +565,8 @@ would be needed to incorporate this into the algorithm.
 
                                 -------------
 
-    - What is the difference in size between the regexes for domain/range spec
-      and the full lenses?
+     - What is the difference in size between the regexes for domain/range spec
+       and the full lenses?
 
 On average, the domain and range specs are slightly larger than the lens itself.
 See the above chart.  See the general response for a detailed commentary
@@ -574,8 +576,8 @@ regular expression specifications.
 
                                 -------------
 
-    - What is the difference in size between manually written lenses and
-      synthesized ones?
+     - What is the difference in size between manually written lenses and
+       synthesized ones?
 
 We have not manually written lenses for all our benchmarks.  We find the sizes
 are fairly comparable, but the hand-written lenses are more modular: with common
@@ -583,9 +585,9 @@ portions taken out and given good names.
 
                                 -------------
 
-    - Clarify how the benchmarks were selected and whether any were not
-      selected a priori. Especially the flash* ones. Did you omit those that
-      used character transformations such as upper-case?
+     - Clarify how the benchmarks were selected and whether any were not
+       selected a priori. Especially the flash* ones. Did you omit those that
+       used character transformations such as upper-case?
 
 We used benchmarks from three sources: Augeas benchmarks, FlashFill benchmarks,
 and custom benchmarks.  We used Augeas benchmarks because it is a lens-based
@@ -610,17 +612,17 @@ paper that applied a to_upper conversion.
 
                                 -------------
 
-    - Can the proposed DSL express any transformation that FlashFill can’t and
-      vice-versa?
+     - Can the proposed DSL express any transformation that FlashFill can’t and
+       vice-versa?
 
 See the general response.
 
                                 -------------
 
-    - P19: maximally factors the concats and ors. What does this mean? Regex
-      minimization is a hard problem, what is that one factors exactly? I
-      think it would help to show one example of fully synthesized lens in the
-      paper.
+     - P19: maximally factors the concats and ors. What does this mean? Regex
+       minimization is a hard problem, what is that one factors exactly? I
+       think it would help to show one example of fully synthesized lens in the
+       paper.
 
 Agreed, we will finish our extended example to include a fully synthesized
 title field lens.
@@ -649,8 +651,8 @@ Furthermore, when const(s,s) is present, it is converted into Id(s).
 
                                 -------------
 
-    - Eval the text says Full synthesized 49 benchmarks, but the plot in fig 8
-      only shows 38/39?
+     - Eval the text says Full synthesized 49 benchmarks, but the plot in fig 8
+       only shows 38/39?
 
 Thank you for pointing out this typo, there are only 39 benchmarks.
 
@@ -660,45 +662,38 @@ Review #18C
 
                                 -------------
 
-    - Overall, this paper looks like a solid and useful contribution to the
-      lens literature. However, this reviewer has never used, let alone
-      designed, a lens library. As such, I found the paper very hard to read
-      and assess. I would have liked to see a clear problem statement (such as
-      an example where it's annoying to write the Boomerang code but easy to
-      synthesize the lens using your approach
+     - Overall, this paper looks like a solid and useful contribution to the
+       lens literature. However, this reviewer has never used, let alone
+       designed, a lens library. As such, I found the paper very hard to read
+       and assess. I would have liked to see a clear problem statement (such as
+       an example where it's annoying to write the Boomerang code but easy to
+       synthesize the lens using your approach
 
 We provide an extended example in the general response.  We will make the
 problem statement more clear in the final version.
 
                                 -------------
 
-    - why is there no Boomerang code for your example in Sec. 3?).
+     - why is there no Boomerang code for your example in Sec. 3?).
 
 We can include example code like this to highlight the frustrations a lens
 programmer must encounter while writing their programs.
 
                                 -------------
 
-    - It was also not very clear to me what subset of Boomerang your approach
-      supports. The introduction says it is a "useful subset of Boomerang" -
-      but what does that mean?
+     - It was also not very clear to me what subset of Boomerang your approach
+       supports. The introduction says it is a "useful subset of Boomerang" -
+       but what does that mean?
 
 We support the bijective subset given by the combinators in Section 2.  See the
 general responses for a discussion on the usefulness of these combinators.
 
-The subset our approach supports are the bijective lenses where all regular
-expression equivalences used in the typing derivation can be proven with
-the star-semiring equivalence rules.  We find this useful in that all lenses can
-easily be converted into a bijective lens, and we could not find a lens in
-Boomerang or Augeas that requires a courser notion of equivalence than
-star-semiring equivalence.
-
                                 -------------
 
-    - I was also a bit confused about the preliminaries in Sec. 2. In
-      particular, it is not clear whether all or most of those preliminaries
-      are from related work (but there are no references) or whether they are
-      contributions of this paper.
+     - I was also a bit confused about the preliminaries in Sec. 2. In
+       particular, it is not clear whether all or most of those preliminaries
+       are from related work (but there are no references) or whether they are
+       contributions of this paper.
 
 The preliminaries define a specific subset of Boomerang that we aim to
 synthesize.  Boomerang supports a variety of lenses - asymmetric lenses,
@@ -712,12 +707,12 @@ lenses.
 
                                 -------------
 
-    - p.4, "naively using it in the context of lens synthesis presents several
-      problems"? Which problems? At this point I have no clue what "using it"
-      may even mean. The "big picture" is not clear at all.
+     - p.4, "naively using it in the context of lens synthesis presents several
+       problems"? Which problems? At this point I have no clue what "using it"
+       may even mean. The "big picture" is not clear at all.
 
 The big picture is: we are trying to carve out a core, bijective subset of
-Boomerang, to synthesize.  We want to find a subset that is
+Boomerang to synthesize.  We want to find a subset that is
 sufficiently expressive, but also permits an efficient synthesis algorithm.
 For this subset to be sufficiently expressive, it is important to have a type
 equivalence rule, where a regular expression type can be substituted for an
@@ -728,18 +723,18 @@ pages 8 through 10.
 
                                 -------------
 
-    - p. 3, "We have ommitted these theorems for space..." - maybe you mean
-      "proofs"?
+     - p. 3, "We have ommitted these theorems for space..." - maybe you mean
+       "proofs"?
 
 Correct
 
                                 -------------
 
-    - p. 7, "instead of maintaining server code for each endpoint, we
-      envision..." but surely the changes to an API involve more than just
-      data format changes. For instance, single calls may have to be split
-      into multiple calls. Hence it does not seem to be realistic to maintain
-      the old API using _only_ synthesized lenses.
+     - p. 7, "instead of maintaining server code for each endpoint, we
+       envision..." but surely the changes to an API involve more than just
+       data format changes. For instance, single calls may have to be split
+       into multiple calls. Hence it does not seem to be realistic to maintain
+       the old API using _only_ synthesized lenses.
 
 Yes, there are certainly times where more than lenses need to be added,
 though lenses still solve part of this problem. The specific instance of
