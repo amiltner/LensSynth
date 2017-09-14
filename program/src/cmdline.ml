@@ -36,10 +36,14 @@ type driver_mode =
   | ExpansionsForced
   | CompositionalLensesUsed
   | LensSize
+  | LensAndSpecSize
+  | PossibleLensesAtFinalLevelWithNExamples of int
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
 let mode : driver_mode ref = ref Default
+
+let rep_count = ref 0
 
 let parse_file (f:string) : program =
   Preproc.preprocess_file f
@@ -88,6 +92,10 @@ let args =
     , Arg.Unit (fun _ -> set_opt LensSize)
     , " Set to calculate the size of the generated lens"
     )
+  ; ( "-lens_and_spec_size"
+    , Arg.Unit (fun _ -> set_opt LensAndSpecSize)
+    , " Set to calculate the size of the generated lens and the spec"
+    )
   ; ( "-naive_strategy"
     , Arg.Unit (fun _ -> naive_strategy := true)
     , " Set to use a naive synthesis strategy"
@@ -100,15 +108,21 @@ let args =
     , Arg.Unit (fun _ -> verbose := true)
     , " Print out information about synthesis"
     )
+  ; ( "-no_simplify_generated_lens"
+    , Arg.Unit (fun _ -> simplify_generated_lens := false)
+    , " Don't Simplify Lens generated lens"
+    )
   ; ( "-naive_expansion_search"
     , Arg.Unit (fun _ -> use_naive_expansion_search := true)
     , " No inference of necessary expansions")
   ; ( "-use_only_forced_expansions"
     , Arg.Unit (fun _ -> use_only_forced_expansions := true)
     , " Only infer expansions that are completely forced")
+  ; ( "-possible_lenses_ex"
+      , Arg.Tuple [(Arg.Int (fun i -> set_opt (PossibleLensesAtFinalLevelWithNExamples i)));Arg.Set_int rep_count]
+    , " Synthesize (#) randomly generated examples")
   ; ( "-generate_io_spec"
-    , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateIOSpec)
-                 ;(Arg.Set_int generate_io_count)])
+    , (Arg.Tuple [Arg.Set_int generate_io_count])
     , " Synthesize (#) randomly generated examples"
     )
   ; ( "-generate_extraction_spec"
@@ -432,35 +446,103 @@ let collect_final_io_spec (p:program) : unit =
   in
   collect_final_io_spec_internal !generate_io_count
 
+let rec retrieve_transitive_regexp_vars (rc:RegexContext.t) (r:Regex.t) : Id.t list =
+  begin match r with
+    | Regex.RegExEmpty -> []
+    | Regex.RegExBase _ -> []
+    | Regex.RegExConcat (r1,r2) ->
+      (retrieve_transitive_regexp_vars rc r1)
+      @ (retrieve_transitive_regexp_vars rc r2)
+    | Regex.RegExOr (r1,r2) -> (retrieve_transitive_regexp_vars rc r1) @
+                               (retrieve_transitive_regexp_vars rc r2)
+    | Regex.RegExStar r' -> retrieve_transitive_regexp_vars rc r'
+    | Regex.RegExVariable t ->
+      t::(begin match RegexContext.lookup_for_expansion_exn rc t with
+          | None -> []
+          | Some rex -> retrieve_transitive_regexp_vars rc rex
+        end)
+  end
+
+let number_of_examples_at_satisfying_level (i:int) (p:program) : unit =
+  let cs = List.init
+      ~f:(fun _ -> let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+           let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+           let exs =
+             List.init ~f:(fun _ ->
+                 let leftex = gen_element_of_regex_language rc r1 in
+                 let rightex = lens_putr rc lc l leftex in
+                 (leftex,rightex))
+               i
+           in
+           Option.value_exn (num_possible_choices rc lc r1 r2 exs))
+      !rep_count
+  in
+  print_endline
+    (Float.to_string
+    ((List.fold_left
+        ~f:(+.)
+        ~init:0.0
+        cs) /. (Float.of_int !rep_count)))
+
+
 let lens_size (p:program) : unit =
   let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
   let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
   let rec retrieve_transitive_vars (l:Lens.t) : Id.t list =
     begin match l with
-    | Lens.LensConst(_,_) -> []
-    | Lens.LensConcat(l1,l2) ->
-      (retrieve_transitive_vars l1) @
-      (retrieve_transitive_vars l2)
-    | Lens.LensSwap (l1,l2) ->
-      (retrieve_transitive_vars l1) @
-      (retrieve_transitive_vars l2)
-    | Lens.LensUnion (l1,l2) ->
-      (retrieve_transitive_vars l1) @
-      (retrieve_transitive_vars l2)
-    | Lens.LensCompose (l1,l2) ->
-      (retrieve_transitive_vars l1) @
-      (retrieve_transitive_vars l2)
-    | Lens.LensIterate l' ->
-      retrieve_transitive_vars l'
-    | Lens.LensIdentity _ -> []
-    | Lens.LensInverse l' ->
-      retrieve_transitive_vars l'
-    | Lens.LensVariable v -> [v]
-    | Lens.LensPermute (_,ls) ->
-      List.concat_map
-        ~f:retrieve_transitive_vars
-      ls
-  end
+      | Lens.LensConst(_,_) -> []
+      | Lens.LensConcat(l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensSwap (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensUnion (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensCompose (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensIterate l' ->
+        retrieve_transitive_vars l'
+      | Lens.LensIdentity _ -> []
+      | Lens.LensInverse l' ->
+        retrieve_transitive_vars l'
+      | Lens.LensVariable v -> v::(retrieve_transitive_vars (LensContext.lookup_impl_exn lc v))
+      | Lens.LensPermute (_,ls) ->
+        List.concat_map
+          ~f:retrieve_transitive_vars
+          ls
+    end
+  in
+  let rec retrieve_regexps_from_lens
+      (l:Lens.t)
+    : Regex.t list =
+    begin match l with
+      | Lens.LensConst(_,_) -> []
+      | Lens.LensConcat(l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensSwap (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensUnion (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensCompose (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensIterate l' ->
+        retrieve_regexps_from_lens l'
+      | Lens.LensIdentity v -> [v]
+      | Lens.LensInverse l' ->
+        retrieve_regexps_from_lens l'
+      | Lens.LensVariable v -> retrieve_regexps_from_lens (LensContext.lookup_impl_exn lc v)
+      | Lens.LensPermute (_,ls) ->
+        List.concat_map
+          ~f:retrieve_regexps_from_lens
+          ls
+    end
   in
   let all_vars = retrieve_transitive_vars l in
   let all_lenses =
@@ -472,35 +554,41 @@ let lens_size (p:program) : unit =
   let all_sizes =
     List.map ~f:(fun l -> Lens.size l) all_lenses
   in
-  let mysize = List.fold_left
-    ~f:(+)
-    ~init:0
-    all_sizes
+  let referred_regexps = (retrieve_regexps_from_lens l) in
+  let relevant_regexps =
+    List.dedup
+      (referred_regexps
+       @
+       (List.map
+          ~f:(fun v -> RegexContext.lookup_exn rc v)
+          (List.concat_map
+             ~f:(retrieve_transitive_regexp_vars rc)
+             referred_regexps)))
+  in
+  let regexp_sizes =
+    List.map ~f:(Regex.size) relevant_regexps
+  in
+  let regex_size =
+    List.fold_left
+      ~f:(+)
+      ~init:0
+      regexp_sizes
+  in
+  let mysize =
+    regex_size
+    + 
+    (List.fold_left
+       ~f:(+)
+       ~init:0
+       all_sizes)
   in
 
   print_endline (string_of_int (mysize))
 
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
-  let rec retrieve_transitive_vars (r:Regex.t) : Id.t list =
-    begin match r with
-    | Regex.RegExEmpty -> []
-    | Regex.RegExBase _ -> []
-    | Regex.RegExConcat (r1,r2) ->
-      (retrieve_transitive_vars r1)
-      @ (retrieve_transitive_vars r2)
-    | Regex.RegExOr (r1,r2) -> (retrieve_transitive_vars r1) @
-        (retrieve_transitive_vars r2)
-    | Regex.RegExStar r' -> retrieve_transitive_vars r'
-    | Regex.RegExVariable t ->
-      t::(begin match RegexContext.lookup_for_expansion_exn rc t with
-      | None -> []
-      | Some rex -> retrieve_transitive_vars rex
-      end)
-    end
-  in
-  let all_vars = (retrieve_transitive_vars r1) @
-                     (retrieve_transitive_vars r2) in
+  let all_vars = (retrieve_transitive_regexp_vars rc r1) @
+                     (retrieve_transitive_regexp_vars rc r2) in
   let all_regexps =
     List.dedup(
       r1::r2::(List.map ~f:(fun s ->
@@ -514,6 +602,106 @@ let specification_size (p:program) : unit =
     ~f:(+)
     ~init:0
     all_sizes
+  in
+
+  print_endline (string_of_int (mysize))
+
+let lens_and_spec_size (p:program) : unit =
+  let (rc,lc,r1,r2,exs) = retrieve_last_synthesis_problem_exn p in
+  let l = Option.value_exn (gen_lens rc lc r1 r2 exs) in
+  let rec retrieve_transitive_vars (l:Lens.t) : Id.t list =
+    begin match l with
+      | Lens.LensConst(_,_) -> []
+      | Lens.LensConcat(l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensSwap (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensUnion (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensCompose (l1,l2) ->
+        (retrieve_transitive_vars l1) @
+        (retrieve_transitive_vars l2)
+      | Lens.LensIterate l' ->
+        retrieve_transitive_vars l'
+      | Lens.LensIdentity _ -> []
+      | Lens.LensInverse l' ->
+        retrieve_transitive_vars l'
+      | Lens.LensVariable v -> v::(retrieve_transitive_vars (LensContext.lookup_impl_exn lc v))
+      | Lens.LensPermute (_,ls) ->
+        List.concat_map
+          ~f:retrieve_transitive_vars
+          ls
+    end
+  in
+  let rec retrieve_regexps_from_lens
+      (l:Lens.t)
+    : Regex.t list =
+    begin match l with
+      | Lens.LensConst(_,_) -> []
+      | Lens.LensConcat(l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensSwap (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensUnion (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensCompose (l1,l2) ->
+        (retrieve_regexps_from_lens l1) @
+        (retrieve_regexps_from_lens l2)
+      | Lens.LensIterate l' ->
+        retrieve_regexps_from_lens l'
+      | Lens.LensIdentity v -> [v]
+      | Lens.LensInverse l' ->
+        retrieve_regexps_from_lens l'
+      | Lens.LensVariable v -> retrieve_regexps_from_lens (LensContext.lookup_impl_exn lc v)
+      | Lens.LensPermute (_,ls) ->
+        List.concat_map
+          ~f:retrieve_regexps_from_lens
+          ls
+    end
+  in
+  let all_vars = retrieve_transitive_vars l in
+  let all_lenses =
+    List.dedup(
+      l::(List.map ~f:(fun v ->
+          (LensContext.lookup_impl_exn lc v))
+          all_vars))
+  in
+  let all_sizes =
+    List.map ~f:(fun l -> Lens.size l) all_lenses
+  in
+  let referred_regexps = r1::r2::(retrieve_regexps_from_lens l) in
+  let relevant_regexps =
+    List.dedup
+      (referred_regexps
+       @
+       (List.map
+          ~f:(fun v -> RegexContext.lookup_exn rc v)
+          (List.concat_map
+             ~f:(retrieve_transitive_regexp_vars rc)
+             referred_regexps)))
+  in
+  let regexp_sizes =
+    List.map ~f:(Regex.size) relevant_regexps
+  in
+  let regex_size =
+    List.fold_left
+      ~f:(+)
+      ~init:0
+      regexp_sizes
+  in
+  let mysize =
+    regex_size
+    + 
+    (List.fold_left
+       ~f:(+)
+       ~init:0
+       all_sizes)
   in
 
   print_endline (string_of_int (mysize))
@@ -575,6 +763,10 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> collect_expansions_inferred
           | ExpansionsForced ->
             parse_file f |> expand_regexps_if_necessary |> collect_expansions_forced
+          | LensAndSpecSize ->
+            parse_file f |> expand_regexps_if_necessary |> lens_and_spec_size
+          | PossibleLensesAtFinalLevelWithNExamples i ->
+            parse_file f |> expand_regexps_if_necessary |> (number_of_examples_at_satisfying_level i)
         end
     end
 

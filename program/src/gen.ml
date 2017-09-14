@@ -44,11 +44,12 @@ module DNFSynth =
 struct
   type synthesis_info =
     {
-      l                    : dnf_lens ;
-      specs_visited        : int      ;
-      expansions_performed : int      ;
-      expansions_inferred  : int      ;
-      expansions_forced    : int      ;
+      l                    : dnf_lens                   ;
+      oedr1                : ordered_exampled_dnf_regex ;
+      specs_visited        : int                        ;
+      expansions_performed : int                        ;
+      expansions_inferred  : int                        ;
+      expansions_forced    : int                        ;
     }
 
   let rec gen_atom_zipper (lc:LensContext.t)
@@ -137,6 +138,7 @@ struct
               Some (
                 {
                   l = gen_dnf_lens_zipper_internal lc e_o_r1 e_o_r2;
+                  oedr1 = e_o_r1;
                   specs_visited = count;
                   expansions_performed = (QueueElement.get_expansions_performed qe);
                   expansions_inferred = (QueueElement.get_expansions_inferred qe);
@@ -264,12 +266,53 @@ struct
       Option.map
         ~f:dnf_lens_to_lens
         dnf_lens_option
+
+  let num_possible_choices
+      (rc:RegexContext.t)
+      (lc:LensContext.t)
+      (r1:Regex.t)
+      (r2:Regex.t)
+      (exs:examples)
+    : float option =
+    let rec get_possibible_lenses_oedr
+        (oedr:ordered_exampled_dnf_regex)
+      : float =
+      List.fold_left
+        ~f:(fun acc oecl ->
+            acc *.
+            (Math.factorial (List.length oecl)) *.
+            (get_possible_lenses_oec (fst (List.hd_exn oecl))))
+        ~init:1.0
+        oedr
+    and get_possible_lenses_oec
+        ((oec,_,_):ordered_exampled_clause)
+      : float =
+      List.fold_left
+        ~f:(fun acc oeal ->
+            acc *.
+            (Math.factorial (List.length oeal)) *.
+            (get_possible_lenses_oea (fst (List.hd_exn oeal))))
+        ~init:1.0
+        oec
+    and get_possible_lenses_oea
+        (oea:ordered_exampled_atom)
+      : float =
+      begin match oea with
+      | OEAVar _ -> 1.0
+      | OEAStar dr ->
+        get_possibible_lenses_oedr dr
+      end
+    in
+    Option.map
+      ~f:(fun x -> get_possibible_lenses_oedr x.oedr1)
+      (gen_dnf_lens_and_info_zipper rc lc r1 r2 exs)
 end
 
 let expansions_performed_for_gen = DNFSynth.expansions_performed_for_gen
 let specs_visited_for_gen = DNFSynth.specs_visited_for_gen
 let expansions_inferred_for_gen = DNFSynth.expansions_inferred_for_gen
 let expansions_forced_for_gen = DNFSynth.expansions_forced_for_gen
+let num_possible_choices = DNFSynth.num_possible_choices
 
 let gen_lens
     (rc:RegexContext.t)
@@ -289,7 +332,12 @@ let gen_lens
   in
   if !verbose then
     print_endline "Synthesis End";
-  Option.map
-    ~f:(simplify_lens % (make_lens_safe_in_smaller_context rc_orig rc))
-    lens_option
-  
+  if !simplify_generated_lens then
+    Option.map
+      ~f:(simplify_lens % (make_lens_safe_in_smaller_context rc_orig rc))
+      lens_option
+  else
+    Option.map
+      ~f:((make_lens_safe_in_smaller_context rc_orig rc))
+      lens_option
+

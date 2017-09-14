@@ -936,3 +936,14 @@ struct
       n1
       n2
 end
+
+module Math =
+struct
+  let rec factorial
+      (i:int)
+    : float =
+    if i = 0 then
+      1.0
+    else
+      (Float.of_int i) *. factorial (i-1)
+end

@@ -17,3 +17,5 @@ let use_lens_context : bool ref = ref true
 let generate_io_count : int ref = ref 0
 
 let verbose : bool ref = ref false
+
+let simplify_generated_lens : bool ref = ref true

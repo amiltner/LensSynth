@@ -60,3 +60,7 @@ multiline*/
 <->
 "{\"APT\"{\"hello\"=\"testingh ielloo asdfwer s\"}{\"@elem\"=\"--force-confold\"}{\"#mcomment\"{\"string\"=\"test\"}{\"string\"=\"multiline\"}}{\"#comment\"=\"comment\"}{\"#clear\"{\"name\"=\"mydata:hello\"}{\"name\"=\"tester\"}}{\"@include\"=\"myfolder/my_filE.txt\"}}"}]
 
+typedef APT_L1_CONF = WORD " {\n" ((NONRECURSIVE_CONF | APT_L0_CONF) "\n" )* "}";;
+typedef APT_L1_DICT = "{\""WORD"\""(NONRECURSIVE_DICT | APT_L0_DICT)*"}";;
+
+transformer = [APT_L1_CONF <=> APT_L1_DICT {}]
