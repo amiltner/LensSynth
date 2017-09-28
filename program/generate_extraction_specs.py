@@ -1,7 +1,6 @@
 #!/usr/local/bin/python
 
 from __future__ import print_function
-from easyprocess import EasyProcess
 
 import os
 from os.path import splitext, join
@@ -30,14 +29,14 @@ def find_tests_and_ensure_output_dirs(root):
     return tests
 
 def gather_tsv(rootlength, prog, path, base, num_examples):
-    process_output = EasyProcess([prog] + BASE_FLAGS + [str(num_examples)] + [join(path, base + TEST_EXT)]).call(timeout=TIMEOUT_TIME)
-    if (process_output.stderr != "" or process_output.return_code != 0):
-        raise Exception("failure")
-    return process_output.stdout
+    f = open("outputfile","w")
+    process_output = subprocess.Popen([prog] + BASE_FLAGS + [str(num_examples)] + [join(path, base + TEST_EXT)], stdout=f)
+    while (process_output.poll() == None):
+        time.sleep(5)
+    f.close()
 
 def write_tsv(tsv, path, base):
-    with open(join(BASE_TSV_DIR+path, base + TSV_EXT),'w') as tsvfile:
-        tsvfile.write(tsv)
+    os.rename("outputfile",join(BASE_TSV_DIR+path, base+TSV_EXT))
 
 def print_usage(args):
     print("Usage: {0} <prog> <testdir>".format(args[0]))
