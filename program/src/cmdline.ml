@@ -122,7 +122,8 @@ let args =
       , Arg.Tuple [(Arg.Int (fun i -> set_opt (PossibleLensesAtFinalLevelWithNExamples i)));Arg.Set_int rep_count]
     , " Synthesize (#) randomly generated examples")
   ; ( "-generate_io_spec"
-    , (Arg.Tuple [Arg.Set_int generate_io_count])
+    , (Arg.Tuple [Arg.Unit (fun _ -> set_opt GenerateIOSpec)
+          ;Arg.Set_int generate_io_count])
     , " Synthesize (#) randomly generated examples"
     )
   ; ( "-generate_extraction_spec"
