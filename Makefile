@@ -16,3 +16,5 @@ regenerate-data:
 regenerate-specs:
 	make -C program generate-io-specs
 	make -C program generate-extraction-specs
+	mv program/generated_io_specs comparisons/io_specs
+	mv program/generated_extraction_specs comparisons/extraction_specs
