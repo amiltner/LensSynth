@@ -57,7 +57,9 @@ def gather_data(rootlength, prog, path, base):
         else:
 	        result=datum
     print(result)
-    current_data["Result"]=result
+    if result == "NothingLearned" or result == "TooLargeSpec":
+        result = -1
+    current_data["FlashExtract"]=result
     current_data["ExsTaken"]=num_inputs
     return current_data
 

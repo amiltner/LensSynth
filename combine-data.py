@@ -160,7 +160,7 @@ def main(args):
         prog1_path = args[1]
         prog2_path = args[2]
         prog3_path = args[3]
-        ensure_dir("paper/generated-data/")
+        ensure_dir("papers/BijectiveLensSynth/generated-data/")
         csv1 = retrieve_csv(prog1_path)
         csv2 = retrieve_csv(prog2_path)
         csv3 = retrieve_csv(prog3_path)
@@ -174,7 +174,7 @@ def main(args):
             for key, value in row.items():
                 relevant_data[key] = value
         print(data_keyed_by_test)
-        with open("paper/generated-data/data.csv", "wb") as csvfile:
+        with open("papers/BijectiveLensSynth/generated-data/data.csv", "wb") as csvfile:
             fieldnames = data_keyed_by_test[data_keyed_by_test.keys()[0]].keys()
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 

@@ -58,10 +58,14 @@ def gather_data(rootlength, prog, path, base):
                 result="-1"
         elif (num_inputs > 100000):
             result="-1"
+        elif result == "NothingLearned":
+            result="-1"
         else:
 	        result=datum
+    if result == "NothingLearned":
+        result="-1"
     print(result)
-    current_data["Result"]=result
+    current_data["FlashFill"]=result
     current_data["ExsTaken"]=num_inputs
     counter = counter+1
     print_data([current_data],str(counter));

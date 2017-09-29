@@ -9,6 +9,9 @@ watch :
 clean :
 	latexmk -C
 
+regenerate-figures:
+	./transform-data.py generated-data/data.csv
+
 bcp:
 	cp $(HOME)/common/bib/bcp.bib .
 	-pdflatex main

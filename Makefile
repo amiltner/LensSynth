@@ -10,11 +10,14 @@ clean:
 
 regenerate-data:
 	make -C program generate-data
-	cp program/generated_data/data.csv paper/generated-data/data.csv
-	make -C paper
+	cp program/generated_data/data.csv papers/BijectiveLensSynth/generated-data/data.csv
+	make -C comparisons/prose/ generate-data
+	make -C papers/BijectiveLensSynth
 
 regenerate-specs:
 	make -C program generate-io-specs
 	make -C program generate-extraction-specs
-	mv program/generated_io_specs comparisons/io_specs
-	mv program/generated_extraction_specs comparisons/extraction_specs
+	rm -rf comparisons/io_specs
+	rm -rf comparisons/extraction_specs
+	mv program/generated_io_specs/example-inputs comparisons/io_specs
+	mv program/generated_extraction_specs/example-inputs comparisons/extraction_specs
