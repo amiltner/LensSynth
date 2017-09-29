@@ -68,12 +68,11 @@ def gather_data(rootlength, prog, path, base):
     current_data["FlashFill"]=result
     current_data["ExsTaken"]=num_inputs
     counter = counter+1
-    print_data([current_data],str(counter));
     return current_data
 
-def print_data(data,file_addition):
+def print_data(data):
     ensure_dir("generated_data/")
-    with open("generated_data/data" + file_addition + ".csv", "wb") as csvfile:
+    with open("generated_data/data" + ".csv", "wb") as csvfile:
 	datawriter = csv.DictWriter(csvfile,fieldnames=data[0].keys())
 	datawriter.writeheader()
 	datawriter.writerows(data)
@@ -94,20 +93,32 @@ def transform_data(path, base, run_data):
             current_data[col_name] = str(sum(col)/len(col))
     return current_data
 
+def load_data():
+    try:
+        with open("generated_data/data.csv", "r") as csvfile:
+            datareader = csv.DictReader(csvfile)
+            return [row for row in datareader]
+    except:
+        return []
+
 def main(args):
     if len(args) == 3:
         prog = args[1]
         path = args[2]
         rootlength = len(path)
-        data = []
+        data = load_data()
         if not os.path.exists(prog):
             print_usage(args)
         elif os.path.exists(path) and os.path.isdir(path):
             for path, base in find_tests(path):
-                print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
-                current_data = gather_data(rootlength,prog, path, base)
-                data.append(current_data)
-            print_data(data,"")
+                test_name = join(path, base).replace("_","-")[rootlength:]
+                print(test_name)
+                if (not (any(row["Test"] == test_name for row in data))):
+                    current_data = gather_data(rootlength,prog, path, base)
+                    data.append(current_data)
+                else:
+                    print("data already retrieved")
+                print_data(data)
         else:
             print_usage(args)
     else:
