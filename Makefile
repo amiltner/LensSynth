@@ -10,8 +10,8 @@ clean:
 
 regenerate-data:
 	make -C program generate-data
-	cp program/generated_data/data.csv papers/BijectiveLensSynth/generated-data/data.csv
 	make -C comparisons/prose/ generate-data
+	./combine-data.py program/generated_data/data.csv comparisons/prose/Extraction.Text/generated_data/data.csv comparisons/prose/Transformation.Text/generated_data/data.csv
 	make -C papers/BijectiveLensSynth
 
 regenerate-specs:
