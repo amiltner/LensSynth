@@ -127,9 +127,6 @@ def gather_data(rootlength, prog, path, base):
 def specsize_compare(x,y):
     return int(x["SpecSize"])-int(y["SpecSize"])
 
-def sort_data(data):
-    return sorted(data,cmp=specsize_compare)
-
 def print_data(data):
     ensure_dir("generated_data/")
     with open("generated_data/data.csv", "wb") as csvfile:
@@ -153,21 +150,32 @@ def transform_data(path, base, run_data):
             current_data[col_name] = str(sum(col)/len(col))
     return current_data
 
+def load_data():
+    try:
+        with open("generated_data/data.csv", "r") as csvfile:
+            datareader = csv.DictReader(csvfile)
+            return [row for row in datareader]
+    except:
+        return []
+
 def main(args):
     if len(args) == 3:
         prog = args[1]
         path = args[2]
         rootlength = len(path)
-        data = []
+        data = load_data()
         if not os.path.exists(prog):
             print_usage(args)
         elif os.path.exists(path) and os.path.isdir(path):
             for path, base in find_tests(path):
-                print(join(path, base + TEST_EXT).replace("_","-")[rootlength:])
-                current_data = gather_data(rootlength,prog, path, base)
-                data.append(current_data)
-            data = sort_data(data)
-	    print_data(data)
+                test_name = join(path, base).replace("_","-")[rootlength:]
+                print(test_name)
+                if (not (any(row["Test"] == test_name for row in data))):
+                    current_data = gather_data(rootlength,prog, path, base)
+                    data.append(current_data)
+                else:
+                    print("data already retrieved")
+                print_data(data)
         else:
             path, filename = os.path.split(path)
             base, ext = splitext(filename)
@@ -175,8 +183,7 @@ def main(args):
                 print_usage(args)
             else:
                 data = gather_data(prog, path, base)
-                sort_data(data)
-		print_data([data])
+                print_data([data])
     else:
         print_usage(args)
 
