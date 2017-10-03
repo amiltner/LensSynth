@@ -4,13 +4,14 @@
 graphicx, centernot, tikz, array, tikz-cd, extarrows, cleveref,
 mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 
+
 \begin{document}
 \mainmatter              % start of a contribution
 %
-\title{A Synthesis Ready Langauge for Expressing Quotient Lenses}
+\title{Synthesizing Quotient Lenses}
 %
-\titlerunning{}  % abbreviated title (for running head)
-%                                     also used for the TOC unless
+\titlerunning{Synthesizing Quotient Lenses}  % abbreviated title (for running
+% head)                                     also used for the TOC unless
 %                                     \toctitle is used
 %
 \author{}
@@ -30,7 +31,59 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \end{abstract}
 
 \section{Introduction}
-TODO Introduce BibTex to Endnote example as motivation.
+String quotient lenses enable one to express bidirectional string
+transformations that obey the lens laws up to equivalence relations. However,
+the various approaches that have been proposed to express quotient lenses
+make it difficult for the programmer to express complicated equivalence
+relations over the data.\\
+For example, when converting \textsc{Bib}\TeX files to EndNote files, the data
+may contain arbitrary amounts of whitespace characters in between the actual
+data. In addition, the fields may be ordered in an arbitrary order. For
+instance, we may wish to convert this \textsc{Bib}\TeX entry 
+\\
+\newline
+@Book\{conway,\\ 
+  Author = \{Conway, J. H.\},\\
+  Title = \{Regular Algebra and Finite Machines\},\\
+  Publisher = \{Printed in GB by William Clowes \& Sons Ltd\},\\
+  Year = \{1971\}\\
+\}\\
+\newline
+to this EndNote entry,\\
+\newline
+\%0 Book\\
+\%T Regular Algebra and Finite Machines\\
+\%A Conway, J. H.\\
+\%D 1971\\
+\%I Printed in GB by William Clowes \& Sons Ltd\\
+\%F conway\\
+\newline
+while allowing for this equivalent representation of the \textsc{Bib}\TeX
+\; entry :\\
+\newline
+@Book\{conway,\\ 
+    Publisher = \{Printed in GB by William Clowes \& Sons Ltd\},\\
+    \hspace*{10mm} Title = \{Regular Algebra and Finite Machines\},\\
+    \newline
+    Year = \{1971\},\\
+    \hspace*{20mm} Author = \{Conway, J. H.\},\\
+    \newline
+\}\\
+\newline
+With the existing tools, it is cumbersome to express this, and other complicated
+equivalence relations.\\
+In this paper, we introduce the formalism of Quotient Regular Expressions (or
+QREs) to solve this problem. QREs enable the programmer to express an
+equivalence relation at internal terms of a regular expression, thus giving
+the programmer more control over where quotienting occurs in the data.\\
+For example, the fields of a \textsc{Bib}\TeX\; article like in the example
+above might be expressed by the following QRE:
+$$perm(REF, AUTHOR, TITLE, PUBLISHER, YEAR) \; with \; (WSP^* \mapsto \string
+\n),$$ where $REF, AUTHOR, TITLE, PUBLISHER, YEAR$ are regular expressions
+describing the respective \textsc{Bib}\TeX\; fields of the same name. The QRE of
+an EndNote article is similarly expressed, but with the regular expressions for
+the respective fields substituted with the appropriate EndNote equivalent.\\
+\textcolor{red}{[Mention and give examples of quotient lenses here?]}
 \subsection{Contributions}
 \begin{enumerate}
   \item
@@ -44,20 +97,27 @@ TODO Introduce BibTex to Endnote example as motivation.
   closed under left quotienting, right quotienting, composition and regular
   operators.
   \item
-  We give an algorithm for synthesizing quotient lenses in
-  $\mathcal{Q}$ from their QRE types and a set of examples.
+  Using the normal form for quotient lenses in $\mathcal{Q}$, we reduce the
+  synthesis of quotient lenses in $\mathcal{Q}$ to the synthesis of bijective
+  lenses between regular languages. 
   \item
   We describe an implementation of QREs, the language $\mathcal{Q}$ of quotient
-  lenses, and the algorithm for synthesizing quotient lenses in $\mathcal{Q}$ in
+  lenses, and an algorithm for synthesizing quotient lenses in $\mathcal{Q}$ in
   the Boomerang language.
+  \item
+  We assess the usabibility of the QRE synthesis via a case study in which we
+  selected several data formats used by data.gov and synthesized quotient lenses
+  between them.
 \end{enumerate}
 
 \section{Quotient Regular Expressions}
 The language of Quotient Regular Expressions (QREs) is given by the following
 grammar:
-$$q := id(R) \; | \; R \mapsto s \; | \; squash (R, R', f) \; | \; perm \;
-(R_1, \ldots, R_n) \; with \; R \; | \; q' \circ q \; | \; q \cdot q' \; | \;
-(q \; | \; q') \; | \; q^*,$$
+\begin{align*}
+q := \; &id(R) \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
+perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
+&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
+\end{align*}
 where $R$ ranges over regular expressions, $f$ ranges over functions whose
 domain and codomain are regular languages, and $s$ ranges over character
 strings.\\
@@ -78,6 +138,7 @@ $Canonizer(q)(w)$ as the unique $k$ in $\mathcal{L}(K(q))$ such that $w$ is
 equivalent to $k$ mod $EqRel(q)$, then the equivalence classes of $EqRel(q)$
 are the same as the fibres of $Canonizer(q)$.
 \subsection{Semantics of QREs}
+\textcolor{red}{[Informal Meanings/Example Usages Needed]}\\
 We now give the semantics of QREs as well as inference rules for deriving them:
 \begin{enumerate}
   \item $q = id(R)$
@@ -96,19 +157,19 @@ $Canonizer(id(R))(r) = r$
 \UnaryInfC{$id(R)$ is well formed}
 \end{prooftree}
 \end{center}
-\item $q=R \mapsto s$
+\item $q=q \mapsto s$
 \begin{center}
 \begin{enumerate}
-  \item $W(R \mapsto S) = R$,
-  \item $K(R \mapsto s) = s$, 
+  \item $W(q \mapsto s) = W(q)$,
+  \item $K(q \mapsto s) = s$, 
   \item
-For all $w, w' \in W(R \mapsto S)$, $w \; EqRel(R \mapsto S) \; w'$,
+For all $w, w' \in W(q \mapsto S)$, $w \; EqRel(q \mapsto S) \; w'$,
 \item
-$Canonizer(R \mapsto S)(r) = s$
+$Canonizer(q \mapsto S)(r) = s$
 \end{enumerate}
 \begin{prooftree}
-\AxiomC{$s \in \mathcal{L}(R)$}
-\UnaryInfC{$R \mapsto s$ is well formed}
+\AxiomC{$s \in W(q)$}
+\UnaryInfC{$q \mapsto s$ is well formed}
 \end{prooftree}
 \end{center}
 \item $q=squash(R, R', f)$
@@ -132,24 +193,25 @@ w & \text{otherwise}
 \BinaryInfC{$squash(R, R', f)$ is well formed}
 \end{prooftree}
 \end{center}
-\item $q=perm \; (R_1, \ldots, R_n) \; with \; S$
+\item $q=perm \; (q_1, \ldots, q_n) \; with \; q$
 \begin{center}
 \begin{enumerate}
-  \item $W(perm \; (R_1, \ldots, R_n) \; with \; S) = \bigcup \limits_{\sigma
-  \in S_n} R_{\sigma(1)} \cdot S \cdot \ldots \cdot \cdot S \cdot R_{\sigma(n)}$
-,
-  \item $K(perm \; (R_1, \ldots, R_n) \; with \; S) = R_{1} \cdot S
-  \cdot \ldots \cdot \cdot S \cdot R_{n}$, 
+  \item $W(perm \; (q_1, \ldots, q_n) \; with \; q) = \bigcup \limits_{\sigma
+  \in S_n} W(q_{\sigma(1)}) \cdot W(q) \cdot \ldots \cdot \cdot W(q) \cdot
+  W(q_{\sigma(n)}),$
+  \item $K(perm \; (q_1, \ldots, q_n) \; with \; q) = K(q_1) \cdot K(q_1)
+  \cdot \ldots \cdot \cdot K(q) \cdot K(q_n)$, 
   \item
 For all $w, w' \in W(q)$,  $w \; EqRel(q) \; w'$ if and only if
    $$w = r_{\sigma(1)} \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot
-    r_{\sigma(n)} \text{ and } r' = {r}_{\theta(1)} \cdot s_1 \cdot \ldots
-    \cdot s_{n-1} \cdot {r}_{\theta(n)}$$ for some $\sigma, \theta \in
-    S_n$, where $r_i \in R_i$ and $s_j \in S$.
+    r_{\sigma(n)} \text{ and } r' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots
+    \cdot s'_{n-1} \cdot {r'}_{\theta(n)}$$ for some $\sigma, \theta \in
+    S_n$, with $r_i \; EqRel(q_i) \; r'_i$ and $s_k \; EqRel(q) \; s'_{k}$.
 \item
 $Canonize(q)(r_{\sigma(1)}
-\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)})
-= r_1 \cdot s_1 \cdot \ldots \cdot \cdot s_{n-1}\cdot r_n$
+\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \newline
+= (Canonize(q_1)(r_1)) \cdot (Canonize(q)(s_1)) \cdot \ldots \cdot \cdot \cdot
+(Canonize(q_n)(r_n))$
 \end{enumerate}
 \begin{prooftree}
 \AxiomC{$\forall \sigma \neq \theta, \; R_{\sigma(1)} \cdot S \cdot \ldots \cdot
@@ -158,6 +220,27 @@ R_{\theta(n)} = \varnothing$} \AxiomC{$\forall \sigma, \; R_{\sigma(1)} \cdot^!
 S \cdot^! \ldots \cdot^! S \cdot^! R_{\sigma(n)}$}
 \BinaryInfC{$permute \; (R_1, \ldots, R_n) \; with \;  S$ is well formed}
 \end{prooftree}
+\end{center}
+
+\item $q = normalize(R, R', f)$
+\begin{center}
+\begin{enumerate}
+  \item
+$W(normalize(f)) = R$
+\item
+$K(normalize(f)) = R'$
+\item For all $w, w' \in W(q)$, $w \; EqRel(q) \; w'$ if and only if
+$f(w)=f(w')$
+\item
+$Canonize(normalize(f)) = f$
+\begin{prooftree}
+\AxiomC{$\mathcal{L}(R') \subseteq \mathcal{L}(R)$}
+\AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$}
+\AxiomC{$f$ is surjective}
+\AxiomC{$f = f^2$}
+\QuaternaryInfC{$normalize \; (R,R', f)$ is well formed}
+\end{prooftree}
+\end{enumerate}
 \end{center}
 \item $q=q' \circ q$
 \begin{center}
@@ -254,7 +337,7 @@ If $q$ is a well formed QRE, then
   well-defined function, and
   \item  given any $w \in \mathcal{L}(W(q))$, $Canonizer(q)(w)$ is the unique
   $k$ in $\mathcal{L}(K(q))$ such that $k$ is equivalent to $w$ modulo
-  $EqRel(q)$
+  $EqRel(q)$.
   \end{enumerate}
 \end{claim}
 \section{Using QREs to Express Quotient Lenses}
@@ -281,8 +364,8 @@ W(c')/EqRel(c')$ by
 q.get &= \ell \circ Canonizer(c)\\
 q.put &= \ell^{-1} \circ Canonizer(c')
 \end{align*}
-[Reference needed] Define the class of \textit{bijective lenses} to be the set
-of bijections between regular languages created from Boomerang lens combinators.
+Define the class of \textit{bijective
+lenses} to be the set of bijections between regular languages created from Boomerang lens combinators.
 The syntax for the language of bijective lenses is given by
 $$\ell := id(R) \; | \; const(s, s') \; | \;  swap(\ell,
 \ell) \; | \; \ell \cdot \ell' \; |  \; (\ell \; | \; \ell') \; | \; \ell^* \;
@@ -306,6 +389,8 @@ inductively by
 \cdot t_n) \; | \; (s_i, t_i) \in \llbracket \ell \rrbracket \text{ for } 1
 \leq i \leq n\}
 \end{align*}
+\textcolor{red}{[More explanation needed esp. inference rules for bijective
+lenses]}\\
 Having described the class of bijective lenses, we now define the class
 $\mathcal{Q}$ of quotient lenses, whose language is defined inductively by the
 following grammar:
@@ -317,7 +402,8 @@ Every element in $\mathcal{Q}$ has a type $q :
 c \Longleftrightarrow c'$ where $c$ and $c'$ are QREs. The denotation
 $\llbracket q \rrbracket$ of an element $q : c \Longleftrightarrow c'$ is a
 quotient lens $\llbracket q \rrbracket :
-W(c)/{EqRel(c)} \Longleftrightarrow W(c')/{EqRel(c')}$. We now give the
+W(c)/{EqRel(c)} \Longleftrightarrow W(c')/{EqRel(c')}$.\\
+\textcolor{red}{[Informal Meaning/Usages Needed]}\\We now give the
 semantics of $\mathcal{Q}$, as well as inference rules that may be used to
 derive elements of $\mathcal{Q}$:
 \begin{enumerate}
@@ -434,7 +520,7 @@ $\llbracket q \rrbracket$ is a quotient lens from $R$ to $S$.
 \end{claim}
 
 \subsection{Normal Forms for Quotient Lenses in $\mathcal{Q}$}
-\begin{claim}
+\begin{theorem}\label{normal form}
 If there is a derivation $q : c \Leftrightarrow c'$ in
 $\mathcal{Q}$ then there exists a bijective lens $\ell : K(c) \Leftrightarrow
 K(c')$ such that
@@ -443,7 +529,7 @@ K(c')$ such that
 \llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1} \circ
 Canonizer(c')
 \end{align*}
-\end{claim}
+\end{theorem}
 \begin{proof}
 Assume that $q : c \Leftrightarrow c'$. We proceed by induction over the
 derivation $q : c \Leftrightarrow c'$.
@@ -643,6 +729,32 @@ Canonizer(c_2) (s) & \text{if } s \in \mathcal{L}(W(c_2)),\\
 \end{enumerate}
 \end{proof}
 \section{Synthesizing Quotient Lenses}
+By \cref{normal form}, if there is a derivation $q : c \Leftrightarrow c'$ in
+$\mathcal{Q}$ then there exists a bijective lens $\ell : K(c) \Leftrightarrow
+K(c')$ such that
+\begin{align*}
+\llbracket q \rrbracket.get &= \llbracket \ell \rrbracket\circ Canonizer(c)\\
+\llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1} \circ
+Canonizer(c')
+\end{align*}
+In other words, every quotient lens in $\mathcal{Q}$ is the same as an ordinary
+bijective lens with canonizers at the ends.\\
+Therefore, in order to synthesize a quotient lens $q: c \Leftrightarrow c'$
+where $c, c'$ are QREs, it suffices to synthesize a bijective lens $\ell : K(c)
+\Leftrightarrow K(c')$.\\
+\textcolor{red}{[Citation Needed!]} has already shown that if there
+exists a derivation $\ell : R \Leftrightarrow S$, then there exist
+regular expressions $R', S'$ and a synthesizable \\
+\textcolor{red}{[Explain and make explicit the meaning
+of synthesizable]} \\
+bijective lens $\ell' :
+R' \Leftrightarrow S'$ such that $\mathcal{L}(R) = \mathcal{L}(R')$,
+$\mathcal{L}(S) = \mathcal{L}(S')$ and $\llbracket \ell \rrbracket =
+\llbracket \ell' \rrbracket$. This immediately implies that if there is a
+derivation $q : c \Leftrightarrow c'$ as well as a derivation $\ell : K(c)
+\Leftrightarrow K(c')$, then $q$ is synthesizable.
+\textcolor{red}{[More Needed?]}
+\section{Implementation and Evaluation}
 \section{Related Work}
 
 \section{Conclusion}
