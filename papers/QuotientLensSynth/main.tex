@@ -1,9 +1,37 @@
+\newif\ifdraft\drafttrue  % set true to show comments
+
 \documentclass{svproc}
 
 \usepackage{amsmath, amssymb, verbatim, enumerate, 
 graphicx, centernot, tikz, array, tikz-cd, extarrows, cleveref,
 mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 
+%%%%%
+% Macros
+% Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.7,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 179}
+\definecolor{lightgreen}{RGB}{170, 255, 220}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
+
+\newcommand{\FINISH}[3]{\ifdraft\textcolor{#1}{[#2: #3]}\fi}
+\newcommand{\bcp}[1]{\FINISH{dkred}{B}{#1}}
+\newcommand{\BCP}[1]{\FINISH{dkred}{B}{\bf #1}}
+\newcommand{\afm}[1]{\FINISH{dkgreen}{A}{#1}}
+\newcommand{\dpw}[1]{\FINISH{dkblue}{D}{#1}}
+\newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
+\newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
+\newcommand{\sm}[1]{\FINISH{dkpurple}{SM}{#1}}
+
+% FOR Regular Expression names
+\newcommand{\re}[1]{\ensuremath{\mathit{#1}}}
 
 \begin{document}
 \mainmatter              % start of a contribution
@@ -31,59 +59,107 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \end{abstract}
 
 \section{Introduction}
+\saz{We need a more gentle ramp-up to the example here.}
+
+\begin{itemize}
+\item Lens programming languages [e.g. Boomerang] are designed to make it possible to express
+  bidirectional data transformations using a single program.  
+
+\item Lenses have found practical application in Augeas \saz{and ...}
+
+
+\item The source and target types of a lens express constraints on the format of
+  the data.
+
+\item Lens programming is still quite tricky, because lens composition operators
+  are subject to side conditions (e.g. unique decomposition) that are not so
+  easy to reason about.
+
+\item Our prior work~\cite{popl18} has shown how to synthesize lenses for the
+  \textit{bijective} case.
+
+\item This still isn't as expressive as one would want in practice, because many
+  lens transformations aren't truly bijective.
+
+\item There are at least two challenges with programming quotient lenses: (1)
+  defining the quotient languages (which serve as the types of the lenses)
+  themselves is not so easy, and (2) the lenses themselves are still not easy to
+  write by hand.
+
+\end{itemize}
+
 String quotient lenses enable one to express bidirectional string
 transformations that obey the lens laws up to equivalence relations. However,
 the various approaches that have been proposed to express quotient lenses
 make it difficult for the programmer to express complicated equivalence
-relations over the data.\\
-For example, when converting \textsc{Bib}\TeX files to EndNote files, the data
+relations over the data.
+
+For example, when converting \textsc{Bib}\TeX{} files to EndNote files, the data
 may contain arbitrary amounts of whitespace characters in between the actual
 data. In addition, the fields may be ordered in an arbitrary order. For
-instance, we may wish to convert this \textsc{Bib}\TeX entry 
-\\
-\newline
-@Book\{conway,\\ 
-  Author = \{Conway, J. H.\},\\
-  Title = \{Regular Algebra and Finite Machines\},\\
-  Publisher = \{Printed in GB by William Clowes \& Sons Ltd\},\\
-  Year = \{1971\}\\
-\}\\
-\newline
-to this EndNote entry,\\
-\newline
-\%0 Book\\
-\%T Regular Algebra and Finite Machines\\
-\%A Conway, J. H.\\
-\%D 1971\\
-\%I Printed in GB by William Clowes \& Sons Ltd\\
-\%F conway\\
-\newline
-while allowing for this equivalent representation of the \textsc{Bib}\TeX
-\; entry :\\
-\newline
-@Book\{conway,\\ 
-    Publisher = \{Printed in GB by William Clowes \& Sons Ltd\},\\
-    \hspace*{10mm} Title = \{Regular Algebra and Finite Machines\},\\
-    \newline
-    Year = \{1971\},\\
-    \hspace*{20mm} Author = \{Conway, J. H.\},\\
-    \newline
-\}\\
-\newline
+instance, we may wish to convert this \textsc{Bib}\TeX{} entry: \saz{I propose
+  we display such examples in verbatim:}
+
+\begin{verbatim}
+@Book {conway,
+  Author = {Conway, J. H.},
+  Title = {Regular Algebra and Finite Machines},
+  Publisher = {Printed in GB by William Clowes & Sons Ltd},
+  Year = {1971}
+}
+\end{verbatim}
+
+to this EndNote entry:
+
+
+\begin{verbatim}
+%0 Book
+%T Regular Algebra and Finite Machines
+%A Conway, J. H.
+%D 1971
+%I Printed in GB by William Clowes & Sons Ltd
+%F conway
+\end{verbatim}
+
+\noindent while allowing for this equivalent representation of the \textsc{Bib}\TeX{}
+entry, which rearranges the fields and uses different  whitespace conventions:
+
+\begin{verbatim}
+@Book{conway, 
+    Publisher = {Printed in GB by William Clowes & Sons Ltd},
+        Title = {Regular Algebra and Finite Machines},
+
+         Year = {1971},
+       Author = {Conway, J. H.},
+}
+\end{verbatim}
+
 With the existing tools, it is cumbersome to express this, and other complicated
-equivalence relations.\\
+equivalence relations.  \saz{It might be a good idea to show what this would
+  look like in all its gory detail, just to make the problem very
+  concrete. Perhaps in a figure?}
+
+
 In this paper, we introduce the formalism of Quotient Regular Expressions (or
 QREs) to solve this problem. QREs enable the programmer to express an
 equivalence relation at internal terms of a regular expression, thus giving
 the programmer more control over where quotienting occurs in the data.\\
-For example, the fields of a \textsc{Bib}\TeX\; article like in the example
+For example, the fields of a \textsc{Bib}\TeX{} article like in the example
 above might be expressed by the following QRE:
-$$perm(REF, AUTHOR, TITLE, PUBLISHER, YEAR) \; with \; (WSP^* \mapsto \string
-\n),$$ where $REF, AUTHOR, TITLE, PUBLISHER, YEAR$ are regular expressions
-describing the respective \textsc{Bib}\TeX\; fields of the same name. The QRE of
-an EndNote article is similarly expressed, but with the regular expressions for
-the respective fields substituted with the appropriate EndNote equivalent.\\
-\textcolor{red}{[Mention and give examples of quotient lenses here?]}
+
+$$perm(\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER}, \re{YEAR}) \; with \; (\re{WSP}^* \mapsto \string
+\n),$$ 
+
+\noindent where $\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER},$ and $\re{YEAR}$ are
+regular expressions describing the respective \textsc{Bib}\TeX\; fields of the
+same name. The QRE of an EndNote article is similarly expressed, but with the
+regular expressions for the respective fields substituted with the appropriate
+EndNote equivalent.  \saz{Do we really mean all \re{WSP} maps to newline here?
+  What about the spaces in the title, etc.?  Would this be confusing without
+  more explanation?}
+
+\sm{[Mention and give examples of quotient lenses here?]}
+
 \subsection{Contributions}
 \begin{enumerate}
   \item
@@ -111,6 +187,34 @@ the respective fields substituted with the appropriate EndNote equivalent.\\
 \end{enumerate}
 
 \section{Quotient Regular Expressions}
+
+\saz{Need a transition here:  This section introduces QREs.  They are regular
+  expressions augmented with syntax that lets them simultaneously denote
+  quotient languages.  
+   }
+
+  \paragraph{Syntax of QREs}
+The language of Quotient Regular Expressions (QREs) is given by the following
+grammar:
+\begin{align*}
+q := \; &R \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
+perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
+&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
+\end{align*}
+where $R$ ranges over regular expressions, $f$ ranges over functions whose
+domain and codomain are regular languages, and $s$ ranges over character
+strings.
+
+\saz{  Every regular expression $R$ is a QRE.  The main new syntactic forms are: $q \mapsto s$, which
+}
+
+\saz{Would it be simpler to include atoms and $\epsilon$ in $q$ rather than $R$?  That is, $R$ is
+  just a subset of $QRE$ built from atoms, $\cdot$ $|$ and ${}^*$.  We could
+  reserve $R$ as a metavariable that ranges over $q$'s such that $q$ is a
+  regular expression.}
+
+\saz{Need to introduce $\mathcal{L}(R)$ notation.}
+
 Quotient Regular Expressions (or QREs) enable us to give richer specifications
 for data formats than ordinary regular expressions. More concretely, each
 Quotient Regular Expression (or QRE) $q$ enables us to express
@@ -136,36 +240,31 @@ Quotient Regular Expression (or QRE) $q$ enables us to express
   in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $EqRel(q)$,
   then the equivalence classes of $EqRel(q)$ are the same as the fibres of
   $Canonizer(q)$.
-  \subsection{Syntax of QREs}
-The language of Quotient Regular Expressions (QREs) is given by the following
-grammar:
-\begin{align*}
-q := \; &R \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
-perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
-&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
-\end{align*}
-where $R$ ranges over regular expressions, $f$ ranges over functions whose
-domain and codomain are regular languages, and $s$ ranges over character
-strings.
 \subsection{Semantics of QREs}
 \subsubsection{Preliminaries}
 The transformations that will be performed on the data will require
 that the data is matched against regular expressions. Consequently, we require
 that regular expressions used by QREs be \textit{strongly unambiguous}, a
 condition which ensures that if a string $s$ matches a regular expression $R$,
-then $s$ matches $R$ uniquely.\\
+then $s$ matches $R$ uniquely.
+
+\saz{Solomon: you should use blank lines instead of backslashes to separate
+  paragraphs so latex can format them properly.}
+
 To this end, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
 $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
 \cdot s'$, then $r = r'$ and $s = s'$. We say that a regular expression $R$ is
 \textit{unambiguosly iterable}, written $R^{*!}$ if for all strings $r_1,
 \ldots, r_m$ and $r'_1, \ldots, r'_n \in \mathcal{L}(R)$, if $r_1 \cdot \ldots
-\cdot r_m = r'_1 \cdot \ldots \cdot r'_n$, then $m = n$ and $r_i = r'_i$.\\
+\cdot r_m = r'_1 \cdot \ldots \cdot r'_n$, then $m = n$ and $r_i = r'_i$.
+
 We say that a regular expression $R$ is \textit{strongly unambiguous} if and
 only if (1) $R = \varnothing$, or (2) $R = S_1 \cdot S_2$ with $S_1, S_2$
 strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \; | \; S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
-\varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.\\
+\varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
+
 We now give the semantics of QREs as well as inference rules for deriving them:
 \textcolor{red}{[Informal Meanings/Example Usages Needed]}\\
 \begin{enumerate}
