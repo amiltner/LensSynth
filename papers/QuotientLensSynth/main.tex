@@ -111,17 +111,9 @@ the respective fields substituted with the appropriate EndNote equivalent.\\
 \end{enumerate}
 
 \section{Quotient Regular Expressions}
-The language of Quotient Regular Expressions (QREs) is given by the following
-grammar:
-\begin{align*}
-q := \; &id(R) \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
-perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
-&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
-\end{align*}
-where $R$ ranges over regular expressions, $f$ ranges over functions whose
-domain and codomain are regular languages, and $s$ ranges over character
-strings.\\
-Each QRE $q$ enables us to express
+Quotient Regular Expressions (or QREs) enable us to give richer specifications
+for data formats than ordinary regular expressions. More concretely, each
+Quotient Regular Expression (or QRE) $q$ enables us to express
 \begin{enumerate}
   \item a regular expression $W(q)$ (the ``whole'' of $q$),
   \item an equivalence relation $EqRel(q)$ on $\mathcal{L}(W(q))$,
@@ -132,29 +124,65 @@ Each QRE $q$ enables us to express
   \longrightarrow \mathcal{L}(K(q))$ which given any $w \in \mathcal{L}(W(q))$,
   computes $Canonizer(q)(w)$ as the unique $k$ in $\mathcal{L}(K(q))$ such that
   $k$ is equivalent to $w$ mod $EqRel(q)$
-\end{enumerate}
-Observe that since $Canonizer(q)$ computes
-$Canonizer(q)(w)$ as the unique $k$ in $\mathcal{L}(K(q))$ such that $w$ is
-equivalent to $k$ mod $EqRel(q)$, then the equivalence classes of $EqRel(q)$
-are the same as the fibres of $Canonizer(q)$.
+  \end{enumerate}
+  All data to be transformed must match $W(q)$, the ``whole'' regular
+  expression of $q$. However, before transforming the using a lens, the data
+  will be quotiented out by the equivalence relation $EqRel(q)$ which has $K(q)$
+  as a complete set of representatives. That is, for each string $w \in
+  W(q)$, there is a unique $k \in K(q)$ such that $w \; EqRel(q) \; k$). This
+  unique representative $k$ is chosen using the ``canonizing'' function
+  $Canonizer(q)$.\\
+  Observe that since $Canonizer(q)$ computes $Canonizer(q)(w)$ as the unique $k$
+  in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $EqRel(q)$,
+  then the equivalence classes of $EqRel(q)$ are the same as the fibres of
+  $Canonizer(q)$.
+  \subsection{Syntax of QREs}
+The language of Quotient Regular Expressions (QREs) is given by the following
+grammar:
+\begin{align*}
+q := \; &R \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
+perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
+&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
+\end{align*}
+where $R$ ranges over regular expressions, $f$ ranges over functions whose
+domain and codomain are regular languages, and $s$ ranges over character
+strings.
 \subsection{Semantics of QREs}
-\textcolor{red}{[Informal Meanings/Example Usages Needed]}\\
+\subsubsection{Preliminaries}
+The transformations that will be performed on the data will require
+that the data is matched against regular expressions. Consequently, we require
+that regular expressions used by QREs be \textit{strongly unambiguous}, a
+condition which ensures that if a string $s$ matches a regular expression $R$,
+then $s$ matches $R$ uniquely.\\
+To this end, we say that regular expressions $R$ and $S$ are
+\textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
+$r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
+\cdot s'$, then $r = r'$ and $s = s'$. We say that a regular expression $R$ is
+\textit{unambiguosly iterable}, written $R^{*!}$ if for all strings $r_1,
+\ldots, r_m$ and $r'_1, \ldots, r'_n \in \mathcal{L}(R)$, if $r_1 \cdot \ldots
+\cdot r_m = r'_1 \cdot \ldots \cdot r'_n$, then $m = n$ and $r_i = r'_i$.\\
+We say that a regular expression $R$ is \textit{strongly unambiguous} if and
+only if (1) $R = \varnothing$, or (2) $R = S_1 \cdot S_2$ with $S_1, S_2$
+strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \; | \; S_2$ with
+$S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
+\varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.\\
 We now give the semantics of QREs as well as inference rules for deriving them:
+\textcolor{red}{[Informal Meanings/Example Usages Needed]}\\
 \begin{enumerate}
-  \item $q = id(R)$
+  \item $q = R$
 \begin{center}
 \begin{enumerate}
-  \item $W(id(R)) = R$,
-  \item $K(id(R)) = R$, 
+  \item $W(R) = R$,
+  \item $K(R) = R$, 
   \item
-For all $w, w' \in W(id(R))$, $w \; EqRel(q) \; w'$ if and only if $w =
+For all $w, w' \in W(R)$, $w \; EqRel(q) \; w'$ if and only if $w =
 w'$.
 \item
-$Canonizer(id(R))(r) = r$
+$Canonizer(R)(r) = r$
 \end{enumerate}
 \begin{prooftree}
 \AxiomC{}
-\UnaryInfC{$id(R)$ is well formed}
+\UnaryInfC{$R$ is well formed}
 \end{prooftree}
 \end{center}
 \item $q=q \mapsto s$
@@ -193,7 +221,9 @@ w & \text{otherwise}
 \BinaryInfC{$squash(R, R', f)$ is well formed}
 \end{prooftree}
 \end{center}
-\item $q=perm \; (q_1, \ldots, q_n) \; with \; q$
+\item $q=perm \; (q_1, \ldots, q_n) \; with \; q$. Given regular expressions
+$R_1, \ldots, R_n$ and $S$, let $\prod({R_i}, S) = R_1 \cdot S \cdot \ldots
+\cdot S \cdot R_n$.
 \begin{center}
 \begin{enumerate}
   \item $W(perm \; (q_1, \ldots, q_n) \; with \; q) = \bigcup \limits_{\sigma
@@ -214,11 +244,11 @@ $Canonize(q)(r_{\sigma(1)}
 (Canonize(q_n)(r_n))$
 \end{enumerate}
 \begin{prooftree}
-\AxiomC{$\forall \sigma \neq \theta, \; R_{\sigma(1)} \cdot S \cdot \ldots \cdot
-S \cdot R_{\sigma(n)} \cap R_{\theta(1)} \cdot S \cdot \ldots \cdot S \cdot
-R_{\theta(n)} = \varnothing$} \AxiomC{$\forall \sigma, \; R_{\sigma(1)} \cdot^!
-S \cdot^! \ldots \cdot^! S \cdot^! R_{\sigma(n)}$}
-\BinaryInfC{$permute \; (R_1, \ldots, R_n) \; with \;  S$ is well formed}
+\AxiomC{$\forall \sigma \neq \theta, \; \prod(\{W(q_{\sigma(i)})\}, W(q))\cap
+ \prod(\{W(q_{\theta(i)})\}, W(q)) = \varnothing$}
+\AxiomC{$\forall \sigma, \; K(q_{\sigma(1)}) \cdot^! K(q) \cdot^! \ldots 
+\cdot^! K(q_{\sigma(n)})$}
+\BinaryInfC{$permute \; (q_1, \ldots, q_n) \; with \;  q$ is well formed}
 \end{prooftree}
 \end{center}
 
@@ -367,7 +397,7 @@ q.put &= \ell^{-1} \circ Canonizer(c')
 Define the class of \textit{bijective
 lenses} to be the set of bijections between regular languages created from Boomerang lens combinators.
 The syntax for the language of bijective lenses is given by
-$$\ell := id(R) \; | \; const(s, s') \; | \;  swap(\ell,
+$$\ell := R \; | \; const(s, s') \; | \;  swap(\ell,
 \ell) \; | \; \ell \cdot \ell' \; |  \; (\ell \; | \; \ell') \; | \; \ell^* \;
 | \; \ell \circ \ell',$$ where $R$ ranges over regular expressions and $s$
 ranges over character strings.\\
@@ -375,7 +405,7 @@ The denotation of a bijective lens $\ell$ is a function from
 $\llbracket e \rrbracket$ of a bijective lens $\ell$ is defined
 inductively by
 \begin{align*}
-\llbracket id(R) \rrbracket &= \{(r, r) \; | \; r \in \mathcal{L}(R)\}\\
+\llbracket R \rrbracket &= \{(r, r) \; | \; r \in \mathcal{L}(R)\}\\
 \llbracket swap(\ell, \ell') \rrbracket &= \{(s \cdot t, t' \cdot s') \; | \;
 (s, s') \in \llbracket \ell \rrbracket \text{ and } (t, t') \in \llbracket
 \ell' \rrbracket\}\\
@@ -411,7 +441,7 @@ derive elements of $\mathcal{Q}$:
   if $q = id(\ell)$, then
   \begin{prooftree}
 \AxiomC{$\ell : R \Leftrightarrow S$}
-\UnaryInfC{$id(\ell): id(R) \Leftrightarrow id(S)$}
+\UnaryInfC{$id(\ell): R \Leftrightarrow id(S)$}
 \end{prooftree}
   \begin{align*}
   \llbracket q \rrbracket.get &=  \llbracket \ell \rrbracket, \text{ and }\\
@@ -535,11 +565,11 @@ Assume that $q : c \Leftrightarrow c'$. We proceed by induction over the
 derivation $q : c \Leftrightarrow c'$.
 \begin{enumerate}
   \item
-  $id(\ell): id(R) \Leftrightarrow id(S)$ where $\ell : R \Leftrightarrow
+  $id(\ell): R \Leftrightarrow id(S)$ where $\ell : R \Leftrightarrow
 S$. Then
   \begin{align*}
   \llbracket id(\ell) \rrbracket.get &=  \llbracket \ell \rrbracket = \llbracket \ell \rrbracket \circ
-  id_{\mathcal{L}(R)} = \llbracket \ell \rrbracket \circ Canonizer(id(R)), \text{ and }\\
+  id_{\mathcal{L}(R)} = \llbracket \ell \rrbracket \circ Canonizer(R), \text{ and }\\
   \llbracket id(\ell) \rrbracket.put &= \llbracket \ell \rrbracket^{-1} = \llbracket \ell \rrbracket^{-1} \circ
   id_{\mathcal{L}(S)} = \llbracket \ell \rrbracket^{-1} \circ Canonizer(id(S))
   \end{align*}
