@@ -11,7 +11,7 @@ clean:
 regenerate-data:
 	make -C program generate-data
 	make -C comparisons/prose/ generate-data
-	./combine-data.py program/generated_data/data.csv comparisons/prose/Extraction.Text/generated_data/data.csv comparisons/prose/Transformation.Text/generated_data/data.csv
+	python /combine-data.py program/generated_data/data.csv comparisons/prose/Extraction.Text/generated_data/data.csv comparisons/prose/mation.Text/generated_data/data.csv
 	make -C papers/BijectiveLensSynth regenerate-figures
 
 regenerate-specs:

@@ -26,7 +26,6 @@ debug: all cmdline.cma
 
 clean:
 	$(OCB) -clean
-	rm -rf {generated_data,generated_io_specs}
 
 top: cmdline.cma
 	utop
