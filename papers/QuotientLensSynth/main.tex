@@ -28,10 +28,14 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \newcommand{\dpw}[1]{\FINISH{dkblue}{D}{#1}}
 \newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
 \newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
-\newcommand{\sm}[1]{\FINISH{dkpurple}{SM}{#1}}
+\newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
 
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\squash}[3]{\ensuremath{\mathit{squash}(#1, #2, #3)}}
+\newcommand{\perm}[2]{\ensuremath{\mathit{perm}(#1)\; \mathit{with}\; #2}}
+\newcommand{\normalize}[3]{\ensuremath{\mathit{normalize}(#1, #2, #3)}}
+\newcommand{\sep}{\ensuremath{\; | \;}}
 
 \begin{document}
 \mainmatter              % start of a contribution
@@ -147,8 +151,7 @@ the programmer more control over where quotienting occurs in the data.\\
 For example, the fields of a \textsc{Bib}\TeX{} article like in the example
 above might be expressed by the following QRE:
 
-$$perm(\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER}, \re{YEAR}) \; with \; (\re{WSP}^* \mapsto \string
-\n),$$ 
+$$\perm{\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER}, \re{YEAR}}{(\re{WSP}^* \mapsto \string \n)},$$ 
 
 \noindent where $\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER},$ and $\re{YEAR}$ are
 regular expressions describing the respective \textsc{Bib}\TeX\; fields of the
@@ -158,7 +161,7 @@ EndNote equivalent.  \saz{Do we really mean all \re{WSP} maps to newline here?
   What about the spaces in the title, etc.?  Would this be confusing without
   more explanation?}
 
-\sm{[Mention and give examples of quotient lenses here?]}
+\sam{[Mention and give examples of quotient lenses here?]}
 
 \subsection{Contributions}
 \begin{enumerate}
@@ -197,9 +200,9 @@ EndNote equivalent.  \saz{Do we really mean all \re{WSP} maps to newline here?
 The language of Quotient Regular Expressions (QREs) is given by the following
 grammar:
 \begin{align*}
-q := \; &R \; | \; q \mapsto s \; | \; squash (R, R', f) \; | \;
-perm \; (q_1, \ldots, q_n) \; with \; q \; | \; normalize(R, R', f)\\
-&q' \circ q \; | \; q \cdot q' \; | \; (q \; | \; q') \; | \; q^*,
+q := \; &R \sep q \mapsto s \sep \squash{R}{R'}{f} \sep
+\perm{(q_1, \ldots, q_n)}{q} \;  | \; \normalize{R}{R'}{f}\\
+&q' \circ q \sep q \cdot q' \sep (q \sep q') \sep q^*,
 \end{align*}
 where $R$ ranges over regular expressions, $f$ ranges over functions whose
 domain and codomain are regular languages, and $s$ ranges over character
@@ -261,12 +264,42 @@ $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
 
 We say that a regular expression $R$ is \textit{strongly unambiguous} if and
 only if (1) $R = \varnothing$, or (2) $R = S_1 \cdot S_2$ with $S_1, S_2$
-strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \; | \; S_2$ with
+strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \sep S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
 We now give the semantics of QREs as well as inference rules for deriving them:
-\textcolor{red}{[Informal Meanings/Example Usages Needed]}\\
+\textcolor{red}{[Informal Meanings/Example Usages Needed]}
+
+\begin{figure}[t]
+  \centering
+  \[
+    \begin{array}{r@{\quad}c@{\quad}cc}
+   
+      q & W(q) & K(q) \\ \hline
+      R & R & R \\
+      q \mapsto s & W(q) & s \\
+      \squash{R}{R'}{f} & R \sep R' & R' \\
+      \normalize{R}{R'}{f} & R & R' \\
+      q_1 \circ  q_2 & W(q_2) & K(q_1) \\
+      q_1 \cdot q_2 & W(q_1) \cdot W(q_2) & K(q_1) \cdot K(q_2) \\
+      q_1 \sep q_2 & W(q_1) \sep W(q_2) & K(q_1) \sep K(q_2) \\
+      q_1^* & W(q_1)^* & K(q_1)^* \\
+    \end{array}
+  \]
+\[
+\begin{array}{r@{\quad}l}
+W( \perm{(q_1, \ldots, q_n)}{q} ) = &
+\bigcup \limits_{\sigma \in S_n} W(q_{\sigma(1)}) \cdot W(q) \cdot \ldots \cdot \cdot W(q) \cdot W(q_{\sigma(n)})
+\\
+K( \perm{(q_1, \ldots, q_n)}{q} ) = &
+ K(q_1) \cdot K(q_1) \cdot \ldots \cdot \cdot K(q) \cdot K(q_n) 
+\end{array}
+\]
+  \caption{Whole and Kernel Regular Expressions.}
+  \label{fig:wk}
+\end{figure}
+
 \begin{enumerate}
   \item $q = R$
 \begin{center}
@@ -302,7 +335,7 @@ $Canonizer(q \mapsto S)(r) = s$
 \item $q=squash(R, R', f)$
 \begin{center}
 \begin{enumerate}
-  \item $W(squash(R, R', f)) = R \; | \; R'$,
+  \item $W(squash(R, R', f)) = R \sep R'$,
   \item $K(squash(R, R', f)) = R'$, 
   \item
 For all $w, w' \in W(squash(R, R', f))$, $w \; EqRel(q) \; w'$ if and only
@@ -414,17 +447,17 @@ $
 \QuaternaryInfC{$q \cdot q$ is well formed}
 \end{prooftree}
 \end{center}
-\item $q=q \; | \;  q'$
+\item $q=q \sep  q'$
 \begin{center}
 \begin{enumerate}
-  \item $W(q \cdot q') = W(q) \; | \; W(q')$,
-  \item $K(q \cdot q') = K(q) \; | \; K(q')$, 
+  \item $W(q \cdot q') = W(q) \sep W(q')$,
+  \item $K(q \cdot q') = K(q) \sep K(q')$, 
   \item
-For all $w, w' \in W(q \; | \; q')$, $w \; EqRel(q' \; | \; q) \; w'$ if and
+For all $w, w' \in W(q \sep q')$, $w \; EqRel(q' \sep q) \; w'$ if and
 only if 
 $$w \; EqRel(q) \; w' \text{ or } \; w \; EqRel(q') \; w'$$
 \item
-$Canonizer(q \; | \; q') = Canonizer(q) \; | \; Canonizer(q')
+$Canonizer(q \sep q') = Canonizer(q) \sep Canonizer(q')
 $
 \end{enumerate}
 \begin{prooftree}
@@ -496,26 +529,26 @@ q.put &= \ell^{-1} \circ Canonizer(c')
 Define the class of \textit{bijective
 lenses} to be the set of bijections between regular languages created from Boomerang lens combinators.
 The syntax for the language of bijective lenses is given by
-$$\ell := R \; | \; const(s, s') \; | \;  swap(\ell,
-\ell) \; | \; \ell \cdot \ell' \; |  \; (\ell \; | \; \ell') \; | \; \ell^* \;
+$$\ell := R \sep const(s, s') \sep  swap(\ell,
+\ell) \sep \ell \cdot \ell' \; |  \; (\ell \sep \ell') \sep \ell^* \;
 | \; \ell \circ \ell',$$ where $R$ ranges over regular expressions and $s$
 ranges over character strings.\\
 The denotation of a bijective lens $\ell$ is a function from 
 $\llbracket e \rrbracket$ of a bijective lens $\ell$ is defined
 inductively by
 \begin{align*}
-\llbracket R \rrbracket &= \{(r, r) \; | \; r \in \mathcal{L}(R)\}\\
-\llbracket swap(\ell, \ell') \rrbracket &= \{(s \cdot t, t' \cdot s') \; | \;
+\llbracket R \rrbracket &= \{(r, r) \sep r \in \mathcal{L}(R)\}\\
+\llbracket swap(\ell, \ell') \rrbracket &= \{(s \cdot t, t' \cdot s') \sep
 (s, s') \in \llbracket \ell \rrbracket \text{ and } (t, t') \in \llbracket
 \ell' \rrbracket\}\\
-\llbracket \ell \cdot \ell' \rrbracket &= \{(s \cdot t, s' \cdot t) \; | \;
+\llbracket \ell \cdot \ell' \rrbracket &= \{(s \cdot t, s' \cdot t) \sep
 (s, s') \in \llbracket \ell \rrbracket \text{ and } (t, t') \in \llbracket
 \ell' \rrbracket\}\\
-\llbracket \ell \; | \; \ell' \rrbracket &= \{(s \cdot t) \; | \;
+\llbracket \ell \sep \ell' \rrbracket &= \{(s \cdot t) \sep
 (s, t) \in \llbracket \ell \rrbracket \text{ or } (s, t) \in \llbracket
 \ell' \rrbracket\}\\
 \llbracket \ell^* \rrbracket &= \{(s_1 \cdot \ldots \cdot s_n, t_1 \cdot \ldots
-\cdot t_n) \; | \; (s_i, t_i) \in \llbracket \ell \rrbracket \text{ for } 1
+\cdot t_n) \sep (s_i, t_i) \in \llbracket \ell \rrbracket \text{ for } 1
 \leq i \leq n\}
 \end{align*}
 \textcolor{red}{[More explanation needed esp. inference rules for bijective
@@ -523,8 +556,8 @@ lenses]}\\
 Having described the class of bijective lenses, we now define the class
 $\mathcal{Q}$ of quotient lenses, whose language is defined inductively by the
 following grammar:
-$$ q := id(\ell) \; | \; lquot(q, \ell) \; | \; rquot(\ell, q) \; | \; q
-\cdot q_2 \; | \; (q \; | \; q') \; | \; q^* \; | \; q \circ q',$$
+$$ q := id(\ell) \sep lquot(q, \ell) \sep rquot(\ell, q) \sep q
+\cdot q_2 \sep (q \sep q') \sep q^* \sep q \circ q',$$
 where $\ell$ ranges over bijective lenses 
 \subsection{Semantics of $\mathcal{Q}$}
 Every element in $\mathcal{Q}$ has a type $q :
@@ -620,22 +653,22 @@ derive elements of $\mathcal{Q}$:
   \end{align*}
 
   \item
-  $q = q_1 \; | \; q_2$, then
+  $q = q_1 \sep q_2$, then
       \begin{prooftree}
 \AxiomC{$q_1 : c_1 \Leftrightarrow d_1 $}
 \AxiomC{$q_2 : c_2 \Leftrightarrow d_2$}
 \AxiomC{$\mathcal{L}(W(c_1)) \cap \mathcal{L}(W(c_2)) = \varnothing$}
 \AxiomC{$\mathcal{L}(W(d_1)) \cap \mathcal{L}(W(d_2)) = \varnothing$}
-\QuaternaryInfC{$q_1 \; | \; q_2: (c_1 \; | \; c_2)
-\Leftrightarrow (d_1 \; | \; d_2)$}
+\QuaternaryInfC{$q_1 \sep q_2: (c_1 \sep c_2)
+\Leftrightarrow (d_1 \sep d_2)$}
 \end{prooftree}
   $$
-  \llbracket q_1 \; | \; q_2 \rrbracket.get(s) = 
+  \llbracket q_1 \sep q_2 \rrbracket.get(s) = 
   \begin{cases}
   \llbracket q_1 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_1))\\
   \llbracket q_2 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_2))\\
   \end{cases}$$
-  $$\llbracket q_1 \; | \; q_2 \rrbracket.put(s) = 
+  $$\llbracket q_1 \sep q_2 \rrbracket.put(s) = 
   \begin{cases}
   \llbracket q_1 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_1))\\
   \llbracket q_2 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_2))\\
@@ -810,17 +843,17 @@ $$
   \llbracket q \rrbracket.put = \llbracket \ell_1 \cdot  \ell_2 \rrbracket^{-1}
   \circ Canonizer(d_1 \cdot d_2) $$
   \item
-  $q = q_1 \; | \; q_2$ where $q_1 : c_1 \Leftrightarrow d_1 $, $q_2 : c_2
+  $q = q_1 \sep q_2$ where $q_1 : c_1 \Leftrightarrow d_1 $, $q_2 : c_2
   \Leftrightarrow d_2$, $\mathcal{L}(W(c_1)) \cap \mathcal{L}(W(c_2)) =
   \varnothing$ and $\mathcal{L}(W(d_1)) \cap \mathcal{L}(W(d_2)) = \varnothing$.
   Then
   $$
-  \llbracket q_1 \; | \; q_2 \rrbracket.get(s) = 
+  \llbracket q_1 \sep q_2 \rrbracket.get(s) = 
   \begin{cases}
   \llbracket q_1 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_1))\\
   \llbracket q_2 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_2))\\
   \end{cases}$$
-  $$\llbracket q_1 \; | \; q_2 \rrbracket.put(s) = 
+  $$\llbracket q_1 \sep q_2 \rrbracket.put(s) = 
   \begin{cases}
   \llbracket q_1 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_1))\\
   \llbracket q_2 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_2))\\
@@ -843,17 +876,17 @@ Canonizer(d_2)
 \end{align*}
 Consequently,
 $$
-  \llbracket q_1 \; | \; q_2 \rrbracket.get(s) = 
+  \llbracket q_1 \sep q_2 \rrbracket.get(s) = 
   \begin{cases}
   \llbracket \ell_1 \rrbracket \circ
 Canonizer(c_1) (s) & \text{if } s \in \mathcal{L}(W(c_1))\\
   \llbracket \ell_2 \rrbracket \circ
 Canonizer(c_2) (s) & \text{if } s \in \mathcal{L}(W(c_2)),\\
   \end{cases}$$
-  so $\llbracket q_1 \; | \; q_2 \rrbracket.get = \llbracket \ell_1 \; | \;
-  \ell_2 \rrbracket \circ Canonizer(c_1 \; | \; c_2)$. A similar argument shows
-  that $\llbracket q_1 \; | \; q_2 \rrbracket.put = \llbracket \ell_1 \; | \;
-  \ell_2 \rrbracket^{-1} \circ Canonizer(d_1 \; | \; d_2)$.\\
+  so $\llbracket q_1 \sep q_2 \rrbracket.get = \llbracket \ell_1 \sep
+  \ell_2 \rrbracket \circ Canonizer(c_1 \sep c_2)$. A similar argument shows
+  that $\llbracket q_1 \sep q_2 \rrbracket.put = \llbracket \ell_1 \sep
+  \ell_2 \rrbracket^{-1} \circ Canonizer(d_1 \sep d_2)$.\\
   This completes the proof.
 \end{enumerate}
 \end{proof}
