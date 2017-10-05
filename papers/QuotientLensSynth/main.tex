@@ -64,26 +64,21 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \end{abstract}
 
 \section{Introduction}
-Lense programming languages such as Boomerang enable a programmer to express a
-transformation that maps some input data to some output data, as well as a
-transformation that maps the output data back into the input data in a single
-program. For instance, lenses enable a programmer to write a program which
-enables a doctor to acquire a summary of a patient's data, and also allows the
-doctor to reflect updates made to the patient's record back into the main
-database.
 
-Lenses therefore enable the  programmer to kill two birds in one
-stone by allowing the programmer to express two different data transformations
-in one program. Also, when lenses are appropriately constrained, they offer
-guarantees about how the two transformations interact with each other. Lenses
-have therefore been used effectively as a solution to the \textit{view update
-problem}, a classical problem in the database community in which the
-programmer wishes to write a program which provides a \textit{view} of data
-derived from a \textit{source} to a client, as well as a program which enables
-the client to reflect changes made in the view back into the source without
-corrupting the source.
+{\em Lens programming languages} such as
+Boomerang~\cite{Boomerang}\bcp{and others!} enable programmers to kill two
+birds in one stone by expressing both directions of a bidirectional
+transformation with a single program.  
 
-However, the constraints that are imposed on lenses are often too strict.
+\bcp{
+  \begin{itemize}
+  \item Small example of a boomerang program (maybe in our syntax)
+  \item Discussion of lens laws.
+  \end{itemize}
+}
+
+However, the constraints that are imposed by the lens laws are sometimes too
+strict. 
 For instance, the programmer may wish to ignore updates to the data that only
 change the order of fields, or add whitespace characters that in reality are not
 part of the data. Foster et al therefore proposed \textit{quotient lenses} as a
@@ -106,7 +101,7 @@ EndNote format. The programmer wishes to ``quotient'' away unnecessary
 whitespace characters in between the various fields in each record, while also
 ignoring the order in which these fields occur in the recore. For instance, the
 quotient lens which the programmer wishes to derive should convert this
-\textsc{Bib}\TeX{} record:
+\textsc{Bib}\TeX{} record
 
 \begin{verbatim}
 @Book {conway,
@@ -117,7 +112,7 @@ quotient lens which the programmer wishes to derive should convert this
 }
 \end{verbatim}
 
-to this EndNote record
+\noindent to this EndNote record
 
 \begin{verbatim}
 %0 Book
@@ -128,18 +123,23 @@ to this EndNote record
 %F conway
 \end{verbatim}
 
-\noindent while allowing for this equivalent representation of the \textsc{Bib}\TeX{}
+\noindent and vice versa.
+
+\bcp{Moreover...}
+allowing for this equivalent representation of the \textsc{Bib}\TeX{}
 entry, which rearranges the fields and uses different whitespace conventions:
 
 \begin{verbatim}
 @Book{conway, 
-    Publisher = {Printed in GB by William Clowes & Sons Ltd},
+    Publisher = {Printed in GB by 
+                 William Clowes & Sons Ltd},
         Title = {Regular Algebra and Finite Machines},
-
          Year = {1971},
        Author = {Conway, J. H.},
 }
 \end{verbatim}
+\bcp{Can we write (regular and QRE) lenses that handle this version of the
+  example?  Write this in Boomerang and see how it looks!!} 
 
 While Boomerang enables the programmer to write a lens which exhibits this
 behaviour, the syntax tree for the program is large and complicated.  
@@ -155,51 +155,44 @@ relations with less effort. Also, since QREs are defined at the level of
 syntax on regular expressions, QREs give the programmer more control over where
 the quotienting occurs.
 
-The second challenge that we address in this paper is the synthesis of
-\textit{bijective} quotient lenses. These are quotient lenses which match the
+\bcp{Give a little example (perhaps for Bibtex and/or EndNote?)}
+
+The second challenge that we address in this paper is the {\em synthesis} of
+(bijective) quotient lenses. These are quotient lenses which match the
 equivalance classes of the source data to the equivalence classes of the view
 data bijectively as in the \textsc{Bib}\TeX{} to EndNote example above. 
 Building on our prior work~\cite{popl18} where we showed how to synthesize
 (ordinary?) bijective lenses, we show how to synthesize bijective quotient
 lenses given a synthesis task described by a pair of QREs and a set of
-examples. To our knowledge this is the first time that this has been done.
+examples. 
 
-Our plan for this paper is as follows:\bcp{This should not just explain the
-  plan, but rather state the contributions {\em as contributions},
-  not only summarizing what they are but suggesting why they are novel,
-  challenging, and important.}
+Our main contributions are:
 \begin{enumerate}
-  \item
-  We introduce the language of Quotient Regular Expressions (QREs) which enables
-  us to express a set of equivalence relations on regular languages using a
-  compact, easy-to-use syntax.
-  \item
-  We describe a class $\mathcal{Q}$ of quotient lenses whose types are given by
-  QREs. We derive a normal form for quotient lenses in $\mathcal{Q}$, and
-  demonstrate that elements of $\mathcal{Q}$ that are in this normal form are
-  closed under left quotienting, right quotienting, composition and regular
-  operators.
-  \item
-  Using the normal form for quotient lenses in $\mathcal{Q}$, we reduce the
-  synthesis of quotient lenses in $\mathcal{Q}$ to the synthesis of bijective
-  lenses between regular languages. 
-  \item
-  We describe an implementation of QREs, the language $\mathcal{Q}$ of quotient
-  lenses, and an algorithm for synthesizing quotient lenses in $\mathcal{Q}$ in
-  the Boomerang language.
-  \item
-  We assess the usabibility of the QRE synthesis via a case study in which we
-  selected several data formats used by data.gov and synthesized quotient lenses
-  between them.
+\item We introduce a novel language of {\em Quotient Regular Expressions}
+(QREs) that provide compact, convenient notation for a broad class of
+equivalence relations on regular languages (Section~\ref{QRE}).
+\item We define a language of {\em QRE lenses}, a class of quotient lenses
+whose types are given by QREs.  Our main technical contribution is a normal
+form for QRE lenses and a proof that QRE lenses in normal form are closed
+under left quotienting, right quotienting, composition, and regular
+operators (Section~\ref{QRE-lenses}).
+\item Using this normal form, we reduce the problem of {\em synthesizing}
+QRE lenses from types and examples to the previously studied problem of
+synthesizing bijective lenses between regular languages
+(Section~\ref{synth}).
+\item We extend the Boomerang {\em implementation} with QREs, QRE lens operators,
+and QRE lens synthesis and demonstrate its applicability by using it to
+synthesize QRE lenses between several real-world data formats from the
+{\tt data.go} database (Section~\ref{impl}).
 \end{enumerate}
+Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
 \section{Quotient Regular Expressions}
+\label{QRE}
+
 This section introduces Quotient Regular Expressions or QREs. QREs are regular
 expressions augmented with syntax that lets them simultaneously express an
 equivalence relation on the language described by the regular expression.
-
-\sam{More explanation here?}\bcp{Probably not needed---we're going straight
-  on to the detailed explanation anyway.}
 
   \subsection{Syntax of QREs}
 The language of Quotient Regular Expressions (QREs) is given by the following
@@ -229,7 +222,11 @@ Each QRE $q$ enables us to express
   in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $EqRel(q)$,
   then the equivalence classes of $EqRel(q)$ are the same as the fibres of
   $Canonizer(q)$.
-  \subsection{Meaning and Example Usages for QREs}
+
+  \subsection{Examples}
+
+\bcp{Give some counterexamples too!  And can we take away the enumerate?}
+
   \begin{enumerate}
     \item 
     Every regular expression is a QRE. When a regular expression $R$ is used as
@@ -240,7 +237,7 @@ Each QRE $q$ enables us to express
     all members of $R$ are considered equivalent to each other, with $s \in
     \mathcal{L}(R)$ as the choice of representative. This construct is useful
     when the programmer simply wishes to ignore unnecessary characters such as
-    excess whitespace e.g. \bcp{Suggest using $\backlash${\tt mathtt} for 
+    excess whitespace e.g. \bcp{Suggest using $\backslash${\tt mathtt} for 
       concrete program identifiers and ascii characters in examples.}
     $$FIRST\_NAME \cdot (WHITESPACE^* \mapsto `` \quad ") \cdot LAST\_NAME$$
     \item
@@ -344,13 +341,16 @@ canonizing function $Canonizer(q)$ are given in Figures ~\ref{fig:wk},
 \[
 \begin{array}{r@{\quad}l}
 W( \perm{(q_1, \ldots, q_n)}{q} ) = &
-\bigcup \limits_{\sigma \in S_n} W(q_{\sigma(1)}) \cdot W(q) \cdot \ldots \cdot \cdot W(q) \cdot W(q_{\sigma(n)})
+\bigcup \limits_{\sigma \in S_n} W(q_{\sigma(1)}) \cdot W(q) \cdot \ldots \cdot W(q) \cdot W(q_{\sigma(n)})
 \\
 K( \perm{(q_1, \ldots, q_n)}{q} ) = &
- K(q_1) \cdot K(q_1) \cdot \ldots \cdot \cdot K(q) \cdot K(q_n) 
+ K(q_1) \cdot K(q) \cdot \ldots \cdot K(q) \cdot K(q_n) 
 \end{array}
 \]
-  \caption{Whole and Kernel Regular Expressions\bcp{left-justify columns}}
+  \caption{Whole and Kernel Regular Expressions\bcp{left-justify columns,
+      and try putting the last two clauses into the same format as the
+      others (using $\mathit{qq} = ...$ and maybe reducing spacing around
+      cdots, etc.)}}
   \label{fig:wk}
 \end{figure}
 
@@ -385,7 +385,8 @@ K( \perm{(q_1, \ldots, q_n)}{q} ) = &
     \text{ and } w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
     \cdot {r'}_{\theta(n)}$ for some $\sigma, \theta \in S_n$, with $r_i \;
     \equiv_{q_i} \; r'_i$ and $s_k \; \equiv_{q} \; s'_{k}$.
-  \caption{QRE Equivalence Relations\bcp{too wide}}
+  \caption{QRE Equivalence Relations\bcp{too wide -- remove LH column and
+      try to get the last clause into the same table}}
   \label{fig:relations}
 \end{figure}
 \begin{figure}[t]
@@ -505,7 +506,10 @@ If $q$ is a well formed QRE, then
   $EqRel(q)$.
   \end{enumerate}
 \end{theorem}
-\section{Using QREs to Express Quotient Lenses}
+
+\section{QRE Lenses}
+\label{QRE-lenses} 
+
 Given regular expressions $R, S$ and equivalence relations $\sim_R, \sim_S$ are
 defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$ respectively, a
 \textit{quotient lens} $q :
@@ -570,7 +574,7 @@ quotient lens $\llbracket q \rrbracket :
 W(c)/{EqRel(c)} \Longleftrightarrow W(c')/{EqRel(c')}$.\\
 \textcolor{red}{[Informal Meaning/Usages Needed]}\\We now give the
 semantics of $\mathcal{Q}$, as well as inference rules that may be used to
-derive elements of $\mathcal{Q}$:\bcp{I think the numbering and the ``if $q
+derive elements of $\mathcal{Q}$:\bcp{I think the numbering and the ``if $q$
   = ..." stuff is not needed.  And maybe we can save space by typesetting the
   get/put parts on the same line as the typing rule, at least in some cases.}
 \begin{enumerate}
@@ -895,7 +899,10 @@ Canonizer(c_2) (s) & \text{if } s \in \mathcal{L}(W(c_2)),\\
   This completes the proof.
 \end{enumerate}
 \end{proof}
-\section{Synthesizing Quotient Lenses}
+
+\section{Synthesizing QRE Lenses}
+\label{synth}
+
 By \cref{normal form}, if there is a derivation $q : c \Leftrightarrow c'$ in
 $\mathcal{Q}$ then there exists a bijective lens $\ell : K(c) \Leftrightarrow
 K(c')$ such that
@@ -922,8 +929,24 @@ derivation $q : c \Leftrightarrow c'$ as well as a derivation $\ell : K(c)
 \Leftrightarrow K(c')$, then $q$ is synthesizable.
 \textcolor{red}{[More Needed?]}
 \section{Implementation and Evaluation}
-\section{Related Work}
+\label{impl}
 
-\section{Conclusion}
+\section{Related Work}
+\label{relwork}
+
+\bcp{Make sure to list/discuss:
+  \begin{itemize}
+  \item Seminar papers on lenses (to which we can refer readers for further
+  reading about connections to view updates, etc.) and quotient lenses.
+  \item Discuss what other lens-like programming languages (besides
+  boomerang) do about quotienting.  E.g., Augeas, XSugar, ...
+  \item How quotient lenses are used in Boomerang.
+  \item Search for papers that cite the quotient lens paper and see if they
+  extend the ideas there.
+  \end{itemize}
+}
+
+\section{Conclusion and Future Work}
+\label{concl}
 
 \end{document}
