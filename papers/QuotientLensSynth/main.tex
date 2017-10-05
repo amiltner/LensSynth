@@ -37,6 +37,7 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \newcommand{\normalize}[3]{\ensuremath{\mathit{normalize}(#1, #2, #3)}}
 \newcommand{\sep}{\ensuremath{\; | \;}}
 
+
 \begin{document}
 \mainmatter              % start of a contribution
 %
@@ -63,46 +64,49 @@ mathrsfs, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 \end{abstract}
 
 \section{Introduction}
-\saz{We need a more gentle ramp-up to the example here.}
+Lense programming languages such as Boomerang enable a programmer to express a
+transformation that maps some input data to some output data, as well as a
+transformation that maps the output data back into the input data in a single
+program. For instance, lenses enable a programmer to write a program which
+enables a doctor to acquire a summary of a patient's data, and also allows the
+doctor to reflect updates made to the patient's record back into the main
+database.
 
-\begin{itemize}
-\item Lens programming languages [e.g. Boomerang] are designed to make it possible to express
-  bidirectional data transformations using a single program.  
+Lenses therefore enable the  programmer to kill two birds in one
+stone by allowing the programmer to express two different data transformations
+in one program. Also, when lenses are appropriately constrained, they offer
+guarantees about how the two transformations interact with each other. Lenses
+have therefore been used effectively as a solution to the \textit{view update
+problem}, a classical problem in the database community in which the
+programmer wishes to write a program which provides a \textit{view} of data
+derived from a \textit{source} to a client, as well as a program which enables
+the client to reflect changes made in the view back into the source without
+corrupting the source.
 
-\item Lenses have found practical application in Augeas \saz{and ...}
+However, the constraints that are imposed on lenses are often too strict.
+For instance, the programmer may wish to ignore updates to the data that only
+change the order of fields, or add whitespace characters that in reality are not
+part of the data. Foster et al therefore proposed \textit{quotient lenses} as a
+solution to this problem. Quotient lenses enable a programmer to write lenses
+which transform data that is quotiented out by an equivalence relation, so that
+records which are equivalent to each other modulo this relation are considered
+the same by the underlying lens.
 
+This paper addresses two main challenges that arise when programming quotient
+lenses. The first challenge is tied directly to the programming of quotient
+lenses in Boomerang, a string lens programming language where the source and
+view types are given by regular expressions. While Boomerang enables the
+programmer to express a rich set of quotient lenses, the syntax for writing
+these lenses is often too verbose and cumbersome. This makes writing quotient
+lenses in Boomerang rather difficult.
 
-\item The source and target types of a lens express constraints on the format of
-  the data.
-
-\item Lens programming is still quite tricky, because lens composition operators
-  are subject to side conditions (e.g. unique decomposition) that are not so
-  easy to reason about.
-
-\item Our prior work~\cite{popl18} has shown how to synthesize lenses for the
-  \textit{bijective} case.
-
-\item This still isn't as expressive as one would want in practice, because many
-  lens transformations aren't truly bijective.
-
-\item There are at least two challenges with programming quotient lenses: (1)
-  defining the quotient languages (which serve as the types of the lenses)
-  themselves is not so easy, and (2) the lenses themselves are still not easy to
-  write by hand.
-
-\end{itemize}
-
-String quotient lenses enable one to express bidirectional string
-transformations that obey the lens laws up to equivalence relations. However,
-the various approaches that have been proposed to express quotient lenses
-make it difficult for the programmer to express complicated equivalence
-relations over the data.
-
-For example, when converting \textsc{Bib}\TeX{} files to EndNote files, the data
-may contain arbitrary amounts of whitespace characters in between the actual
-data. In addition, the fields may be ordered in an arbitrary order. For
-instance, we may wish to convert this \textsc{Bib}\TeX{} entry: \saz{I propose
-  we display such examples in verbatim:}
+For example, suppose that the programmer wishes to convert citation records
+stored in \textsc{Bib}\TeX{} format to a representation of the same data in the
+EndNote format. The programmer wishes to ``quotient'' away unnecessary
+whitespace characters in between the various fields in each record, while also
+ignoring the order in which these fields occur in the recore. For instance, the
+quotient lens which the programmer wishes to derive should convert this
+\textsc{Bib}\TeX{} record:
 
 \begin{verbatim}
 @Book {conway,
@@ -113,8 +117,7 @@ instance, we may wish to convert this \textsc{Bib}\TeX{} entry: \saz{I propose
 }
 \end{verbatim}
 
-to this EndNote entry:
-
+to this EndNote record
 
 \begin{verbatim}
 %0 Book
@@ -126,7 +129,7 @@ to this EndNote entry:
 \end{verbatim}
 
 \noindent while allowing for this equivalent representation of the \textsc{Bib}\TeX{}
-entry, which rearranges the fields and uses different  whitespace conventions:
+entry, which rearranges the fields and uses different whitespace conventions:
 
 \begin{verbatim}
 @Book{conway, 
@@ -138,32 +141,30 @@ entry, which rearranges the fields and uses different  whitespace conventions:
 }
 \end{verbatim}
 
-With the existing tools, it is cumbersome to express this, and other complicated
-equivalence relations.  \saz{It might be a good idea to show what this would
-  look like in all its gory detail, just to make the problem very
-  concrete. Perhaps in a figure?}
+While Boomerang enables the programmer to write a lens which exhibits this
+behaviour, the syntax tree for the program is large and complicated.  
 
-
+\saz{It might be a good idea to show what this would look like in all its gory
+detail, just to make the problem very concrete. Perhaps in a figure?}
+  
 In this paper, we introduce the formalism of Quotient Regular Expressions (or
-QREs) to solve this problem. QREs enable the programmer to express an
-equivalence relation at internal terms of a regular expression, thus giving
-the programmer more control over where quotienting occurs in the data.\\
-For example, the fields of a \textsc{Bib}\TeX{} article like in the example
-above might be expressed by the following QRE:
+QREs) to address this issue. QREs enable the programmer to express
+a rich set of equivalence relations on regular expressions at the level of
+syntax. QREs therefore enable the programmer to express more equivalence
+relations with less effort. Also, since QREs are defined at the level of
+syntax on regular expressions, QREs give the programmer more control over where
+the quotienting occurs.
 
-$$\perm{\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER}, \re{YEAR}}{(\re{WSP}^* \mapsto \string \n)},$$ 
+The second challenge that we address in this paper is the synthesis of
+\textit{bijective} quotient lenses. These are quotient lenses which match the
+equivalance classes of the source data to the equivalence classes of the view
+data bijectively as in the \textsc{Bib}\TeX{} to EndNote example above. 
+Building on our prior work~\cite{popl18} where we showed how to synthesize
+(ordinary?) bijective lenses, we show how to synthesize bijective quotient
+lenses given a synthesis task described by a pair of QREs and a set of
+examples. To our knowledge this is the first time that this has been done.
 
-\noindent where $\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER},$ and $\re{YEAR}$ are
-regular expressions describing the respective \textsc{Bib}\TeX\; fields of the
-same name. The QRE of an EndNote article is similarly expressed, but with the
-regular expressions for the respective fields substituted with the appropriate
-EndNote equivalent.  \saz{Do we really mean all \re{WSP} maps to newline here?
-  What about the spaces in the title, etc.?  Would this be confusing without
-  more explanation?}
-
-\sam{[Mention and give examples of quotient lenses here?]}
-
-\subsection{Contributions}
+Our plan for this paper is as follows:
 \begin{enumerate}
   \item
   We introduce the language of Quotient Regular Expressions (QREs) which enables
@@ -190,37 +191,24 @@ EndNote equivalent.  \saz{Do we really mean all \re{WSP} maps to newline here?
 \end{enumerate}
 
 \section{Quotient Regular Expressions}
+This section introduces Quotient Regular Expressions or QREs. QREs are regular
+expressions augmented with syntax that lets them simultaneously express an
+equivalence relation on the language described by the regular expression.
 
-\saz{Need a transition here:  This section introduces QREs.  They are regular
-  expressions augmented with syntax that lets them simultaneously denote
-  quotient languages.  
-   }
+\sam{More explanation here?}
 
-  \paragraph{Syntax of QREs}
+  \subsection{Syntax of QREs}
 The language of Quotient Regular Expressions (QREs) is given by the following
 grammar:
 \begin{align*}
-q := \; &R \sep q \mapsto s \sep \squash{R}{R'}{f} \sep
-\perm{(q_1, \ldots, q_n)}{q} \;  | \; \normalize{R}{R'}{f}\\
+q := \; &R \sep R \mapsto s \sep \squash{R}{R'}{f} \sep
+\perm{q_1, \ldots, q_n}{q} \;  | \; \normalize{R}{R'}{f}\\
 &q' \circ q \sep q \cdot q' \sep (q \sep q') \sep q^*,
 \end{align*}
-where $R$ ranges over regular expressions, $f$ ranges over functions whose
-domain and codomain are regular languages, and $s$ ranges over character
-strings.
+where $R$ ranges over regular expressions, $f$ ranges over functions between
+regular languages, and $s$ ranges over character strings.
 
-\saz{  Every regular expression $R$ is a QRE.  The main new syntactic forms are: $q \mapsto s$, which
-}
-
-\saz{Would it be simpler to include atoms and $\epsilon$ in $q$ rather than $R$?  That is, $R$ is
-  just a subset of $QRE$ built from atoms, $\cdot$ $|$ and ${}^*$.  We could
-  reserve $R$ as a metavariable that ranges over $q$'s such that $q$ is a
-  regular expression.}
-
-\saz{Need to introduce $\mathcal{L}(R)$ notation.}
-
-Quotient Regular Expressions (or QREs) enable us to give richer specifications
-for data formats than ordinary regular expressions. More concretely, each
-Quotient Regular Expression (or QRE) $q$ enables us to express
+Each QRE $q$ enables us to express
 \begin{enumerate}
   \item a regular expression $W(q)$ (the ``whole'' of $q$),
   \item an equivalence relation $EqRel(q)$ on $\mathcal{L}(W(q))$,
@@ -232,27 +220,86 @@ Quotient Regular Expression (or QRE) $q$ enables us to express
   computes $Canonizer(q)(w)$ as the unique $k$ in $\mathcal{L}(K(q))$ such that
   $k$ is equivalent to $w$ mod $EqRel(q)$
   \end{enumerate}
+  Observe that since $Canonizer(q)$ computes $Canonizer(q)(w)$ as the unique $k$
+  in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $EqRel(q)$,
+  then the equivalence classes of $EqRel(q)$ are the same as the fibres of
+  $Canonizer(q)$.
+  \subsection{Meaning and Example Usages for QREs}
+  \begin{enumerate}
+    \item 
+    Every regular expression is a QRE. When a regular expression $R$ is used as
+    a QRE, then $\mathcal{L}(R)$ is assumed to be quotiented by the equality
+    equivalence relation on $\mathcal{L}(R)$.
+    \item
+    For the QRE $R \mapsto s$, the data is described by $\mathcal{L}(R)$, but
+    all members of $R$ are considered equivalent to each other, with $s \in
+    \mathcal{L}(R)$ as the choice of representative. This construct is useful
+    when the programmer simply wishes to ignore unnecessary characters such as
+    excess whitespace e.g. 
+    $$FIRST\_NAME \cdot (WHITESPACE^* \mapsto `` \quad ") \cdot LAST\_NAME$$
+    \item
+    $\squash{R}{R'}{f}$ enables the programmer to use one of two different
+    representations of the data if they can provide a way of mapping the first
+    representation to the second. For instance, the first representation may be
+    $$FIRST\_NAME \cdot `` \quad " \cdot LAST\_NAME$$
+    while the second representation may be
+    $$FIRST\_NAME \cdot ``," \cdot LAST\_NAME$$
+    The mapping that maps the first representation to the second simply converts
+    the space between the first and last name to a comma.
+    \item
+    The $\perm{q_1, \ldots, q_n}{q}$ construct enables the programmer to
+    consider all permutations of some data that are interspersed with a
+    separator the same. For instance, in the \textsc{Bib}\TeX{} to EndNote
+    example, the programmer may use this construct as follows:
+    $$\perm{\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER},
+    \re{YEAR}}{(\re{WSP}^* \mapsto \string \n)}$$
+ where $\re{REF}, \re{AUTHOR}, \re{TITLE}, \re{PUBLISHER},$ and $\re{YEAR}$ are
+regular expressions describing the respective \textsc{Bib}\TeX\; fields of the
+same name, and $WSP$ is a regular expression describing whitespace characters.
+\item
+The constructs $q \cdot q'$, $q \sep q'$ and $q^*$ are similar to the respective
+regular expression constructs. However, the regular constructs for QREs are more
+restrictive for QREs since the data should match the whole language $W(q)$ and
+the kernel language $K(q)$ unambiguosly so as to make transformations
+deterministic.
+\item
+The $\normalize{R}{R'}{f}$ construct allows the programmer to choose how to
+canonize $\mathcal{L}(R)$ into $\mathcal{L}(R')$ be providing the canonizing
+function $f$ themselves. This constuct is useful when the desired equivalence
+relation cannot easily be expressed by any of the other constructs.
+  \end{enumerate}
+
+\saz{Every regular expression $R$ is a QRE.  The main new syntactic
+forms are:
+$R \mapsto s$, which }
+
+\saz{Would it be simpler to include atoms and $\epsilon$ in $q$ rather than $R$?  That is, $R$ is
+  just a subset of $QRE$ built from atoms, $\cdot$ $|$ and ${}^*$.  We could
+  reserve $R$ as a metavariable that ranges over $q$'s such that $q$ is a
+  regular expression.}
+
+\saz{Need to introduce $\mathcal{L}(R)$ notation.}
+
+\iffalse
+Quotient Regular Expressions (or QREs) enable us to give richer specifications
+for data formats than ordinary regular expressions. More concretely,
   All data to be transformed must match $W(q)$, the ``whole'' regular
   expression of $q$. However, before transforming the using a lens, the data
   will be quotiented out by the equivalence relation $EqRel(q)$ which has $K(q)$
   as a complete set of representatives. That is, for each string $w \in
   W(q)$, there is a unique $k \in K(q)$ such that $w \; EqRel(q) \; k$). This
   unique representative $k$ is chosen using the ``canonizing'' function
-  $Canonizer(q)$.\\
-  Observe that since $Canonizer(q)$ computes $Canonizer(q)(w)$ as the unique $k$
-  in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $EqRel(q)$,
-  then the equivalence classes of $EqRel(q)$ are the same as the fibres of
   $Canonizer(q)$.
+  \fi
+  
 \subsection{Semantics of QREs}
 \subsubsection{Preliminaries}
-The transformations that will be performed on the data will require
-that the data is matched against regular expressions. Consequently, we require
-that regular expressions used by QREs be \textit{strongly unambiguous}, a
-condition which ensures that if a string $s$ matches a regular expression $R$,
-then $s$ matches $R$ uniquely.
-
-\saz{Solomon: you should use blank lines instead of backslashes to separate
-  paragraphs so latex can format them properly.}
+As we mentioned earlier, when applying the regular constructs $\cdot
+\; | \;  *$ to QREs, we require that the regular languages
+described by QREs match the data in only one way so as to make transformations
+deterministic. Consequently, we require that regular expressions used
+by QREs be \textit{strongly unambiguous}, a condition which ensures that if a
+string $s$ matches a regular expression $R$, then $s$ matches $R$ uniquely.
 
 To this end, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
@@ -268,9 +315,10 @@ strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \sep S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
-We now give the semantics of QREs as well as inference rules for deriving them:
-\textcolor{red}{[Informal Meanings/Example Usages Needed]}
-
+The semantics for QREs that formally define the whole language $W(q)$, the
+kernel language $K(q)$, the equivalence relation $EqRel(q)$ and the
+canonizing function $Canonizer(q)$ are given in Figures ~\ref{fig:wk},
+~\ref{fig:relations} and ~\ref{fig:canonizers}.
 \begin{figure}[t]
   \centering
   \[
@@ -278,13 +326,13 @@ We now give the semantics of QREs as well as inference rules for deriving them:
    
       q & W(q) & K(q) \\ \hline
       R & R & R \\
-      q \mapsto s & W(q) & s \\
+      R \mapsto s & W(q) & s \\
       \squash{R}{R'}{f} & R \sep R' & R' \\
       \normalize{R}{R'}{f} & R & R' \\
       q_1 \circ  q_2 & W(q_2) & K(q_1) \\
       q_1 \cdot q_2 & W(q_1) \cdot W(q_2) & K(q_1) \cdot K(q_2) \\
       q_1 \sep q_2 & W(q_1) \sep W(q_2) & K(q_1) \sep K(q_2) \\
-      q_1^* & W(q_1)^* & K(q_1)^* \\
+      q^* & W(q)^* & K(q)^* \\
     \end{array}
   \]
 \[
@@ -300,101 +348,100 @@ K( \perm{(q_1, \ldots, q_n)}{q} ) = &
   \label{fig:wk}
 \end{figure}
 
-\begin{enumerate}
-  \item $q = R$
-\begin{center}
-\begin{enumerate}
-  \item $W(R) = R$,
-  \item $K(R) = R$, 
-  \item
-For all $w, w' \in W(R)$, $w \; EqRel(q) \; w'$ if and only if $w =
-w'$.
-\item
-$Canonizer(R)(r) = r$
-\end{enumerate}
+\begin{figure}[t]
+  \begin{center}
+\[
+    \begin{array}{l@{\quad}l} 
+      q & EqRel(q)  \\ \hline
+      R & w \; \equiv_R \; w' \iff w = w \\
+      R \mapsto s & w \; \equiv_{R \mapsto s} \; w' \text{ for all }w, w'\\
+      \squash{R}{R'}{f} & w \; \equiv_{\squash{R}{R'}{f}} \; w' \iff f(w) = w'
+      \text{ or } w = w' \\
+      \normalize{R}{R'}{f} & w \; \equiv_{\normalize{R}{R'}{f}} \; w' \iff
+      f(w)=f(w') \text{ or }w = w'\\
+      q_2 \circ  q_1 &  w \; \equiv_{q_2 \circ q_1} \; w' \iff \exists k, k' \in
+  \mathcal{L}(K(q_2)) \text{ such that } w \; \equiv_{q_1} \; k, \; w' \;
+  \equiv_{q_1} \; k', \text{ and } k \; \equiv_{q_2} \; k'\\
+      q_1 \cdot q_2 &  w \; \equiv_{q_1 \cdot q_2} \; w'  \iff w = r_1
+      \cdot r_2, \; w' = {r'}_1 \cdot {r'}_2 \text{ with } r_1 \; \equiv_{q_1}
+      \; {r'}_1, \; r_2 \; \equiv{q_n} \; {r'}_2\\
+      q_1 \sep q_2 &  w \; \equiv_{q' \sep q} \; w' \iff w \; \equiv_{q_1} \; w'
+      \text{ or } \; w \; \equiv_{q_2} \; w'\\
+      q^* &  w \; \equiv_{q*} \; w' \iff w = r_1 \cdot \ldots \cdot r_n, \; w'
+      = {r'}_1 \cdot \ldots \cdot {r'}_n \text{ and } r_i \equiv_{q} \; {r'}_i
+      \text{ for all } 1 \leq i \leq n\\
+    \end{array}
+    \]
+    \end{center}
+    $w \; \equiv_{\perm{(q_1, \ldots, q_n)}{q}} \; w' $ if and only if
+    
+    $w = r_{\sigma(1)} \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}
+    \text{ and } w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
+    \cdot {r'}_{\theta(n)}$ for some $\sigma, \theta \in S_n$, with $r_i \;
+    \equiv_{q_i} \; r'_i$ and $s_k \; \equiv_{q} \; s'_{k}$.
+  \caption{QRE Equivalence Relations}
+  \label{fig:relations}
+\end{figure}
+\begin{figure}[t]
+  \begin{center}
+\[
+    \begin{array}{l@{\quad}l} 
+      q & Canonizer(q)  \\ \hline
+      R & Canonizer(R) = id_{\mathcal{L}(R)} \\
+      R \mapsto s & Canonizer(R \mapsto s)(w) = s\\
+      \squash{R}{R'}{f} & Canonizer(\squash{R}{R'}{f})(w) = 
+\begin{cases}
+f(w) & \text{if } w \in \mathcal{L}(R)\\
+w & \text{otherwise}
+\end{cases}\\
+      \normalize{R}{R'}{f} & Canonizer(\normalize{R}{R'}{f}) = f\\
+      \perm{(q_1, \ldots, q_n)}{q} & \\
+      q_2 \circ  q_1 & Canonizer(q' \circ q) = Canonizer(q') \circ Canonizer(q)\\
+      q_1 \cdot q_2 & Canonizer(q' \cdot q) = Canonizer(q') \cdot Canonizer(q)\\
+      q_1 \sep q_2 &  Canonizer(q_1 \sep q_2)(w) = 
+\begin{cases}
+Canonizer(q_1)(w) & \text{if } w \in \mathcal{L}(W(q_1))\\
+Canonizer(q_2)(w) & \text{if } w \in \mathcal{L}(W(q_2))\\
+\end{cases}\\
+      q^* &  Canonizer(q^*) = Canonizer(q)^* \\
+    \end{array}
+    \]
+    \end{center}
+    $Canonizer(\perm{(q_1, \ldots, q_n)}{q})(r_{\sigma(1)}
+\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \newline
+= (Canonizer(q_1)(r_1)) \cdot (Canonizer(q)(s_1)) \cdot \ldots \cdot
+(Canonizer(q_n)(r_n))$
+  \caption{QRE Canonizers}
+  \label{fig:canonizers}
+\end{figure}
+\begin{figure}[t]
+\centering
 \begin{prooftree}
 \AxiomC{}
 \UnaryInfC{$R$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=q \mapsto s$
-\begin{center}
-\begin{enumerate}
-  \item $W(q \mapsto s) = W(q)$,
-  \item $K(q \mapsto s) = s$, 
-  \item
-For all $w, w' \in W(q \mapsto S)$, $w \; EqRel(q \mapsto S) \; w'$,
-\item
-$Canonizer(q \mapsto S)(r) = s$
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$s \in W(q)$}
-\UnaryInfC{$q \mapsto s$ is well formed}
+\UnaryInfC{$R \mapsto s$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=squash(R, R', f)$
-\begin{center}
-\begin{enumerate}
-  \item $W(squash(R, R', f)) = R \sep R'$,
-  \item $K(squash(R, R', f)) = R'$, 
-  \item
-For all $w, w' \in W(squash(R, R', f))$, $w \; EqRel(q) \; w'$ if and only
-if $f(w) = w'$ or $w = w'$
-\item
-$Canonizer(squash(R, R', f))(w) = 
-\begin{cases}
-f(w) & \text{if } w \in \mathcal{L}(R)\\
-w & \text{otherwise}
-\end{cases}$
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$\mathcal{L}(R) \cap \mathcal{L}(R') = \varnothing$}
 \AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$}
 \BinaryInfC{$squash(R, R', f)$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=perm \; (q_1, \ldots, q_n) \; with \; q$. Given regular expressions
-$R_1, \ldots, R_n$ and $S$, let $\prod({R_i}, S) = R_1 \cdot S \cdot \ldots
-\cdot S \cdot R_n$.
-\begin{center}
-\begin{enumerate}
-  \item $W(perm \; (q_1, \ldots, q_n) \; with \; q) = \bigcup \limits_{\sigma
-  \in S_n} W(q_{\sigma(1)}) \cdot W(q) \cdot \ldots \cdot \cdot W(q) \cdot
-  W(q_{\sigma(n)}),$
-  \item $K(perm \; (q_1, \ldots, q_n) \; with \; q) = K(q_1) \cdot K(q_1)
-  \cdot \ldots \cdot \cdot K(q) \cdot K(q_n)$, 
-  \item
-For all $w, w' \in W(q)$,  $w \; EqRel(q) \; w'$ if and only if
-   $$w = r_{\sigma(1)} \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot
-    r_{\sigma(n)} \text{ and } r' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots
-    \cdot s'_{n-1} \cdot {r'}_{\theta(n)}$$ for some $\sigma, \theta \in
-    S_n$, with $r_i \; EqRel(q_i) \; r'_i$ and $s_k \; EqRel(q) \; s'_{k}$.
-\item
-$Canonize(q)(r_{\sigma(1)}
-\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \newline
-= (Canonize(q_1)(r_1)) \cdot (Canonize(q)(s_1)) \cdot \ldots \cdot \cdot \cdot
-(Canonize(q_n)(r_n))$
-\end{enumerate}
+
 \begin{prooftree}
-\AxiomC{$\forall \sigma \neq \theta, \; \prod(\{W(q_{\sigma(i)})\}, W(q))\cap
- \prod(\{W(q_{\theta(i)})\}, W(q)) = \varnothing$}
+\AxiomC{${\substack{\forall \sigma \neq \theta, \; W(q_{\sigma(1)}) \cdot W(q)
+\cdot \ldots \cdot W(q_{\sigma(n)})\\ \cap W(q_{\theta(1)}) \cdot W(q)
+\cdot \ldots \cdot W(q_{\theta(n)}) =\varnothing}}$}
+\AxiomC{$q_i, q$ are well formed}
 \AxiomC{$\forall \sigma, \; K(q_{\sigma(1)}) \cdot^! K(q) \cdot^! \ldots 
 \cdot^! K(q_{\sigma(n)})$}
-\BinaryInfC{$permute \; (q_1, \ldots, q_n) \; with \;  q$ is well formed}
+\TrinaryInfC{$\perm{q_1, \ldots, q_n}{q}$ is well formed}
 \end{prooftree}
-\end{center}
 
-\item $q = normalize(R, R', f)$
-\begin{center}
-\begin{enumerate}
-  \item
-$W(normalize(f)) = R$
-\item
-$K(normalize(f)) = R'$
-\item For all $w, w' \in W(q)$, $w \; EqRel(q) \; w'$ if and only if
-$f(w)=f(w')$
-\item
-$Canonize(normalize(f)) = f$
 \begin{prooftree}
 \AxiomC{$\mathcal{L}(R') \subseteq \mathcal{L}(R)$}
 \AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$}
@@ -402,43 +449,14 @@ $Canonize(normalize(f)) = f$
 \AxiomC{$f = f^2$}
 \QuaternaryInfC{$normalize \; (R,R', f)$ is well formed}
 \end{prooftree}
-\end{enumerate}
-\end{center}
-\item $q=q' \circ q$
-\begin{center}
-\begin{enumerate}
-  \item $W(q' \circ q) = W(q)$,
-  \item $K(q' \circ q) = K(q')$, 
-  \item
-For all $w, w' \in W(squash(R, R', f))$, $w \; EqRel(q' \circ q) \; w'$ if and
-only $$\text{there exist }k, k' \in
-  \mathcal{L}(K(q)) \text{ such that } w \; EqRel(q) \; k, \; w' \;
-  EqRel(q) \; k', \text{ and } k \; EqRel(q') \; k' $$
-\item
-$Canonizer(q' \circ q) = Canonizer(q') \circ Canonizer(q)
-$
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$q$ is well formed}
 \AxiomC{$q'$ is well formed}
 \AxiomC{$K(q) = W(q')$}
 \TrinaryInfC{$q' \circ q$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=q \cdot q'$
-\begin{center}
-\begin{enumerate}
-  \item $W(q \cdot q') = W(q) \cdot W(q')$,
-  \item $K(q \cdot q') = K(q) \cdot K(q')$, 
-  \item
-For all $w, w' \in W(q \cdot q')$, $w \; EqRel(q' \cdot q) \; w'$ if and
-only $$w = r_1
-      \cdot r_2, \; w' = {r'}_1 \cdot {r'}_2 \text{ with } r_1 \; EqRel(q) \;
-      {r'}_1, \; r_2 \; EqRel(q') \; {r'}_2$$
-\item
-$Canonizer(q \cdot q') = Canonizer(q) \cdot Canonizer(q')
-$
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$q$ is well formed}
 \AxiomC{$q'$ is well formed}
@@ -446,52 +464,29 @@ $
 \AxiomC{$K(q) \cdot^! K(q')$}
 \QuaternaryInfC{$q \cdot q$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=q \sep  q'$
-\begin{center}
-\begin{enumerate}
-  \item $W(q \cdot q') = W(q) \sep W(q')$,
-  \item $K(q \cdot q') = K(q) \sep K(q')$, 
-  \item
-For all $w, w' \in W(q \sep q')$, $w \; EqRel(q' \sep q) \; w'$ if and
-only if 
-$$w \; EqRel(q) \; w' \text{ or } \; w \; EqRel(q') \; w'$$
-\item
-$Canonizer(q \sep q') = Canonizer(q) \sep Canonizer(q')
-$
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$q$ is well formed}
 \AxiomC{$q'$ is well formed}
 \AxiomC{$W(q) \cap W(q') = \varnothing$}
 \TrinaryInfC{$q \cdot q$ is well formed}
 \end{prooftree}
-\end{center}
-\item $q=q'^*$
-\begin{center}
-\begin{enumerate}
-  \item $W(q'^*) = W(q')^*$,
-  \item $K(q'^*) = K(q')^*$, 
-  \item
-For all $w, w' \in W(q'^*)$, $w \; EqRel(q'^*) \; w'$ if and
-only if 
-$$w = r_1 \cdot \ldots \cdot r_n, \; w' = {r'}_1 \cdot \ldots
-      \cdot {r'}_n \text{ and } r_i \; EqRel(q) \; {r'}_i
-      \text{ for all } 1 \leq i \leq n$$
-      \item
-$Canonizer(q'^*) = Canonizer(q')^* $
-\end{enumerate}
+
 \begin{prooftree}
 \AxiomC{$q$ is well formed}
 \AxiomC{$W(q)^{*!}$}
 \AxiomC{$K(q)^{*!}$}
 \TrinaryInfC{$q^*$ is well formed}
 \end{prooftree}
-\end{center}
-\end{enumerate}
-\begin{claim}
+  \caption{QRE Inference Rules}
+  \label{fig:qrerules}
+\end{figure}
+The theorem below confirms that the semantics of QREs are consistent with their
+intended meaning:
+\begin{theorem}
 If $q$ is a well formed QRE, then
 \begin{enumerate}
+  \item $W(q)$ and $K(q)$ are well defined regular expressions,
   \item  $EqRel(q)$ is an equivalence relation on $\mathcal{L}(W(q))$,
   \item  $\mathcal{L}(K(q))$ forms a complete set of representatives for
   $EqRel(q)$,
@@ -501,7 +496,7 @@ If $q$ is a well formed QRE, then
   $k$ in $\mathcal{L}(K(q))$ such that $k$ is equivalent to $w$ modulo
   $EqRel(q)$.
   \end{enumerate}
-\end{claim}
+\end{theorem}
 \section{Using QREs to Express Quotient Lenses}
 Given regular expressions $R, S$ and equivalence relations $\sim_R, \sim_S$ are
 defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$ respectively, a
