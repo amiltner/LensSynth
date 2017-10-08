@@ -182,6 +182,24 @@ and boom_fpf_expression
       boom_fpf_regex ppf (0,r,false,false)
     | BoomExpLens l ->
       boom_fpf_lens ppf (0,l,false,false)
+    | BoomExpSynthLens (r1,r2,exs) ->
+      begin match exs with
+        | [] ->
+          fpf ppf "@[<hv 2>synth %a <=> %a@]"
+            boom_fpf_regex (113,r1,false,false)
+            boom_fpf_regex (113,r2,false,false)
+        | _ ->
+          fpf ppf "@[<hv 2>synth %a <=> %a using {%a}@]"
+            boom_fpf_regex (113,r1,false,false)
+            boom_fpf_regex (113,r2,false,false)
+            (Format.pp_print_list
+               ~pp_sep:(fun ppf _ -> fpf ppf "%a" ident ",")
+               (fun ppf (s1,s2) ->
+                  fpf ppf "@[(\"%a\",\"%a\")@]"
+                    ident (delimit_string s1)
+                    ident (delimit_string s2)))
+            exs
+      end
     | BoomExpCut(s,e') ->
       fpf ppf "@[<hv 0>%a in@ %a]"
         boom_fpf_statement s

@@ -10,6 +10,7 @@ type boom_typ =
 type boom_expression =
   | BoomExpRegex of Regex.t
   | BoomExpLens of Lens.t
+  | BoomExpSynthLens of Regex.t * Regex.t * (string * string) list
   | BoomExpCut of boom_statement * boom_expression
 
 and boom_statement =
@@ -31,7 +32,8 @@ let statement_of_decl (d:declaration) : boom_statement list =
     | DeclRegexCreation(n,r,_) ->
       [BoomStmtDefinition (n,BoomTypRegex,BoomExpRegex r)]
     | DeclTestString (r,s) -> [BoomStmtTestRegex (r,s)]
-    | DeclSynthesizeLens _ -> failwith "no boom functionality for this"
+    | DeclSynthesizeLens (id,r1,r2,exs) ->
+      [BoomStmtDefinition (id,BoomTypLens(r1,r2),BoomExpSynthLens(r1,r2,exs))]
     | DeclLensCreation (n,r1,r2,l) ->
       [BoomStmtDefinition (n,BoomTypLens(r1,r2),BoomExpLens l)]
     | DeclTestLens (n,exs) ->

@@ -38,6 +38,7 @@ type driver_mode =
   | LensSize
   | LensAndSpecSize
   | PossibleLensesAtFinalLevelWithNExamples of int
+  | GenerateBoomerangSpec
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -149,6 +150,10 @@ let args =
   ; ( "-compositional_lenses_used"
     , Arg.Unit (fun _ -> set_opt CompositionalLensesUsed)
     , " Set to calculate the number of compositional lenses used"
+    )
+  ; ( "-generate_boomerang_spec"
+    , Arg.Unit (fun _ -> set_opt GenerateBoomerangSpec)
+    , " Set to make boomerang spec get generated"
     )
   ]
   |> Arg.align
@@ -706,6 +711,11 @@ let lens_and_spec_size (p:program) : unit =
 
   print_endline (string_of_int (mysize))
 
+let print_boomerang_spec (p:program) : unit =
+  print_endline "module Generated =";
+  let bp = boom_program_of_program LensContext.empty p in
+  print_endline (pp_program bp)
+
 let print_outputs (p:program) : unit =
   print_endline "module Generated =";
   let (_,lc,p) = synthesize_and_load_program p in
@@ -767,6 +777,8 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> lens_and_spec_size
           | PossibleLensesAtFinalLevelWithNExamples i ->
             parse_file f |> expand_regexps_if_necessary |> (number_of_examples_at_satisfying_level i)
+          | GenerateBoomerangSpec ->
+            parse_file f |> print_boomerang_spec
         end
     end
 
