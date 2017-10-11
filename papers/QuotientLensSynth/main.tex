@@ -76,20 +76,23 @@ transformations interact with each other, and also allow the programmer to
 ignore differences in the data which are not intended to affect the
 behaviour of the transformations.
 
-However, quotient lenses are sometimes difficult to program because the
-equivalence relations defined on the data, as well as the underlying lens which
-operates on the equivalence classes are complicated. These two challenges make
-quotient languages impractical to use in many cases spite of their advantages.
+However, quotient lenses are sometimes difficult to program, firstly because the
+programmer has to give a specification for the data as well as give a separate
+specification for the equivalence relations defined on the data. Secondly, even
+after giving both of these specifications, the programmer also has to manually
+write the underlying lens which maps between the respective equivalence
+classes, a task which is itself challenging.
 
 In this paper, we address both of these challenges. First, we propose the
 language of {\em Quotient Regular Expressions} or QREs, which enables the
-programmer to explicitly define a broad class of equivalence relations on
-regular languages using a compact and convenient notation. We then define a
-class of {\em QRE lenses}, a class of quotient lenses which are typed using
-QREs, and show how to {\em synthesize} QRE lenses from their QRE types and a
-set of input-output examples. Finally, we demonstrate the applicability of this
-approach by synthesizing QRE lenses between several real-world data formats
-from the {\tt data.gov} database.
+programmer to explicitly define a broad class of equivalence relations
+directly on regular languages using a compact and convenient notation, and hence
+negates the need to specify the data and the equivalence relation on the data
+separately. We then define a class of {\em QRE lenses}, a class of quotient
+lenses which are typed using QREs, and show how to {\em synthesize} QRE lenses
+from their QRE types and a set of input-output examples. Finally, we
+demonstrate the applicability of this approach by synthesizing QRE lenses
+between several real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
@@ -116,7 +119,7 @@ such as
 %F conway
 \end{verbatim}
 
-in the EndNote format, and vice versa.
+\noindent in the EndNote format, and vice versa.
 
 Bidirectional programs have also been called {\em lenses}. Formally, Foster et
 al~\cite{foster} defined a lens $\ell$ that maps between an ``abstract" {\em
@@ -148,22 +151,27 @@ about how the components of a lens should work together.
 
 However, the constraints that are imposed by the lens laws are sometimes too
 strict. For instance, the programmer may wish to ignore updates to the data
-that only change the order of fields, or add whitespace characters that in reality are not
-part of the data. Foster et al therefore proposed \textit{quotient lenses}
-~\cite{quotient} as a solution to this problem. Quotient lenses enable a
-programmer to write lenses which transform data that is quotiented out by an
-equivalence relation, so that records which are equivalent to each other modulo
-this relation are considered the same by the underlying lens.
+that only change the order of fields, or add whitespace characters that in
+reality are not part of the data. Foster et al therefore proposed
+\textit{quotient lenses} ~\cite{quotient} as a solution to this problem
+Quotient lenses, which are implemented as a refinement of the bidirectional
+string processing language Boomerang, enable a programmer to write lenses which
+transform data that is quotiented out by an equivalence relation, so that
+records which are equivalent to each other modulo this relation are considered
+the same by the underlying lens.
 
-Unfortunately, quotient lenses are sometimes difficult to program because the
-equivalence relations defined on the data, as well as the underlying lens which
-operates on the equivalence classes are complicated. For example, suppose that
-the programmer wants to program the \bibtex to EndNote transformation in such a
-way that the program allows for any of two representations of the authors
-name (e.g. ``Conway, J. H." and ``Conway J. H"), ignores the order in which the
-author and title fields occur in each record, and allows for arbitrary amounts
-of whitespace in between the author and title fields. These rules allow for
-these two \bibtex citation records to be considered the same:
+\sam{Go over quotient lens laws?}
+
+Unfortunately, quotient lenses are sometimes difficult to program in Boomerang,
+firstly because the programmer has to give a specification for the data as well
+as give a separate specification for the equivalence relations defined on the
+data. For example, suppose that the programmer wants to program the \bibtex to
+EndNote transformation in such a way that the program allows for any of two
+representations of the authors name (e.g. ``Conway, J. H." and ``Conway J. H"),
+ignores the order in which the author and title fields occur in each record,
+and allows for arbitrary amounts of whitespace in between the author and title
+fields. These rules allow for these two \bibtex citation records to be
+considered the same,
 
 \begin{verbatim}
 @Book {conway,
@@ -178,31 +186,71 @@ these two \bibtex citation records to be considered the same:
 }
 \end{verbatim}
 
-The Boomerang quotient lens which does the \bibtex to EndNote conversion is
+with the EndNote records having a similar equivalence relation defined on them.
 
-\sam{TODO: PUT BOOMERANG EXPRESSION HERE!},
+In Boomerang, equivalence relations are expressed using {\em canonizers}
+which are functions that map each element of a regular language to a
+canonical representation of that element. Therefore, in order for the programmer
+to give a specification for the \bibtex records, then the programmer
+has to write a regular expression which matches all possible representations of
+\bibtex records, and then program a set of canonizers which does the job of
+quotienting the data. This often makes the code verbose and error-prone.
 
-an expression which is difficult to write and understand.
+\sam{TODO: PUT BOOMERANG CANONIZERS HERE!}
 
-We address the challenge of programming quotient lenses in two ways. First, we
-propose the language of {\em Quotient Regular Expressions} or QREs, which
-enables the programmer to explicitly define a broad class of equivalence
-relations on regular languages using a compact and convenient notation. For
-example, the QRE which describes the equivalence relation on the \bibtex
-citation records is as follows:
+To address this issue, we propose the language of {\em Quotient Regular
+Expressions} or QREs, which enables the programmer to explicitly define a broad
+class of equivalence relations directly on regular languages using a compact
+and convenient notation, and hence negates the need to specify the data and the
+equivalence relation on the data separately. For example, a QRE which
+specifies the equivalence relation on the \bibtex citation records is as
+follows:
 
-\sam{TODO: PUT QRE FOR BIBTEX HERE!}
+\begin{verbatim}
+let bib_author  = 
+"author = {" . squash bib_space_names -> bib_comma_names using 
+(get (synth bib_space_names <=> bib_comma_names)) . "}"
 
-This expression better describes the equivalence relation since it is explicit
-and more precise.
+let bib_ignore_wsp =  project ("," . [ \n\t\r]* ) -> ",\n"
 
-However, even though QREs enable the programmer to describe complicated
-equivalence relations on data more simply, the underlying lens which maps the
-equivalence classes of the \bibtex records to the equivalence classes of the
-EndNote records is also challenging to program, mostly because of the verbosity
-of the expression:
+let bib_perm : canonizer = perm (label, bib_author, bib_title) with
+bib_ignore_wsp
 
-\sam{TODO: PUT QRE LENS FOR BIBTEX HERE!}
+let bibtex  = "@book{" . bib_perm . "}"
+\end{verbatim}
+
+\sam{Should we have a special construct like squash-synth(R, R') in addition to
+squash(R, R', l), or maybe even just have only squash-synth(R, R')?}
+
+The first expression specifies the author field as
+having one of two representations (\verb!bib_space_names! and
+\verb!bib_comma_names!), with the \verb!bib_comma_names! being the
+canonical representation and the expression 
+
+\noindent \verb!(get (synth bib_space_names <=> bib_comma_names))! giving the
+function which converts names described by \verb!bib_space_names! to their canonical
+form described  by \verb!bib_comma_names!.
+
+The second expression specifies the regular language which is a comma followed
+by arbitrary occurences of whitespace characters quotiented by the equivalence
+relation which makes all members of this language equivalent, with the canonical
+representation being a comma followed by a newline character.
+
+The third expression specifies that the label, title and author fields
+are can occur in any order, with each of these fields separated by a comma and
+arbitrary amounts of whitespace. The canonical representaion is that in which
+the label, author and title fields occur in that order, separated by a comma and
+a newline.
+
+However, even though QREs enable the programmer to specify the data as well as
+the equivalence relation on the data in the same expression, the programmer
+still has to manually program the underlying lens which maps the equivalence
+classes of the \bibtex records to the equivalence classes of the EndNote
+records
+
+\sam{TODO: PUT BIJECTIVE LENS HERE!},
+
+\noindent task which is itself challenging and erro-prone.
 
 Therefore, to address this challenge we demonstrate how to {\em synthesize}
 quotient lenses from a pair of QREs and a set of input-output example pairs. Our
@@ -212,10 +260,10 @@ work ~\cite{popl18}.
 
 Our approach is to define a class of {\em QRE lenses} which are the same as
 bijective lenses with canonizers at the ends. That is, a QRE lens uses the
-source QRE to compute a unique representative for a datum modulo the
+source QRE to compute a unique representative for the data modulo the
 equivalence relation defined by the QRE before applying a bijective lens to
 this representative in the forward direction, and operates similarly same in the
-backward direction but using the view QRE.
+backward direction, but using the view QRE.
 
 \sam{TODO: PUT LENS WITH CANONIZERS ON THE EDGE DIAGRAM HERE!}
 
@@ -229,9 +277,9 @@ closed under left quotienting, right quotienting, composition, and regular
 combinators. This proof will allow justify our approach for synthesizing
 quotient lenses so that the programmer can simply type
 
-$$\mathit{synth} \; \mathtt{BIBTEX} \; \mathtt{ENDNOTE}$$
+$$\mathit{synth} \; \verb!bibtex! \; \verb!endnote!$$
 
-to derive a quotient lens that does the \bibtex to EndNote.
+to derive a quotient lens that does the \bibtex to EndNote transformation.
 
 In summary, our main contributions are:
 \begin{enumerate}
@@ -354,11 +402,6 @@ $$\mathtt{AUTHOR}
 ``\text{Author
 = \{}" \cdot \squash{\mathtt{COMMA\_NAME}}{\mathtt{SPACE\_NAME}}{\mathit{synth}
 \; \mathtt{COMMA\_NAME} \; \mathtt{SPACE\_NAME}} \cdot ``\}"$$
-
-\sam{Should we have a special construct like squash-synth(R, R') in addition to
-squash(R, R', l) or maybe even just have only squash-synth(R, R')? Perhaps
-having to explicitly write the lens weakens our case that QREs are compact and
-convenient}
 
 The second reason that a record may have two different representations is that
 the author and title fields may occur in a different order, and the third
