@@ -244,6 +244,80 @@ def generate_uninferred_expansions_graph(input_csv):
 
     fig.savefig(generated_graphs_base + "uninferred.eps", bbox_inches='tight')
 
+def generate_examplecount_vs_tasks_graph(input_csv):
+    fig, ax = plt.subplots()
+
+    def create_step_plot(colname, outputname,style,width):
+        col_vals = [float(x) for x in project_column_from_csv(input_csv, colname) if x != "-1"]
+        col_vals_and_endpoints = col_vals + [0,10]
+        x_vals = sorted([x for x in set(col_vals_and_endpoints)])
+        x_count_dict = {key: 0 for key in x_vals}
+        for val in col_vals:
+            x_count_dict[val] = x_count_dict[val]+1
+        x_completed_counts = []
+        acc = 0
+        for val in x_vals:
+            acc = acc + x_count_dict[val]
+            x_completed_counts.append(acc)
+        x_completed_counts = [0] + x_completed_counts[:len(x_completed_counts)-1]
+
+        if (style != '-'):
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
+        else:
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
+
+    normal_size = 2
+    full_size = 3
+
+    create_step_plot("ExamplesCount","Example Number",'-',full_size)
+
+    ax.set_ylabel('Benchmarks Definable')
+    ax.set_xlabel('Example Count')
+    ax.set_title("Example Count vs\nBenchmarks Definable")
+
+    fig = plt.figure(6,tight_layout=True)
+    fig.set_figheight(1.5)
+    fig.set_figwidth(2.5)
+       
+    fig.savefig(generated_graphs_base + "examplesused.eps", bbox_inches='tight')
+
+def generate_specsize_vs_tasks_graph(input_csv):
+    fig, ax = plt.subplots()
+
+    def create_step_plot(colname, outputname,style,width):
+        col_vals = [float(x) for x in project_column_from_csv(input_csv, colname) if x != "-1"]
+        col_vals_and_endpoints = col_vals + [0,700]
+        x_vals = sorted([x for x in set(col_vals_and_endpoints)])
+        x_count_dict = {key: 0 for key in x_vals}
+        for val in col_vals:
+            x_count_dict[val] = x_count_dict[val]+1
+        x_completed_counts = []
+        acc = 0
+        for val in x_vals:
+            acc = acc + x_count_dict[val]
+            x_completed_counts.append(acc)
+        x_completed_counts = [0] + x_completed_counts[:len(x_completed_counts)-1]
+
+        if (style != '-'):
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
+        else:
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
+
+    normal_size = 2
+    full_size = 3
+
+    create_step_plot("SpecSize","Regular Expression Size",'-',full_size)
+
+    ax.set_ylabel('Benchmarks Definable')
+    ax.set_xlabel('AST Count')
+    ax.set_title("AST Count vs\nBenchmarks Definable")
+
+    fig = plt.figure(5,tight_layout=True)
+    fig.set_figheight(1.5)
+    fig.set_figwidth(2.5)
+       
+    fig.savefig(generated_graphs_base + "specsizes.eps", bbox_inches='tight')
+
 def generate_time_vs_tasks_graph(input_csv):
     fig, ax = plt.subplots()
 
@@ -259,7 +333,7 @@ def generate_time_vs_tasks_graph(input_csv):
         for val in x_vals:
             acc = acc + x_count_dict[val]
             x_completed_counts.append(acc)
-
+        x_completed_counts = [0] + x_completed_counts[:len(x_completed_counts)-1]
         if (style != '-'):
             ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
         else:
@@ -342,6 +416,8 @@ def main(args):
         generate_min_lens_size(input_csv)
         generate_median_expands_forced(input_csv)
         generate_maximum_expands_forced(input_csv)
+        generate_specsize_vs_tasks_graph(input_csv)
+        generate_examplecount_vs_tasks_graph(input_csv)
     else:
         print_usage(args)
 
