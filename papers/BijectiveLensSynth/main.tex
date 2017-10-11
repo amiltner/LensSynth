@@ -2,7 +2,7 @@
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anonfalse    % set true to suppress names, etc.
 \newif\iffull\fullfalse   % set true for long version
-\newif\ifappendices\appendicestrue
+\newif\ifappendices\appendicesfalse
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \documentclass[sigplan,acmsmall]{acmart}
@@ -313,8 +313,9 @@ using operators that swap adjacent fields.
 Furthermore, the Boomerang type checker is very strict, disallowing many programs
 because they contain ambiguity about how certain data is transformed.
 In short, lens languages provide strong bidirectional guarantees at the cost of
-forcing programmers to satisfy finicky type systems.
-
+forcing programmers to satisfy finicky type systems.  In a single piece of
+syntax, the programmer must encode two different formats, and show how to map
+between them.
 
 To make programming with lenses faster and easier, we have
 developed \emph{\Optician{}}, a
@@ -325,7 +326,15 @@ languages~\cite{flashfill,le-pldi-2014,perelman2014test,morpheus},
 many guided by
 types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015,morpheus}.  
 Specifically, \Optician{} supports the synthesis of \emph{bijective lenses}, a
-useful subset of Boomerang. 
+useful subset of Boomerang.  While Boomerang allows for more complex lens
+formats, like assymmetric lenses~\cite{?} and quotient lenses~\cite{?}, we
+restrict our domain to a bijective core.
+We theorize many lenses in these theories have a bijective core, surrounded by
+projections (for asymmetric lenses) and canonizers (for quotient lenses).  If
+provided with these projections or canonizers (either from the user or
+from another synthesis algorithm) we expect \Optician{} can be used as a drop-in
+component for synthesizing terms in these more expressive languages.
+
 As inputs, \Optician{} takes specifications of the source and target formats, plus
 a collection of concrete examples of the desired 
 transformation.  Format specifications are supplied as ordinary regular
@@ -501,7 +510,7 @@ we offer the following technical contributions:
 \label{preliminaries}
 
 \paragraph*{Technical Report} Throughout the paper, we will state a number of
-theorems.  We have omitted these theorems for space, and have included these
+theorems.  We have omitted these proofs for space, and have included these
 details in the auxiliary technical report.
 
 \SUBSECTION{Regular Expressions}
@@ -703,6 +712,30 @@ but it swaps the results before concatenating.
 The combinator $\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
 to the string.  The combinator $\IterateLensOf{\Lens}$ operates by repeatedly
 applying $\Lens$ to subparts of a string.
+
+These combinators can be structurally combined to express complex
+transformations.
+\footnote{For nested concatenations and disjunctions, the terms
+  $\ConcatLensOf{\Lens_1}{\Lens_2}$ and $\OrLensOf{\Lens_1}{\Lens_2}$ are
+  syntactically heavy.  Instead, these can be written in the infix style
+  of $\Lens_1 . \Lens_2$ (for concatenations) and $\Lens_1 | \Lens_2$ (for disjunctions).}
+For example the lens mapping between full names expressed with the last name
+presented first (like \StringCF{"Kleene, Stephen Cole"}) and names expressed with
+the first name presented first (like \StringCF{"Stephen Cole Kleene"})
+is:
+%
+\begin{lstlisting}
+   swap
+     (Id(!name!) . const(@","@,@""@)
+     ,(iterate (swap (Id(!wsp!) , Id$_{\VarCF{name}}$)))))
+\end{lstlisting}
+%
+Unfortunately, even such a minimal example is hard to write!  Writing this
+required reasoning 
+about which components must be swapped to make the last name appear at the end, as
+well as how to properly place the whitespace between names.  These difficulties
+become even more apparent when writing complex, nested transformations occur
+between large formats, and when ensuring the lenses are well-typed.
 
 \paragraph{Lens Typing}
 
@@ -1993,7 +2026,7 @@ bijective lenses.  First, they contain no composition operator.
 Second, the use of equivalence (rewriting) is highly constrained:  Rewriting
 may only be used once at the top-most level as opposed to interleaved
 between uses of the other rules.  Consequently, a type-directed synthesis
-algorithm may be factored into two discreet steps: one step that
+algorithm may be factored into two discrete steps: one step that
 searches for an effective pair of regular expressions
 and a second step that is directed by the syntax of the regular expression
 types that were discovered in the first step.
@@ -2021,7 +2054,7 @@ Algorithm~\ref{alg:synthlens} presents the synthesis procedure.
 \SynthLens{} takes the source and target regular
 expressions $\Regex$ and $\RegexAlt$, and a list of examples $\Examples$, as
 input. First, \SynthLens{} validates the unambiguity of the input regular
-expressions, $\Regex$ and $\RegexAlt$, and confirm that they parse the
+expressions, $\Regex$ and $\RegexAlt$, and confirms that they parse the
 input/output examples, $\Examples$. Next, the algorithm converts
 $\Regex$ and $\RegexAlt$ into DNF regular expressions
 $\DNFRegex$ and $\DNFRegexAlt$
@@ -2387,18 +2420,6 @@ reduces to merely sorting and zipping lists.  Furthermore, through composing the
 permutations required to sort the sequences, the algorithm discovers the
 permutation used in the lens.
 
-By incorporating information about how examples are parsed in the
-orderings,
-\SynthLens{} guarantees not only that there will be a lens between the regular
-expressions, but also
-that the lens will satisfy the examples.  For example if
-$\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
-$\SequenceAlt \SequenceLeq^{\Examples} \Sequence$ (where
-$\SequenceLeq^{\Examples}$ is the ordering incorporating example information)
-then there is not only a
-sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
-satisfies the examples.
-
 As an example, consider trying to find a DNF lens between
 \begin{lstlisting}
    $\DNFLeft$ $\SequenceOf{\StringCF{"<Field Id=2></Field>"}}$
@@ -2406,7 +2427,7 @@ As an example, consider trying to find a DNF lens between
   \SequenceOf{\StringCF{"<Field Id=2>"} \SeqSep \TextChar
     \SeqSep \StringCF{""}
     \SeqSep \StarOf{\DNFOf{\SequenceOf{\TextChar}}}
-    \SeqSep \StringCF{"<Field Id=2>"}}$ $\DNFRight$
+    \SeqSep \StringCF{"</Field>"}}$ $\DNFRight$
 \end{lstlisting}
 and
 \begin{lstlisting}
@@ -2607,6 +2628,29 @@ permutation to create the final DNF lens.
 %has not improved performance because the relatively large number of
 %inferred types enlarges the search space too much.
 
+By incorporating information about how examples are parsed in the
+orderings,
+\SynthLens{} guarantees not only that there will be a lens between the regular
+expressions, but also
+that the lens will satisfy the examples.
+For example if
+$\Sequence \SequenceLeq^{\Examples} \SequenceAlt$ and
+$\SequenceAlt \SequenceLeq^{\Examples} \Sequence$ (where
+$\SequenceLeq^{\Examples}$ is the ordering incorporating example information)
+then there is not only a
+sequence lens between $\Sequence$ and $\SequenceAlt$, but there is one that also
+satisfies the examples.
+Incorporating parse tree information lets the synthesis algorithm differentiate
+between previously indistinguishable
+subcomponents; a \TextChar{} that parsed only \StringCF{"a"} would become
+less than a \TextChar{} that parsed only \StringCF{"b"}.  The details of
+these orderings are formalized in
+\ifappendices
+Section~\ref{alg-correctness}.
+\else
+the full version of this paper~\cite{?}.
+\fi
+
 \paragraph*{Correctness}
 We have proven two theorems demonstrating the correctness of our algorithm.
 
@@ -2652,8 +2696,29 @@ generated code to make it easily readable.  \Optician{} (1) maximally
 factors the $\ConcatLens$s and $\OrLens$s, (2) turns lenses that perform identity
 transformations into identity lenses, and (3) simplifies the regular expressions
 the identity lenses take as an argument.  Performing these transformations and
-pretty printing the generated lenses make the synthesized lenses easy to
-understand.
+pretty printing the generated lenses make the synthesized lenses much easier to
+understand.  For example, without minimization, the title field transformation
+would be:
+%
+\begin{lstlisting}
+    const("<Field Id=2></Field>","")
+      | (const("<Field Id=2>","Title: ")
+          . Id(text_char)
+          . const("","")
+          . iterate(const("","") . Id(text_char) . const("",""))
+          . const("","")
+          . const("</Field>",", "))
+\end{lstlisting}
+%
+where with minimization, the title field transformation would be:
+%
+\begin{lstlisting}
+ const("<Field Id=2>","")
+   . (Id("")
+        | (Id(text_char) . iterate(Id(text_char)) . const("", ",")))
+   . const("</Field>",""))
+\end{lstlisting}
+%
 
 \paragraph*{Compositional Synthesis}
 Most synthesis problems can be divided into subproblems.  For example, if the
@@ -2694,8 +2759,20 @@ of 1600 MHz DDR3 running macOS Sierra.
 We constructed our benchmarks by adapting examples from
 Augeas~\cite{augeas} and 
 Flash Fill~\cite{gulwani-popl-2014} and by handcrafting specific
-examples to test various 
-features of the algorithm.
+examples to test various features of the algorithm.
+
+Both Augeas and Flash Fill permit non-bijective transformtions.  In adopting
+these benchmarks, we had to
+modify the formats to handle two forms of non-bijectivity: (1) whitespace was
+present in one format but not the other, and (2) useful information was projected
+away when going from one format to the other.  The first form of non-bijectivity
+was by far the most common, applying to many Augeas examples.  To address this
+form of
+non-bijectivity, we added whitespace in the format where typically whitespace is
+unnecessary.  The second form of non-bijectivity was less prevalent, but
+occurred, typically in the FlashFill examples.  To address this form of
+non-bijectivity, we
+added projected information to the end of the format missing that information.
 
 Augeas is a configuration editing system for Linux that uses lens
 combinators similar to those in Boomerang. However, it transforms
@@ -2704,11 +2781,6 @@ transforming strings to strings.
 We adapted these Augeas lenses to our setting by converting the
 right-hand sides to strings that correspond to serialized versions
 of the tree formats.  
-Augeas also supports {\em asymmetric lenses}~\cite{Focal2005-long},
-which are more general than the bijective lenses \Optician{} can synthesize.
-We adapted these examples by adding extra fields to the
-target to make the transformations bijective and thus suitable
-for our study.
 We derived \AugeasCount of the benchmark tests by
 adapting the first 27 lenses in alphabetical order, as well as the lenses
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
@@ -2720,12 +2792,9 @@ overtuned to perform well on the testing data.
 
 Flash Fill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
-Many of the examples from Flash Fill are non-bijective because
-the user's goal is often to extract information.  We were able to
-adapt some examples by adding information to the target so the
-resulting transformation was bijective.
-We derived three benchmarks from examples in the
-Flash Fill paper~\cite{gulwani-popl-2014} that were close to bijections.
+We derived the three benchmarks from the first few examples in the
+Flash Fill paper~\cite{gulwani-popl-2014} and one from the running example on
+extracting phone numbers.
 
 Finally, we added custom examples to highlight weaknesses of
 our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
@@ -2734,14 +2803,40 @@ particularly useful (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
 and \CF{addr-probs}).   These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{.49\textwidth}
+    \centering
+    \includegraphics{generated-graphs/specsizes}
+    \caption{}
+    \label{subfig:lenssize}
+  \end{subfigure}
+  \begin{subfigure}[b]{.49\textwidth}
+    \includegraphics{generated-graphs/examplesused}
+    \caption{}
+    \label{subfig:examplesused}
+  \end{subfigure}
+  \caption{Sizes of Specifications.
+    In (a), we show how many benchmarks are defined in our suite using a
+    given number of AST nodes or fewer.
+    In (b), we show how many benchmarks are defined in our suite using a
+    given number of examples or fewer.}
+  \label{fig:definition-sizes}
+\end{figure}
+
 We have both complex and simple synthesis tasks in our benchmark suite.
-We generate lenses of sizes between \MinLensSize AST
-nodes, for simple problems like changing how dates are represented, and
-\MaxLensSize AST nodes, for complex tasks like transforming arbitrary XML of depth
-3 or less to a dictionary representation.
+Figure~\ref{fig:definition-sizes} shows the complexity of our regular
+specifications as well as our example counts.
+An average benchmark has a regular specification written in 310 AST nodes, and
+uses 1.1 input/output examples.
+Our benchmarks vary from simple problems, like changing how dates are represented
+(with a specification size of 85, and a generated lens size of 79), to 
+complex tasks, like transforming configuration files for server monitoring
+software into dictionary form (with a specification size of 670 and
+a generated lens size of 651).
 
 \begin{figure}
-  \includegraphics{times}
+  \includegraphics{generated-graphs/times}
   \caption{
     Number of benchmarks that can be solved by a given algorithm in a given
     amount of time. \FullMode{} is the full synthesis
@@ -2787,7 +2882,7 @@ algorithm with various optimizations enabled.  These modes are:
 We ran \Optician{} in each mode over our benchmark suite.
 We summarize the results of these tests in
 Figure~\ref{fig:synthesis-times}.
-\FullMode{} synthesized all 49 benchmarks, \NoCSMode{} synthesized 48
+\FullMode{} synthesized all 39 benchmarks, \NoCSMode{} synthesized 48
 benchmarks, \NoFPEMode{} synthesized 36 benchmarks, \NoERMode{} synthesized 6
 benchmarks, \NoUDMode{} synthesized 8 benchmarks, and \NaiveMode{} synthesized 0
 benchmarks.  \Optician{}'s optimizations make
@@ -2805,7 +2900,7 @@ expansions, the need to search through substitutions makes synthesis
 unbearably slow.
 
 \begin{figure}
-  \includegraphics{uninferred}
+  \includegraphics{generated-graphs/uninferred}
   \caption{Number of expansions found using enumerative search for tasks
     requiring a given number of
     expansions.  \NoCSMode{} is using the full inference
@@ -2843,7 +2938,7 @@ inferred expansions directs the remaining search even more, both speeding up
 existing problems and solving previously unmanageable benchmarks.
 
 \begin{figure}
-  \includegraphics{compositional}
+  \includegraphics{generated-graphs/compositional}
   \caption{Number of subtasks specified during compositional synthesis.
     Splitting the task into just a few subtasks provides huge performance
     benefits at the cost of a small amount of additional user work.} 
@@ -2889,7 +2984,7 @@ depth one, and synthesis of XML of depth up to two.
 
 \begin{figure}
   \centering
-  \includegraphics{examples.eps}
+  \includegraphics{generated-graphs/examples.eps}
   \caption{Average number of random examples required to synthesize benchmark
     programs.  {\bf Experimental Average} is the average number of randomly
     generated examples needed to correctly synthesize the lens.  {\bf
@@ -3076,7 +3171,8 @@ We found that these tools were unsuccessful in synthesizing the complex
 transformations we are performing -- both these tools synthesized under 5 of our
 39 examples.  Furthermore, neither of these tools were able to infer
 transformations 
-which occurred under two iterations.
+which occurred under two iterations -- for efficiency reasons Flash Fill
+explicitly does not synthesize programs with nested loops.
 Much of this work assumes, like us, that the synthesis engine is provided with a
 collection of 
 examples.  Our work differs in that we assume the programmer supplies
