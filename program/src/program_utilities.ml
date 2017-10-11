@@ -163,3 +163,19 @@ let retrieve_last_synthesis_problem_exn
   in
   let (_,r1,r2,exs) = Option.value_exn last_synth_option in
   (rc,lc,r1,r2,exs)
+
+let retrieve_example_count
+  : program -> int =
+  let retrieve_example_count_of_decl
+      (d:declaration)
+    : int =
+    begin match d with
+      | DeclSynthesizeLens (_,_,_,exs) ->
+        List.length exs
+      | _ ->
+        0
+    end
+  in
+  List.fold_left
+    ~f:(fun acc d -> retrieve_example_count_of_decl d + acc)
+    ~init:0

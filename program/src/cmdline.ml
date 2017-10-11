@@ -39,6 +39,7 @@ type driver_mode =
   | LensAndSpecSize
   | PossibleLensesAtFinalLevelWithNExamples of int
   | GenerateBoomerangSpec
+  | ExampleCount
 
 let usage_msg = "synml [-help | opts...] <src>"
 let filename : string option ref = ref None
@@ -92,6 +93,10 @@ let args =
   ; ( "-lens_size"
     , Arg.Unit (fun _ -> set_opt LensSize)
     , " Set to calculate the size of the generated lens"
+    )
+  ; ( "-examples_count"
+    , Arg.Unit (fun _ -> set_opt ExampleCount)
+    , " Set to calculate the number of examples used"
     )
   ; ( "-lens_and_spec_size"
     , Arg.Unit (fun _ -> set_opt LensAndSpecSize)
@@ -590,6 +595,9 @@ let lens_size (p:program) : unit =
 
   print_endline (string_of_int (mysize))
 
+let example_count (p:program) : unit =
+  print_endline (string_of_int (retrieve_example_count p))
+
 let specification_size (p:program) : unit =
   let (rc,_,r1,r2,_) = retrieve_last_synthesis_problem_exn p in
   let all_vars = (retrieve_transitive_regexp_vars rc r1) @
@@ -755,6 +763,8 @@ let main () =
             parse_file f |> expand_regexps_if_necessary |> specification_size
           | LensSize ->
             parse_file f |> expand_regexps_if_necessary |> lens_size
+          | ExampleCount ->
+            parse_file f |> expand_regexps_if_necessary |> example_count
           | CompositionalLensesUsed ->
             parse_file f |> expand_regexps_if_necessary |> collect_referenced_lenses
           | GenerateIOSpec ->
