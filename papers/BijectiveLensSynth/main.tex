@@ -313,9 +313,7 @@ using operators that swap adjacent fields.
 Furthermore, the Boomerang type checker is very strict, disallowing many programs
 because they contain ambiguity about how certain data is transformed.
 In short, lens languages provide strong bidirectional guarantees at the cost of
-forcing programmers to satisfy finicky type systems.  In a single piece of
-syntax, the programmer must encode two different formats, and show how to map
-between them.
+forcing programmers to satisfy finicky type systems.
 
 To make programming with lenses faster and easier, we have
 developed \emph{\Optician{}}, a
@@ -324,16 +322,19 @@ This work continues a recent trend toward streamlining programming tasks
 by synthesizing programs in a variety of domain-specific
 languages~\cite{flashfill,le-pldi-2014,perelman2014test,morpheus},
 many guided by
-types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015,morpheus}.  
+types~\cite{osera+:pldi15,frankle+:popl16,armando+:pldi16,feser-pldi-2015,morpheus}.
+
 Specifically, \Optician{} supports the synthesis of \emph{bijective lenses}, a
-useful subset of Boomerang.  While Boomerang allows for more complex lens
-formats, like assymmetric lenses~\cite{?} and quotient lenses~\cite{?}, we
-restrict our domain to a bijective core.
-We theorize many lenses in these theories have a bijective core, surrounded by
-projections (for asymmetric lenses) and canonizers (for quotient lenses).  If
-provided with these projections or canonizers (either from the user or
-from another synthesis algorithm) we expect \Optician{} can be used as a drop-in
-component for synthesizing terms in these more expressive languages.
+useful subset of Boomerang.  While Boomerang can express more complex lens
+theories, like assymmetric lenses~\cite{Focal2005-long} and quotient
+lenses~\cite{QuotientLenses08}, we focus on synthesizing lenses encoding bijections.
+We theorize many of these more complex lenses have a bijective core,
+surrounded by
+projections (for asymmetric lenses) and canonizers (for quotient lenses).
+If the appropriate projections and canonizers are provided
+(either from the user or from another synthesis algorithm),
+\Optician{} can be used as a drop-in component for synthesizing full terms in these
+more expressive theories.
 
 As inputs, \Optician{} takes specifications of the source and target formats, plus
 a collection of concrete examples of the desired 
@@ -712,30 +713,27 @@ but it swaps the results before concatenating.
 The combinator $\OrLensOf{\Lens_1}{\Lens_2}$ operates by applying either $\Lens_1$ or $\Lens_2$
 to the string.  The combinator $\IterateLensOf{\Lens}$ operates by repeatedly
 applying $\Lens$ to subparts of a string.
-
-These combinators can be structurally combined to express complex
-transformations.
-\footnote{For nested concatenations and disjunctions, the terms
-  $\ConcatLensOf{\Lens_1}{\Lens_2}$ and $\OrLensOf{\Lens_1}{\Lens_2}$ are
-  syntactically heavy.  Instead, these can be written in the infix style
-  of $\Lens_1 . \Lens_2$ (for concatenations) and $\Lens_1 | \Lens_2$ (for disjunctions).}
 For example the lens mapping between full names expressed with the last name
 presented first (like \StringCF{"Kleene, Stephen Cole"}) and names expressed with
 the first name presented first (like \StringCF{"Stephen Cole Kleene"})
 is:
+\footnote{For nested concatenations and disjunctions, the terms
+  $\ConcatLensOf{\Lens_1}{\Lens_2}$ and $\OrLensOf{\Lens_1}{\Lens_2}$ are
+  syntactically heavy.  Instead, these can be written in the infix style
+  of $\Lens_1 . \Lens_2$ (for concatenations) and $\Lens_1 | \Lens_2$ (for disjunctions).}
 %
 \begin{lstlisting}
    swap
      (Id(!name!) . const(@","@,@""@)
-     ,(iterate (swap (Id(!wsp!) , Id$_{\VarCF{name}}$)))))
+     ,(iterate (swap (Id(!wsp!) , Id$_{\VarCF{name}}$))))
 \end{lstlisting}
 %
 Unfortunately, even such a minimal example is hard to write!  Writing this
-required reasoning 
-about which components must be swapped to make the last name appear at the end, as
-well as how to properly place the whitespace between names.  These difficulties
-become even more apparent when writing complex, nested transformations occur
-between large formats, and when ensuring the lenses are well-typed.
+required reasoning about which components must be swapped to make the last name
+appear at the end, and which components must be swapped to properly place
+whitespace between names.  These difficulties become even more apparent when
+writing the complex transformations that occur between large formats, and
+when ensuring the lenses are well-typed. 
 
 \paragraph{Lens Typing}
 
@@ -2648,7 +2646,7 @@ these orderings are formalized in
 \ifappendices
 Section~\ref{alg-correctness}.
 \else
-the full version of this paper~\cite{?}.
+the extended version of this paper~\cite{extended-version}.
 \fi
 
 \paragraph*{Correctness}
@@ -2684,8 +2682,7 @@ are
 \ifappendices
 provided in the appendix.
 \else
-submitted to POPL 2018 as a part of the anonymous supplementary.
-material.
+available in the extended version of this paper~\cite{extended-version}.
 \fi
 
 \paragraph*{Simplification of Generated Lenses}
@@ -2698,7 +2695,7 @@ transformations into identity lenses, and (3) simplifies the regular expressions
 the identity lenses take as an argument.  Performing these transformations and
 pretty printing the generated lenses make the synthesized lenses much easier to
 understand.  For example, without minimization, the title field transformation
-would be:
+would be (will make sure this appears on one page in final):
 %
 \begin{lstlisting}
     const("<Field Id=2></Field>","")
@@ -2792,7 +2789,7 @@ overtuned to perform well on the testing data.
 
 Flash Fill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
-We derived the three benchmarks from the first few examples in the
+We derived three benchmarks from the first few examples in the
 Flash Fill paper~\cite{gulwani-popl-2014} and one from the running example on
 extracting phone numbers.
 
@@ -2824,7 +2821,6 @@ formats, bibliography formats, and address formats, respectively.
   \label{fig:definition-sizes}
 \end{figure}
 
-We have both complex and simple synthesis tasks in our benchmark suite.
 Figure~\ref{fig:definition-sizes} shows the complexity of our regular
 specifications as well as our example counts.
 An average benchmark has a regular specification written in 310 AST nodes, and
@@ -3157,12 +3153,20 @@ highlights in the introduction; readers can also
 consult a (slightly dated)
 survey~\cite{DBLP:conf/icmt/CzarneckiFHLST09} and
 recent theoretical perspectives~\cite{DBLP:journals/chinaf/FischerHP15,
-DBLP:conf/birthday/Abou-SalehCGMS16}.
+  DBLP:conf/birthday/Abou-SalehCGMS16}.
+
+Recently, symbolic transducers have been used to infer program
+inverses~\cite{program-inversion-symbolic-transducers}, providing
+invertibility guarantees for functions expressible in extended
+symbolic finite transducers. However, this tool
+cannot work on many of the programs we are interested in: \SwapLens{} cannot
+be expressed in full generality using these transducers.  Furthermore, this tool
+still requires user to input a program, instead of merely specifications.
 %We focus here on two closely related type-based synthesis tools for string
 %transformers described by regular expressions.
 
-While we do not know of any previous efforts to synthesize bidirectional
-transformations, there is a good deal of other recent research on
+While we do not know of any previous efforts to synthesize both directions of
+bidirectional transformations, there is a good deal of other recent research on
 synthesizing unidirectional string
 transformations~\cite{singh2012learning,le-pldi-2014,gulwani-popl-2014,perelman2014test,Singh:blinkfill}.
 We compared our system to two of these unidirectional string transformers,
