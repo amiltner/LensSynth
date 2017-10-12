@@ -303,15 +303,21 @@ and
 XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}.
 %
 
-
 %
-Unfortunately, these languages impose fiddly constraints on lenses,
-making lens programming slow and tedious.
-For example, Boomerang
-programmers often must rearrange the order of data items by recursively
-using operators that swap adjacent fields.
-Furthermore, the Boomerang type checker is very strict, disallowing many programs
-because they contain ambiguity about how certain data is transformed.
+Unfortunately, these languages are difficult to program in,
+forcing the programmer to juggle the multiple ways of interpreting their terms.
+In Boomerang, a single term represents
+the allowable inputs from the source data format, the allowable
+inputs from the target data format, and how to transform the terms from each
+format to the other.
+When the two data formats contain Kleene stars in different places, programmers
+must mentally transform these formats into a common ``aligned'' form.
+
+These languages impose fiddly constraints on lenses, making lens programming
+slow and tedious. For example, Boomerang programmers often must rearrange the
+order of data items by recursively using operators that swap adjacent fields.
+Furthermore, the Boomerang type checker is very strict, disallowing many
+programs because they contain ambiguity about how certain data is transformed.
 In short, lens languages provide strong bidirectional guarantees at the cost of
 forcing programmers to satisfy finicky type systems.
 
@@ -328,13 +334,20 @@ Specifically, \Optician{} supports the synthesis of \emph{bijective lenses}, a
 useful subset of Boomerang.  While Boomerang can express more complex lens
 theories, like assymmetric lenses~\cite{Focal2005-long} and quotient
 lenses~\cite{QuotientLenses08}, we focus on synthesizing lenses encoding bijections.
-We theorize many of these more complex lenses have a bijective core,
-surrounded by
-projections (for asymmetric lenses) and canonizers (for quotient lenses).
-If the appropriate projections and canonizers are provided
+We theorize many of these more complex lenses have a bijective core, surrounded
+by structured transformations.
+For example, assymmetric lenses can provide mappings between formats where one
+format contains information the other does not.  We expect that many asymmetric
+are merely bijections composed with projections, where the projections remove
+information when operated left to right, and recover that information when
+operated from right to left.
+Quotient lenses can provide mappings between formats containing unnecessary
+information, like whitespace.  We expect that many quotient lenses are merely
+bijections composed with functions that put the data into a canonical form.
+If the appropriate projections and canonizing functions are provided
 (either from the user or from another synthesis algorithm),
-\Optician{} can be used as a drop-in component for synthesizing full terms in these
-more expressive theories.
+\Optician{} can be used as a drop-in component for synthesizing full terms in
+these more expressive theories.
 
 As inputs, \Optician{} takes specifications of the source and target formats, plus
 a collection of concrete examples of the desired 
@@ -342,7 +355,8 @@ transformation.  Format specifications are supplied as ordinary regular
 expressions.
 Because regular expressions are so widely understood, we anticipate such
 inputs will be substantially easier for everyday programmers to work with
-than the unfamiliar syntax of lenses.  Moreover, including these format
+than the unfamiliar syntax of lenses.
+Moreover, including these format
 descriptions communicates a
 great deal of information to the synthesis system.  Thus, requiring user input
 of regular expressions
@@ -579,7 +593,7 @@ of the following holds:
 \item $\Regex = \Regex_1 \Or \Regex_2$ with $\Regex_1 \Intersect \Regex_2 =
   \emptyset$, 
 or
-\item $\Regex = \StarOf{(\Regex')}$ with $\UnambigItOf{(\Regex')}$.
+\item $\Regex = \StarOf{(\Regex'')}$ with $\UnambigItOf{(\Regex')}$.
 \end{enumerate*}
 \iffull Moreover, i\else I\fi{}n the recursive cases, $\Regex_1$, $\Regex_2$, and $\Regex'$
 must also be strongly unambiguous.
@@ -729,7 +743,8 @@ is:
 \end{lstlisting}
 %
 Unfortunately, even such a minimal example is hard to write!  Writing this
-required reasoning about which components must be swapped to make the last name
+program required reasoning about which components must be swapped to make the
+last name 
 appear at the end, and which components must be swapped to properly place
 whitespace between names.  These difficulties become even more apparent when
 writing the complex transformations that occur between large formats, and
@@ -2695,7 +2710,7 @@ transformations into identity lenses, and (3) simplifies the regular expressions
 the identity lenses take as an argument.  Performing these transformations and
 pretty printing the generated lenses make the synthesized lenses much easier to
 understand.  For example, without minimization, the title field transformation
-would be (will make sure this appears on one page in final):
+would be:
 %
 \begin{lstlisting}
     const("<Field Id=2></Field>","")
@@ -3160,10 +3175,12 @@ inverses~\cite{program-inversion-symbolic-transducers}, providing
 invertibility guarantees for functions expressible in extended
 symbolic finite transducers. However, this tool
 cannot work on many of the programs we are interested in: \SwapLens{} cannot
-be expressed in full generality using these transducers.  Furthermore, this tool
-still requires user to input a program, instead of merely specifications.
-%We focus here on two closely related type-based synthesis tools for string
-%transformers described by regular expressions.
+be expressed in full generality using these transducers.  As extended symbolic
+finite transducers have only finite lookahead, they cannot rearrange data of
+arbitrary length, making them unable to express lenses like the name-swapping
+lens shown in \S\ref{preliminaries}.
+Furthermore, this tool
+requires the user to input a program, instead of merely specifications.
 
 While we do not know of any previous efforts to synthesize both directions of
 bidirectional transformations, there is a good deal of other recent research on
@@ -3176,7 +3193,7 @@ transformations we are performing -- both these tools synthesized under 5 of our
 39 examples.  Furthermore, neither of these tools were able to infer
 transformations 
 which occurred under two iterations -- for efficiency reasons Flash Fill
-explicitly does not synthesize programs with nested loops.
+does not synthesize programs with nested loops~\cite{gulwani-popl-2014}.
 Much of this work assumes, like us, that the synthesis engine is provided with a
 collection of 
 examples.  Our work differs in that we assume the programmer supplies
@@ -3194,7 +3211,8 @@ engine does not have to both infer the format of the data as well as the
 transformations on it, obviating the need to infer tricky formats like those
 involving nested iterations.
 Furthermore, through focusing on bidirectional transformations we limit the
-space of synthesized functions to bijective ones, reducing the search space.
+space of synthesized functions to bijective ones, reducing the search space, but
+also reducing expressivity.
 
 There are many other recent results showing how to synthesize functions from
 type-based
