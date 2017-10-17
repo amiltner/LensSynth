@@ -1453,6 +1453,118 @@ let bib_to_end : (lens in bibtex <=> endnot)
 \section{Implementation and Evaluation}
 \label{impl}
 
+
+We have integrated QREs and quotient lens synthesis into Boomerang with an
+additional \afm{loc} lines of OCaml code. 
+
+All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
+of 1600 MHz DDR3 running macOS Sierra.
+
+Our evaluations serve to answer the following questions:
+\begin{enumerate}
+\item Does synthesizing quotient lenses from QREs permit for an easier
+  development process than existing approaches.
+
+\item Are QREs sufficiently expressive that more lenses can be synthesized
+  without modifications to the format. 
+
+\item Is our synthesis algorithm competitive with existing lens synthesis
+  tools.
+\end{enumerate}
+
+\subsection{Benchmark Suite Construction} 
+Our benchmarks were constructed from two sources:
+\begin{enumerate}
+\item \afm{39} of our benchmarks were derived from the Optician system.  These
+  benchmarks were a combination of custom benchmarks, benchmarks derived from
+  FlashFill, and benchmarks derived from Augeas.  Many of the formats mapped
+  between had to be modified to work with the bijectivity constraints
+  Optician required.  Commonly, one format had whitespace where the other did
+  not allow for whitespace.  To address the bijectivity issues surrounding this,
+  we added whitespace to the format that typically did not have whitespace.  We
+  were able to remove these alterations in adopting these benchmarks to our
+  system.
+
+\item \afm{8} of our benchmarks were derived from data.gov.  Data.gov contains
+  many transformations between formats.  In addition to the formats previously
+  adopted for Optician, we synthesized transformers between these formats.
+\end{enumerate}
+
+\subsection{Easing the Development Process}
+
+To test if our tool eases the development process, we compare the following
+number of AST nodes.
+%
+\begin{itemize}
+\item[\QRESize{}] \QRESize{} is the number of AST nodes in the QRE
+  specifications involved in QRE lens synthesis task.
+\item[\CanonizerAndSpecSize{}] \CanonizerAndSpecSize{} is the number of
+  AST nodes in $W(q)$ summed with the number of AST nodes in $\canonizer(q)$,
+  for each QRE used in QRE lens synthesis task.
+\item[\LensAndSpecSize{}] \LensAndSpecSize{} is the number of AST nodes
+  in $W(q)$ summed with the number of AST nodes in the synthesized QRE lens.
+\end{itemize}
+
+The value of \QRESize{} represents the difficulty in writing our benchmarks.
+
+The value of \CanonizerAndSpecSize{} represents the difficulty in writing our
+benchmarks without QREs.  This is only an approximation, as both $W(q)$ and
+$\canonizer(q)$ are automatically generated from the QRE.  In our
+experience, these automatically generated regular expressions and canonizers are
+the ones we would naturally write.
+
+The value of \LensAndSpecSize{} represents the difficulty in writing our benchmarks
+with neither QREs nor synthesis.  This is also an approximation, as $W(q)$ and
+$\canonizer(q)$ and the bijective lens are all automatically generated.
+We have found that the generated bijective lens is fairly similar in size to the
+one we would manually write, though it is typically less modular.
+
+Figure~\ref{?} shows the number of benchmarks written with at most a given
+number of AST nodes.  We found that \QRESize{} was consistently smaller than
+\CanonizerAndSpecSize{} and \LensAndSpecSize{}, demonstrating that introducing
+QREs saves programmers programming effort compared to both Optician and basic
+Boomerang.
+
+\subsection{Increase of Expressivity}
+
+Optician was only able to synthesize fully bijective data transformations.
+\Name loosens that restriction, and is able to synthesize data which is
+bijective when put in canonical form.
+To determine the increase of expressivity, we analyzed:
+\begin{enumerate}
+\item How many data formats in Optician's benchmark suite required modifications
+  to be bijective.
+\item How many data formats in Optician's benchmark suite required modifications
+  to be bijective when put in canonical form.
+\end{enumerate}
+
+We found that 10 of Opticians 39 benchmarks required modifications to be
+bijective. We found that 4 of Optician's 39
+benchmarks required modifications to be in bijective correspondence when in
+canonical form.  Furthermore, we found that all of the data.gov examples
+required no modifications to be in canonical form.  While we did not put the
+data.gov examples into a form suitable for Optician, we found only 4 of
+the 8 data.gov examples did not require canonization, so making suitable
+for Optician would have required a modification of 4 of the data.gov
+formats.
+
+\subsection{Competitive Performance}
+
+While we expanded on the Optician system, we found it important to validate
+performance did not degrade in this expansion.  To validate this, we tested:
+\begin{itemize}
+\item[\OpticianRuntime{}] Optician runs on its own benchmarks.
+\item[\SystemOnOptician{}] \Name{} runs on Optician's benchmarks.
+\item[\SystemOnBenchmarks{}] \Name{} runs on its own benchmarks.
+\end{itemize}
+
+We summarize the results of these experiments in Figure~\ref{?}.  \Name{} was
+able to synthesize all of Optician's benchmarks at a speed competitive with
+Optician.  Furthermore, adopting these tasks to use QREs actually sped up
+tasks!  After canonization, the regular expressions sent to synthesis are
+\emph{smaller} than before canonization - making the bijective lens synthesis
+portion of these tasks easier.
+
 \section{Related Work}
 \label{relwork} 
 
