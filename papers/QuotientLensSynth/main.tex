@@ -76,35 +76,44 @@ array, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 
 \begin{abstract} 
 
-  {\em Quotient lenses} express bidirectional transformations between data
-  formats, where the inputs to the transformation are considered modulo some
-  equivalence relation.  Such lenses save the programmer from having to write
-  two expressions and satisfy strong ``lens laws'' that ensure that the forward
-  and backward transformations interact well.  The use of quotients allows the
-  programmer to ignore ``inessential'' differences in the data, such as the
-  amount whitespace or the ordering of fields.
+{\em Lenses}~\cite{Lenses} are programs that specify bidirectional
+transformations between different data formats.  Writing a single lens
+rather than two separate uni-directional transformations saves both
+keystrokes and bugs, by reducing redundancy and by automatically
+guaranteeing strong ``lens laws'' ensuring that the forward and backward
+transformations interact well.
+%
+{\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses
+where the two data formats are considered modulo some equivalence relation.
+The use of quotients allows the programmer to ignore inessential differences
+in the data, such as the amount of whitespace or the ordering of fields.
 
-  However, quotient lenses are often difficult to program.  The programmer
-  often has to give a specification for the data on each side of the lens and a
-  separate specification for the equivalence relations defined on the data. The
-  programmer must also manually implement a lens program that maps between the
-  specifications while respecting the equivalence relations---this is itself a
-  challenging task thanks to the restrictions on how lenses can be combined
-  while still satisfying the lens laws.
+Quotient lenses can be difficult to program, requiring the programmer to
+give both a specification for the data on each side of the lens and a
+separate specification for the equivalence relations on the data.  The
+programmer must also manually implement a lens program that maps between the
+formats while respecting the equivalence relations---this is itself a
+challenging task thanks to the restrictions on how lenses can be combined
+while still satisfying the lens laws.  \bcp{Don't really understand that
+  paragraph!}
 
-This paper addresses both of these challenges. First, we propose the
-language of {\em Quotient Regular Expressions}, or QREs, which 
-define a broad class of equivalence relations
+This paper addresses both of these challenges\bcp{what are the two
+  challenges?}. First, we propose the language of {\em Quotient Regular
+  Expressions}, or QREs, which define a broad class of equivalence relations
 directly on regular languages using a compact and convenient notation. This
-eliminates the need to specify the data and the equivalence relation on the data
-separately. We then define {\em QRE lenses}, a class of quotient
-lenses that are typed using QREs, and show how to {\em synthesize} QRE lenses
-from their QRE types and a set of input-output examples. Finally, we
-demonstrate the applicability of this approach by synthesizing QRE lenses
-between several real-world data formats from the {\tt data.gov} database.
+eliminates the need to specify the data and the equivalence relation on the
+data separately. We then define {\em QRE lenses}, a class of quotient lenses
+that are typed using QREs, and show how to {\em synthesize} QRE lenses from
+their QRE types and a set of input-output examples. Finally, we demonstrate
+the applicability of this approach by synthesizing QRE lenses between
+several real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
+\bcp{Not sure there is time to fix this, but the intro seems very long and
+  technical---it takes a long time to get to saying what our actual
+  contributions are!  Wonder if we should move most of it to a second
+  ``Example'' section.} 
 {\em Bidirectional programming languages} such as
 Boomerang~\cite{boomerang}, Augeas~\cite{augeas}, XSugar~\cite{xsugar},
 biXid~\cite{bixid} and X/Inv~\cite{xinv}enable a programmer to express a
@@ -134,7 +143,9 @@ Bidirectional programs have also been called {\em lenses}. Formally, Foster et
 al~\cite{foster} defined a lens $\ell : S \Leftrightarrow V$ that maps between
 an ``abstract" {\em source} $S$ and a ``concrete" {\em view} $V$ to be a triple
 of functions $(\ell.\get, \; \ell.\lput, \; \ell.\create)$ satisfying the
-following equations:
+following equations:\bcp{Why are we showing all the complexity of asymmetric
+lenses?  We should just say that we're considering only the bijective case
+for now and then just give the details of that.}
 \begin{align*}
 \ell.get &: S \longrightarrow V & \ell.\lput \; (\ell.\get \; s) \; s &= s\\
 \ell.put &: V \longrightarrow S \longrightarrow S & \ell.\get \; (\ell.\lput \;
@@ -197,12 +208,6 @@ each record, and allows for arbitrary amounts of whitespace in between the
 author and title fields. These rules allow for these two \bibtex{} citation
 records to be considered the same,
 
-\bcp{I thought we were going to allow newlines within titles and authors...?}
-
-\sam{I wanted to illustrate how to use the squash QRE which is why I changed my
-mind on that, but on second thought since the problem of quotienting away
-whitespace at will is going to be more familiar to the reader I changed it back
-to the original plan. I will explain squash in the QRE section.}
 \begin{verbatim}
 @Book {conway,
   Author = "J. H. Conway",
@@ -222,7 +227,8 @@ to the original plan. I will explain squash in the QRE section.}
 on them.
 
 The code sample below shows how the programmer might specify these equivalence
-relations on the \bibtex{} records in Boomerang using canonizers:
+relations on the \bibtex{} records in Boomerang using canonizers:\bcp{Too
+  big to display in-line.  Better to put it in a figure.}
 
 \begin{verbatim}
 let project (r : regexp) (s : string) = canonizer_of_lens ((del r) . (ins s))
@@ -316,7 +322,9 @@ To address this issue, we propose the language of {\em Quotient Regular
 Expressions} or QREs, which express a broad class of equivalence relations
 directly on regular languages using a compact and convenient notation. 
 
-With QREs we can specify \bibtex{} records as follows:
+With QREs we can specify \bibtex{} records as follows:\bcp{Again, belongs in
+a figure.  And, since both figures are long, maybe there is a visual way to
+highlight the differences...?}
 
 \begin{verbatim}
 let wsp_to_space : canonizer = project [ \n\t\r]+ -> " "
@@ -420,7 +428,11 @@ $\ell$.
   \centering
   \includegraphics[width=\textwidth]{attheedges}
   \caption{Quotient Lens with ``Canonizers at the Edges''\sam{This is a
-  screenshot from Nate's thesis. Are we allowed to use it?}}
+      screenshot from Nate's thesis. Are we allowed to use it?}\bcp{We can
+      (if we put ``from [Nate's thesis]'' in the caption), but I don't think
+      we want the full complexity of asymmetric lenses here.  We should draw
+      the figure again.  (I might have the OmniGraffle file for it lying
+      around someplace...)}}
   \label{fig:attheedges}
 \end{figure}
 
@@ -1593,5 +1605,7 @@ portion of these tasks easier.
 
 \section{Conclusion and Future Work}
 \label{concl}
+
+\bcp{No bibliography??}
 
 \end{document}
