@@ -138,21 +138,13 @@ real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
-\ifplentyoftime
-\bcp{Not sure there is time to fix this, but the intro seems very long and
-  technical---it takes a long time to get to saying what our actual
-  contributions are!  Wonder if we should move most of it to a second
-  ``Example'' section.} 
-\fi
-\bcp{This sentence could be clearer!}{\em Bidirectional programming languages} such as
-Boomerang~\cite{boomerang}, Augeas~\cite{augeas}, XSugar~\cite{xsugar},
-biXid~\cite{bixid} and X/Inv~\cite{xinv}\bcp{there are many others; we
-  should mention all of them} enable a programmer to express a
-transformation that maps some input data to some output data, as well as a
-transformation that maps the output data back into the input data in a single
-expression.  An example of a {\em bidirectional transformation} which we shall
-revisit severally in this paper is a program which converts citation records
-such as
+A {\em lens} is a {\em bidirectional transformation} between a source
+type $S$ and a target type $T$ in which the forward transformation and the
+backward transformation satisfy a certain set of round-tripping laws (e.g.
+invertibility).
+
+An example of a bidirectional transformation which we shall revisit
+severally in this paper is a lens which converts citation records such as
 \begin{verbatim}
 @Book {conway,
   Author = "J. H. Conway",
@@ -170,79 +162,19 @@ such as
 
 \noindent in the EndNote format, and vice versa.
 
-Bidirectional programs have also been called {\em lenses}. Formally, Foster et
-al~\cite{foster} defined a lens $\ell : S \Leftrightarrow V$ that maps between
-an ``abstract" {\em source} $S$ and a ``concrete" {\em view} $V$ to be a triple
-of functions $(\ell.\get, \; \ell.\lput, \; \ell.\create)$ satisfying the
-following equations:\bcp{Why are we showing all the complexity of asymmetric
-lenses?  We should just say that we're considering only the bijective case
-for now and then just give the details of that.  (Related: The
-``abstract/concrete'' terminology doesn't make much sense in the bijective
-setting.)} 
-\begin{align*}
-\ell.get &: S \longrightarrow V & \ell.\lput \; (\ell.\get \; s) \; s &= s\\
-\ell.put &: V \longrightarrow S \longrightarrow S & \ell.\get \; (\ell.\lput \;
-v \; s) &= v\\
-\ell.create &: S \longrightarrow V & \ell.\lput \; (\ell.\create \; v) &= v
-\end{align*} 
+\sam{I need a better introduction\ldots}
 
-The $\get$ function presents a view of the data from the source, the
-$\lput$ function enables an updated view to be folded back into the source, and
-the $\create$ component produces a copy of the source from a view, using
-defaults to fill in information that may have been discarded by the $\get$
-function in producing the view. The first law states that the $\lput$ function
-must restore all the information discarded by $\get$ when its arguments are an
-abstract structure and a concrete structure that generates the very same
-abstract structure. The second and third laws state that $\lput$ and $\create$
-must propagate all of the information contained in their abstract arguments to
-the concrete structure they produce. These laws express fundamental expectations
-about how the components of a lens should work together.
+Lenses are desirable since they save the programmer from having to write two
+seperate transformations rather than one. Also, lenses offer strong
+guarantees about how the two transformations interact since lenses are
+constrained by lens laws.
 
-However, the constraints that are imposed by the lens laws are sometimes too
-strict. For instance, the programmer may wish to ignore updates to the data
-that only change the order of fields, or add whitespace characters that in
-reality are not part of the data. Foster {\em et al.\relax} therefore proposed
-\textit{quotient lenses} ~\cite{quotient} as a solution to this problem.
-Quotient lenses, which are implemented as a refinement of the bidirectional
-string processing language Boomerang, enable a programmer to write lenses which
-transform data that is quotiented out by an equivalence relation, so that
-records which are equivalent to each other modulo this relation are considered
-the same by the underlying lens.
-
-Formally, given equivalence relations $\sim_S$ and $\sim_V$ defined on the
-source $S$ and the view $V$ respectively, a quotient lens $q : S/{\sim_S}
-\Leftrightarrow V/{\sim_V}$ is a triple of functions $(\ell.\get, \; \ell.\lput,
-\; \ell.\create)$ which satisfy the lens laws up to equivalence:
-\begin{align*}
-\ell.get &: S \longrightarrow V & \ell.\lput \; (\ell.\get \; s) \; s &\sim_S
-s\\
-\ell.put &: V \longrightarrow S \longrightarrow S & \ell.\get \; (\ell.\lput \;
-v \; s) &\sim_V v\\
-\ell.create &: S \longrightarrow V & \ell.\lput \; (\ell.\create \; v) &\sim_V v
-\end{align*}
-Moreover, each of the $\get$, $\lput$ and $\create$ functions must respect
-$\sim_S$ and $\sim_V$. That is, if $s \sim_S s'$ then $\get \; s \sim_V
-\get \; s'$, if $s \sim_S s'$ and $v \sim_V v'$ then $\lput \; v \; s \sim_S
-\lput \; v' \; s'$ and if $v \sim_V v'$, then $\create \; v \sim_S \create \;
-v'$.
-
-\bcp{I'm nervous about making the concept of canonizer so central, since it
-  is not going to be much of a focus for the rest of the paper.  In general,
-it feels like the intro is explaining too much.  We need to find a more
-streamlined path through the ideas!}
-In Boomerang, equivalence relations are expressed using {\em canonizers}
-which are functions that map members of a regular language to their canonical
-representation modulo an equivalence relation. Therefore, in order to give a
-specification for the data, the programmer often has to write a
-regular expression which matches all possible representations of the data, and
-then provide a canonizer that does the job of quotienting the data.
-
-For example, suppose that the programmer wants to
-derive the \bibtex{} to EndNote transformation in such a way that the program
-allows for whitespace to occur arbitrarily between the words in the author and
-title fields, ignores the order in which the author and title fields occur in
-each record, and allows for arbitrary amounts of whitespace in between the
-author and title fields. These rules allow for the \bibtex{} citations
+However, these constraints are sometimes too strict. For example,  the
+programmer may want the \bibtex{} to EndNote transformation to allow for
+whitespace to occur arbitrarily between the words in the label, author and
+title fields as well as in between them, and ignore the order in which the
+author and title fields occur in each record. These rules allow for the
+\bibtex{} citations
 \begin{verbatim}
     @Book {conway,
       Author = "J. H. Conway",
@@ -256,139 +188,50 @@ and
                  and Finite Machines},
            Author = "J. H. Conway",     }
 \end{verbatim}
-to be considered the same (with the EndNote records having a similar
-equivalence relation defined on them).
+to be considered the same, with the EndNote records having similar rules
+defined on them.
 
-\begin{figure}[t]
-\begin{lstlisting}
-let project (r : regexp) (s : string) = canonizer_of_lens ((del r) . (ins s))
-let wsp : regexp = [ \n\t\r]$^+$
-let wsp_to_space : canonizer = project wsp " "
-let valid_name : canonizer = 
-    name | (name . wsp_to_space . (name .wsp_to_space)$^*$ .name)
-let wsp_to_and : canonizer = project (wsp . "and" . wsp) " and "
-let bib_names : canonizer =  
-    valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
-let bib_author : canonizer = "author = \"" . bib_names . "\""
-let label : regexp = [a-zA-Z0-9]$^+$
-let title : canonizer = 
-    word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
-let bib_title : canonizer = "title = {" . title . "}"
-let wsp_to_comma : canonizer = project ("," . wsp) ",\n"
-let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
-let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
-let bibtex : canonizer = 
-    "@book{" . label. wsp_to_comma . (first_perm | second_perm) . "}"
-\end{lstlisting}
+As a solution to this problem, Foster et al introduced {\em quotient lenses},
+which are a generalization of lenses in which the source and target data are
+considered modulo an equivalence relation. Quotient lenses are
+both simpler and more flexible, since whole equivalence classes of data
+values can be handled all at once and inessential details like whitespace
+and ordering of fields can be ignored.
 
-  \caption{Boomerang canonizers for the \bibtex{}--EndNote equivalence
-    relations.}
-  \label{fig:example-canonizers}
-\end{figure}
-The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
-might specify these equivalence relations on the \bibtex{} records in Boomerang
-using canonizers.
-%
-Using the in-built \cd{canonizer_of_lens} function which extracts a canonizer
-from a lens, it is easy to define an equivalence relation that sends all
-members of a regular language to a canonical representative.\bcp{Oh dear.
-  The \cd{canonizer_of_lens} thing is really kind of a hack---we're using
-  the fancy/specialized language of lenses to write what could really be a
-  simple program in an arbitrary language (and then throwing away half of the
-  lens, when the whole reason we give for having lenses in the first place
-  is because we want both directions).  As an implementation trick, it was a
-good idea.  But trying to get readers to understand it here does not seem
-like a good idea.} For example
-the expression 
-\begin{lstlisting}
-let wsp_to_space : canonizer = canonizer_of_lens ((del wsp) . (ins " "))
-\end{lstlisting}
-\noindent defines a canonizer which sends arbitrary occurences of whitespace
-characters to a single space\bcp{Going into this level of detail encourages
-readers to actually try to understand the details, but we don't actually
-give enough details to allow them to do that!}. However, a problem arises
-when trying to specify 
-the equivalence relation which nests this projection relation with the relation
-that considers all permutations of the \bibtex{} fields equivalent.
-
-Specifically, it becomes necessary to specify each of the permutations
-seperately, since Boomerang's in-built permutation combinator does not account
-for separators in between the regular expressions being permuted:\bcp{Why
-  couldn't we just enrich Boomerang's permutation combinator to do this?}
-
-\begin{lstlisting}
-let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
-let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
-\end{lstlisting}
-
-One possible solution is to permute the alternative canonizers
-\cd{bib_author.wsp_to_comma} and \cd{bib_title.wsp_to_comma},
-but Boomerang's type-checker will reject this expression since the permutation
-combinator accepts regular expressions rather than canonizers\bcp{It feels
-  like we're lost, here, in details of exactly what Boomerang does and
-  doesn't do.  This doesn't seem especially relevant to quotient lenses in
-  general, or to what we're doing in this paper.}. In any case, the
-regular expression
-\begin{lstlisting}
-bib_author . wsp_to_comma . bib_title . wsp_to_comma | 
-bib_title . wsp_to_comma . bib_author . wsp_to_comma
-\end{lstlisting}
-is not equivalent to,
-\begin{lstlisting}
-bib_author . wsp_to_comma . bib_title  | 
-bib_title . wsp_to_comma . bib_author
-\end{lstlisting}
-thus the programmer would have to write more lenses and canonizers to correct
-this. Therefore, in order to utilize this trick, the programmer might choose to
-specify all the regular expressions first (including the whole regular
-expressions canonized by the \cd{bib_author} and \cd{bib_title}
-canonizers), and then the canonizers separately. Alternatively, he/she may stick
-to using canonizers and then liberally make use of the built-in
-functions \cd{uncanonized_type} and \cd{canonized_type} which return the
-regular expression matching all the data and the regular expression matching
-the canonical representatives respectively.
-
-In any case, all of these alternatives lead to verbose code that is
-difficult to understand. Moreover, if the \bibtex{} records had 3 or more
-fields or even nested permutations, then the programmer would quickly find
-themselves in a bind with these workarounds.
+However many complicated equivalence relations are difficult to express in
+Boomerang, the lens programming language introduced by Foster et al which
+has quotient lens capability. For instance, while it is possible to express the
+equivalence on the \bibtex{} data above in Boomerang, actually doing so is
+difficult. The difficulty arises from the fact that the entire equivalence is
+composed of three separate equivalences which nest and interact with each other
+in a way that makes them difficult to express with the standard tools
+available. Moreover, many of the equivalences expressible in Boomerang require
+that the programmer first specify the data itself in form of a regular
+expression before specifying the equivalence relation on the data.
 
 To address this issue, we propose the language of {\em Quotient Regular
 Expressions} or QREs, which express a broad class of equivalence relations
-directly on regular languages using a compact and convenient notation. 
-
-With QREs we can specify \bibtex{} records as shown in Figure~\ref{fig:example-qre}.
+directly on regular languages using a compact and convenient notation. For
+example, with QREs we can specify \bibtex{} records as shown in
+Figure~\ref{fig:example-qre}.
 
 \begin{figure}[t]
 \begin{lstlisting}
-let wsp_to_space : canonizer = project [ \n\t\r]$^+$ $\to$ " "
-let valid_name : canonizer = 
-   name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
-let wsp_to_and : canonizer = 
-   project ([ \n\t\r]$^+$ . "and" . [ \n\t\r]$^+$) $\to$ " and "
-let bib_names : canonizer =  
-   valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
-let bib_author : canonizer = "author = \"" . bib_names . "\""
-let label : regexp = [a-zA-Z0-9]$^+$
-let title : canonizer = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
-let bib_title : canonizer = "title = {" . title . "}"
-let bib_perm  : canonizer = perm (label, bib_author, bib_title) with
-   (project ("," . [ \n\t\r]$^*$ ) $\to$ ",\n")
-let bibtex : canonizer = "@book{" . bib_perm . "}"
+let wsp_to_space = project [ \n\t\r]$^+$ $\to$ " "
+let valid_name = name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
+let wsp_to_and = project ([ \n\t\r]$^+$ . "and" . [ \n\t\r]$^+$) $\to$ " and "
+let bib_names = valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
+let bib_author = "author = \"" . bib_names . "\""
+let title = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
+let bib_title = "title = {" . title . "}"
+let bib_perm = perm (label, bib_author, bib_title) with(project ("," . [ \n\t\r]$^*$ ) $\to$ ",\n")
+let bibtex = "@book{" . bib_perm . "}"
 \end{lstlisting}
-
-  
-\caption{QRE specification of \bibtex{} records.  \bcp{I'm afraid this pair
-    of examples is not making the point we intended.  I thought we were
-    hoping to just say ``Here's the old Boomerang version; here's the QRE
-    version; look how much smaller and simpler the second one is.''  But the
-    second one {\em isn't} actually much smaller and, at least on first
-    impression, doesn't look simpler.}}
+\caption{QRE specification of \bibtex{} records. }
   \label{fig:example-qre}
 \end{figure}
 
-The expression \bcp{mangled---did you proofread this?}\cd{project [
-  \n\t\r]+ -> " "} is a QRE that matches any 
+The expression \cd{project [ \\n\\t\\r]+ -> " "} is a QRE that matches any 
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
 Another QRE in the example above is the
@@ -403,19 +246,15 @@ perm (label, bib_author, bib_title) with (project ("," . [\n\t\r]$^*$ ) $\to$ ",
 in any order, with the fields separated by a comma followed by arbitrary amounts
 of whitespace. The canonical representation is that in which the label, author
 and title fields occur in that order, separated by a comma followed a newline.
-The \cd{perm} QRE is defined at the level of canonizers which allows for
-easy nesting of permutations. Similarly, it is easy to specify any number of
-fields within the \cd{perm} QRE.
+The \cd{perm} QRE allows for easy nesting of permutations. Similarly, it is easy
+to specify any number of fields within the \cd{perm} QRE.
 
 While QREs kill two birds with one stone by specifying the
-data and the equivalence relation on the data in one expression,
-he/she\bcp{Awkward: just use ``she'' (or find a way to alternate pronouns,
-  if that doesn't create confusion)}
-still has to manually program the underlying lens which maps the equivalence
+data and the equivalence relation on the data in one expression, the programmer
+still has to manually derive the underlying lens which maps the equivalence
 classes of the source data to the equivalence classes of the view data, a task
 which is itself tedious and error-prone as the code snippet below
-illustrates:\bcp{If we added this to the old-Boomerang figure it might make
-  a better case for size and simplicity!}
+illustrates:
 
 \begin{lstlisting}
 let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") = 
@@ -456,14 +295,14 @@ lenses that can be expressed in Boomerang.\bcp{As stated, this is
   problem of synthesizing bijective ordinary lenses!} This is a problem
 which we solved in our prior work ~\cite{popl18}.
 
-Our approach is to define a class of {\em QRE lenses} which are the same as
-bijective lenses with ``canonizers at the edges'' as in
-Figure~\ref{fig:attheedges}. In the forward direction, a QRE lens $q$ uses the
-source QRE $c$ to compute a unique representative for the data modulo the
-equivalence relation defined by $c$ and then applies the $\get$ function of a
-bijective lens $\ell$ to this representative. In the backward direction, $q$
-operates similarly, but using the view QRE $c'$ and the $\lput$ function of
-$\ell$.
+Our approach, which follows the design of quotient lenses in Boomerang, is to
+define a class of {\em QRE lenses} which are the same as bijective lenses with
+``canonizers at the edges'' as in Figure~\ref{fig:attheedges}. In the forward
+direction, a QRE lens $q$ uses the source QRE $c$ to compute a unique
+representative for the data modulo the equivalence relation defined by $c$ and
+then applies the $\get$ function of a bijective lens $\ell$ to this
+representative. In the backward direction, $q$ operates similarly, but using
+the view QRE $c'$ and the $\lput$ function of $\ell$.
 
 \begin{figure}[t]
   \centering
