@@ -1,4 +1,5 @@
 \newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifplentyoftime\plentyoftimefalse  % :-)
 
 \documentclass{svproc}
 
@@ -94,47 +95,58 @@ array, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
 
 \begin{abstract} 
 
-{\em Lenses}~\cite{Lenses} are programs that specify bidirectional
+{\em Lenses}~\cite{Lenses} specify bidirectional 
 transformations between different data formats.  Writing a single lens
 rather than two separate uni-directional transformations saves both
 keystrokes and bugs, by reducing redundancy and by automatically
 guaranteeing strong ``lens laws'' ensuring that the forward and backward
-transformations interact well.
+transformations interact well.  
 %
 {\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses
-where the two data formats are considered modulo some equivalence relation.
-The use of quotients allows the programmer to ignore inessential differences
-in the data, such as the amount of whitespace or the ordering of fields.
+where each of the data formats is quotiented by some equivalence relation
+and the lens laws are taken modulo equivalence.  This allows lenses to be
+both simpler and more flexible, since whole equivalence classes of data
+values can be handled all at once and inessential details like whitespace
+and ordering of fields can be ignored.
 
-Quotient lenses can be difficult to program, requiring the programmer to
-give both a specification for the data on each side of the lens and a
-separate specification for the equivalence relations on the data.  The
-programmer must also manually implement a lens program that maps between the
-formats while respecting the equivalence relations---this is itself a
-challenging task thanks to the restrictions on how lenses can be combined
-while still satisfying the lens laws.  \bcp{Don't really understand that
-  paragraph!}
+\smallskip
 
-This paper addresses both of these challenges\bcp{what are the two
-  challenges?}. First, we propose the language of {\em Quotient Regular
-  Expressions}, or QREs, which define a broad class of equivalence relations
-directly on regular languages using a compact and convenient notation. This
-eliminates the need to specify the data and the equivalence relation on the
-data separately. We then define {\em QRE lenses}, a class of quotient lenses
-that are typed using QREs, and show how to {\em synthesize} QRE lenses from
-their QRE types and a set of input-output examples. Finally, we demonstrate
-the applicability of this approach by synthesizing QRE lenses between
-several real-world data formats from the {\tt data.gov} database.
+However, while plain lenses are widely used in both standalone systems and
+popular libraries, Boomerang~\cite{Boomerang} is the only implementation
+currently offering quotient lenses.  One reason for this is that there is
+some annoying redundancy in the quotient lens notation: The programmer must
+separately specify (1) the data formats on each side of the lens, (2) the
+equivalence relations over them, and (3) a lens between the canonical
+representatives of the equivalence classes, even though, typically, these
+three share a great deal of structure.  Moreover, writing the lens between
+the equivalence classes can be challenging due to the rather fiddly, mainly
+due to ``non-ambiguity'' conditions in the lens well-formedness rules.
+
+\smallskip
+
+In this paper, we address both of these issues.  First, we propose a novel
+language of {\em Quotient Regular Expressions}, or QREs, which allows
+programmers to specify a broad class of equivalence relations over regular
+languages using a compact and convenient notation in which the regular
+language and its equivalence classes are captured by a single expression.
+We then define {\em QRE lenses}, a class of bijective quotient lenses that
+are typed using QREs, and show how to {\em synthesize} QRE lenses from their
+QRE types and a set of input-output examples.  We demonstrate the
+practicality of this approach by synthesizing QRE lenses between several
+real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
+\ifplentyoftime
 \bcp{Not sure there is time to fix this, but the intro seems very long and
   technical---it takes a long time to get to saying what our actual
   contributions are!  Wonder if we should move most of it to a second
   ``Example'' section.} 
+\fi
 {\em Bidirectional programming languages} such as
 Boomerang~\cite{boomerang}, Augeas~\cite{augeas}, XSugar~\cite{xsugar},
-biXid~\cite{bixid} and X/Inv~\cite{xinv}enable a programmer to express a
+biXid~\cite{bixid} and X/Inv~\cite{xinv}\bcp{there are many others; we
+  should mention all of them} enable a programmer to express a
 transformation that maps some input data to some output data, as well as a
 transformation that maps the output data back into the input data in a single
 expression. An example of a {\em bidirectional transformation} which we shall
