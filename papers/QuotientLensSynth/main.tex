@@ -1,4 +1,5 @@
 \newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifplentyoftime\plentyoftimefalse  % :-)
 
 \documentclass{svproc}
 
@@ -17,7 +18,8 @@
   showstringspaces=false,
   commentstyle=\itshape\rmfamily,
   columns=flexible,
-  stringstyle=\sffamily\color{dkred},
+  % BCP: I find this distracting:
+  % stringstyle=\sffamily\color{dkred},
   mathescape
 }
 \newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
@@ -94,50 +96,61 @@
 
 \begin{abstract} 
 
-{\em Lenses}~\cite{Lenses} are programs that specify bidirectional
+{\em Lenses}~\cite{Lenses} specify bidirectional 
 transformations between different data formats.  Writing a single lens
 rather than two separate uni-directional transformations saves both
 keystrokes and bugs, by reducing redundancy and by automatically
 guaranteeing strong ``lens laws'' ensuring that the forward and backward
-transformations interact well.
+transformations interact well.  
 %
 {\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses
-where the two data formats are considered modulo some equivalence relation.
-The use of quotients allows the programmer to ignore inessential differences
-in the data, such as the amount of whitespace or the ordering of fields.
+where each of the data formats is quotiented by some equivalence relation
+and the lens laws are taken modulo equivalence.  This allows lenses to be
+both simpler and more flexible, since whole equivalence classes of data
+values can be handled all at once and inessential details like whitespace
+and ordering of fields can be ignored.
 
-Quotient lenses can be difficult to program, requiring the programmer to
-give both a specification for the data on each side of the lens and a
-separate specification for the equivalence relations on the data.  The
-programmer must also manually implement a lens program that maps between the
-formats while respecting the equivalence relations---this is itself a
-challenging task thanks to the restrictions on how lenses can be combined
-while still satisfying the lens laws.  \bcp{Don't really understand that
-  paragraph!}
+\smallskip
 
-This paper addresses both of these challenges\bcp{what are the two
-  challenges?}. First, we propose the language of {\em Quotient Regular
-  Expressions}, or QREs, which define a broad class of equivalence relations
-directly on regular languages using a compact and convenient notation. This
-eliminates the need to specify the data and the equivalence relation on the
-data separately. We then define {\em QRE lenses}, a class of quotient lenses
-that are typed using QREs, and show how to {\em synthesize} QRE lenses from
-their QRE types and a set of input-output examples. Finally, we demonstrate
-the applicability of this approach by synthesizing QRE lenses between
-several real-world data formats from the {\tt data.gov} database.
+However, while plain lenses are widely used in both standalone systems and
+popular libraries, Boomerang~\cite{Boomerang} is the only implementation
+currently offering quotient lenses.  One reason for this is that there is
+some annoying redundancy in the quotient lens notation: The programmer must
+separately specify (1) the data formats on each side of the lens, (2) the
+equivalence relations over them, and (3) a lens between the canonical
+representatives of the equivalence classes, even though, typically, these
+three share a great deal of structure.  Moreover, writing the lens between
+the equivalence classes can be challenging due to the rather fiddly, mainly
+due to ``non-ambiguity'' conditions in the lens well-formedness rules.
+
+\smallskip
+
+In this paper, we address both of these issues.  First, we propose a novel
+language of {\em Quotient Regular Expressions}, or QREs, which allows
+programmers to specify a broad class of equivalence relations over regular
+languages using a compact and convenient notation in which the regular
+language and its equivalence classes are captured by a single expression.
+We then define {\em QRE lenses}, a class of bijective quotient lenses that
+are typed using QREs, and we show how to {\em synthesize} QRE lenses from their
+QRE types and a set of input-output examples.  We demonstrate the
+practicality of this approach by synthesizing QRE lenses between several
+real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
+\ifplentyoftime
 \bcp{Not sure there is time to fix this, but the intro seems very long and
   technical---it takes a long time to get to saying what our actual
   contributions are!  Wonder if we should move most of it to a second
   ``Example'' section.} 
-{\em Bidirectional programming languages} such as
+\fi
+\bcp{This sentence could be clearer!}{\em Bidirectional programming languages} such as
 Boomerang~\cite{boomerang}, Augeas~\cite{augeas}, XSugar~\cite{xsugar},
-biXid~\cite{bixid} and X/Inv~\cite{xinv}enable a programmer to express a
+biXid~\cite{bixid} and X/Inv~\cite{xinv}\bcp{there are many others; we
+  should mention all of them} enable a programmer to express a
 transformation that maps some input data to some output data, as well as a
 transformation that maps the output data back into the input data in a single
-expression. An example of a {\em bidirectional transformation} which we shall
+expression.  An example of a {\em bidirectional transformation} which we shall
 revisit severally in this paper is a program which converts citation records
 such as
 \begin{verbatim}
@@ -163,7 +176,9 @@ an ``abstract" {\em source} $S$ and a ``concrete" {\em view} $V$ to be a triple
 of functions $(\ell.\get, \; \ell.\lput, \; \ell.\create)$ satisfying the
 following equations:\bcp{Why are we showing all the complexity of asymmetric
 lenses?  We should just say that we're considering only the bijective case
-for now and then just give the details of that.}
+for now and then just give the details of that.  (Related: The
+``abstract/concrete'' terminology doesn't make much sense in the bijective
+setting.)} 
 \begin{align*}
 \ell.get &: S \longrightarrow V & \ell.\lput \; (\ell.\get \; s) \; s &= s\\
 \ell.put &: V \longrightarrow S \longrightarrow S & \ell.\get \; (\ell.\lput \;
@@ -211,45 +226,40 @@ $\sim_S$ and $\sim_V$. That is, if $s \sim_S s'$ then $\get \; s \sim_V
 \lput \; v' \; s'$ and if $v \sim_V v'$, then $\create \; v \sim_S \create \;
 v'$.
 
+\bcp{I'm nervous about making the concept of canonizer so central, since it
+  is not going to be much of a focus for the rest of the paper.  In general,
+it feels like the intro is explaining too much.  We need to find a more
+streamlined path through the ideas!}
 In Boomerang, equivalence relations are expressed using {\em canonizers}
 which are functions that map members of a regular language to their canonical
 representation modulo an equivalence relation. Therefore, in order to give a
 specification for the data, the programmer often has to write a
 regular expression which matches all possible representations of the data, and
-then provide a set of canonizers which does the job of quotienting the data.
+then provide a canonizer that does the job of quotienting the data.
 
 For example, suppose that the programmer wants to
 derive the \bibtex{} to EndNote transformation in such a way that the program
 allows for whitespace to occur arbitrarily between the words in the author and
 title fields, ignores the order in which the author and title fields occur in
 each record, and allows for arbitrary amounts of whitespace in between the
-author and title fields. These rules allow for these two \bibtex{} citation
-records to be considered the same,
-
+author and title fields. These rules allow for the \bibtex{} citations
 \begin{verbatim}
-@Book {conway,
-  Author = "J. H. Conway",
-  Title = {Regular Algebra and Finite Machines},
-}
-
-@Book{conway,
-
-    Title = {Regular Algebra 
-            and Finite Machines},
-        
-    Author = "J. H. Conway",
-}
+    @Book {conway,
+      Author = "J. H. Conway",
+      Title = {Regular Algebra and Finite Machines},
+    }
 \end{verbatim}
-
-\noindent with the EndNote records having a similar equivalence relation defined
-on them.
-
-The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
-might specify these equivalence relations on the \bibtex{} records in Boomerang
-using canonizers.
+and
+\begin{verbatim}
+    @Book{     conway,
+        Title = {Regular Algebra 
+                 and Finite Machines},
+           Author = "J. H. Conway",     }
+\end{verbatim}
+to be considered the same (with the EndNote records having a similar
+equivalence relation defined on them).
 
 \begin{figure}[t]
-
 \begin{lstlisting}
 let project (r : regexp) (s : string) = canonizer_of_lens ((del r) . (ins s))
 let wsp : regexp = [ \n\t\r]$^+$
@@ -271,27 +281,40 @@ let bibtex : canonizer =
     "@book{" . label. wsp_to_comma . (first_perm | second_perm) . "}"
 \end{lstlisting}
 
-  \caption{Boomerang canonizers for the \bibtex{}--EndnNote equivalence
+  \caption{Boomerang canonizers for the \bibtex{}--EndNote equivalence
     relations.}
   \label{fig:example-canonizers}
 \end{figure}
-
-
+The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
+might specify these equivalence relations on the \bibtex{} records in Boomerang
+using canonizers.
+%
 Using the in-built \cd{canonizer_of_lens} function which extracts a canonizer
 from a lens, it is easy to define an equivalence relation that sends all
-members of a regular language to a canonical representative. For example
+members of a regular language to a canonical representative.\bcp{Oh dear.
+  The \cd{canonizer_of_lens} thing is really kind of a hack---we're using
+  the fancy/specialized language of lenses to write what could really be a
+  simple program in an arbitrary language (and then throwing away half of the
+  lens, when the whole reason we give for having lenses in the first place
+  is because we want both directions).  As an implementation trick, it was a
+good idea.  But trying to get readers to understand it here does not seem
+like a good idea.} For example
 the expression 
 \begin{lstlisting}
 let wsp_to_space : canonizer = canonizer_of_lens ((del wsp) . (ins " "))
 \end{lstlisting}
 \noindent defines a canonizer which sends arbitrary occurences of whitespace
-characters to a single space. However, a problem arises when trying to specify
+characters to a single space\bcp{Going into this level of detail encourages
+readers to actually try to understand the details, but we don't actually
+give enough details to allow them to do that!}. However, a problem arises
+when trying to specify 
 the equivalence relation which nests this projection relation with the relation
 that considers all permutations of the \bibtex{} fields equivalent.
 
 Specifically, it becomes necessary to specify each of the permutations
 seperately, since Boomerang's in-built permutation combinator does not account
-for separators in between the regular expressions being permuted:
+for separators in between the regular expressions being permuted:\bcp{Why
+  couldn't we just enrich Boomerang's permutation combinator to do this?}
 
 \begin{lstlisting}
 let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
@@ -301,7 +324,10 @@ let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
 One possible solution is to permute the alternative canonizers
 \cd{bib_author.wsp_to_comma} and \cd{bib_title.wsp_to_comma},
 but Boomerang's type-checker will reject this expression since the permutation
-combinator accepts regular expressions rather than canonizers. In any case, the
+combinator accepts regular expressions rather than canonizers\bcp{It feels
+  like we're lost, here, in details of exactly what Boomerang does and
+  doesn't do.  This doesn't seem especially relevant to quotient lenses in
+  general, or to what we're doing in this paper.}. In any case, the
 regular expression
 \begin{lstlisting}
 bib_author . wsp_to_comma . bib_title . wsp_to_comma | 
@@ -352,11 +378,17 @@ let bibtex : canonizer = "@book{" . bib_perm . "}"
 \end{lstlisting}
 
   
-  \caption{QRE specification of \bibtex{} records.}
+\caption{QRE specification of \bibtex{} records.  \bcp{I'm afraid this pair
+    of examples is not making the point we intended.  I thought we were
+    hoping to just say ``Here's the old Boomerang version; here's the QRE
+    version; look how much smaller and simpler the second one is.''  But the
+    second one {\em isn't} actually much smaller and, at least on first
+    impression, doesn't look simpler.}}
   \label{fig:example-qre}
 \end{figure}
 
-The expression \cd{project [ \n\t\r]+ -> " "} is a QRE that matches any
+The expression \bcp{mangled---did you proofread this?}\cd{project [
+  \n\t\r]+ -> " "} is a QRE that matches any 
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
 Another QRE in the example above is the
@@ -376,10 +408,14 @@ easy nesting of permutations. Similarly, it is easy to specify any number of
 fields within the \cd{perm} QRE.
 
 While QREs kill two birds with one stone by specifying the
-data and the equivalence relation on the data in one expression, he/she
+data and the equivalence relation on the data in one expression,
+he/she\bcp{Awkward: just use ``she'' (or find a way to alternate pronouns,
+  if that doesn't create confusion)}
 still has to manually program the underlying lens which maps the equivalence
 classes of the source data to the equivalence classes of the view data, a task
-which is itself tedious and error-prone as the code snippet below illustrates:
+which is itself tedious and error-prone as the code snippet below
+illustrates:\bcp{If we added this to the old-Boomerang figure it might make
+  a better case for size and simplicity!}
 
 \begin{lstlisting}
 let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") = 
@@ -414,8 +450,11 @@ Therefore, to address this challenge, we demonstrate how to {\em synthesize}
 quotient lenses from a pair of QREs and a set of input-output example pairs.
 Our key insight is to reduce the problem of synthesizing QRE lenses to the
 problem of synthesizing {\em bijective lenses}, a particular subset of the
-lenses that can be expressed in Boomerang. This is a problem which we solved in
-our prior work ~\cite{popl18}.
+lenses that can be expressed in Boomerang.\bcp{As stated, this is
+  misleading: the reader might have the impression that we somehow reduce
+  the problem of synthesizing {\em asymmetric} quotient lenses to the
+  problem of synthesizing bijective ordinary lenses!} This is a problem
+which we solved in our prior work ~\cite{popl18}.
 
 Our approach is to define a class of {\em QRE lenses} which are the same as
 bijective lenses with ``canonizers at the edges'' as in
@@ -433,8 +472,8 @@ $\ell$.
       screenshot from Nate's thesis. Are we allowed to use it?}\bcp{We can
       (if we put ``from [Nate's thesis]'' in the caption), but I don't think
       we want the full complexity of asymmetric lenses here.  We should draw
-      the figure again.  (I might have the OmniGraffle file for it lying
-      around someplace...)}}
+      the figure again.  (I have the OmniGraffle file for it, so this is
+      easy if I know how it should look.)}}
   \label{fig:attheedges}
 \end{figure}
 
@@ -444,7 +483,9 @@ composition $q' \circ q$ of QRE lenses $q$ and $q'$ may not be equivalent to
 any quotient lens which has the canonical normal form of a bijective lens with
 canonizers a the edges. Our main technical contribution in this paper is a
 proof that QRE lenses are closed under left quotienting, right quotienting,
-composition, and regular combinators. This proof will allow justify our
+composition, and regular combinators.\bcp{If this is our main technical
+  contribution, then it deserves more than a sentence in the intro!  E.g.,
+  can we give an example?} This proof will allow justify our
 approach for synthesizing quotient lenses so that the programmer can simply
 type
 
@@ -461,10 +502,10 @@ In summary, our main contributions are:
 \item We introduce a novel language of {\em Quotient Regular Expressions}
 (QREs) that provide compact, convenient notation for a natural and useful
 class of equivalence relations on regular languages (Section~\ref{QRE}).
-\item We define a language of {\em QRE lenses}, a form of quotient lenses
-whose types are given by QREs.  Our main technical contribution is a normal
-form for QRE lenses and a proof that QRE lenses in normal form are closed
-under left quotienting, right quotienting, composition, and regular
+\item We define a language of {\em QRE lenses}, a subset of bijective quotient
+lenses whose types are given by QREs.  Our main technical contribution is a
+normal form for QRE lenses and a proof that normal forms are
+closed under left quotienting, right quotienting, composition, and regular
 operators (Section~\ref{QRE-lenses}).
 \item Using this normal form, we reduce the problem of {\em synthesizing}
 QRE lenses from their QRE types and a set of examples to the previously studied
@@ -484,8 +525,13 @@ This section introduces Quotient Regular Expressions or QREs. QREs are regular
 expressions augmented with syntax that lets them simultaneously express an
 equivalence relation on the language described by the regular expression.
 
-We have already encountered the \verb!project R $\to$ s! QRE which sends all
-elements of the language described by the regular expression $R$, and the
+\subsection{Overview}
+
+We have already encountered the \bcp{Again, formatting is mangled.  Also,
+  are we setting lens expressions in typewriter font, or in snas-serif?  I
+  don't care, but we need to be consistent.}\verb!project R $\to$ s! QRE
+which sends all elements of the language described by the regular expression
+$R$, and the
 
 \noindent \cd{perm (q_1, ..., q_n) with q} QRE which sends all permutations of
 the QREs $q_1, \ldots, q_n$ separated by the QRE $q$ to the canonical
@@ -694,8 +740,8 @@ K( \perm{q_1, \ldots, q_n}{q} ) = &
  K(q_1) \cdot K(q) \cdot \ldots \cdot K(q) \cdot K(q_n) 
 \end{array}
 \]
-  \caption{Whole and Kernel Regular Expressions\bcp{left-justify columns,
-      and try putting the last two clauses into the same format as the
+  \caption{Whole and Kernel Regular Expressions\bcp{try putting the 
+      last two clauses into the same format as the
       others (using $\mathit{qq} = ...$ and maybe reducing spacing around
       cdots, etc.)}}
   \label{fig:wk}
@@ -1158,7 +1204,10 @@ W(c')/{\eqrel{c'}}$ is a well-defined quotient lens.
   \llbracket q_2 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_2))\\
   \end{cases}
   $$
-  \caption{Denotation and Typing Rules for QRE Lenses}
+  \caption{Denotation and Typing Rules for QRE Lenses\bcp{I think we can
+      display this more compactly if we make the inference rules narrower by
+    stacking the premises vertically and then put each inference rule {\em
+      beside} its semantics definition.}}
   \label{fig:qlenssemantics}
 \end{figure}
 
