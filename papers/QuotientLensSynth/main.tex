@@ -4,6 +4,23 @@
 
 \usepackage{amsmath, amssymb, verbatim, enumerate, graphicx, centernot, tikz,
 array, mathtools, bussproofs, stmaryrd, enumitem, stackengine}
+\usepackage{relsize}
+\usepackage{listings}
+\lstset{
+  language=Caml,
+  basicstyle=\upshape\sffamily,
+  keywordstyle=\upshape\sffamily\color{dkblue},
+  keepspaces=true,
+  framexleftmargin=1ex,
+  framexrightmargin=1ex,
+  showstringspaces=false,
+  commentstyle=\itshape\rmfamily,
+  columns=flexible,
+  stringstyle=\sffamily\color{dkred},
+  mathescape
+}
+\newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
+
 
 %%%%%
 % Macros
@@ -226,53 +243,46 @@ records to be considered the same,
 \noindent with the EndNote records having a similar equivalence relation defined
 on them.
 
-The code sample below shows how the programmer might specify these equivalence
-relations on the \bibtex{} records in Boomerang using canonizers:\bcp{Too
-  big to display in-line.  Better to put it in a figure.}
+The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
+might specify these equivalence relations on the \bibtex{} records in Boomerang
+using canonizers.
 
-\begin{verbatim}
+\begin{figure}[t]
+
+\begin{lstlisting}
 let project (r : regexp) (s : string) = canonizer_of_lens ((del r) . (ins s))
-
-let wsp : regexp = [ \n\t\r]+
-
+let wsp : regexp = [ \n\t\r]$^+$
 let wsp_to_space : canonizer = project wsp " "
-
 let valid_name : canonizer = 
-name | (name . wsp_to_space . (name .wsp_to_space)* .name)
-
+    name | (name . wsp_to_space . (name .wsp_to_space)$^*$ .name)
 let wsp_to_and : canonizer = project (wsp . "and" . wsp) " and "
-
 let bib_names : canonizer =  
-
-valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)* . valid_name)
-
+    valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
 let bib_author : canonizer = "author = \"" . bib_names . "\""
-
-let label : regexp = [a-zA-Z0-9]+
-
+let label : regexp = [a-zA-Z0-9]$^+$
 let title : canonizer = 
-word | (word . wsp_to_space . (word . wsp_to_space)* . word)
-
+    word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
 let bib_title : canonizer = "title = {" . title . "}"
-
 let wsp_to_comma : canonizer = project ("," . wsp) ",\n"
-
 let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
-
 let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
-
 let bibtex : canonizer = 
-"@book{" . label. wsp_to_comma . (first_perm | second_perm) . "}"
-\end{verbatim}
+    "@book{" . label. wsp_to_comma . (first_perm | second_perm) . "}"
+\end{lstlisting}
 
-Using the in-built \verb!canonizer_of_lens! function which extracts a canonizer
-from a lens, it is easy to define a an equivalence relation that sends all
+  \caption{Boomerang canonizers for the \bibtex{}--EndnNote equivalence
+    relations.}
+  \label{fig:example-canonizers}
+\end{figure}
+
+
+Using the in-built \cd{canonizer_of_lens} function which extracts a canonizer
+from a lens, it is easy to define an equivalence relation that sends all
 members of a regular language to a canonical representative. For example
 the expression 
-\begin{verbatim}
+\begin{lstlisting}
 let wsp_to_space : canonizer = canonizer_of_lens ((del wsp) . (ins " "))
-\end{verbatim}
-
+\end{lstlisting}
 \noindent defines a canonizer which sends arbitrary occurences of whitespace
 characters to a single space. However, a problem arises when trying to specify
 the equivalence relation which nests this projection relation with the relation
@@ -282,34 +292,32 @@ Specifically, it becomes necessary to specify each of the permutations
 seperately, since Boomerang's in-built permutation combinator does not account
 for separators in between the regular expressions being permuted:
 
-\begin{verbatim}
+\begin{lstlisting}
 let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
-
 let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
-\end{verbatim}
+\end{lstlisting}
 
 One possible solution is to permute the alternative canonizers
-
-\noindent \verb!bib_author. wsp_to_comma! and \verb!bib_title . wsp_to_comma!,
+\cd{bib_author.wsp_to_comma} and \cd{bib_title.wsp_to_comma},
 but Boomerang's type-checker will reject this expression since the permutation
 combinator accepts regular expressions rather than canonizers. In any case, the
 regular expression
-\begin{verbatim}
+\begin{lstlisting}
 bib_author . wsp_to_comma . bib_title . wsp_to_comma | 
 bib_title . wsp_to_comma . bib_author . wsp_to_comma
-\end{verbatim}
+\end{lstlisting}
 is not equivalent to,
-\begin{verbatim}
+\begin{lstlisting}
 bib_author . wsp_to_comma . bib_title  | 
 bib_title . wsp_to_comma . bib_author
-\end{verbatim}
+\end{lstlisting}
 thus the programmer would have to write more lenses and canonizers to correct
 this. Therefore, in order to utilize this trick, the programmer might choose to
 specify all the regular expressions first (including the whole regular
-expressions canonized by the \verb!bib_author! and \verb!bib_title!
+expressions canonized by the \cd{bib_author} and \cd{bib_title}
 canonizers), and then the canonizers separately. Alternatively, he/she may stick
 to using canonizers and then liberally make use of the built-in
-functions \verb!uncanonized_type! and \verb!canonized_type! which return the
+functions \cd{uncanonized_type} and \cd{canonized_type} which return the
 regular expression matching all the data and the regular expression matching
 the canonical representatives respectively.
 
@@ -322,88 +330,81 @@ To address this issue, we propose the language of {\em Quotient Regular
 Expressions} or QREs, which express a broad class of equivalence relations
 directly on regular languages using a compact and convenient notation. 
 
-With QREs we can specify \bibtex{} records as follows:\bcp{Again, belongs in
-a figure.  And, since both figures are long, maybe there is a visual way to
-highlight the differences...?}
+With QREs we can specify \bibtex{} records as shown in Figure~\ref{fig:example-qre}.
 
-\begin{verbatim}
-let wsp_to_space : canonizer = project [ \n\t\r]+ -> " "
-
+\begin{figure}[t]
+\begin{lstlisting}
+let wsp_to_space : canonizer = project [ \n\t\r]$^+$ $\to$ " "
 let valid_name : canonizer = 
-name | (name . wsp_to_space . (name . wsp_to_space)* . name)
-
+   name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
 let wsp_to_and : canonizer = 
-project ([ \n\t\r]+ . "and" . [ \n\t\r]+) -> " and "
-
+   project ([ \n\t\r]$^+$ . "and" . [ \n\t\r]$^+$) $\to$ " and "
 let bib_names : canonizer =  
-
-valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)* . valid_name)
-
+   valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
 let bib_author : canonizer = "author = \"" . bib_names . "\""
-
-let label : regexp = [a-zA-Z0-9]+
-
-let title : canonizer = word | (word . wsp_to_space . (word . wsp_to_space)* .
-word)
-
+let label : regexp = [a-zA-Z0-9]$^+$
+let title : canonizer = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
 let bib_title : canonizer = "title = {" . title . "}"
- 
 let bib_perm  : canonizer = perm (label, bib_author, bib_title) with
-(project ("," . [ \n\t\r]* ) -> ",\n")
-
+   (project ("," . [ \n\t\r]$^*$ ) $\to$ ",\n")
 let bibtex : canonizer = "@book{" . bib_perm . "}"
-\end{verbatim}
+\end{lstlisting}
 
-The expression \verb!project [ \n\t\r]+ -> " "! is a QRE which matches any
+  
+  \caption{QRE specification of \bibtex{} records.}
+  \label{fig:example-qre}
+\end{figure}
+
+The expression \cd{project [ \n\t\r]+ -> " "} is a QRE that matches any
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
 Another QRE in the example above is the
 
 \begin{center}
-\begin{verbatim}
-perm (label, bib_author, bib_title) with (project ("," . [\n\t\r]* ) -> ",\n")
-\end{verbatim}
+\begin{lstlisting}
+perm (label, bib_author, bib_title) with (project ("," . [\n\t\r]$^*$ ) $\to$ ",\n")
+\end{lstlisting}
 \end{center}
 
 \noindent QRE, which specifies that the label, title and author fields can occur
 in any order, with the fields separated by a comma followed by arbitrary amounts
 of whitespace. The canonical representation is that in which the label, author
 and title fields occur in that order, separated by a comma followed a newline.
-The \verb!perm! QRE is defined at the level of canonizers which allows for
+The \cd{perm} QRE is defined at the level of canonizers which allows for
 easy nesting of permutations. Similarly, it is easy to specify any number of
-fields within the \verb!perm! QRE.
+fields within the \cd{perm} QRE.
 
 While QREs kill two birds with one stone by specifying the
 data and the equivalence relation on the data in one expression, he/she
 still has to manually program the underlying lens which maps the equivalence
 classes of the source data to the equivalence classes of the view data, a task
 which is itself tedious and error-prone as the code snippet below illustrates:
-\begin{verbatim}
-let preamble : (lens in "@book{" <=> "%0 Book\n%F ") = 
+
+\begin{lstlisting}
+let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") = 
     del "@book{" . ins "%0 Book\n%F "
   
-let author_lens : (lens in (",\n" . bib_author) <=> ("\n" . end_author)) = 
+let author_lens : (lens in (",\n" . bib_author) $\Leftrightarrow$ ("\n" . end_author)) = 
     del ",\nauthor = \""
     . ins "\n%A "
     . valid_name
     . (del " and "
          . ins "\n"
-         . (ins "%A " . valid_name . del " and " . ins "\n")*  . ins "%A "
+         . (ins "%A " . valid_name . del " and " . ins "\n")$^*$ . ins "%A "
          . valid_name
            || "")
            
-let title_lens : 
-(lens in ("\",\n" . bib_title . "},\n}") <=> ("\n" . end_title)) =
-del "\",\ntitle = {" . ins "\n%T " . title . del "},\n}" 
+let title_lens : (lens in ("\",\n" . bib_title . "},\n}") $\Leftrightarrow$ ("\n" . end_title)) =
+   del "\",\ntitle = {" . ins "\n%T " . title . del "},\n}" 
     
-let bib_to_end : (lens in bib_tex <=> end_note) =
-preamble . label . author_lens . title_lens
-\end{verbatim}
+let bib_to_end : (lens in bib_tex $\Leftrightarrow$ end_note) =
+   preamble . label . author_lens . title_lens
+\end{lstlisting}
 
 This lens transforms the \bibtex{} data to the EndNote (and vice versa) data by
 matching the delimiters and separators in a bijective manner. For example,
-the \verb!preamble! lens replaces the \bibtex{} preamble \verb!@book! with the
-EndNote preamble \verb!%0 Book\n%F ! in the \bibtex{record}. The programmer
+the \cd{preamble} lens replaces the \bibtex{} preamble \cd{@book} with the
+EndNote preamble \cd{\%0 Book\n\%F } in the \bibtex{record}. The programmer
 can ill afford to make a mistake with any one of the small but vital details
 of the transformations since even a one character mistake might render the lens
 incorrect. This makes lens programming tedious and error-prone.
@@ -482,10 +483,10 @@ This section introduces Quotient Regular Expressions or QREs. QREs are regular
 expressions augmented with syntax that lets them simultaneously express an
 equivalence relation on the language described by the regular expression.
 
-We have already encountered the \verb!project R -> s! QRE which sends all
+We have already encountered the \verb!project R $\to$ s! QRE which sends all
 elements of the language described by the regular expression $R$, and the
 
-\noindent \verb!perm (q_1, ..., q_n) with q! QRE which sends all permutations of
+\noindent \cd{perm (q_1, ..., q_n) with q} QRE which sends all permutations of
 the QREs $q_1, \ldots, q_n$ separated by the QRE $q$ to the canonical
 QRE $q_1 \cdot q \cdot \ldots \cdot q \cdot q_n$.
 
@@ -534,7 +535,7 @@ itself:
 
 \begin{verbatim}
 let squash_author : canonizer =  
-squash space_name -> comma_name using (get comma_to_space)
+squash space_name $\to$ comma_name using (get comma_to_space)
 
 let author : canonizer = "author = \"" . squash_author . "\""
 \end{verbatim}
@@ -638,7 +639,7 @@ QRE is well-defined.
 For example consider the QRE
 
 \begin{verbatim}
-let ambiguous : canonizer = "a"* . (project "a"* -> "a")
+let ambiguous : canonizer = "a"* . (project "a"* $\to$ "a")
 \end{verbatim}
 
 \noindent The behaviour of \verb!ambiguous! is not-well defined since the string
