@@ -225,45 +225,40 @@ $\sim_S$ and $\sim_V$. That is, if $s \sim_S s'$ then $\get \; s \sim_V
 \lput \; v' \; s'$ and if $v \sim_V v'$, then $\create \; v \sim_S \create \;
 v'$.
 
+\bcp{I'm nervous about making the concept of canonizer so central, since it
+  is not going to be much of a focus for the rest of the paper.  In general,
+it feels like the intro is explaining too much.  We need to find a more
+streamlined path through the ideas!}
 In Boomerang, equivalence relations are expressed using {\em canonizers}
 which are functions that map members of a regular language to their canonical
 representation modulo an equivalence relation. Therefore, in order to give a
 specification for the data, the programmer often has to write a
 regular expression which matches all possible representations of the data, and
-then provide a set of canonizers which does the job of quotienting the data.
+then provide a canonizer that does the job of quotienting the data.
 
 For example, suppose that the programmer wants to
 derive the \bibtex{} to EndNote transformation in such a way that the program
 allows for whitespace to occur arbitrarily between the words in the author and
 title fields, ignores the order in which the author and title fields occur in
 each record, and allows for arbitrary amounts of whitespace in between the
-author and title fields. These rules allow for these two \bibtex{} citation
-records to be considered the same,
-
+author and title fields. These rules allow for the \bibtex{} citations
 \begin{verbatim}
-@Book {conway,
-  Author = "J. H. Conway",
-  Title = {Regular Algebra and Finite Machines},
-}
-
-@Book{conway,
-
-    Title = {Regular Algebra 
-            and Finite Machines},
-        
-    Author = "J. H. Conway",
-}
+    @Book {conway,
+      Author = "J. H. Conway",
+      Title = {Regular Algebra and Finite Machines},
+    }
 \end{verbatim}
-
-\noindent with the EndNote records having a similar equivalence relation defined
-on them.
-
-The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
-might specify these equivalence relations on the \bibtex{} records in Boomerang
-using canonizers.
+and
+\begin{verbatim}
+    @Book{     conway,
+        Title = {Regular Algebra 
+                 and Finite Machines},
+           Author = "J. H. Conway",     }
+\end{verbatim}
+to be considered the same (with the EndNote records having a similar
+equivalence relation defined on them).
 
 \begin{figure}[t]
-
 \begin{lstlisting}
 let project (r : regexp) (s : string) = canonizer_of_lens ((del r) . (ins s))
 let wsp : regexp = [ \n\t\r]$^+$
@@ -285,27 +280,40 @@ let bibtex : canonizer =
     "@book{" . label. wsp_to_comma . (first_perm | second_perm) . "}"
 \end{lstlisting}
 
-  \caption{Boomerang canonizers for the \bibtex{}--EndnNote equivalence
+  \caption{Boomerang canonizers for the \bibtex{}--EndNote equivalence
     relations.}
   \label{fig:example-canonizers}
 \end{figure}
-
-
+The code sample in Figure~\ref{fig:example-canonizers} shows how the programmer
+might specify these equivalence relations on the \bibtex{} records in Boomerang
+using canonizers.
+%
 Using the in-built \cd{canonizer_of_lens} function which extracts a canonizer
 from a lens, it is easy to define an equivalence relation that sends all
-members of a regular language to a canonical representative. For example
+members of a regular language to a canonical representative.\bcp{Oh dear.
+  The \cd{canonizer_of_lens} thing is really kind of a hack---we're using
+  the fancy/specialized language of lenses to write what could really be a
+  simple program in an arbitrary language (and then throwing away half of the
+  lens, when the whole reason we give for having lenses in the first place
+  is because we want both directions).  As an implementation trick, it was a
+good idea.  But trying to get readers to understand it here does not seem
+like a good idea.} For example
 the expression 
 \begin{lstlisting}
 let wsp_to_space : canonizer = canonizer_of_lens ((del wsp) . (ins " "))
 \end{lstlisting}
 \noindent defines a canonizer which sends arbitrary occurences of whitespace
-characters to a single space. However, a problem arises when trying to specify
+characters to a single space\bcp{Going into this level of detail encourages
+readers to actually try to understand the details, but we don't actually
+give enough details to allow them to do that!}. However, a problem arises
+when trying to specify 
 the equivalence relation which nests this projection relation with the relation
 that considers all permutations of the \bibtex{} fields equivalent.
 
 Specifically, it becomes necessary to specify each of the permutations
 seperately, since Boomerang's in-built permutation combinator does not account
-for separators in between the regular expressions being permuted:
+for separators in between the regular expressions being permuted:\bcp{Why
+  couldn't we just enrich Boomerang's permutation combinator to do this?}
 
 \begin{lstlisting}
 let first_perm : canonizer = bib_author . wsp_to_comma . bib_title
@@ -315,7 +323,10 @@ let second_perm : canonizer = bib_title . wsp_to_comma . bib_author
 One possible solution is to permute the alternative canonizers
 \cd{bib_author.wsp_to_comma} and \cd{bib_title.wsp_to_comma},
 but Boomerang's type-checker will reject this expression since the permutation
-combinator accepts regular expressions rather than canonizers. In any case, the
+combinator accepts regular expressions rather than canonizers\bcp{It feels
+  like we're lost, here, in details of exactly what Boomerang does and
+  doesn't do.  This doesn't seem especially relevant to quotient lenses in
+  general, or to what we're doing in this paper.}. In any case, the
 regular expression
 \begin{lstlisting}
 bib_author . wsp_to_comma . bib_title . wsp_to_comma | 
@@ -366,11 +377,17 @@ let bibtex : canonizer = "@book{" . bib_perm . "}"
 \end{lstlisting}
 
   
-  \caption{QRE specification of \bibtex{} records.}
+\caption{QRE specification of \bibtex{} records.  \bcp{I'm afraid this pair
+    of examples is not making the point we intended.  I thought we were
+    hoping to just say ``Here's the old Boomerang version; here's the QRE
+    version; look how much smaller and simpler the second one is.''  But the
+    second one {\em isn't} actually much smaller and, at least on first
+    impression, doesn't look simpler.}}
   \label{fig:example-qre}
 \end{figure}
 
-The expression \cd{project [ \n\t\r]+ -> " "} is a QRE that matches any
+The expression \bcp{mangled---did you proofread this?}\cd{project [
+  \n\t\r]+ -> " "} is a QRE that matches any 
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
 Another QRE in the example above is the
@@ -390,10 +407,14 @@ easy nesting of permutations. Similarly, it is easy to specify any number of
 fields within the \cd{perm} QRE.
 
 While QREs kill two birds with one stone by specifying the
-data and the equivalence relation on the data in one expression, he/she
+data and the equivalence relation on the data in one expression,
+he/she\bcp{Awkward: just use ``she'' (or find a way to alternate pronouns,
+  if that doesn't create confusion)}
 still has to manually program the underlying lens which maps the equivalence
 classes of the source data to the equivalence classes of the view data, a task
-which is itself tedious and error-prone as the code snippet below illustrates:
+which is itself tedious and error-prone as the code snippet below
+illustrates:\bcp{If we added this to the old-Boomerang figure it might make
+  a better case for size and simplicity!}
 
 \begin{lstlisting}
 let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") = 
@@ -428,8 +449,11 @@ Therefore, to address this challenge, we demonstrate how to {\em synthesize}
 quotient lenses from a pair of QREs and a set of input-output example pairs.
 Our key insight is to reduce the problem of synthesizing QRE lenses to the
 problem of synthesizing {\em bijective lenses}, a particular subset of the
-lenses that can be expressed in Boomerang. This is a problem which we solved in
-our prior work ~\cite{popl18}.
+lenses that can be expressed in Boomerang.\bcp{As stated, this is
+  misleading: the reader might have the impression that we somehow reduce
+  the problem of synthesizing {\em asymmetric} quotient lenses to the
+  problem of synthesizing bijective ordinary lenses!} This is a problem
+which we solved in our prior work ~\cite{popl18}.
 
 Our approach is to define a class of {\em QRE lenses} which are the same as
 bijective lenses with ``canonizers at the edges'' as in
@@ -458,7 +482,9 @@ composition $q' \circ q$ of QRE lenses $q$ and $q'$ may not be equivalent to
 any quotient lens which has the canonical normal form of a bijective lens with
 canonizers a the edges. Our main technical contribution in this paper is a
 proof that QRE lenses are closed under left quotienting, right quotienting,
-composition, and regular combinators. This proof will allow justify our
+composition, and regular combinators.\bcp{If this is our main technical
+  contribution, then it deserves more than a sentence in the intro!  E.g.,
+  can we give an example?} This proof will allow justify our
 approach for synthesizing quotient lenses so that the programmer can simply
 type
 
@@ -500,8 +526,11 @@ equivalence relation on the language described by the regular expression.
 
 \subsection{Overview}
 
-We have already encountered the \verb!project R $\to$ s! QRE which sends all
-elements of the language described by the regular expression $R$, and the
+We have already encountered the \bcp{Again, formatting is mangled.  Also,
+  are we setting lens expressions in typewriter font, or in snas-serif?  I
+  don't care, but we need to be consistent.}\verb!project R $\to$ s! QRE
+which sends all elements of the language described by the regular expression
+$R$, and the
 
 \noindent \cd{perm (q_1, ..., q_n) with q} QRE which sends all permutations of
 the QREs $q_1, \ldots, q_n$ separated by the QRE $q$ to the canonical
