@@ -167,14 +167,26 @@ severally in this paper is a lens which converts citation records such as
 Lenses are desirable since they save the programmer from having to write two
 seperate transformations rather than one. Also, lenses offer strong
 guarantees about how the two transformations interact since lenses are
-constrained by lens laws.
+constrained by lens laws. However, these constraints are sometimes too strict.
+For example, the data may be such that a record can be represented in many ways
+because of the presence of spurious whitespace characters or reordering of
+fields. In such cases, deriving a lens which obeys the lens laws becomes a
+daunting task.
 
-However, these constraints are sometimes too strict. For example,  the
-programmer may want the \bibtex{} to EndNote transformation to allow for
-whitespace to occur arbitrarily between the words in the label, author and
-title fields as well as in between them, and ignore the order in which the
-author and title fields occur in each record. These rules allow for the
-\bibtex{} citations
+As a solution to this problem, Foster et al proposed {\em quotient lenses},
+which are a generalization of lenses in which the source and target data are
+considered modulo an equivalence relation. Quotient lenses are
+both simpler and more flexible, since whole equivalence classes of data
+values can be handled all at once and inessential details like whitespace
+and ordering of fields can be ignored.
+
+However many complicated equivalence relations are difficult to express in
+Boomerang, the lens programming language in which Foster et al implemented
+quotient lenses. For example, suppose that the \bibtex{} to EndNote
+transformation is required to allow for whitespace to occur arbitrarily between
+the words in the label, author and title fields as well as in between them, and
+ignore the order in which the author and title fields occur in each record.
+These rules allow for the \bibtex{} citations
 \begin{verbatim}
     @Book {conway,
       Author = "J. H. Conway",
@@ -191,23 +203,15 @@ and
 to be considered the same, with the EndNote records having similar rules
 defined on them.
 
-As a solution to this problem, Foster et al introduced {\em quotient lenses},
-which are a generalization of lenses in which the source and target data are
-considered modulo an equivalence relation. Quotient lenses are
-both simpler and more flexible, since whole equivalence classes of data
-values can be handled all at once and inessential details like whitespace
-and ordering of fields can be ignored.
 
-However many complicated equivalence relations are difficult to express in
-Boomerang, the lens programming language introduced by Foster et al which
-has quotient lens capability. For instance, while it is possible to express the
-equivalence on the \bibtex{} data above in Boomerang, actually doing so is
-difficult. The difficulty arises from the fact that the entire equivalence is
-composed of three separate equivalences which nest and interact with each other
-in a way that makes them difficult to express with the standard tools
-available. Moreover, many of the equivalences expressible in Boomerang require
-that the programmer first specify the data itself in form of a regular
-expression before specifying the equivalence relation on the data.
+While it is possible to express the equivalence on the \bibtex{} data above in
+Boomerang, actually doing so is difficult. The difficulty arises from the fact
+that the entire equivalence is composed of three separate equivalences which
+nest and interact with each other in a way that makes them difficult to express
+with the standard tools available. Moreover, many of the equivalences
+expressible in Boomerang require that the programmer first specify the data
+itself in form of a regular expression before specifying the equivalence
+relation on the data.
 
 To address this issue, we propose the language of {\em Quotient Regular
 Expressions} or QREs, which express a broad class of equivalence relations
@@ -217,14 +221,15 @@ Figure~\ref{fig:example-qre}.
 
 \begin{figure}[t]
 \begin{lstlisting}
-let wsp_to_space = project [ \n\t\r]$^+$ $\to$ " "
+let wsp = [ \n\t\r]$^+$
+let wsp_to_space = project wsp $\to$ " "
 let valid_name = name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
-let wsp_to_and = project ([ \n\t\r]$^+$ . "and" . [ \n\t\r]$^+$) $\to$ " and "
+let wsp_to_and = project (wsp . "and" . wsp) $\to$ " and "
 let bib_names = valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
 let bib_author = "author = \"" . bib_names . "\""
 let title = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
 let bib_title = "title = {" . title . "}"
-let bib_perm = perm (label, bib_author, bib_title) with(project ("," . [ \n\t\r]$^*$ ) $\to$ ",\n")
+let bib_perm = perm (label, bib_author, bib_title) with (project ("," .wsp) $\to$ ",\n")
 let bibtex = "@book{" . bib_perm . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records. }
@@ -330,7 +335,7 @@ approach for synthesizing quotient lenses so that the programmer can simply
 type
 
 \begin{lstlisting}
-let bib_to_end : (lens in bibtex <=> endnot) 
+let bib_to_end : (lens in bibtex <=> endnote) 
 = synth bibtex <=> endnote  using  {(bib_example, end_example)}
 \end{lstlisting}
 \noindent to synthesize a quotient lens that maps between \cd{bibtex} and
@@ -1504,13 +1509,51 @@ fields to make this format bijective, it still took over 15 seconds to complete.
 \section{Related Work}
 \label{relwork} 
 
-\bcp{Make sure to list/discuss:
+Bidirectional transformations have been used in diverse areas of computing
+where they arise as parsers and pretty printers, marshallers
+and unmarshallers, serializers and deserializers, database views and view
+updaters and many others\sam{TODO put citations}. Such transformations have
+been extensively studied since they were proposed as a solution to the classical
+{\em view-update problem} in the database community, where the challenge is to
+derive a program which extracts a view of data from a source, as well as a
+program which folds view updates back into the source safely and correctly.
+
+This paper builds on the work of Foster et al~\cite{quotientlenses} who
+introduced the theory of quotient lenses and implemented quotient lenses as a
+refinement of the bidirectional string processing language Boomerang.
+In Boomerang, the source and target types are specified using regular
+expressions, and the equivalence relations are expressed using canonizers, which
+are functions that map elements of a regular language to their canonical
+representative. Boomerang canonizers can express a very broad class of
+equivalence relations between regular languages, but actually doing so is often
+difficult with complicated equivalence relations. For instance, Boomerang's
+in-build permutation combinator does not account for separators in between the
+regular expressions. Also, this combinator permutes regular expressions rather
+than canonizers, thus making it difficult to express nested permutations which
+occur in many data formats, especially XML and XML-like formats.
+
+In their paper, Foster et al also discuss other bidirectional programming
+languages which support quotienting of data including XSugar~\cite{xsugar},
+biXid~\cite{bixid} and X/Inv~\cite{xinv}. XSugar programs bidirectionally
+convert data stored in XML and ASCII formats respectively, with the
+transformations specified by a pair of unambiguous grammars. The quotienting
+occurs on the XML side by use of a generic canonizer which standardizes the
+representation of trees. Well-formed XSugar programs are guaranteed to be
+bijective modulo an equivalence relation that captures XML normalization. biXid
+programs convert between pairs of XML documents, with the XML formats specified
+using a pair of grammars as in XSugar. However, biXid grammars can be ambiguous.
+This ambiguity is what allows biXid to express equivalences on the data.
+Finally, Foster et al discuss a possible connection with the language languages
+X and Inv which support a primitive duplication combinator that does not work
+well with the lens laws, but can be expressed using Boomerang quotient lenses.
+
+
+
+
+ \bcp{Make sure to list/discuss:
   \begin{itemize}
   \item Seminar papers on lenses (to which we can refer readers for further
   reading about connections to view updates, etc.) and quotient lenses.
-  \item Discuss what other lens-like programming languages (besides
-  boomerang) do about quotienting.  E.g., Augeas, XSugar, ...
-  \item How quotient lenses are used in Boomerang.
   \item Search for papers that cite the quotient lens paper and see if they
   extend the ideas there.
   \item Search for theoretical papers involving equivalence relations over
