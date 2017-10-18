@@ -231,7 +231,8 @@ let bibtex = "@book{" . bib_perm . "}"
   \label{fig:example-qre}
 \end{figure}
 
-The expression \cd{project [ \\n\\t\\r]+ -> " "} is a QRE that matches any 
+
+The expression \cd{project [\n\t\r]}$^+$ $\to$ \cd{" "} is a QRE that matches any 
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
 Another QRE in the example above is the
@@ -328,13 +329,13 @@ composition, and regular combinators.\bcp{If this is our main technical
 approach for synthesizing quotient lenses so that the programmer can simply
 type
 
-\begin{verbatim}
+\begin{lstlisting}
 let bib_to_end : (lens in bibtex <=> endnot) 
 = synth bibtex <=> endnote  using  {(bib_example, end_example)}
-\end{verbatim}
-\noindent to synthesize a quotient lens that maps between \verb!bibtex! and
-\verb!endnote! QREs, and sends the equivalence class of \verb!bib_bexample! to
-the equivalence class of \verb!end_example!.
+\end{lstlisting}
+\noindent to synthesize a quotient lens that maps between \cd{bibtex} and
+\cd{endnote} QREs, and sends the equivalence class of \cd{bib_bexample} to
+the equivalence class of \cd{end_example}.
 
 In summary, our main contributions are:
 \begin{enumerate}
@@ -366,9 +367,7 @@ equivalence relation on the language described by the regular expression.
 
 \subsection{Overview}
 
-We have already encountered the \bcp{Again, formatting is mangled.  Also,
-  are we setting lens expressions in typewriter font, or in snas-serif?  I
-  don't care, but we need to be consistent.}\verb!project R $\to$ s! QRE
+We have already encountered the \cd{project R} $\to$ \cd{s} QRE
 which sends all elements of the language described by the regular expression
 $R$, and the
 
@@ -396,20 +395,20 @@ For example, these two records should be considered equivalent:
 \end{verbatim}
 
 The equivalence described is one in which there is a bijection between 
-the regular expressions \verb!comma_name! and \verb!space_name! given by,
-\begin{verbatim}
+the regular expressions \cd{comma_name} and \cd{space_name} given by,
+\begin{lstlisting}
 let comma_name : regexp = name | (name . ", " . name . (" " . name)*)
 
 let space_name : regexp = name | (name . " " . (name . wsp_to_space)* . name)
 
-\end{verbatim}
+\end{lstlisting}
 
-\noindent with the lens \verb!comma_to_space! mapping between them given by 
-\begin{verbatim}
+\noindent with the lens \cd{comma_to_space} mapping between them given by 
+\begin{lstlisting}
 let comma_to_space : (lens in space_name <=> comma_name) =
 lens_swap 
 (name . del " " . (ins " " . name . del " ")* ) (name . ins ", ") || name 
-\end{verbatim}
+\end{lstlisting}
 
 The $\squash{R}{R'}{f}$ QRE is designed to make it easy to express such
 equivalences easily. Specifically, given regular expressions $R$ and $R'$, and
@@ -419,19 +418,19 @@ R')$ which sends each element $r \in \mathcal{L}(R)$ to the canonical element
 $f(r) \in \mathcal{L}(R')$, and sends each element $r' \in \mathcal{L}(R')$ to
 itself:
 
-\begin{verbatim}
+\begin{lstlisting}
 let squash_author : canonizer =  
 squash space_name $\to$ comma_name using (get comma_to_space)
 
 let author : canonizer = "author = \"" . squash_author . "\""
-\end{verbatim}
+\end{lstlisting}
 
-In this example, the \verb!squash_author! QRE expresses the fact that the
-\verb!space_name! and \verb!comma_name! representations of the authors' name
-are equivalent, with the \verb!comma_name! representation chosen as the
-canonical representation, and the function \verb!comma_to_space.get! giving
-the canonizing function which converts data in the \verb!space_name! format
-to its \verb!comma_name! representation.
+In this example, the \cd{squash_author} QRE expresses the fact that the
+\cd{space_name} and \cd{comma_name} representations of the authors' name
+are equivalent, with the \cd{comma_name} representation chosen as the
+canonical representation, and the function \cd{comma_to_space.get} giving
+the canonizing function which converts data in the \cd{space_name} format
+to its \cd{comma_name} representation.
 
 The $\squash{R}{R'}{f}$ has the added advantage that if the transformation from
 $R$ to $R'$ can be expressed by a bijective lens that is consistent with a set
@@ -440,18 +439,18 @@ because of our previous work where we demonstrated how to synthesize bijective
 lenses from a pair of regular expressions and a set of input-output example
 pairs:
 
-\begin{verbatim}
+\begin{lstlisting}
 let comma_to_space : (lens in space_name <=> comma_name) = 
 synth space_name <=> comma_name using {("J. H. Conway", "Conway, J. H.")}
-\end{verbatim}
+\end{lstlisting}
 
 The regular combinators for QREs i.e. $\cdot$ (concatenation), $|$ (union) and
 $*$ (iteration) behave like the regular combinators for regular languages. For
 instance, if the QRE for matching a \bibtex{} record is named
-\verb!bibtex!, then the QRE for matching two records is 
-\verb!bibtex . bibtex!, the QRE for matching one or two records is
-\verb! bibtex | (bibtex . bibtex)! and the QRE for matching any number of QRE
-records \verb!bibtex*!
+\cd{bibtex}, then the QRE for matching two records is 
+\cd{bibtex . bibtex}, the QRE for matching one or two records is
+\cd{ bibtex | (bibtex . bibtex)} and the QRE for matching any number of QRE
+records \cd{bibtex*}
 
 The $\normalize{R}{R'}{f}$ expresses the equivalence relation which sends each
 element in $\mathcal{L}(R)$ to its canonical representation $f(r) \in
@@ -524,13 +523,13 @@ QRE is well-defined.
 
 For example consider the QRE
 
-\begin{verbatim}
+\begin{lstlisting}
 let ambiguous : canonizer = "a"* . (project "a"* $\to$ "a")
-\end{verbatim}
+\end{lstlisting}
 
-\noindent The behaviour of \verb!ambiguous! is not-well defined since the string
-\verb!"aaa"! can be canonized to any of \verb!"a", "aa", "aaa"! depending on how
-\verb!"aaa"! is parsed. We also require that the regular combinators applied to
+\noindent The behaviour of \cd{ambiguous} is not-well defined since the string
+\cd{"aaa"} can be canonized to any of \cd{"a", "aa", "aaa"} depending on how
+\cd{"aaa"} is parsed. We also require that the regular combinators applied to
 the kernels are unambiguous since the underlying lenses will end up operating
 on the kernels, and these lenses impose the same restrictions for similar
 reasons.
@@ -910,15 +909,15 @@ quotients the source data using $c$, assuming that the source data forms a
 complete set of representatives for the equivalence relation $\eqrel{c}$. The
 $\mathit{lquot}(q, c)$ combinator does the same but on the view data. For
 example, recall that in the \bibtex{} to EndNote transformation, we had the QREs
-\verb!bibtex! and \verb!endnote! describing the \bibtex{} and EndNote records
-respectively, and the bijective lens \verb!bib_to_end! that maps between
-\verb!bibtex! and \verb!endnote!. The quotient lens which maps between
-\verb!bibtex! and \verb!endnote! is given by the QRE lens
+\cd{bibtex} and \cd{endnote} describing the \bibtex{} and EndNote records
+respectively, and the bijective lens \cd{bib_to_end} that maps between
+\cd{bibtex} and \cd{endnote}. The quotient lens which maps between
+\cd{bibtex} and \cd{endnote} is given by the QRE lens
 
-\begin{verbatim}
+\begin{lstlisting}
 let bib_to_end_q : (lens in bibtex <=> endnote) = 
 rquot (lquot (bibtex, bib_to_end), endnote)
- \end{verbatim} 
+ \end{lstlisting} 
  
 The difference between QRE lenses and Boomerang quotient lenses lies in the
 typing judgements. More concretely, each QRE lens $q$ has a type $q : c
@@ -1330,11 +1329,11 @@ c'$, that is consistent with the examples $\{(x_1, y_1), \ldots, (x_n, y_n)\}$
   c'$
 \end{enumerate}
 As an example, recall that
-in the \bibtex{} to EndNote transformation we had the QREs \verb!bibtex! and \verb!endnote! describing a \bibtex{} record and an
+in the \bibtex{} to EndNote transformation we had the QREs \cd{bibtex} and \cd{endnote} describing a \bibtex{} record and an
 Endnote record respectively. We also had the example pair 
-\verb!(bib_example , end_example)! where
+\cd{(bib_example , end_example)} where
 
-\begin{verbatim}
+\begin{lstlisting}
 bib_example = 
 "@Book {conway,
   Author = \"J. H. Conway\",
@@ -1352,14 +1351,14 @@ end_example =
 %F conway"
 \end{verbatim}
 
-Since the transformation between the kernel of \verb!bibtex! and the kernel of
-\verb!endnote! that maps \verb!bib_example! to \verb!end_example! can be
+Since the transformation between the kernel of \cd{bibtex} and the kernel of
+\cd{endnote! that maps \cd{bib_example! to \cd{end_example} can be
 expressed by a bijective lens, it suffices to type the expression
 
-\begin{verbatim}
+\begin{lstlisting}
 let bib_to_end : (lens in bibtex <=> endnot) 
-= synth bibtex <=> endnote  using  {(bib_example, end_example)}
-\end{verbatim}
+  = synth bibtex <=> endnote  using  {(bib_example, end_example)}
+\end{lstlisting}
 
 \section{Implementation and Evaluation}
 \label{impl}
