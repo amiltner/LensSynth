@@ -138,10 +138,10 @@ real-world data formats from the {\tt data.gov} database.
 \end{abstract}
 
 \section{Introduction}
-A {\em lens} is a {\em bidirectional transformation} between a source
-type $S$ and a target type $T$ in which the forward transformation and the
-backward transformation satisfy a certain set of round-tripping laws (e.g.
-invertibility).
+A {\em lens} $\ell$ is a {\em bidirectional transformation} between a source
+type $S$ and a target type $T$ in which the forward transformation
+$\ell.\get$ and the backward transformation $\ell.\lput$ satisfy certain
+round-tripping laws such as invertibility.
 
 An example of a bidirectional transformation which we shall revisit
 severally in this paper is a lens which converts citation records such as
@@ -162,16 +162,15 @@ severally in this paper is a lens which converts citation records such as
 
 \noindent in the EndNote format, and vice versa.
 
-\sam{I need a better introduction\ldots}
-
-Lenses are desirable since they save the programmer from having to write two
-seperate transformations rather than one. Also, lenses offer strong
+Lenses have the advantage of saving the programmer from having to
+write two seperate transformations rather than one. Also, lenses offer strong
 guarantees about how the two transformations interact since lenses are
-constrained by lens laws. However, these constraints are sometimes too strict.
-For example, the data may be such that a record can be represented in many ways
-because of the presence of spurious whitespace characters or reordering of
-fields. In such cases, deriving a lens which obeys the lens laws becomes a
-daunting task.
+constrained by lens laws. 
+
+However, these constraints are sometimes too strict. For example, a record in
+the data may represented in many ways because of the presence of spurious
+whitespace characters or because of the reordering of fields. Deriving a lens
+which obeys the lens laws in such a case can be daunting and frustrating.
 
 As a solution to this problem, Foster et al proposed {\em quotient lenses},
 which are a generalization of lenses in which the source and target data are
@@ -203,12 +202,11 @@ and
 to be considered the same, with the EndNote records having similar rules
 defined on them.
 
-
 While it is possible to express the equivalence on the \bibtex{} data above in
 Boomerang, actually doing so is difficult. The difficulty arises from the fact
 that the entire equivalence is composed of three separate equivalences which
 nest and interact with each other in a way that makes them difficult to express
-with the standard tools available. Moreover, many of the equivalences
+with the standard Boomerang combinators. Moreover, many of the equivalences
 expressible in Boomerang require that the programmer first specify the data
 itself in form of a regular expression before specifying the equivalence
 relation on the data.
@@ -236,7 +234,6 @@ let bibtex = "@book{" . bib_perm . "}"
   \label{fig:example-qre}
 \end{figure}
 
-
 The expression \cd{project [\n\t\r]}$^+$ $\to$ \cd{" "} is a QRE that matches any 
 number of whitespace characters, and then considers all strings of whitespace
 characters as equivalent with a single space as the canonical representative. 
@@ -244,7 +241,7 @@ Another QRE in the example above is the
 
 \begin{center}
 \begin{lstlisting}
-perm (label, bib_author, bib_title) with (project ("," . [\n\t\r]$^*$ ) $\to$ ",\n")
+perm (label, bib_author, bib_title) with (project ("," . wsp ) $\to$ ",\n")
 \end{lstlisting}
 \end{center}
 
@@ -255,12 +252,11 @@ and title fields occur in that order, separated by a comma followed a newline.
 The \cd{perm} QRE allows for easy nesting of permutations. Similarly, it is easy
 to specify any number of fields within the \cd{perm} QRE.
 
-While QREs kill two birds with one stone by specifying the
-data and the equivalence relation on the data in one expression, the programmer
-still has to manually derive the underlying lens which maps the equivalence
-classes of the source data to the equivalence classes of the view data, a task
-which is itself tedious and error-prone as the code snippet below
-illustrates:
+While QREs make it easier to write quotient lenses by specifying the data and
+the equivalence relation on the data in one expression, the programmer still
+has to manually derive the underlying lens which maps the equivalence classes
+of the source data to the equivalence classes of the target data. This is
+itself tedious and error-prone task, as the code snippet below illustrates:
 
 \begin{lstlisting}
 let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") = 
@@ -286,28 +282,25 @@ let bib_to_end : (lens in bib_tex $\Leftrightarrow$ end_note) =
 This lens transforms the \bibtex{} data to the EndNote (and vice versa) data by
 matching the delimiters and separators in a bijective manner. For example,
 the \cd{preamble} lens replaces the \bibtex{} preamble \cd{@book} with the
-EndNote preamble \cd{\%0 Book\n\%F } in the \bibtex{record}. The programmer
+EndNote preamble \cd{\%0 Book\n\%F } in the \bibtex{} record. The programmer
 can ill afford to make a mistake with any one of the small but vital details
 of the transformations since even a one character mistake might render the lens
 incorrect. This makes lens programming tedious and error-prone.
 
-Therefore, to address this challenge, we demonstrate how to {\em synthesize}
-quotient lenses from a pair of QREs and a set of input-output example pairs.
-Our key insight is to reduce the problem of synthesizing QRE lenses to the
-problem of synthesizing {\em bijective lenses}, a particular subset of the
-lenses that can be expressed in Boomerang.\bcp{As stated, this is
-  misleading: the reader might have the impression that we somehow reduce
-  the problem of synthesizing {\em asymmetric} quotient lenses to the
-  problem of synthesizing bijective ordinary lenses!} This is a problem
+Therefore, to address this challenge, we identify a special class of quotient
+lenses which we call {\em QRE lenses}, and show how to {\em
+synthesize} QRE lenses from a pair of QREs and a set of input-output
+example pairs. Our key insight is to reduce the problem of synthesizing QRE
+lenses to the problem of synthesizing {\em bijective lenses}, which are the
+bijections created from the Boomerang lens combinators. This is a problem
 which we solved in our prior work ~\cite{popl18}.
 
-Our approach, which follows the design of quotient lenses in Boomerang, is to
-define a class of {\em QRE lenses} which are the same as bijective lenses with
-``canonizers at the edges'' as in Figure~\ref{fig:attheedges}. In the forward
-direction, a QRE lens $q$ uses the source QRE $c$ to compute a unique
+QRE lenses lenses are the same as bijective lenses with ``canonizers at the
+edges'' as in Figure~\ref{fig:attheedges}, and are typed using QREs. In the
+forward direction, a QRE lens $q$ uses the source QRE $c$ to compute a unique
 representative for the data modulo the equivalence relation defined by $c$ and
 then applies the $\get$ function of a bijective lens $\ell$ to this
-representative. In the backward direction, $q$ operates similarly, but using
+representative. In the backward direction, $q$ operates similarly,  but using
 the view QRE $c'$ and the $\lput$ function of $\ell$.
 
 \begin{figure}[t]
@@ -374,7 +367,7 @@ equivalence relation on the language described by the regular expression.
 
 We have already encountered the \cd{project R} $\to$ \cd{s} QRE
 which sends all elements of the language described by the regular expression
-$R$, and the
+$R$ to the canonical representative $s$, and the
 
 \noindent \cd{perm (q_1, ..., q_n) with q} QRE which sends all permutations of
 the QREs $q_1, \ldots, q_n$ separated by the QRE $q$ to the canonical
@@ -424,8 +417,7 @@ $f(r) \in \mathcal{L}(R')$, and sends each element $r' \in \mathcal{L}(R')$ to
 itself:
 
 \begin{lstlisting}
-let squash_author : canonizer =  
-squash space_name $\to$ comma_name using (get comma_to_space)
+let squash_author = squash space_name $\to$ comma_name using comma_to_space
 
 let author : canonizer = "author = \"" . squash_author . "\""
 \end{lstlisting}
@@ -433,12 +425,12 @@ let author : canonizer = "author = \"" . squash_author . "\""
 In this example, the \cd{squash_author} QRE expresses the fact that the
 \cd{space_name} and \cd{comma_name} representations of the authors' name
 are equivalent, with the \cd{comma_name} representation chosen as the
-canonical representation, and the function \cd{comma_to_space.get} giving
+canonical representation, and the lens \cd{comma_to_space} giving
 the canonizing function which converts data in the \cd{space_name} format
 to its \cd{comma_name} representation.
 
-The $\squash{R}{R'}{f}$ has the added advantage that if the transformation from
-$R$ to $R'$ can be expressed by a bijective lens that is consistent with a set
+The $\squash{R}{R'}{\ell}$ has the added advantage that if the transformation
+from $R$ to $R'$ can be expressed by a bijective lens that is consistent with a set
 of examples, then the programmer can synthesize the lens from $R$ to $R'$
 because of our previous work where we demonstrated how to synthesize bijective
 lenses from a pair of regular expressions and a set of input-output example
@@ -1344,20 +1336,20 @@ bib_example =
   Author = \"J. H. Conway\",
   Title = {Regular Algebra and Finite Machines},
 }"
-\end{verbatim}
+\end{lstlisting}
 
 \noindent and
 
-\begin{verbatim}
+\begin{lstlisting}
 end_example = 
 "%0 Book
 %T Regular Algebra and Finite Machines
 %A J. H. Conway
 %F conway"
-\end{verbatim}
+\end{lstlisting}
 
 Since the transformation between the kernel of \cd{bibtex} and the kernel of
-\cd{endnote! that maps \cd{bib_example! to \cd{end_example} can be
+\cd{endnote!} that maps \cd{bib_example!} to \cd{end_example} can be
 expressed by a bijective lens, it suffices to type the expression
 
 \begin{lstlisting}
@@ -1474,7 +1466,7 @@ formats.
     \label{subfig:lenssize}
   \end{subfigure}
   \begin{subfigure}[b]{.49\textwidth}
-    \includegraphics{generated-graphs/times_new}
+    \includegraphics{times_new.eps}
     \caption{}
     \label{subfig:examplesused}
   \end{subfigure}
@@ -1547,19 +1539,13 @@ Finally, Foster et al discuss a possible connection with the language languages
 X and Inv which support a primitive duplication combinator that does not work
 well with the lens laws, but can be expressed using Boomerang quotient lenses.
 
+This paper also builds on our previous work where we showed how to synthesize
+bijective lenses from a pair of regular expressions describing the source and
+target types and a set of input-output examples. We refer the reader to the
+Related Work section of \cite{popl18} for a survey of the area of
+type-and-example driven synthesis.
 
 
-
- \bcp{Make sure to list/discuss:
-  \begin{itemize}
-  \item Seminar papers on lenses (to which we can refer readers for further
-  reading about connections to view updates, etc.) and quotient lenses.
-  \item Search for papers that cite the quotient lens paper and see if they
-  extend the ideas there.
-  \item Search for theoretical papers involving equivalence relations over
-  regular languages. 
-  \end{itemize}
-}
 
 \section{Conclusion and Future Work}
 \label{concl}
