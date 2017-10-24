@@ -314,7 +314,12 @@ the view QRE $c'$ and the $\lput$ function of $\ell$.
       (if we put ``from [Nate's thesis]'' in the caption), but I don't think
       we want the full complexity of asymmetric lenses here.  We should draw
       the figure again.  (I have the OmniGraffle file for it, so this is
-      easy if I know how it should look.)}\bcp{Done---what do you think?}}
+      easy if I know how it should look.)}\bcp{Done---what do you think?}
+      \sam{Yes this is more accurate, except that we don't need a general choose
+      function. With QREs the kernel language is always contained in the whole
+      language so we just use the inclusion as the choose function. Also,
+      perhaps it would be clearer if we said source structures and target
+      structres instead of all structures?}}
   \label{fig:attheedges}
 \end{figure}
 
@@ -662,7 +667,7 @@ w & \text{otherwise}
 \begin{prooftree}
 \AxiomC{$\mathcal{L}(R) \cap \mathcal{L}(R') = \varnothing$}
 \AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$}
-\BinaryInfC{$squash(R, R', f)$ is well formed}
+\BinaryInfC{$squash(R, R', \ell)$ is well formed}
 \end{prooftree}
 
 \begin{prooftree}
@@ -740,9 +745,7 @@ If $q$ is a well formed QRE, then
 As we have seen, QREs express a broad class of equivalence relations
 directly on regular languages.  QREs are therefore a good \textit{specification}
 language for quotient lenses. In this section of the paper, we introduce
-\textit{QRE Lenses}. QRE lenses are quotient lenses based on the Boomerang
-quotient lens combinators, but which use QREs to describe their source and view
-types.
+\textit{QRE Lenses}, a class of quotient lenses specified using QREs.
 
 Our approach in defining QRE lenses is as follows. Let $c, c'$ be QREs. Given a
 bijection $\ell : K(c) \Leftrightarrow K(c')$, we may define a quotient lens $q
@@ -752,29 +755,34 @@ q.get = \ell \circ \canonizer(c) \text{ and } q.put = \ell^{-1} \circ
 \canonizer(c'),
 \end{equation}
 
-\noindent One potential pitfall with QRE lenses is that the combinators which
+\noindent In other words, the get function of the QRE first canonizes the source
+data using $\mathit{Canonizer}(c)$ and then applies $f$ to the result, while the
+put function of the QRE first canonizes the target data using
+$\mathit{Canonizer}(c')$ and the applies $f^{-1}$ to the result.
+
+One potential pitfall with QRE lenses is that the combinators which
 we define on them may not preserve this normal form. For example, the
 composition $q' \circ q$ of QRE lenses $q$ and $q'$ may not be equivalent to
 any quotient lens which has the canonical normal form of a bijective lens with
 canonizers a the edges. Consequently, in order to define quotient lenses, we
-need to choose a class of bijections that has just the right properties with
-respect to the quotient lens combinators. Our choice is to use the class of
-\textit{bijective lenses}, a subset of the lenses expressible in Boomerang which
-we identified and studied in our previous work~\cite{popl18}. Bijective lenses,
-which we briefly discuss in the next subsection, possess the properties needed
-to ensure that all QRE lenses have the normal form suggested in
-\ref{normalform}.
+need to choose a set $S$ of bijections that has the right properties in the
+sense that QRE lenses built from the bijections in $S$ are closed under the
+action of QRE lens combinators. Our choice is to use the class of
+\textit{bijective lenses}, which are the bijections that can be expressed in
+Boomerang. In the next subsection we briefly introduce bijective lenses and
+discuss the properties of bijective lenses which we will use to prove that QRE
+lenses have the normal form of bijective lens with canonizers at the edges.
 
 \subsection{Bijective Lenses}
-Define the set of \textit{bijective lenses} to be the set of bijections
-between regular languages created from Boomerang lens combinators.
+We define the set of \textit{bijective lenses} to be the set of bijections
+between regular languages created using Boomerang lens combinators.
 The syntax for the language of bijective lenses is given by
 $$\ell := \mathit{id} \; (R) \sep const(s, s') \sep  swap(\ell,
 \ell) \sep \ell \cdot \ell' \; |  \; (\ell \sep \ell') \sep \ell^* \;
 | \; \ell \circ \ell',$$ where $R$ ranges over regular expressions and $s$
 ranges over character strings.
 
-The denotation of a lens $\ell$ is $\llbracket \ell \rrbracket \subseteq
+The denotation of a lens $\ell$ is $\llbracket \ell \rrbracket \subseteq
 \mathit{String} \times \mathit{String}$. If $(s_1, s_2) \in \llbracket \ell
 \rrbracket$, then $\ell$ maps between $s_1$ and $s_2$.
 
@@ -795,11 +803,11 @@ ranges over character strings.
 \end{align*}
 
 The $\mathit{const}(s, t)$ lens replaces the string $s$ with $t$ in the source
-data in the forward direction, and $t$ with $s$ in the view data in the backward
-direction. $\mathit{id}(R)$ applies the identity function to the source and view
+data in the forward direction, and $t$ with $s$ in the target data in the backward
+direction. $\mathit{id}(R)$ applies the identity function to the source and target
 in $\mathcal{L}(R)$ in both directions. The composition lens $\ell' \circ \ell$
 applies $\ell$ followed by then $\ell'$ to the source in the forward direction,
-and applies $\ell'$ followed by $\ell$ to the view in the backward direction.
+and applies $\ell'$ followed by $\ell$ to the target in the backward direction.
 The lens $\ell \cdot \ell'$ first splits the string $s$ into $s_1$ and $s_2$,
 applies $\ell$ and $\ell'$ to $s_1$ and $s_2$ to get $t_1$ and $t_2$
 respectively, then concatenates $t_1$ and $t_2$ and returns $t_1 \cdot t_2$ as
@@ -811,8 +819,8 @@ concatenating the two for a final result of $t_2 \cdot t_1$ in the forward
 direction. In the backward direction, $\mathit{swap}(\ell, \ell')$ first undoes
 the swap, then proceeds as expected. The $\ell \; | \; \ell'$ lens
 chooses to apply $\ell$ or $\ell'$ depending on whether the source
-(resp. view) data is matched by $\ell$ or $\ell'$ in the forward (resp.
-backward direction. The $\ell^*$ lens splits the string $s$ into strings $s_1,
+(resp. target) data is matched by $\ell$ or $\ell'$ in the forward (resp.
+backward direction). The $\ell^*$ lens splits the string $s$ into strings $s_1,
 \ldots, s_n$, applies $\ell$ to each $s_i$ to get $t_i$, and then concatenates
 each of the $t_i$'s for a final result of $t_1 \cdot \ldots \cdot t_n$ in the
 forward direction. $\ell^*$ operates similarly in the backward direction, but
@@ -820,12 +828,21 @@ with $s, s_i$ substituted for $t, t_i$.
 
 Each bijective lens $\ell$ has a type $\ell : R \Leftrightarrow S$ where $R$ and
 $S$ are regular expressions. If $\ell : R \Leftrightarrow S$, then the source
-type of $\ell$ is $\mathcal{L}(R)$ and the view type of $\ell$ is
+type of $\ell$ is $\mathcal{L}(R)$ and the target type of $\ell$ is
 $\mathcal{L}(S)$. Interestingly, with the bijective lens type system, a lens
 $\ell : R \Leftrightarrow S$ can also be considered to be of type $\ell : R'
 \Leftrightarrow S'$ provided that $R$ (resp. $S$) can be proven to be
-equivalent to $R'$ (resp. $S$) from the star-semiring axioms. The typing rules
-for bijective lenses are given in Figure~\ref{fig:lensrules}. 
+equivalent to $R'$ (resp. $S$) from the star-semiring axioms:
+
+\begin{prooftree}
+\AxiomC{$\ell : R \Leftrightarrow S$}
+\AxiomC{$R \equiv^d R'$}
+\AxiomC{$S \equiv^d S'$}
+\TrinaryInfC{$\ell : R' \Leftrightarrow S'$}
+\end{prooftree}
+
+The other typing rules for bijective lenses are given in
+Figure~\ref{fig:lensrules}.
 
  \begin{figure}[t]
   \begin{prooftree}
@@ -880,8 +897,8 @@ S_2$}
 
 \begin{prooftree}
 \AxiomC{$\ell : R \Leftrightarrow S$}
-\AxiomC{$R \equiv R'$}
-\AxiomC{$S \equiv S'$}
+\AxiomC{$R \equiv^d R'$}
+\AxiomC{$S \equiv^d S'$}
 \TrinaryInfC{$\ell : R' \Leftrightarrow S'$}
 \end{prooftree}
   \caption{Bijective Lens Typing Rules}
@@ -890,26 +907,32 @@ S_2$}
 
 \subsection{Syntax of QRE Lenses}
 Having given a brief overview of the class of bijective lenses, we now introduce
-the class of QRE lenses, whose language is given by following grammar:
+the class of QRE lenses. The language of QRE lenses is given by following
+grammar:
 $$ q := \mathit{lift}(\ell) \sep \mathit{lquot}(q, \ell) \sep
 \mathit{rquot}(\ell, q) \sep q \cdot q' \sep (q \sep q') \sep q^* \sep q \circ q',$$
 where $\ell$ ranges over bijective lenses.
 
 The QRE lens combinators are inspired by the Boomerang lens combinators of the
 same name. The $\mathit{lift}(\ell)$ quotient lens enables a bijective lens
-$\ell$ to be considered a quotient lens where the equivalence relation applied
-to the source and view types is the equality relation, and the regular
-combinators $\cdot \; * \; |$ on QRE lenses exhibit the expected behaviour,
-with the caveat that the regular expressions used by these lenses are strongly
-unambiguous.
+$\ell$ to be considered a quotient lens, with the equivalence relation applied
+to both the source and target formats being the equality relation. The
+regular combinators $\cdot \; * \; |$ on QRE lenses exhibit the expected
+behaviour, with the caveat that the regular expressions used by these lenses
+are strongly unambiguous. The composition operator $\circ$ also exhibits the
+expected behaviout, though the conditions that must be checked in order for the
+composition to be well defined are perhaps unintuitive. The reasons why
+these conditions are necesaary will become more apparent when proving normal
+forms for QRE lenses.
 
 The more interesting combinators are the $\mathit{lquot}$ and $\mathit{rquot}$
 combinators. The $\mathit{lquot}(c, q)$ combinator takes a quotient lens $q$ and
 quotients the source data using $c$, assuming that the source data forms a
 complete set of representatives for the equivalence relation $\eqrel{c}$. The
-$\mathit{lquot}(q, c)$ combinator does the same but on the view data. For
-example, recall that in the \bibtex{} to EndNote transformation, we had the QREs
-\cd{bibtex} and \cd{endnote} describing the \bibtex{} and EndNote records
+$\mathit{lquot}(q, c)$ combinator does the same but on the view data. 
+
+For example, recall that in the \bibtex{} to EndNote transformation, we had the
+QREs \cd{bibtex} and \cd{endnote} describing the \bibtex{} and EndNote records
 respectively, and the bijective lens \cd{bib_to_end} that maps between
 \cd{bibtex} and \cd{endnote}. The quotient lens which maps between
 \cd{bibtex} and \cd{endnote} is given by the QRE lens
@@ -918,7 +941,8 @@ respectively, and the bijective lens \cd{bib_to_end} that maps between
 let bib_to_end_q : (lens in bibtex <=> endnote) = 
 rquot (lquot (bibtex, bib_to_end), endnote)
  \end{lstlisting} 
- 
+
+\iffalse
 The difference between QRE lenses and Boomerang quotient lenses lies in the
 typing judgements. More concretely, each QRE lens $q$ has a type $q : c
 \Leftrightarrow c'$ where $c, c'$ are QREs. In contrast, the approach used to
@@ -932,25 +956,34 @@ quotient lenses, where equivalence relations are represented by rational
 functions that induce them. While this second approach is more refined than the
 first, Boomerang favours the first approach since the second appears to be too
 expensive to be useful in practice~\cite{quotientlenses}.
+\fi
 
 \subsection{Semantics of QRE Lenses}
+Each QRE lens $q$ has a type $q : c \Leftrightarrow c'$ where $c, c'$ are QREs.
+If $q : c \Leftrightarrow c'$, then the source format is described by $W(c)$ and
+the canonical set of representative for the source data is described by $K(c)$.
+Similarly, the target format is described by $W(c')$ and the canonical set of
+representatives for the target data is described by $K(c')$. The underlying lens
+of $q$ is a bijective lens $\ell : K(c) \Leftrightarrow K(c')$.
+
 The denotation $\llbracket q \rrbracket$ of a QRE lens $q:c \Leftrightarrow c'$
 is a quotient lens $\llbracket q \rrbracket : W(c)/{\eqrel{c}}
 \Longleftrightarrow W(c')/{\eqrel{c'}}$. The typing rules and denotation of QRE
-lenses are given in Figure~\ref{fig:qlenssemantics}. The following theorem
-confirms that QRE lenses exhibit the intended behaviour.
+lenses are given in Figure~\ref{fig:qlenssemantics}.
 
+The following theorem confirms that the semantics for QRE lenses are correct:
 \begin{theorem}
-If there is a derivation $q:c \Leftrightarrow c'$ then
-$\llbracket q \rrbracket : W(c)/{\eqrel{c}} \Leftrightarrow
-W(c')/{\eqrel{c'}}$ is a well-defined quotient lens.
+If there is a derivation $q : c \Leftrightarrow c'$, then $\llbracket q
+\rrbracket : W(c)/{\eqrel{c}} \Leftrightarrow W(c')/{\eqrel{c'}}$ is a
+well-defined quotient lens.
 \end{theorem}
+
 
  \begin{figure}[t]
   \centering
   \begin{prooftree}
 \AxiomC{$\ell : R \Leftrightarrow S$}
-\UnaryInfC{$\mathit{lift}(\ell): R \Leftrightarrow id(S)$}
+\UnaryInfC{$\mathit{lift}(\ell): id(R) \Leftrightarrow id(S)$}
 \end{prooftree}
   \begin{align*}
   \llbracket q \rrbracket.get &=  \llbracket \ell \rrbracket, \text{ and }\\
@@ -985,8 +1018,11 @@ W(c')/{\eqrel{c'}}$ is a well-defined quotient lens.
   
   \begin{prooftree}
 \AxiomC{$q_1 : c \Leftrightarrow c'$}
-\AxiomC{$q_2 : c' \Leftrightarrow c''$}
-\BinaryInfC{$q_2 \circ q_1: c \Leftrightarrow c''$}
+\AxiomC{$q_2 : c'' \Leftrightarrow c'''$}
+\AxiomC{$\substack{\mathcal{L}(W(c'))= \mathcal{L}(W(c'')) \\ K(c') \equiv^d
+K(c'')}$}
+\AxiomC{$\mathit{Canonizer}(c') = \mathit{Canonizer}(c'')$}
+\QuaternaryInfC{$q_2 \circ q_1: c \Leftrightarrow c'''$}
 \end{prooftree}
   \begin{align*}
   \llbracket q \rrbracket.get &= \llbracket q_2 \rrbracket.get\circ \llbracket
@@ -1057,9 +1093,10 @@ Recall that our approach in defining QRE lenses is to have each QRE lens $q: c
 \llbracket q \rrbracket.put &= \ell^{-1} \circ
 \canonizer(c')
 \end{align*}
-for some bijective lens $\ell$. We now provide a proof that all QRE lenses are
-of this form.\bcp{Maybe some cases of the proof can be elided in the short
-  version?} 
+for some bijective lens $\ell$. In other words, each QRE lens is the same as a
+bijective lens with canonizers at the edges. The following theorem confirms that
+this indeed is the case:
+
 \begin{theorem}\label{normal form}
 If there is a derivation $q : c \Leftrightarrow c'$, then there exists a
 bijective lens $\ell : K(c) \Leftrightarrow K(c')$ such that
@@ -1069,6 +1106,83 @@ bijective lens $\ell : K(c) \Leftrightarrow K(c')$ such that
 \canonizer(c')
 \end{align*}
 \end{theorem}
+We elide a full proof of this statement, since the proof is attained via a
+straightforward induction on the derivation $q : c \Leftrightarrow c$. Since
+bijective lenses are closed under strongly unambiguous regular operators, the
+tricky case is composition. The composition case is more involved since we need
+to show that we can get rid of the canonizers in the middle:
+
+\sam{TODO: Put a diagram here to show what you mean.}
+
+The derivation rule and denotation for composition are as follows:
+  \begin{prooftree}
+\AxiomC{$q_1 : c \Leftrightarrow c'$}
+\AxiomC{$q_2 : c'' \Leftrightarrow c'''$}
+\AxiomC{$\substack{\mathcal{L}(W(c'))= \mathcal{L}(W(c'')) \\ K(c') \equiv^d
+K(c'')}$}
+\AxiomC{$\mathit{Canonizer}(c') = \mathit{Canonizer}(c'')$}
+\QuaternaryInfC{$q_2 \circ q_1: c \Leftrightarrow c'''$}
+\end{prooftree}
+
+\begin{align*}
+  \llbracket q \rrbracket.get &= \llbracket q_2 \rrbracket.get\circ \llbracket
+  q_1 \rrbracket.get, \text{ and }\\
+  \llbracket q \rrbracket.put &= \llbracket q_1 \rrbracket.put \circ \llbracket
+  q_2 \rrbracket.put
+  \end{align*}
+  
+This derivation rule says that the composition $q_2 \circ q_1$ is well defined
+if and only if the intermediary QREs $c''$ and $c'''$ define the same
+equivalence relation on the same regular language. The condition
+$\mathcal{L}(W(c')) = \mathcal{L}(W(c''))$ says that the intermediary language
+is the same on both sides, while the condition $K(c') \equiv^d K(c'')$ says that
+the kernel regular expressions are equivalent via the star-semiring axioms.
+Finally, the condition $\mathit{Canonizer}(c') = \mathit{Canonizer}(c'')$ says
+that $c'$ and $c''$ define the same equivalence relation on $\mathcal{L}(W(c'))=
+\mathcal{L}(W(c''))$.
+
+  By the induction hypothesis, there exist bijective lenses
+  $\ell_1 :
+  K(c) \Leftrightarrow K(c')$ and $\ell_2 : K(c'') \Leftrightarrow K(c''')$ such
+  that
+  \begin{align*}
+\llbracket q_1 \rrbracket.get &= \llbracket \ell_1 \rrbracket \circ
+\canonizer(c)\\
+\llbracket q_1 \rrbracket.put &= {\llbracket \ell_1 \rrbracket}^{-1} \circ
+\canonizer(c')
+\end{align*}
+and
+\begin{align*}
+\llbracket q_2 \rrbracket.get &= \llbracket \ell_2 \rrbracket \circ
+Canonize(c')\\
+\llbracket q_2 \rrbracket.put &= {\llbracket \ell_2 \rrbracket}^{-1} \circ
+Canonize(c'')
+\end{align*}
+Consequently,
+\begin{align*}
+\llbracket q_2 \rrbracket.get \circ \llbracket q_1 \rrbracket.get &=
+(\llbracket \ell_2 \rrbracket \circ \canonizer(c')) \circ (\llbracket \ell_1
+\rrbracket \circ \canonizer(c))\\
+&= \llbracket \ell_2 \rrbracket \circ (\canonizer(c') \circ \llbracket \ell_1
+\rrbracket) \circ \canonizer(c)\\
+&= (\llbracket \ell_2 \rrbracket \circ \llbracket \ell_1 \rrbracket) \circ
+\canonizer(c)\\
+&= \llbracket \ell_2  \circ  \ell_1 \rrbracket \circ
+\canonizer(c)
+\end{align*} 
+We are permitted to claim the third step from the second since
+$\mathit{Canonizer(c')}$ is the identity function on $K(c'')$ which is
+equivalent to $K(c')$ via the star semiring axioms by assumption.
+
+A similar argument shows that 
+$$\llbracket q_1 \rrbracket.put \circ \llbracket q_2 \rrbracket.put =
+\llbracket \ell_2  \circ  \ell_1 \rrbracket^{-1} \circ
+\canonizer(c)$$
+
+The other cases of the proof are similar in that they follow from a
+straightforward application of the induction hypothesis followed by unrolling
+the equations that give the denotation for QRE lenses.
+\iffalse
 \begin{proof}
 Assume that $q : c \Leftrightarrow c'$. We proceed by induction over the
 derivation $q : c \Leftrightarrow c'$.
@@ -1271,6 +1385,7 @@ $$
 \end{enumerate}
 \end{proof}
 
+\fi
 \section{Synthesizing QRE Lenses}
 \label{synth}
 Our goal in this section is to demonstrate how to synthesize a quotient lens
@@ -1464,12 +1579,12 @@ formats.
   \centering
   \begin{subfigure}[b]{.49\textwidth}
     \centering
-    %\includegraphics{generated-graphs/times_opt}
+    \includegraphics{generated-graphs/times_opt}
     \caption{}
     \label{subfig:lenssize}
   \end{subfigure}
   \begin{subfigure}[b]{.49\textwidth}
-    %\includegraphics{times_new.eps}
+    \includegraphics{generated-graphs/times_new.eps}
     \caption{}
     \label{subfig:examplesused}
   \end{subfigure}
