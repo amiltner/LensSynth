@@ -95,22 +95,29 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract} 
-
 {\em Lenses}~\cite{Lenses} specify bidirectional 
-transformations between different data formats.  Writing a single lens
+transformations between different data formats.
+\saz{The old abstract read more like an introduction, so we modified it to be
+  the ``new'' introduction.}
+\end{abstract}
+
+\section{Introduction}
+A {\em lens} $\ell$ is a {\em bidirectional transformation} between a source
+type $S$ and a target type $T$ in which the forward transformation
+$\ell.\get$ and the backward transformation $\ell.\lput$ satisfy certain
+round-tripping laws such as invertibility.
+ Writing a single lens
 rather than two separate uni-directional transformations saves both
 keystrokes and bugs, by reducing redundancy and by automatically
 guaranteeing strong ``lens laws'' ensuring that the forward and backward
 transformations interact well.  
-%
+
 {\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses
 where each of the data formats is quotiented by some equivalence relation
 and the lens laws are taken modulo equivalence.  This allows lenses to be
 both simpler and more flexible, since whole equivalence classes of data
 values can be handled all at once and inessential details like whitespace
 and ordering of fields can be ignored.
-
-\smallskip
 
 However, while plain lenses are widely used in both standalone systems and
 popular libraries, Boomerang~\cite{Boomerang} is the only implementation
@@ -123,25 +130,44 @@ three share a great deal of structure.  Moreover, writing the lens between
 the equivalence classes can be challenging due to the rather fiddly, mainly
 due to ``non-ambiguity'' conditions in the lens well-formedness rules.
 
-\smallskip
+This paper addresses both of these issues.  First, in Section~\ref{example} we
+explain the difficulties of programming with quotient lenses and show, by way of
+example, how our novel language of {\em Quotient Regular Expressions}, or QREs
+addresses those difficulties.  Quotient regular expressions allow programmers to
+specify a broad class of equivalence relations over regular languages using a
+compact and convenient notation in which the regular language and its
+equivalence classes are captured by a single expression.  We then define {\em
+  QRE lenses}, a class of bijective quotient lenses that are typed using QREs,
+and we show how to {\em synthesize} QRE lenses from their QRE types and a set of
+input-output examples.  We demonstrate the practicality of this approach by
+synthesizing QRE lenses between several real-world data formats from the {\tt
+  data.gov} database.
 
-In this paper, we address both of these issues.  First, we propose a novel
-language of {\em Quotient Regular Expressions}, or QREs, which allows
-programmers to specify a broad class of equivalence relations over regular
-languages using a compact and convenient notation in which the regular
-language and its equivalence classes are captured by a single expression.
-We then define {\em QRE lenses}, a class of bijective quotient lenses that
-are typed using QREs, and we show how to {\em synthesize} QRE lenses from their
-QRE types and a set of input-output examples.  We demonstrate the
-practicality of this approach by synthesizing QRE lenses between several
-real-world data formats from the {\tt data.gov} database.
-\end{abstract}
+\saz{There is still some redundancy between the following contributions list and
+  the paragraph above.}
 
-\section{Introduction}
-A {\em lens} $\ell$ is a {\em bidirectional transformation} between a source
-type $S$ and a target type $T$ in which the forward transformation
-$\ell.\get$ and the backward transformation $\ell.\lput$ satisfy certain
-round-tripping laws such as invertibility.
+In summary, our main contributions are:
+\begin{enumerate}
+\item We introduce a novel language of {\em Quotient Regular Expressions}
+(QREs) that provide compact, convenient notation for a natural and useful
+class of equivalence relations on regular languages (Section~\ref{QRE}).
+\item We define a language of {\em QRE lenses}, a subset of bijective quotient
+lenses whose types are given by QREs.  Our main technical contribution is a
+normal form for QRE lenses and a proof that normal forms are
+closed under left quotienting, right quotienting, composition, and regular
+operators (Section~\ref{QRE-lenses}).
+\item Using this normal form, we reduce the problem of {\em synthesizing}
+QRE lenses from their QRE types and a set of examples to the previously studied
+problem of synthesizing bijective lenses between regular languages 
+(Section~\ref{synth}).
+\item We extend the Boomerang {\em implementation} with QREs, QRE lens operators,
+and QRE lens synthesis and demonstrate its applicability by using it to
+synthesize QRE lenses between several real-world data formats from the
+{\tt data.gov} database (Section~\ref{impl}).
+\end{enumerate}
+Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
+
+\section{Lenses and Quotient Regular Expressions by Example}
 
 An example of a bidirectional transformation which we shall revisit
 severally in this paper is a lens which converts citation records such as
@@ -343,26 +369,6 @@ let bib_to_end : (lens in bibtex <=> endnote)
 \cd{endnote} QREs, and sends the equivalence class of \cd{bib_bexample} to
 the equivalence class of \cd{end_example}.
 
-In summary, our main contributions are:
-\begin{enumerate}
-\item We introduce a novel language of {\em Quotient Regular Expressions}
-(QREs) that provide compact, convenient notation for a natural and useful
-class of equivalence relations on regular languages (Section~\ref{QRE}).
-\item We define a language of {\em QRE lenses}, a subset of bijective quotient
-lenses whose types are given by QREs.  Our main technical contribution is a
-normal form for QRE lenses and a proof that normal forms are
-closed under left quotienting, right quotienting, composition, and regular
-operators (Section~\ref{QRE-lenses}).
-\item Using this normal form, we reduce the problem of {\em synthesizing}
-QRE lenses from their QRE types and a set of examples to the previously studied
-problem of synthesizing bijective lenses between regular languages 
-(Section~\ref{synth}).
-\item We extend the Boomerang {\em implementation} with QREs, QRE lens operators,
-and QRE lens synthesis and demonstrate its applicability by using it to
-synthesize QRE lenses between several real-world data formats from the
-{\tt data.gov} database (Section~\ref{impl}).
-\end{enumerate}
-Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
 \section{Quotient Regular Expressions}
 \label{QRE}
