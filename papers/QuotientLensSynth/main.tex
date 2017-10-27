@@ -51,13 +51,16 @@
 
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
-\newcommand{\squash}[3]{\ensuremath{\mathit{squash} \; (#1, #2, #3)}}
+\newcommand{\project}[2]{\ensuremath{\mathit{project} \; #1 \mapsto #2}}
+\newcommand{\squash}[3]{\ensuremath{\mathit{squash} \; #1 \rightarrow #2
+\mathit{using} \; #3}}
 \newcommand{\perm}[2]{\ensuremath{\mathit{perm}\; (#1)\; \mathit{with}\; #2}}
 \newcommand{\normalize}[3]{\ensuremath{\mathit{normalize} \; (#1, #2, #3)}}
 \newcommand{\sep}{\ensuremath{\; | \;}}
 \newcommand{\canonizer}{\ensuremath{\mathit{Canonizer}}}
 \newcommand{\bibtex}{\textsc{Bib}\TeX{}}
 \newcommand{\get}{\ensuremath{\mathit{get}}}
+\newcommand{\semicolon}{\ensuremath{\; ; \;}}
 \newcommand{\lput}{\ensuremath{\mathit{put}}}
 \newcommand{\create}{\ensuremath{\mathit{create}}}
 \newcommand{\eqrel}[1]{\ensuremath{\equiv_{#1}}}
@@ -226,19 +229,17 @@ can specify \bibtex{} records as shown in Figure~\ref{fig:example-qre}.
 \begin{lstlisting}
 let wsp = [ \n\t\r]
 let wsp_to_space = project wsp+ $\to$ " "
-let wsp_to_space_epsilon = project wsp* $\to$ ""
 let space_name  = name | (name . wsp_to_space . (name . wsp_to_space)* . name)
-let wsp_to_comma = wsp_to_space_epsilon . "," . wsp_to_space
-let comma_name = name | (name . wsp_to_comma . (name . wsp_to_space)* . name)
-let space_to_comma = synth comma_name <=> space_name using {("Conway, J. H.", "J. H. Conway")}
+let comma_name = name | (name . "," . wsp_to_space . (name . wsp_to_space)* . name)
+let space_to_comma = synth comma_name <=> space_name using {("Conway, J. H.", "J. H. Conway")} 
 let valid_name = squash comma_name -> space_name using (get space_to_comma)
-let wsp_to_and = project (wsp+ . "and" . wsp+) $\to$ " and "
-let bib_names = valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name)
+let wsp_to_and = project (wsp+ . "and" . wsp+) $\to$ " and " 
+let bib_names = valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name) 
 let bib_author = "author = \"" . bib_names . "\""
-let title = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word)
-let bib_title = "title = {" . title . "}"
-let bib_perm = perm (label, bib_author, bib_title) with (project ("," .wsp+)
-$\to$ ",\n") let bibtex = "@book{" . bib_perm . "}"
+let title = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word) 
+let bib_title = "title = {" . title . "}" 
+let bib_perm = perm (label, bib_author, bib_title) with (project ("," .wsp+) $\to$ ",\n")
+let bibtex = "@book{" . bib_perm . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records. }
   \label{fig:example-qre}
@@ -380,96 +381,57 @@ This section introduces Quotient Regular Expressions or QREs. QREs are regular
 expressions augmented with syntax that lets them simultaneously express an
 equivalence relation on the language described by the regular expression.
 
-\subsection{Overview}
+\subsection{Syntax of Quotient Regular Expressions}
+The language of Quotient Regular Expressions (QREs) is given by the following
+grammar:
+\begin{align*}
+q := \; &R \sep \project{R}{s} \sep \squash{q}{q'}{f} \sep
+\perm{q_1, \ldots, q_n}{q} \;  | \; \normalize{R}{R'}{f}\\
+&q \semicolon q' \sep q \cdot q' \sep (q \sep q') \sep q^*,
+\end{align*}
+where $R$ ranges over regular expressions, $f$ ranges over functions between
+regular languages, and $s$ ranges over character strings.
 
-We have already encountered the \cd{project R} $\to$ \cd{s} QRE
-which sends all elements of the language described by the regular expression
-$R$ to the canonical representative $s$, and the
+\subsection{Semantics of Quotient Regular Expression}
+In the \bibtex{} to EndNote example, we encountered the $\project{R}{s}$,
 
-\noindent \cd{perm (q_1, ..., q_n) with q} QRE which sends all permutations of
-the QREs $q_1, \ldots, q_n$ separated by the QRE $q$ to the canonical
-QRE $q_1 \cdot q \cdot \ldots \cdot q \cdot q_n$.
-
-Now consider a variant of the \bibtex{} to EndNote example transformation,
-where, the only quotienting occurs in the author field, where the author's name
-can have the last name followed by a comma and then the rest of the name, or
-remain as before where the names are separated by a space.
-
-For example, these two records should be considered equivalent:
-\begin{verbatim}
-@Book {conway,
-  Author = "Conway, J. H.",
-  Title = {Regular Algebra and Finite Machines},
-}
-\end{verbatim}
-\begin{verbatim}
-@Book {conway,
-  Author = "J. H. Conway",
-  Title = {Regular Algebra and Finite Machines},
-}
-\end{verbatim}
-
-The equivalence described is one in which there is a bijection between 
-the regular expressions \cd{comma_name} and \cd{space_name} given by,
-\begin{lstlisting}
-let comma_name : regexp = name | (name . ", " . name . (" " . name)*)
-
-let space_name : regexp = name | (name . " " . (name . wsp_to_space)* . name)
-
-\end{lstlisting}
-
-\noindent with the lens \cd{comma_to_space} mapping between them given by 
-\begin{lstlisting}
-let comma_to_space : (lens in space_name <=> comma_name) =
-lens_swap 
-(name . del " " . (ins " " . name . del " ")* ) (name . ins ", ") || name 
-\end{lstlisting}
-
-The $\squash{R}{R'}{f}$ QRE is designed to make it easy to express such
-equivalences easily. Specifically, given regular expressions $R$ and $R'$, and
-a function $f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$, the
-$\squash{R}{R'}{f}$ QRE expresses the equivalence relation on $\mathcal{L}(R \;
-R')$ which sends each element $r \in \mathcal{L}(R)$ to the canonical element
-$f(r) \in \mathcal{L}(R')$, and sends each element $r' \in \mathcal{L}(R')$ to
-itself:
+\noindent $\squash{q}{q'}{f}$ and $\perm{q_1, \ldots, q_n}{q}$ QREs, as well as
+the regular operators applied to these, as in
 
 \begin{lstlisting}
-let squash_author = squash space_name $\to$ comma_name using comma_to_space
-
-let author : canonizer = "author = \"" . squash_author . "\""
+let space_name  = name | (name . wsp_to_space . (name . wsp_to_space)* . name)
 \end{lstlisting}
 
-In this example, the \cd{squash_author} QRE expresses the fact that the
-\cd{space_name} and \cd{comma_name} representations of the authors' name
-are equivalent, with the \cd{comma_name} representation chosen as the
-canonical representation, and the lens \cd{comma_to_space} giving
-the canonizing function which converts data in the \cd{space_name} format
-to its \cd{comma_name} representation.
-
-The $\squash{R}{R'}{\ell}$ has the added advantage that if the transformation
-from $R$ to $R'$ can be expressed by a bijective lens that is consistent with a set
-of examples, then the programmer can synthesize the lens from $R$ to $R'$
-because of our previous work where we demonstrated how to synthesize bijective
-lenses from a pair of regular expressions and a set of input-output example
-pairs:
+The $q \semicolon q'$ QRE is a compostion combinator used to successively apply
+two equivalence relations to a regular language. For example, in the \bibtex{}
+to EndNote example, when defining the \cd{valid_name} QRE which maps
+\cd{comma_name} into \cd{space_name}, we first defined the equivalence
+relations on the \cd{comma_name} and \cd{space_name} representations before
+defining the \cd{valid_name} QRE. Using the composition combinator, we could
+instead have defined \cd{valid_name} as follows:
 
 \begin{lstlisting}
-let comma_to_space : (lens in space_name <=> comma_name) = 
-synth space_name <=> comma_name using {("J. H. Conway", "Conway, J. H.")}
+(* Define a QRE which matches sends all comma names to a space name equivalent *)
+let wsp = [ \n\t\r] 
+let whole_space_name  = name | (name . wsp+ . (name . wsp+)* . name) 
+let whole_comma_name = name | (name . "," . wsp+ . (name . wsp+)* . name) 
+let whole_space_to_comma = 
+synth whole_comma_name <=> whole_space_name using {("Conway, J. H.", "J. H. Conway")} 
+let whole_valid_name = 
+squash whole_comma_name -> whole_space_name using (get whole_space_to_comma)
+
+(* Define QRE that sends space names to their canonical representation *)
+let wsp_to_space = project wsp+ $\to$ " "
+let space_name  = name | (name . wsp_to_space . (name . wsp_to_space)* . name)
+
+(* Compose the two QREs *)
+let valid_name = whole_valid_name ; space_name
 \end{lstlisting}
 
-The regular combinators for QREs i.e. $\cdot$ (concatenation), $|$ (union) and
-$*$ (iteration) behave like the regular combinators for regular languages. For
-instance, if the QRE for matching a \bibtex{} record is named
-\cd{bibtex}, then the QRE for matching two records is 
-\cd{bibtex . bibtex}, the QRE for matching one or two records is
-\cd{ bibtex | (bibtex . bibtex)} and the QRE for matching any number of QRE
-records \cd{bibtex*}
-
-The $\normalize{R}{R'}{f}$ expresses the equivalence relation which sends each
-element in $\mathcal{L}(R)$ to its canonical representation $f(r) \in
-\mathcal{L}(R')$. The equivalence relation defined by
-$\normalize{R}{R'}{f}$ is thus the equivalence relation on
+The final combinator is the  $\normalize{R}{R'}{f}$ combinator, which expresses
+the equivalence relation which sends each element in $\mathcal{L}(R)$ to its
+canonical representation $f(r) \in \mathcal{L}(R')$. The equivalence relation
+defined by $\normalize{R}{R'}{f}$ is thus the equivalence relation on
 $\mathcal{L}(R)$ defined by the {\em fibres} of $f$ (i.e. $r \sim r'$ if and
 only if $f(r) = f(r'))$. The canonizing function $f$ is required to be
 surjective and idempotent.
@@ -482,7 +444,9 @@ $\mathcal{L}(R)$, with $\mathcal{L}(R')$ forming a complete set of
 representatives for this equivalence relation. The $\normalize{R}{R'}{f}$
 combinator is included so as to express equivalence relations which are
 difficult to express, or which cannot be expressed, using the other
-combinators. However, checking that the canonizing function $f$ is
+combinators.
+
+However, checking that the canonizing function $f$ is
 surjective and idempotent is undecidable, thus we do not use the
 $\normalize{R}{R'}{f}$ in practice. On the other hand, the
 $\normalize{R}{R'}{f}$ combinator gives a sufficient condition for potential
@@ -514,26 +478,15 @@ In summary each QRE $q$ enables us to express
   $k$ in $\mathcal{L}(K(q))$ such that $w$ is equivalent to $k$ mod $\eqrel{q}$,
   then the equivalence classes of $\eqrel{q}$ are the same as the fibres of
   $\canonizer(q)$.
-\subsection{Syntax of QREs}
-The language of Quotient Regular Expressions (QREs) is given by the following
-grammar:
-\begin{align*}
-q := \; &R \sep R \mapsto s \sep \squash{R}{R'}{f} \sep
-\perm{q_1, \ldots, q_n}{q} \;  | \; \normalize{R}{R'}{f}\\
-&q' \circ q \sep q \cdot q' \sep (q \sep q') \sep q^*,
-\end{align*}
-where $R$ ranges over regular expressions, $f$ ranges over functions between
-regular languages, and $s$ ranges over character strings.
-  
-\subsection{Semantics of QREs}
-\subsubsection{Preliminaries}
-Let $q, q'$ be QREs. When applying the regular combinators to QREs, we require
-that if a string $s$ matches any of the regular expressions $W(q) \cdot W(q')$,
-$W(q) \sep W(q')$, $W(q)^*$, $K(q) \cdot K(q')$,
-$K(q) \sep K(q')$, $K(q)^*$, then $s$ matches that regular expression in
-only one way. This unambiguity condition is called {\em strong unambiguity},
-and is necessary, firstly because it ensures that the canonizing function of a
-QRE is well-defined.
+
+Before giving the formal semantics for QREs, we address the issue of {\em
+ambiguity} which comes up when defining QREs. If $q, q'$ are QREs, then
+when applying the regular combinators to QREs, we require that if a string $s$
+matches any of the regular expressions $W(q) \cdot W(q')$, $W(q) \sep W(q')$,
+$W(q)^*$, $K(q) \cdot K(q')$, $K(q) \sep K(q')$, $K(q)^*$, then $s$ matches
+that regular expression in only one way. This unambiguity condition is called
+{\em strong unambiguity}, and is necessary, firstly because it ensures that the
+canonizing function of a QRE is well-defined.
 
 For example consider the QRE
 
