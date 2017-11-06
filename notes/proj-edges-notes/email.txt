@@ -1,0 +1,113 @@
+Hey all!  Huge email to follow...
+
+On Friday, I gave an example of a lens that required composition.  I claimed this was a good counterexample to requiring just two projections, but didn't see immediately why.  I now know why.
+
+Recall, I had two lenses, l1 that merged C and D into A, and l2 that merged D and E into G:
+
+Inline image 2
+
+This created the following graph of create behavior:
+
+Inline image 6
+
+However, with our lens combinators, we cannot express this lens without composition.  I claimed this meant that we couldn't have lenses of the form: (projection);(bijection);(projection).
+
+But it looks like we do have something of that form.  The lenses, l1 and l2, are both projections, and we merely have to put in the identity between C | D | E, and we have a lens of the form p;b;p.  The issue with this is that the projections are facing the wrong way.
+
+
+(Quick note on syntax, the following judgements have the following meanings:
+
+l : R <=> S means that l is a bijective lens between R and S
+l : R <-=> S means that l is an asymmetric lens between R and S
+l : R <-> S means that l is a symmetric lens between R and S
+
+Every bijective lens is an asymmetric lens, and every asymmetric lens is a symmetric lens.  Recall that an asymmetric lens loses information when going left to right, but does not when going right to left.  If l : R <-=> S, then S has no complement, and R has a complement.)
+
+
+When we originally posed this problem, the concept was:
+
+find asymmetric lens l1 : R1 <-=> S1
+find asymmetric lens l2 : R2 <-=> S2
+find a bijective lens lb : S1 <=> S2
+such that l1;lb;(l2_inv) : R1 <-> R2
+
+However, this is not the case in the above example.  In the above example we have:
+
+an asymmetric lens l1 : C|D|E <-=> A|B
+an asymmetric lens l2 : C|D|E <-=> F|G
+a bijective lens lb : C|D|E <=> C|D|E
+such that l1_inv;lb;l2 : A|B <-> F|G
+
+Note that the projections are going the wrong way.  Now the types of the bijective core are larger than the original regular expressions.  There is actually a deeper meaning for this -- more than syntactic limitations.
+
+
+Consider the following lenses:
+
+l1:
+Inline image 7
+
+
+l1 is a lens which merges F and G into A, and merges A and B into F.
+If l1 creates right on A or B, it will become an element of F.
+If l1 creates left on F or G, it will become an element of A.
+If l1 puts an A or a B right with an F, it will become an element of F.
+If l1 puts an F or G left with an A, it will become an element of A.
+Interestingly, if l1 puts a B right with G, it will become an element of F.
+Interestingly, if l1 puts a G left with B, it will become an element of A.
+
+
+l2:
+Inline image 8
+
+l2 is a lens which merges F and G into A,  merges F and G into B, merges A and B into F, and merges A and B into G.
+If l1 creates right on A, it will become an element of F.
+If l1 creates right on B, it will become an element of G.
+If l1 creates left on F, it will become an element of A.
+If l1 creates left on G, it will become an element of B.
+If l1 puts an A or a B right with an F, it will become an element of F.
+If l1 puts an A or a B right with a G, it will become an element of G.
+If l1 puts an F or G left with an A, it will become an element of A.
+If l1 puts an F or G left with an B, it will become an element of B.
+
+These two lenses are clearly not the same.  In particular, B and G are not linked in l1, where they are in l2.  In l1, when B and G are put into the other, they must throw away the existing values, and essentially do a create to move the value over.  However, in l2, nothing is ever thrown away.
+
+However, looking at the sides, they both have the same complements when it comes to disjunctions.  In each of l1 and l2, you must remember which side of the complement you are on to apply any put.  However, they are different lenses, and the ways the complements are used is different.  In particular, if l1 puts G into B, all that must be remembered is that the source was a B, no additional complement information must be remembered.  However, if l2 puts G into B, then the complement information corresponding to the sublens between G and B, as well as the knowledge that the source was B, not A, must be remembered.  In this way, different amounts of complement information must be remembered based on which sublens will be applied.  This information is difficult to capture when just looking at the source types, but easy to capture when looking at the central types.
+
+(Brief aside on typing judgements pt2
+
+l : R <=> S means that l is a bijective lens between R and S
+l : R .=> S means that l is lens between R and S consisting only of identities, concat projections, and structural operations
+l : R |=> S means that l is a lens between R and S consisting only of identities, union projections, and structural operations
+l : R <-> S means that l is a symmetric lens between R and S)
+
+So, I believe now that all lenses are of this form:
+l1 : R1 |=> R2 is a union projection
+l2 : S1 |=> S2 is a union projection
+l3 : R2 .=> R3 is a concat projection
+l4 : S2 .=> S3 is a concat projection
+l5 : R3 <=> S3 is a bijection
+
+l1_inv ; l3 ; l5 ; l4 ; l2   :   R1 <-> S1
+
+Note that this means that the union projections go outwards, so the larger regular expression is on the inside, not the outside.
+
+
+If the larger regular expression is on the inside, then how do we discover these union projections?  It seems like we have a lack of well-foundedness, and you can have union projections making union projections to arbitrarily large central types.
+
+I theorize that these union projections are limited to be n*m, where n is the number of sequences in the left regular expression, and m is the number of sequences in the right regular expression.  This makes the following my pseudocode for RewritelessSynth (what was once known as KindaRigidSynth):
+
+1)  Inspect all pairings for Sequences: and determine whether two sequences should have a lens between them or not.  All sequences must have at least one lens connecting to it.
+2)  Between each pairing of sequences that have a lens between them, determine which atoms should be projected
+3)  Between each pairing of sequences with atoms projected, find a symmetric lens between them
+4)  For each sequence in the original DNF regex, specify one of the lenses it is involved with as the "default" lens - this is the one that is used for creates.
+
+To me, finding out 2 and 3 are easy, but 4 and 1 are harder.  I have some proposed solutions:
+
+For 1:  Generalizing to minimizing complement, adding in additional mappings between sequences increases the number of complements: if we have a bijection between A | B and A | B, adding in sublenses connecting the As to the Bs makes it not bijective, and adds in complements.  This means we want to minimize the number of sequences mapped to each other while retaining: 1) Every sequence is mapped on something else, and 2) The examples are satisfied.
+
+For 4:  Just choose as default the lens that maps best, where best means that it projects as little away as possible.
+
+
+Last bit of email, the question has been posed on how many put examples you need to specify a lens.  If you are ever under an iteration, you need at most 2, as you can just encode all the example information in the various iterations.  If you aren't under an iteration, I believe you need n*m, to specify if two sequences are hooked up via a lens or not.
+
+-Anders
