@@ -10,13 +10,15 @@ import subprocess
 import sys
 import time
 import matplotlib
+import matplotlib as mpl
+mpl.use('pgf')
 import numpy as np
 import matplotlib.pyplot as plt
 
-matplotlib.rcParams['mathtext.fontset'] = 'stix'
-matplotlib.rcParams['font.family'] = 'STIXGeneral'
 plt.rc('font', size=10)
 plt.rc('legend', fontsize=10)
+plt.rcParams['text.usetex'] = True
+plt.rcParams['text.latex.preamble'] = '\usepackage{libertine},\usepackage[libertine]{newtxmath},\usepackage[T1]{fontenc}'
 
 generated_graphs_base = "generated-graphs/"
 transformed_data_base = "transformed-data/"
@@ -342,14 +344,14 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    create_step_plot("ComputationTime","Full",'-',full_size)
-    create_step_plot("NoLensContext","NoCS",':',normal_size)
-    create_step_plot("OnlyForcedExpansionsNoLC","NoFPE",'-',normal_size)
-    create_step_plot("NoUDTypes","NoUD",':',normal_size)
-    create_step_plot("NaiveExpansionNoLC","NoER",'-',normal_size)
-    create_step_plot("FlashExtract","FlashExtract",':',normal_size)
-    create_step_plot("FlashFill","Flash Fill",'-',normal_size)
-    create_step_plot("NaiveStrategy",u"Na\u00EFve",':',normal_size)
+    create_step_plot("ComputationTime","\\textbf{Full}",'-',full_size)
+    create_step_plot("NoLensContext","\\textbf{NoCS}",':',normal_size)
+    create_step_plot("OnlyForcedExpansionsNoLC","\\textbf{NoFPE}",'-',normal_size)
+    create_step_plot("NoUDTypes","\\textbf{NoUD}",':',normal_size)
+    create_step_plot("NaiveExpansionNoLC","\\textbf{NoER}",'-',normal_size)
+    create_step_plot("FlashExtract","\\textbf{FlashExtract}",':',normal_size)
+    create_step_plot("FlashFill","\\textbf{Flash Fill}",'-',normal_size)
+    create_step_plot("NaiveStrategy",u"\\textbf{Na\\\"ive}",':',normal_size)
 
     ax.set_ylabel('Benchmarks Completed')
     ax.set_xlabel('Time (s)')
