@@ -1,0 +1,347 @@
+\PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
+\documentclass[a4paper,twoside]{article}
+
+\listfiles
+
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{bussproofs}
+\usepackage{amsthm}
+\usepackage{csvsimple}
+\usepackage{thmtools,thm-restate}
+\usepackage{changepage}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage[inline]{enumitem}
+\usepackage{multirow,bigdelim}
+\usepackage{multicol}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{sansmath}
+\usepackage{url}
+\usepackage{flushend}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage{mathpartir}
+\usepackage{empheq}
+\usepackage{array}
+\usepackage{pgfplots}
+\usepackage{stmaryrd}
+\usepackage{courier}
+\usepackage{qtree}
+\usepackage[normalem]{ulem}
+\usepackage{relsize}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{textcomp}
+\usepackage{tabularx}
+\usepackage{stackengine}
+\usepackage{caption}
+\usepackage{wrapfig}
+\usepackage{remreset}
+
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+\setcitestyle{numbers,square}
+
+\usetikzlibrary{
+  er,
+  matrix,
+  shapes,
+  arrows,
+  positioning,
+  fit,
+  calc,
+  pgfplots.groupplots,
+  arrows.meta
+}
+\tikzset{>={Latex}}
+
+%%%% Hyperlinks – must come late!
+%\usepackage[pdftex,%
+%            pdfpagelabels,%
+%            linkcolor=blue,%
+%            citecolor=blue,%
+%            filecolor=blue,%
+%            urlcolor=blue]
+%           {hyperref}
+
+\input{macros}
+
+\clubpenalty = 10000
+\widowpenalty = 10000
+\displaywidowpenalty = 10000
+
+%\setlength{\belowcaptionskip}{-5pt}
+%\setlength{\textfloatsep}{15pt}
+
+% Creates a display mode for code in sans serif font
+\lstnewenvironment{sflisting}[1][]
+  {\lstset{%
+    mathescape,
+    basicstyle=\small\sffamily,
+    aboveskip=5pt,
+    belowskip=5pt,
+    columns=flexible,
+    frame=,
+    xleftmargin=1em,#1}\sansmath}
+  {}
+% end
+
+% Macros
+\newcommand{\NameOf}[1]{\CF{#1}}
+
+\begin{document}
+
+\special{papersize=8.5in,11in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\author{
+  \normalsize Name: Anders Miltner\\
+  \normalsize Affiliation: Princeton University\\
+  \normalsize Email: amiltner@cs.princeton.edu\\
+  \normalsize Address: 35 Olden Street, Princeton NJ 08540\\
+  \normalsize Advisor: David Walker\\
+  \normalsize Category: Graduate\\
+  \normalsize ACM Student ID: 7351631
+}
+
+\title{\Large Synthesizing Bijective Lenses}
+
+\maketitle
+
+\paragraph*{Motivation}
+Companies are increasingly processing data in ad-hoc formats for customer
+analytics, for understanding error logs, and more.
+Special programs are often needed to extract the
+underlying data contained in these ad-hoc formats oftentimes need special
+programs to extract the underlying data.  When data needs to be synchronized
+accross multiple ad-hoc formats, programs need to be able to both read data from
+the first format, and add that data into the second, and read data in the second
+format, and add that data to the first.  Boomerang~\cite{boomerang} is an approach
+to this problem:  Boomerang programs use a single expression to express
+the conversions from the first source to the second and from the second source
+back to the first.  Furthermore, Boomerang provides guarantees about the
+round-trip behavior of the data sources.  Unfortunately, providing these
+guarantees causes difficulties: Boomerang programs are typically quite difficult
+to program in!  Boomerang has a complex type system which requires the user to
+think about unambiguity of data formats while also thinking about the fiddly
+details of data conversions.  To reduce the difficulty in programming in
+Boomerang, we create a tool which synthesizes Boomerang programs, \Optician{}.
+\Optician{} takes in data format
+descriptors and pairs of input/output examples, and outputs a Boomerang program
+mapping between those data formats which respects the examples.
+
+\paragraph*{Background and Related Work}
+Boomerang is a certain instance of a class of programming languages:
+bidirectional programming languages.  A survey by Czarnecki et al. provides a (slightly dated)
+summary of these languages~\cite{DBLP:conf/icmt/CzarneckiFHLST09}.  Furthermore, there have recently been
+theoretical approaches to bidirectional languages in general~\cite{DBLP:journals/chinaf/FischerHP15}.
+
+In Boomerang,
+if $\Lens$ is a lens, and $\Regex$ and $\RegexAlt$ are regular expressions, then
+the typing derivation $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ means
+that the lens $\Lens$ maps between the languages defined by regular expressions
+$\Regex$ and $\RegexAlt$.  We focus on a subset of lenses, \emph{bijective
+  lenses}.  This subset requires stricter round trip properties than normal
+lenses; in particular the two functions defined by the lens must be inverses.
+
+A large amount of work has been put into synthesizing programs by
+examples~\cite{tds-pldi,le-pldi-2014,Singh:blinkfill,gulwani-popl-2014,morpheus}. 
+Some of this work focuses on data transformation and processing.  However, this
+previous data processing work has focused on unidirectional transformations.
+Furthermore, most work in synthesizing data transformers rely only on examples
+to guide synthesis.  This gives these synthesis tools the complex job of both
+understanding the shape of the data as well as synthesizing the program that
+transforms the data.  We, however, ask users to provide format descriptions to
+our algorithm, and apply type-directed synthesis to these format descriptions.
+This approach allows our algorithm to synthesize much more complex
+transformations than existing tools.
+
+\paragraph*{Approach and Uniqueness}
+From two regular expressions, $\Regex$ and $\RegexAlt$ and a set of examples, we
+desire to synthesize a 
+lens $\Lens$ such that $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$.
+Furthermore, the two functions defined by $\Lens$ should map between the two
+strings in each pair of examples.
+Because we have the pair of regular expressions forming the type, we preform
+type-directed synthesis: synthesis which enumerates only well-typed terms.
+Unfortunately, this is difficult to do in Boomerang, as Boomerang has many
+equivalences on its types (as every regular expression is equivalent to an
+infinite number of other regular expressions), and a composition operator.
+Using a na\"ive type-directed synthesis strategy on lenses is very inefficient,
+as the above aspects of the language creates a large amount of nondeterminism in
+the search through the typing derivation.
+
+To resolve these issues, we have introduced alternative languages, DNF lenses
+and DNF regular expressions.  Like regular expressions, DNF regular expressions
+describe languages.  Like lenses, DNF lenses encode two functions.  Furthermore,
+like lenses, DNF lenses are typed by pairs of expressions.  In the DNF lens case
+a derivation $\DNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt$ means
+that a DNF lens provides functions between the languages of $\DNFRegex$ and $\DNFRegexAlt$.
+We also prove the soundness and completeness of DNF lenses to lenses.
+
+DNF lenses are better suited to synthesis than lenses for a number of reasons.
+DNF lenses contain no composition operator, there are fewer equivalences between
+the types (each DNF regular expression is equivalent to fewer other
+expressions than regular expressions), and equivalences between types can only
+be processed at certain areas of the typing derivation.  This reduces the
+nondeterminism from the search for a well-typed lens, making the problem permit
+tractable solutions.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[auto,node distance=1.5cm]
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
+    
+    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
+    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
+    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
+    
+    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
+    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
+
+    \node[text width=3.0cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
+    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
+    
+    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
+    
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
+    
+    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
+    
+    
+    \path[->] (regex1.east) edge (todnfregex.north west);
+    \path[->] (regex2.east) edge (todnfregex.south west);
+    
+    \path[->] (todnfregex.north east) edge (dnfregex1.west);
+    \path[->] (todnfregex.south east) edge (dnfregex2.west);
+    
+    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
+    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
+    
+    \path[->] (synthdnflens) edge (dnflens);
+    
+    \path[->] (dnflens) edge (tolens);
+    
+    \path[->] (tolens) edge (lens);
+    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
+    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
+    % Now place a relation (ID=rel1)
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
+    %\node (below-gen) [below=.5cm of sketch-gen] {};
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
+    %     [right = .25cm of sketch-gen] {\RigidSynth{}};
+    %\node (below-compl) [below=.5cm of sketch-compl] {};
+    %\node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
+    %% Draw an edge between rel1 and node1; rel1 and node2
+    %\path[->] (spec) edge node (start-alg) {} (sketch-gen);
+    %\path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
+    %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
+    %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
+
+    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
+    %
+    %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
+  \end{tikzpicture}
+  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
+    \RegexAlt{}, and examples, \Examples{}, are given as input.
+    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
+    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
+    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
+    \RegexAlt{}, and \Examples{}.
+    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
+    that is equivalent to \DNFLens{}.}
+  \label{fig:schematic-diagram-synthesis}
+\end{figure}
+
+Figure~\ref{fig:schematic-diagram-synthesis} shows the schematic diagram for
+\Optician{}.  Two regular expressions, \Regex{} and \RegexAlt{}, and a set of
+examples, \Examples{}, are given as input.  The regular expressions are
+converted into DNF regular expressions with $\ToDNFRegex$.  Then, type-directed
+synthesis is performed on the input DNF regular expressions and the examples, in
+\SynthDNFLens{}.  After \SynthDNFLens{} generates a satisfying DNF lens, it is
+converted back into a lens with $\ToRegex$.  We prove the correctness of our
+synthesis algorithm using DNF lenses: if there is a lens satisfying the
+specification, then the synthesis algorithm will return a lens which satisfies
+the specification (though not necessarily the same one).
+
+Our work is unique in that we are the first synthesis algorithm for a
+bidirectional language.  While it is common to develop domain specific languages
+which permit efficient synthesis algorithms, and also it is common to develop
+ways of compiling these languages to existing ones, it is less common to provide
+completeness results stating exactly which elements of the existing language are
+able to be synthesized.  Furthermore, \Optician{} synthesizes string processing
+programs from types as well as examples. 
+
+\paragraph*{Results and Contributions}
+As we are the first synthesis algorithm on bidirectional programs, we have no
+direct comparisons, but by changing the specifications, we were able to compare
+our tool with 2 tools which synthesize string transformers (Flash Fill~\cite{gulwani-popl-2014} and
+FlashExtract~\cite{le-pldi-2014}), and found our tool 
+was able to outperform them.
+Our synthesis algorithm was able to synthesize all 39
+of the examples in less than 5 seconds, where the other tools synthesized 3 and
+4 within the time limit of 10 minutes.
+Furthermore, we found that the optimizations we used were critical in making
+this synthesis tractible.  
+
+Our contributions are as follows:
+\begin{enumerate}
+\item We developed a domain specific language custom built for synthesis.  We
+  proved this language equivalent to a higher-level, declarative, bijective
+  subset of Boomerang.
+
+\item We develop a synthesis algorithm for this domain specific language, and
+  leverage it for the synthesis of Boomerang programs.  We prove this algorithm
+  correct.
+
+\item We evaluate our algorithm on a set of 39 benchmarks.  We find that the
+  optimizations are critical for synthesis of all benchmarks, and find that we
+  outperform existing tools on the types of complex tasks that necessitate the
+  use of bidirectional languages.
+\end{enumerate}
+
+\paragraph*{My Contributions}
+This work was done with the collaboration of 4 other researchers: David Walker,
+Kathleen Fisher, Benjamin Pierce, and Steve Zdancewic.  Their insights
+were critical to the entire process.  I did all the proofs and coded
+\Optician{}, however.
+
+% \category{D.3.1}
+% {Programming Languages} 
+% {Formal Definitions and Theory}
+% [Semantics]
+%\ifanon\else
+%\category{F.4.1}
+%{Mathematical Logic and Formal Languages}
+%{Mathematical Logic}
+%[Proof Theory]
+%\category{I.2.2}
+%{Artificial Intelligence}
+%{Automatic Pro\-gramming}
+%[Program Synthesis]
+%
+%\terms Languages, Theory
+%
+%\keywords Functional Programming, Proof Search, Program Synthesis, Type Theory
+%\fi
+
+
+% The bibliography should be embedded for final submission.
+
+\bibliography{local,bcp}
+
+\end{document}
+
+
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:
