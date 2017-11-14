@@ -8,6 +8,7 @@
 \captionsetup{compatibility=false}
 \usepackage{relsize}
 \usepackage{listings}
+\usepackage{proof}
 \lstset{
   language=Caml,
   basicstyle=\upshape\sffamily,
@@ -48,6 +49,13 @@
 \newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
 \newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
 \newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
+
+% For Inference Rules
+\newcommand{\Rule}[2]{\infer{#2}{#1}}
+\newcommand{\RuleSide}[3]{\infer[#3]{#2}{#1}}
+%\newcommand{\Axiom}[1]{\Rule{}{#1}}
+
+\newcommand{\wf}[1]{\vdash \ensuremath{#1\;\mathsf{wf}}}
 
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
@@ -105,6 +113,7 @@
 \end{abstract}
 
 \section{Introduction}
+
 {\em Lenses}~\cite{Lenses} specify bidirectional 
 transformations between different data formats.  Writing a single lens
 rather than two separate uni-directional transformations saves both
@@ -476,6 +485,8 @@ Then we can express this equivalence relation by a composition of a
 \textit{squash} QRE and a QRE that projects away the extra whitespace in between
 \kw{first\_name} and \kw{last\_name}:
 
+\saz{Fix the notation in the following code.}
+
 \begin{lstlisting}
 (* Regular expressions matching different comma and space representations *)
 let comma_name = last_name . "," . wsp+ . first_name
@@ -506,11 +517,14 @@ $q$, there exist regular expressions $R, R'$ and a surjective, idempotent
 function $f:\mathcal{L}(R) \longrightarrow \mathcal{L}(R')$ such that $q$ and
 $\normalize{R}{R'}{f}$ each define the same equivalence relation on
 $\mathcal{L}(R)$, with $\mathcal{L}(R')$ forming a complete set of
-representatives for this equivalence relation. The $\normalize{R}{R'}{f}$
+representatives for this equivalence relation. \saz{rewrite the next sentence to
+  avoid so many uses of ``express''?} The $\normalize{R}{R'}{f}$
 combinator is included so as to express equivalence relations that are
 difficult to express, or that cannot be expressed, using the other
-combinators.
+combinators. 
 
+\saz{Add something about being ``complete'' here?  Say more about how normalize
+  wouldn't be used in ``ordinary'' QRE programming?}
 However, checking that the canonizing function $f$ is
 surjective and idempotent is undecidable in general, thus we do not use the
 $\normalize{R}{R'}{f}$ in practice. On the other hand, the
@@ -525,7 +539,7 @@ by $S$, with $\mathcal{L}(S) \not \subseteq \mathcal{L}(R)$, whereas each QRE
 $c$ canonizes a regular language described by $R$ to regular subset
 $\mathcal{L}(R') \subseteq \mathcal{L}(R)$ described by $R'$. QREs therefore are
 not as expressive as Boomerang canonizers. On the other hand, QREs enable us to
-express many equivalences which occur in real world data as we shall demonstrate
+express many equivalences which\saz{``which'' $\to$ ``that''} occur in real world data as we shall demonstrate
 in the evaluation section (Section~\ref{impl}).
 
 The net effect of these design decisions means that each QRE $c$ enables
@@ -548,7 +562,7 @@ us to simultaneously express
 
 \subsection{Well Formed QREs and ambiguity}
 Before giving the formal semantics for QREs, we address the issue of {\em
-ambiguity} which comes up when defining QREs. If $c$ and  $c'$ are QREs, then
+ambiguity}, which comes up\saz{``comes up'' is a little colloquial; perhaps ``arises''?} when defining QREs. If $c$ and  $c'$ are QREs, then
 when applying the regular combinators to QREs, we require that if a string $s$
 matches any of the regular expressions $W(c) \cdot W(c')$, $W(c) \sep W(c')$,
 $W(c)^*$, $K(c) \cdot K(c')$, $K(c) \sep K(c')$, $K(c)^*$, then $s$ matches
@@ -563,12 +577,15 @@ let ambiguous : canonizer = "a"* . (project "a"* $\to$ "a")
 \end{lstlisting}
 
 \noindent The behaviour of \cd{ambiguous} is not-well defined since the string
-\cd{"aaa"} can be canonized to any of \cd{"a", "aa", "aaa"} depending on how
-\cd{"aaa"} is parsed. We also require that the regular combinators applied to
+\cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"} depending on how
+\cd{"aaa"} is parsed. 
+
+\saz{Add citations to prior work that uses these definitions?}
+We also require that the regular combinators applied to
 the kernels are unambiguous since the underlying lenses will end up operating
 on the kernels, and these lenses impose the same restrictions for similar
 reasons.
-
+%
 To this end, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
 $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
@@ -584,6 +601,9 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
 \begin{figure}[p!]
+\saz{This well-formedness judgment is better, but the \textbf{WF} is a bit
+  jarring -- it detracts from the content of the judgment.  Maybe something
+  lighter, like just $\mathit{wf}$?}
 \begin{center}
 \AxiomC{$R$ is strongly unambiguous}
 \UnaryInfC{$\mathit{id}(R)$ \textbf{WF}}
@@ -683,7 +703,8 @@ $c'$ is well formed only if the concatentions of $W(c)$ and $W(c')$, and
 $K(c)$ and $K(c')$ are ambiguous.
 
 The most complicated inferrence rule is the rule for the \textit{permutation}
-combinator:
+combinator: \saz{fix the overflow by stacking ?  Also, it should use the WF
+  predicate in the premise, right?}
 
 \begin{prooftree}
 \AxiomC{$c_i, c$ are well formed}
@@ -715,7 +736,8 @@ The rest of the inferrence rules for deriving QREs are given in
 Figure~\ref{fig:qrerules}.
 \subsection{Semantics of QREs}
 
-As we mentioned before, each QRE $c$ enables us to express:
+As we mentioned before, each QRE $c$ enables us to express: \saz{I'm not sure we
+  need to repeat the whole list here.}
 \begin{enumerate}
   \item a regular expression $W(c)$ (the ``whole'' of $c$),
   \item an equivalence relation $\eqrel{c}$ on $\mathcal{L}(W(c))$,
@@ -729,7 +751,7 @@ As we mentioned before, each QRE $c$ enables us to express:
   \end{enumerate}
 Figures~\ref{fig:wk} gives the inductive definitions for the whole language
 $W(c)$ of a QRE. The \textit{squash} and \textit{permutation} combinators
-give the two interesting definitions . If $c = \squash{c}{c'}{f}$, then
+give the two interesting definitions. If $c = \squash{c}{c'}{f}$, then
 the whole language of $c$ is $W(c) \sep W(c')$. This is because the
 \textit{squash} combinator takes the whole language $W(c)$ of $c$, the whole
 language $W(c')$ of $c'$ and a function $f : \mathcal{L}(W(c)) \longrightarrow
@@ -1176,15 +1198,38 @@ well-defined quotient lens.
 
  \begin{figure}[ht]
   \centering
-  \begin{prooftree}
-\AxiomC{$\ell : R \Leftrightarrow S$}
-\UnaryInfC{$\kw{lift}(\ell): id(R) \Leftrightarrow id(S)$}
-\end{prooftree}
-  \begin{align*}
-  \llbracket q \rrbracket.get &=  \llbracket \ell \rrbracket\\
-  \llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1}
-  \end{align*}
- 
+
+\[
+\begin{array}[b]{c@{\qquad}c}
+\Rule{\ell : R \Leftrightarrow S}{\kw{lift}(\ell): id(R) \Leftrightarrow id(S)}
+&
+  \begin{array}[b]{rcl}
+  \llbracket q \rrbracket.get &=&  \llbracket \ell \rrbracket\\
+  \llbracket q \rrbracket.put &=& \llbracket \ell \rrbracket^{-1}
+  \end{array}
+\end{array}
+\]
+
+% \begin{tabular}[t]{cc}
+
+% \begin{minipage}{\textwidth/2}
+%   \begin{prooftree}
+% \AxiomC{$\ell : R \Leftrightarrow S$}
+% \UnaryInfC{$\kw{lift}(\ell): id(R) \Leftrightarrow id(S)$}
+% \end{prooftree}
+% \end{minipage}
+% &
+% \(
+% \)
+% \end{tabular}
+
+\[
+\Rule{q' : c'  \Leftrightarrow c'' &
+ \wf{c} &
+ K(c) = W(c')}
+{\kw{lquot}(c, q'): c' \circ c \Leftrightarrow c''}
+\]
+
 \begin{prooftree}
 \AxiomC{$q' : c'  \Leftrightarrow c''$}
 \AxiomC{$c$ \textbf{WF}}
@@ -1603,7 +1648,7 @@ synthesize a bijective lens $l :
 K(c) \Leftrightarrow K(c')$ that is consistent with the canonized examples
 $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$
 
-In our previous work, we showed that given regular expressions $R, S$ and a set
+In our previous work \saz{citation}, we showed that given regular expressions $R, S$ and a set
 of input-output pairs $\{(r_1, s_1), \ldots, (r_n, s_n)\}$, if there is a
 derivation $\ell : R \Leftrightarrow S$ of a bijective lens that maps $r_i$ to
 $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward direction,
@@ -1681,13 +1726,13 @@ of 1600 MHz DDR3 running macOS High Sierra.
 Our evaluations serve to answer the following questions:
 \begin{enumerate}
 \item Does synthesizing quotient lenses from QREs permit for an easier
-  development process than existing approaches.
+  development process than existing approaches?
 
 \item Are QREs sufficiently expressive that more lenses can be synthesized
-  without modifications to the format. 
+  without modifications to the format?
 
 \item Is our synthesis algorithm competitive with existing lens synthesis
-  tools.
+  tools?
 \end{enumerate}
 
 \subsection{Benchmark Suite Construction} 
@@ -1746,7 +1791,7 @@ Boomerang.
 \subsection{Increase of Expressivity}
 
 Optician was only able to synthesize fully bijective data transformations.
-\Name loosens that restriction, and is able to synthesize data which is
+\Name{} loosens that restriction, and is able to synthesize data which is
 bijective when put in canonical form.
 To determine the increase of expressivity, we analyzed:
 \begin{enumerate}
@@ -1859,12 +1904,19 @@ unidirectional string transformers, Flash Fill~\cite{gulwani-popl-2014} and
 FlashExtract~\cite{le-pldi-2014}, and found that these tools were unsuccessful
 in synthesizing the complex transformations that can be expressed in Optician.
 Furthermore, neither of these tools were able to infer transformations 
-that occurred under two iterations.
+that occurred under two iterations.  
+
+\saz{Maybe say again here how \Name{} improves on Optician?   Is it the case
+  that if you use the ``regular language'' subset of QRE's that our new algorithm
+  degenerates to the Optician one?  Is it worth trying that out experimentally?}
 
 Much of the research in synthesis assumes that the synthesizer is provided with
 a collection of examples. Optician differs in that it requires that the
 programmer supplies both examples {\em and} format descriptions in the form of
-regular expressions. There are many other recent results showing how to
+regular expressions.  \saz{Maybe elaborate more on the tradeoffs here?}
+
+
+There are many other recent results showing how to
 synthesize functions from type-based
 specifications~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,armando+:pldi16}.
 These systems enumerate programs of their target language, orienting their
@@ -1873,7 +1925,8 @@ Optician is distinctive in that it synthesizes terms in a language with many
 type equivalences. 
 Perhaps the system most similar to Optician is InSynth~\cite{gvero-pldi-2013}, a
 system for synthesizing terms in the simply-typed lambda calculus that addresses
-equivalences on types.  
+equivalences on types.  \saz{This kind of comparison is OK, but a bit
+  superficial.  Is there a crisper, technical description of the differences?}
 
 Morpheus~\cite{morpheus} is another synthesis system that uses two
 communicating synthesizers to generate programs.  In both Morpheus and
@@ -1899,7 +1952,7 @@ flexible and compositional language designed for human programmers.
 \section{Conclusion and Future Work}
 \label{concl}
 
-\bibliographystyle{abbrvnat}
+\bibliographystyle{plain}
 \bibliography{local}
 
 
