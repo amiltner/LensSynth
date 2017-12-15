@@ -9,6 +9,8 @@
 \usepackage{relsize}
 \usepackage{listings}
 \usepackage{proof}
+
+
 \lstset{
   language=Caml,
   basicstyle=\upshape\sffamily,
@@ -23,8 +25,6 @@
   % stringstyle=\sffamily\color{dkred},
   mathescape
 }
-\newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
-
 
 %%%%%
 % Macros
@@ -55,7 +55,7 @@
 \newcommand{\RuleSide}[3]{\infer[#3]{#2}{#1}}
 %\newcommand{\Axiom}[1]{\Rule{}{#1}}
 
-\newcommand{\wf}[1]{\vdash \ensuremath{#1\;\mathsf{wf}}}
+\newcommand{\wf}[1]{\ensuremath{#1\;\mathsf{wf}}}
 
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
@@ -83,6 +83,7 @@
 \newcommand{\OpticianRuntime}{\textbf{OO}}
 \newcommand{\SystemOnOptician}{\textbf{SO}}
 \newcommand{\SystemOnBenchmarks}{\textbf{SS}}
+\newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -129,7 +130,7 @@ values can be handled all at once and inessential details like whitespace
 and ordering of fields can be ignored.
 
 However, while plain lenses are widely used in both standalone systems and
-popular libraries, Boomerang~\cite{Boomerang} is the only implementation
+popular libraries, Boomerang~\cite{boomerang} is the only implementation
 currently offering quotient lenses.  One reason for this is that there is
 some annoying redundancy in the quotient lens notation: The programmer often
 has to separately specify (1) the data formats on each side of the lens, (2) the
@@ -517,15 +518,17 @@ $q$, there exist regular expressions $R, R'$ and a surjective, idempotent
 function $f:\mathcal{L}(R) \longrightarrow \mathcal{L}(R')$ such that $q$ and
 $\normalize{R}{R'}{f}$ each define the same equivalence relation on
 $\mathcal{L}(R)$, with $\mathcal{L}(R')$ forming a complete set of
-representatives for this equivalence relation. \saz{rewrite the next sentence to
-  avoid so many uses of ``express''?} The $\normalize{R}{R'}{f}$
-combinator is included so as to express equivalence relations that are
-difficult to express, or that cannot be expressed, using the other
-combinators. 
+representatives for this equivalence relation. The $\normalize{R}{R'}{f}$
+combinator is included so as to express equivalence relations that are either 
+difficult to define, or that cannot be defined using the other combinators. 
+\saz{Add something about being ``complete'' here?}\sam{I'm not sure how to do
+this here. The precise statement about how normalize is strong enough to
+express all QREs requires that we introduce W(c), K(c) and Canonizer(c) which
+we haven't introduced at this point in the paper} 
 
-\saz{Add something about being ``complete'' here?  Say more about how normalize
-  wouldn't be used in ``ordinary'' QRE programming?}
-However, checking that the canonizing function $f$ is
+\saz{Say more about how normalize
+wouldn't be used in ``ordinary'' QRE programming?}\sam{I'm not sure what you
+mean here exactly\ldots} However, checking that the canonizing function $f$ is
 surjective and idempotent is undecidable in general, thus we do not use the
 $\normalize{R}{R'}{f}$ in practice. On the other hand, the
 $\normalize{R}{R'}{f}$ combinator gives a sufficient condition for potential
@@ -539,7 +542,7 @@ by $S$, with $\mathcal{L}(S) \not \subseteq \mathcal{L}(R)$, whereas each QRE
 $c$ canonizes a regular language described by $R$ to regular subset
 $\mathcal{L}(R') \subseteq \mathcal{L}(R)$ described by $R'$. QREs therefore are
 not as expressive as Boomerang canonizers. On the other hand, QREs enable us to
-express many equivalences which\saz{``which'' $\to$ ``that''} occur in real world data as we shall demonstrate
+express many equivalences that occur in real world data as we shall demonstrate
 in the evaluation section (Section~\ref{impl}).
 
 The net effect of these design decisions means that each QRE $c$ enables
@@ -562,13 +565,13 @@ us to simultaneously express
 
 \subsection{Well Formed QREs and ambiguity}
 Before giving the formal semantics for QREs, we address the issue of {\em
-ambiguity}, which comes up\saz{``comes up'' is a little colloquial; perhaps ``arises''?} when defining QREs. If $c$ and  $c'$ are QREs, then
+ambiguity}, which arises when defining QREs. If $c$ and  $c'$ are QREs, then
 when applying the regular combinators to QREs, we require that if a string $s$
 matches any of the regular expressions $W(c) \cdot W(c')$, $W(c) \sep W(c')$,
 $W(c)^*$, $K(c) \cdot K(c')$, $K(c) \sep K(c')$, $K(c)^*$, then $s$ matches
 that regular expression in only one way. This unambiguity condition is called
-{\em strong unambiguity}, and is necessary, firstly because it ensures that the
-canonizing function of a QRE is well-defined.
+{\em strong unambiguity}~\cite{Sippu1988}, and is necessary, firstly because it
+ensures that the canonizing function of a QRE is well-defined.
 
 For example consider the QRE
 
@@ -580,7 +583,6 @@ let ambiguous : canonizer = "a"* . (project "a"* $\to$ "a")
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"} depending on how
 \cd{"aaa"} is parsed. 
 
-\saz{Add citations to prior work that uses these definitions?}
 We also require that the regular combinators applied to
 the kernels are unambiguous since the underlying lenses will end up operating
 on the kernels, and these lenses impose the same restrictions for similar
@@ -601,35 +603,31 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
 \begin{figure}[p!]
-\saz{This well-formedness judgment is better, but the \textbf{WF} is a bit
-  jarring -- it detracts from the content of the judgment.  Maybe something
-  lighter, like just $\mathit{wf}$?}
 \begin{center}
 \AxiomC{$R$ is strongly unambiguous}
-\UnaryInfC{$\mathit{id}(R)$ \textbf{WF}}
+\UnaryInfC{$\wf{\mathit{id}(R)}$}
 \DisplayProof
 \hskip 1.5em
 \AxiomC{$s \in \mathcal{L}(R)$}
-\UnaryInfC{$\project{R}{s}$ \textbf{WF}}
+\UnaryInfC{$\wf{\project{R}{s}}$}
 \DisplayProof
 \hskip 1.5em 
 \end{center}
 
 \begin{prooftree}
-\AxiomC{$c_i, c$ are well formed}
+\AxiomC{$\wf{c_i, c}$}
 \AxiomC{${\substack{\forall \sigma \neq \theta, \; W(c_{\sigma(1)}) \cdot W(c)
 \cdot \ldots \cdot W(c_{\sigma(n)})\\ \cap W(c_{\theta(1)}) \cdot W(c)
 \cdot \ldots \cdot W(c_{\theta(n)}) =\varnothing}}$}
 \AxiomC{$K(c_1) \cdot^! K(c) \cdot^! \ldots \cdot^! K(c) \cdot^! K(c_n)$}
-\TrinaryInfC{$\perm{c_1, \ldots, c_n}{c}$ \textbf{WF}}
+\TrinaryInfC{$\wf{\perm{c_1, \ldots, c_n}{c}}$}
 \end{prooftree}
 
 \begin{center}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$c'$ \textbf{WF}}
+\AxiomC{$\wf{c, c'}$}
 \AxiomC{$\mathcal{L}(W(c)) \cap \mathcal{L}(W(c')) = \varnothing$}
 \AxiomC{$f : \mathcal{L}(W(c)) \longrightarrow \mathcal{L}(W(c'))$}
-\QuaternaryInfC{$\squash{c}{c'}{f}$ \textbf{WF}}
+\TrinaryInfC{$\wf{\squash{c}{c'}{f}}$}
 \DisplayProof
 \end{center}
 \begin{center}
@@ -639,45 +637,42 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(R')$}
 \AxiomC{$f$ is surjective}
 \AxiomC{$f = f^2$}
-\QuaternaryInfC{$\normalize{R}{R'}{f}$ \textbf{WF}}
+\QuaternaryInfC{$\wf{\normalize{R}{R'}{f}}$}
 \end{prooftree}
 
 \end{center}
 \begin{center}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$c'$ \textbf{WF}}
+\AxiomC{$\wf{c, c'}$}
 \AxiomC{$K(c) = W(c')$}
-\TrinaryInfC{$c' \; ; \; c$ \textbf{WF}}
+\BinaryInfC{$\wf{c' \; ; \; c}$}
 \DisplayProof
 \hskip 1.5em
-\AxiomC{$c$ \textbf{WF}}
+\AxiomC{$\wf{c}$}
 \AxiomC{$W(c)^{*!}$}
 \AxiomC{$K(c)^{*!}$}
-\TrinaryInfC{$c^*$ \textbf{WF}}
+\TrinaryInfC{$\wf{c^*}$}
 \DisplayProof
 \end{center}
 \begin{center}
 
 \begin{center}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$c'$ \textbf{WF}}
+\AxiomC{$\wf{c, c'}$}
 \AxiomC{$W(c) \cdot^! W(c')$}
 \AxiomC{$K(c) \cdot^! K(c')$}
-\QuaternaryInfC{$c \cdot c'$ \textbf{WF}}
+\TrinaryInfC{$\wf{c \cdot c'}$}
 \DisplayProof
 \end{center}
 
 \begin{center}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$c'$ \textbf{WF}}
+\AxiomC{$\wf{c, c'}$}
 \AxiomC{$W(c) \cap W(c') = \varnothing$}
-\TrinaryInfC{$c \cdot c$ \textbf{WF}}
+\BinaryInfC{$\wf{c \cdot c}$}
 \DisplayProof
 \hskip 1.5em
-\AxiomC{$c$ \textbf{WF}}
+\AxiomC{$\wf{c}$}
 \AxiomC{$W(c)^{*!}$}
 \AxiomC{$K(c)^{*!}$}
-\TrinaryInfC{$c^*$ \textbf{WF}}
+\TrinaryInfC{$\wf{c^*}$}
 \DisplayProof
 \end{center}
 \end{center}
@@ -691,11 +686,10 @@ QREs. As expected, the unambiguity conditions come into play when defining QREs
 using the regular combinators. For example, the inferrence rule for
 concatenation is as follows:
 \begin{prooftree}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$c'$ \textbf{WF}}
+\AxiomC{$\wf{c, c'}$}
 \AxiomC{$W(c) \cdot^! W(c')$}
 \AxiomC{$K(c) \cdot^! K(c')$}
-\QuaternaryInfC{$c \cdot c'$ \textbf{WF}}
+\TrinaryInfC{$\wf{c \cdot c'}$}
 \end{prooftree}
 
 \noindent This rule says that the concatenation $c \cdot c'$ of QREs $c$ and
@@ -703,16 +697,15 @@ $c'$ is well formed only if the concatentions of $W(c)$ and $W(c')$, and
 $K(c)$ and $K(c')$ are ambiguous.
 
 The most complicated inferrence rule is the rule for the \textit{permutation}
-combinator: \saz{fix the overflow by stacking ?  Also, it should use the WF
-  predicate in the premise, right?}
+combinator:
 
 \begin{prooftree}
-\AxiomC{$c_i, c$ are well formed}
+\AxiomC{$\wf{c_i, c}$}
 \AxiomC{${\substack{\forall \sigma \neq \theta, \; W(c_{\sigma(1)}) \cdot W(c)
 \cdot \ldots \cdot W(c_{\sigma(n)})\\ \cap W(c_{\theta(1)}) \cdot W(c)
 \cdot \ldots \cdot W(c_{\theta(n)}) =\varnothing}}$}
 \AxiomC{$K(c_1) \cdot^! K(c) \cdot^! \ldots \cdot^! K(c) \cdot^! K(c_n)$}
-\TrinaryInfC{$\perm{c_1, \ldots, c_n}{c}$ \textbf{WF}}
+\TrinaryInfC{$\wf{\perm{c_1, \ldots, c_n}{c}}$}
 \end{prooftree}
 
 \noindent The second hypothesis for the \textit{permutation} rule says that for
@@ -735,28 +728,21 @@ unambiguous so that the lens can match strings uniquely.
 The rest of the inferrence rules for deriving QREs are given in
 Figure~\ref{fig:qrerules}.
 \subsection{Semantics of QREs}
-
-As we mentioned before, each QRE $c$ enables us to express: \saz{I'm not sure we
-  need to repeat the whole list here.}
-\begin{enumerate}
-  \item a regular expression $W(c)$ (the ``whole'' of $c$),
-  \item an equivalence relation $\eqrel{c}$ on $\mathcal{L}(W(c))$,
-  \item a regular expression $K(c)$ (the ``kernel'' of $c$)
-  such that $\mathcal{L}(K(c))$ forms a complete set of representatives for
-  $\eqrel{c}$, and
-  \item a ``canonizing'' function $\canonizer(c):\mathcal{L}(W(c))
-  \longrightarrow \mathcal{L}(K(c))$ which given any $w \in \mathcal{L}(W(c))$,
-  computes $\canonizer(c)(w)$ as the unique $k$ in $\mathcal{L}(K(c))$ such that
-  $k$ is equivalent to $w$ mod $\eqrel{c}$
-  \end{enumerate}
-Figures~\ref{fig:wk} gives the inductive definitions for the whole language
-$W(c)$ of a QRE. The \textit{squash} and \textit{permutation} combinators
-give the two interesting definitions. If $c = \squash{c}{c'}{f}$, then
-the whole language of $c$ is $W(c) \sep W(c')$. This is because the
-\textit{squash} combinator takes the whole language $W(c)$ of $c$, the whole
-language $W(c')$ of $c'$ and a function $f : \mathcal{L}(W(c)) \longrightarrow
-\mathcal{L}(W(c'))$, maps $\mathcal{L}(W(c))$ into $\mathcal{L}(W(c'))$ using
-$f$ and then canonizes $W(c')$ into $K(c')$ using $\canonizer(c')$.
+As we mentioned before, each QRE $c$ enables us to express the whole and kernel
+languages $W(c)$ and $K(c)$, an equivalence relation $\eqrel{c}$ on
+$\mathcal{L}(W(c))$ that has $\mathcal{L}(K(c))$ as a complete set of
+representatives and a canonizing function $\canonizer(c):\mathcal{L}(W(c))
+  \longrightarrow \mathcal{L}(K(c))$ whose fibres are the same as $\eqrel{c}$.
+  
+Figures~\ref{fig:wk} gives the inductive definitions for the whole and
+kernel languages $W(c)$ and $K(c)$ of a QRE. The \textit{squash} and
+\textit{permutation} combinators give the two interesting definitions. If $c =
+\squash{c}{c'}{f}$, then the whole language of $c$ is $W(c) \sep W(c')$. This
+is because the \textit{squash} combinator takes the whole language $W(c)$ of
+$c$, the whole language $W(c')$ of $c'$ and a function $f : \mathcal{L}(W(c))
+\longrightarrow \mathcal{L}(W(c'))$, maps $\mathcal{L}(W(c))$ into
+$\mathcal{L}(W(c'))$ using $f$ and then canonizes $W(c')$ into $K(c')$ using
+$\canonizer(c')$.
 
 For the $\perm{(c_1, \ldots, c_n)}{c}$ combinator, the whole language is the
 union of languages of the form $W(c_{\sigma(1)}) \cdot W(c) \cdot \ldots \cdot
@@ -812,10 +798,7 @@ K( \perm{c_1, \ldots, c_n}{c} ) = & K(c_1) \cdot K(c) \cdot \ldots \cdot K(c)
 \cdot K(c_n)
 \end{array}
 \]
-  \caption{Whole and Kernel Regular Expressions\bcp{try putting the 
-      last two clauses into the same format as the
-      others (using $\mathit{qq} = ...$ and maybe reducing spacing around
-      cdots, etc.)}}
+  \caption{Whole and Kernel Regular Expressions}
   \label{fig:wk}
 \end{figure}
 
@@ -1198,64 +1181,107 @@ well-defined quotient lens.
 
  \begin{figure}[ht]
   \centering
-
 \[
-\begin{array}[b]{c@{\qquad}c}
+\begin{array}[b]{l@{\qquad}l}
 \Rule{\ell : R \Leftrightarrow S}{\kw{lift}(\ell): id(R) \Leftrightarrow id(S)}
 &
   \begin{array}[b]{rcl}
-  \llbracket q \rrbracket.get &=&  \llbracket \ell \rrbracket\\
-  \llbracket q \rrbracket.put &=& \llbracket \ell \rrbracket^{-1}
+  \llbracket \kw{lift}(\ell) \rrbracket.get &=&  \llbracket \ell \rrbracket\\
+  \llbracket \kw{lift}(\ell) \rrbracket.put &=& \llbracket \ell \rrbracket^{-1}
+  \end{array}
+  \end{array}
+  \]
+  \[
+\begin{array}[b]{c@{\qquad}l}
+  \Rule{q : c'  \Leftrightarrow c'' &
+ \wf{c} &
+ K(c) = W(c')}
+{\kw{lquot}(c, q): c' \circ c \Leftrightarrow c''} &
+  \begin{array}[b]{rcl}
+  \llbracket \kw{lquot}(c, q) \rrbracket.get  &=& \llbracket q
+  \rrbracket.get \circ \canonizer(c)\\
+  \llbracket \kw{lquot}(c, q) \rrbracket.put &=& \llbracket q \rrbracket.put
   \end{array}
 \end{array}
 \]
 
-% \begin{tabular}[t]{cc}
-
-% \begin{minipage}{\textwidth/2}
-%   \begin{prooftree}
-% \AxiomC{$\ell : R \Leftrightarrow S$}
-% \UnaryInfC{$\kw{lift}(\ell): id(R) \Leftrightarrow id(S)$}
-% \end{prooftree}
-% \end{minipage}
-% &
-% \(
-% \)
-% \end{tabular}
-
 \[
-\Rule{q' : c'  \Leftrightarrow c'' &
+\begin{array}[b]{c@{\qquad}c}
+\Rule{q : c'  \Leftrightarrow c'' &
  \wf{c} &
  K(c) = W(c')}
-{\kw{lquot}(c, q'): c' \circ c \Leftrightarrow c''}
+{\kw{lquot}(c, q): c' \circ c \Leftrightarrow c''} &
+  \begin{array}[b]{rcl}
+  \llbracket \kw{lquot}(c, q) \rrbracket.get  &=& \llbracket q
+  \rrbracket.get \circ \canonizer(c)\\
+  \llbracket \kw{lquot}(c, q) \rrbracket.put &=& \llbracket q \rrbracket.put
+  \end{array}
+\end{array}
 \]
 
-\begin{prooftree}
-\AxiomC{$q' : c'  \Leftrightarrow c''$}
-\AxiomC{$c$ \textbf{WF}}
-\AxiomC{$K(c) = W(c')$}
-\TrinaryInfC{$\kw{lquot}(c, q'): c' \circ c \Leftrightarrow c''$}
-\end{prooftree}
-  \begin{align*}
-  \llbracket q \rrbracket.get  &= \llbracket q'
-  \rrbracket.get \circ \canonizer(c)\\
-  \llbracket q \rrbracket.put &= \llbracket q' \rrbracket.put
-  \end{align*}
-
-  \begin{prooftree}
-  \AxiomC{$q' : c \Leftrightarrow c'$}
-  \AxiomC{$c''$ \textbf{WF}}
-  
-\AxiomC{$K(c'') = W(c')$}
-\TrinaryInfC{$\kw{rquot}(q', c):c \Leftrightarrow c'' \circ c'$}
-\end{prooftree}
-  \begin{align*}
-  \llbracket q \rrbracket.get &= \llbracket q'
+\[
+\begin{array}[b]{c@{\qquad}c}
+\Rule{q : c \Leftrightarrow c'' &
+ \wf{c''} &
+ W(c'') = K(c')}
+{\kw{rquot}(q, c):c \Leftrightarrow c'' \circ c'} &
+  \begin{array}[b]{rcl}
+  \llbracket \kw{rquot}(q, c) \rrbracket.get  &=& \llbracket q
   \rrbracket.get\\
-  \llbracket q \rrbracket.put &= \llbracket q'
+  \llbracket \kw{rquot}(q, c) \rrbracket.put &=& \llbracket q
   \rrbracket.put \circ \canonizer(c'')
-  \end{align*}
+  \end{array}
+\end{array}
+\]
   
+\[
+\begin{array}[b]{l@{\qquad}c}
+\Rule{q : c \Leftrightarrow c' &
+ W(c)^{*!},W(c')^{*!} & K(c)^{*!}, K(c')^{*!}}
+{{q}^* : c^* \Leftrightarrow {c'}^*} &
+  \begin{array}[b]{rcl}
+  \llbracket {q}^* \rrbracket.get  &=& (\llbracket q \rrbracket.get)^*\\
+  \llbracket {q}^* \rrbracket.put &=& (\llbracket q \rrbracket.get)^*
+  \end{array}
+\end{array}
+\]
+
+\[
+\begin{array}[b]{l@{\qquad}c}
+\Rule{\substack{q_1 : c_1 \Leftrightarrow d_1 \\ q_2 : c_2 \Leftrightarrow
+d_2} & {\substack{W(c_1) \cdot^! W(c_2)\\ K(c_1) \cdot^! K(c_2)}} 
+& {\substack{W(d_1) \cdot^! W(d_2)\\ K(d_1) \cdot^! K(d_2)}}}
+{q_1 \cdot q_2: c_1 \cdot c_2 \Leftrightarrow d_1 \cdot d_2} &
+  \begin{array}[b]{rcl}
+  \llbracket q_1 \cdot q_2 \rrbracket.get  &=& \llbracket q_1 \rrbracket.get
+  \cdot \llbracket q_2 \rrbracket.get\\
+  \llbracket q_1 \cdot q_2\rrbracket.put &=& \llbracket q_1 \rrbracket.put
+  \cdot \llbracket q_2 \rrbracket.put
+  \end{array}
+\end{array}
+\]
+
+\[
+\begin{array}[b]{l@{\qquad}c}
+\Rule{\substack{q_1 : c_1 \Leftrightarrow d_1 \\ q_2 : c_2 \Leftrightarrow
+d_2} & \substack{\mathcal{L}(W(c_1)) \cap \mathcal{L}(W(c_2)) = \varnothing
+\\ \mathcal{L}(W(d_1)) \cap \mathcal{L}(W(d_2)) = \varnothing }}
+{q_1 \sep q_2: (c_1 \sep c_2)\Leftrightarrow (d_1 \sep d_2)} &
+  \begin{array}[b]{rcl}
+  \llbracket q_1 \sep q_2 \rrbracket.get(s) = 
+  \begin{cases}
+  \llbracket q_1 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_1))\\
+  \llbracket q_2 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_2))\\
+  \end{cases}\\
+  \llbracket q_1 \sep q_2 \rrbracket.put(s) = 
+  \begin{cases}
+  \llbracket q_1 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_1))\\
+  \llbracket q_2 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_2))\\
+  \end{cases}
+  \end{array}
+\end{array}
+\]
+      
   \begin{prooftree}
 \AxiomC{$\substack{q_1 : c \Leftrightarrow c' \\ q_2 : c'' \Leftrightarrow
 c'''}$}
@@ -1271,56 +1297,7 @@ K(c'')}$}
   q_2 \rrbracket.put
   \end{align*}
 
-    \begin{prooftree}
-\AxiomC{$q : c \Leftrightarrow c$}
-\AxiomC{$\substack{W(c)^{*!} \text{ and } W(c')^{*!} \\ K(c)^{*!} \text{ and }
-K(c')^{*!}}$}
-\BinaryInfC{${q}^* : c^* \Leftrightarrow {c'}^*$}
-\end{prooftree}
-  \begin{align*}
-  \llbracket q \rrbracket.get &= (\llbracket q \rrbracket.get)^* \\
-  \llbracket q \rrbracket.put &= (\llbracket q \rrbracket.put)^*
-  \end{align*}
-
-    \begin{prooftree}
-\AxiomC{$\substack{q_1 : c_1 \Leftrightarrow d_1 \\ q_2 : c_2 \Leftrightarrow
-d_2}$}
-\AxiomC{${\substack{W(c_1) \cdot^! W(c_2)\\ K(c_1) \cdot^! K(c_2)}}$}
-\AxiomC{${\substack{W(d_1) \cdot^! W(d_2)\\ K(d_1) \cdot^! K(d_2)}}$}
-\TrinaryInfC{$q_1 \cdot q_2: c_1 \cdot c_2
-\Leftrightarrow d_1 \cdot d_2$}
-\end{prooftree}
-  \begin{align*}
-  \llbracket q \rrbracket.get &= \llbracket q_1 \rrbracket.get \cdot \llbracket
-  q_2 \rrbracket.get \\
-  \llbracket q \rrbracket.put &= \llbracket q_1 \rrbracket.put \cdot \llbracket
-  q_2 \rrbracket.put
-  \end{align*}
-
-      \begin{prooftree}
-\AxiomC{$\substack{q_1 : c_1 \Leftrightarrow d_1 \\ q_2 : c_2 \Leftrightarrow
-d_2}$}
-\AxiomC{$\substack{\mathcal{L}(W(c_1)) \cap \mathcal{L}(W(c_2)) = \varnothing
-\\ \mathcal{L}(W(d_1)) \cap \mathcal{L}(W(d_2)) = \varnothing}$}
-\BinaryInfC{$q_1 \sep q_2: (c_1 \sep c_2)
-\Leftrightarrow (d_1 \sep d_2)$}
-\end{prooftree}
-  $$
-  \llbracket q_1 \sep q_2 \rrbracket.get(s) = 
-  \begin{cases}
-  \llbracket q_1 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_1))\\
-  \llbracket q_2 \rrbracket.get (s) & \text{if } s \in \mathcal{L}(W(c_2))\\
-  \end{cases}$$
-  $$\llbracket q_1 \sep q_2 \rrbracket.put(s) = 
-  \begin{cases}
-  \llbracket q_1 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_1))\\
-  \llbracket q_2 \rrbracket.put (s) & \text{if } s \in \mathcal{L}(W(d_2))\\
-  \end{cases}
-  $$
-  \caption{Denotation and Typing Rules for QRE Lenses\bcp{I think we can
-      display this more compactly if we make the inference rules narrower by
-    stacking the premises vertically and then put each inference rule {\em
-      beside} its semantics definition.}}
+  \caption{Denotation and Typing Rules for QRE Lenses}
   \label{fig:qlenssemantics}
 \end{figure}
 
@@ -1648,14 +1625,15 @@ synthesize a bijective lens $l :
 K(c) \Leftrightarrow K(c')$ that is consistent with the canonized examples
 $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$
 
-In our previous work \saz{citation}, we showed that given regular expressions $R, S$ and a set
-of input-output pairs $\{(r_1, s_1), \ldots, (r_n, s_n)\}$, if there is a
-derivation $\ell : R \Leftrightarrow S$ of a bijective lens that maps $r_i$ to
-$s_i$ in the forward direction and $s_i$ to $r_i$ in the backward direction,
-then there is an algorithm that computes a bijective lens $\ell' : R'
-\Leftrightarrow S'$ such that $R \equiv R'$, $S \equiv S'$, $\ell'$ maps $r_i$
-to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward direction,
-and $\llbracket \ell \rrbracket = \llbracket \ell' \rrbracket$~\cite{popl18}.
+In our previous work~\cite{popl18}, we showed that given regular expressions
+$R, S$ and a set of input-output pairs $\{(r_1, s_1), \ldots, (r_n, s_n)\}$, if
+there is a derivation $\ell : R \Leftrightarrow S$ of a bijective lens that
+maps $r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
+direction, then there is an algorithm that computes a bijective lens $\ell' :
+R' \Leftrightarrow S'$ such that $R \equiv R'$, $S \equiv S'$, $\ell'$ maps
+$r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
+direction, and $\llbracket \ell \rrbracket = \llbracket \ell'
+\rrbracket$.
 
 This implies that if there is a derivation $q : c \Leftrightarrow
 c'$ of a QRE lens as well as a derivation $\ell : K(c) \Leftrightarrow K(c')$
@@ -1857,6 +1835,7 @@ fields to make this format bijective, it still took over 15 seconds to complete.
 \section{Related Work}
 \label{relwork} 
 
+\iffalse
 Bidirectional transformations have been used in diverse areas of computing
 where they arise as parsers and pretty printers, marshallers
 and unmarshallers, serializers and deserializers, database views and view
@@ -1865,7 +1844,7 @@ been extensively studied since they were proposed as a solution to the classical
 {\em view-update problem} in the database community, where the challenge is to
 derive a program that extracts a view of data from a source, as well as a
 program that folds view updates back into the source safely and correctly.
-
+\fi
 This paper builds on the work of Foster et al~\cite{quotientlenses} who
 introduced the theory of quotient lenses and implemented quotient lenses as a
 refinement of the bidirectional string processing language Boomerang.
@@ -1882,8 +1861,8 @@ occur in many data formats, especially XML and XML-like formats.
 
 In their paper, Foster et al also discuss other bidirectional programming
 languages that support quotienting of data including XSugar~\cite{xsugar},
-biXid~\cite{bixid} and X/Inv~\cite{xinv}. XSugar programs bidirectionally
-convert data stored in XML and ASCII formats respectively, with the
+biXid~\cite{bixid} and X/Inv~\cite{Hu2004,Mu2004,Mu2006}. XSugar programs
+bidirectionally convert data stored in XML and ASCII formats respectively, with the
 transformations specified by a pair of unambiguous grammars. The quotienting
 occurs on the XML side by use of a generic canonizer that standardizes the
 representation of trees. Well-formed XSugar programs are guaranteed to be
@@ -1897,27 +1876,46 @@ well with the lens laws, but can be expressed using Boomerang quotient lenses.
 
 As far as synthesis goes, though there is a good deal of recent research on
 synthesizing unidirectional string
-transformations~\cite{singh2012learning,le-pldi-2014,gulwani-popl-2014,perelman2014test,Singh:blinkfill}, our system Optician, which we introduced in
-~\cite{popl18}, is the first attempt to synthesize bidirectional
-transformations that we are aware of. We compared Optician to two of these
-unidirectional string transformers, Flash Fill~\cite{gulwani-popl-2014} and
+transformations~\cite{singh2012learning,le-pldi-2014,gulwani-popl-2014,perelman2014test,Singh:blinkfill},
+the system Optician, which we introduced in ~\cite{popl18}, is the first attempt
+to synthesize bidirectional transformations that we are aware of. In that
+publication, we compared Optician to two of these unidirectional string
+transformers, Flash Fill~\cite{gulwani-popl-2014} and
 FlashExtract~\cite{le-pldi-2014}, and found that these tools were unsuccessful
-in synthesizing the complex transformations that can be expressed in Optician.
-Furthermore, neither of these tools were able to infer transformations 
-that occurred under two iterations.  
+in synthesizing the complex transformatiunons that can be expressed in Optician.
 
-\saz{Maybe say again here how \Name{} improves on Optician?   Is it the case
-  that if you use the ``regular language'' subset of QRE's that our new algorithm
-  degenerates to the Optician one?  Is it worth trying that out experimentally?}
+While Optician improved on prior effors at synthesizing unidirectional string
+transformers and introduced synthesis for bidirectional string transformations,
+Optician was only able to synthesize fully bijective data transformations. Our
+new system \Name{} improves on Optician in that \Name{} loosens this
+restriction, and is able to synthesize data which is bijective when put in
+canonical form. \Name{} is therefore a refinement of Optician since the
+new synthesis algorithm (i.e. the quotient lens synthesis algorithm) restricted
+to ``pure'' regular expressions degenerates to the synthesis algorithm that
+we introduced in Optician. Indeed, as we mentioned in the evaluation section,
+\Name{} was able to synthesize all of Optician's benchmarks at a speed
+competitive with Optician, though there was additional overhead in calculating
+the whole language $W(c)$ and the kernel language $K(c)$ of QREs, which
+resulted in a very slight decrease in performance.
 
 Much of the research in synthesis assumes that the synthesizer is provided with
-a collection of examples. Optician differs in that it requires that the
-programmer supplies both examples {\em and} format descriptions in the form of
-regular expressions.  \saz{Maybe elaborate more on the tradeoffs here?}
+a collection of examples. Optician and Optometrist differ in that they requires
+that the programmer supplies both examples {\em and} format descriptions in the
+form of regular expressions or QREs.  There is a trade-off here.  On the one
+hand, a user must have some programming expertise to write regular expression
+(or QRE) specifications and it requires some work. On the other hand, such
+specifications provide a great deal of information to the synthesis system,
+which decreases the number of examples needed (often to zero), makes the system
+scale well, and allows it to handle large, complex formats.  By providing these
+format specifications, the synthesis engine does not have to both infer the
+format of the data as well as the transformations on it, obviating the need to
+infer tricky formats like those involving nested iterations. Furthermore, by
+focusing on bidirectional transformations, we limit the space of synthesized
+functions to bijective ones, reducing the search space, and the expressiveness
+of the search space.
 
-
-There are many other recent results showing how to
-synthesize functions from type-based
+There are many other recent results showing how to synthesize functions from
+type-based
 specifications~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,armando+:pldi16}.
 These systems enumerate programs of their target language, orienting their
 search procedures to process only terms that are well-typed.
@@ -1925,8 +1923,16 @@ Optician is distinctive in that it synthesizes terms in a language with many
 type equivalences. 
 Perhaps the system most similar to Optician is InSynth~\cite{gvero-pldi-2013}, a
 system for synthesizing terms in the simply-typed lambda calculus that addresses
-equivalences on types.  \saz{This kind of comparison is OK, but a bit
-  superficial.  Is there a crisper, technical description of the differences?}
+equivalences on types. Instead of trying to directly synthesize terms of the
+simply-typed lambda calculus, InSynth synthesizes a well-typed term
+in the succinct calculus, a language with types
+that are equivalent ``modulo isomorphisms of products and
+currying''~\cite{gvero-pldi-2013}. The type structure that we used in Optician
+is significantly more complex.  In particular, because Optician types do not
+have full canonical forms, we used a pseudo-canonical form, which captures part
+of the equivalence relation over types. To preserve completeness, we pushed
+some of the remaining parts of the type equivalence relation into a set of
+rewriting rules and other parts into the synthesis algorithm itself.
 
 Morpheus~\cite{morpheus} is another synthesis system that uses two
 communicating synthesizers to generate programs.  In both Morpheus and
