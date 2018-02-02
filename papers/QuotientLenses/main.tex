@@ -115,63 +115,78 @@
 
 \section{Introduction}
 
-{\em Lenses}~\cite{Lenses} specify bidirectional 
-transformations between different data formats.  Writing a single lens
-rather than two separate uni-directional transformations saves both
-keystrokes and bugs, by reducing redundancy and by automatically
-guaranteeing strong ``lens laws'' ensuring that the forward and backward
-transformations interact well.  
+Oftentimes, different applications store the same data in custom formats. For
+example, \bibtex{} and EndNote both store bibliography data; spreadsheet data
+can be represented as a CSV and as a TSV; web apis can return data as a JSON or
+XML object. Synchronizing these applications amounts to synchronizing the data
+formats. \emph{Lenses} comprise such synchronization functions, and the ``lens
+laws'' provide restrictions on how these synchronization functions interoperate.
+Bidirectional languages like Boomerang~\cite{boomerang} and
+BiGul~\cite{DBLP:conf/pepm/KoZH16} use a single expression to encode all of the
+lens's synchronization functions at the same time.
 
-{\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses
-where each of the data formats is quotiented by some equivalence relation
-and the lens laws are taken modulo equivalence.  This allows lenses to be
-both simpler and more flexible, since whole equivalence classes of data
-values can be handled all at once and inessential details like whitespace
-and ordering of fields can be ignored.
+However, these lens laws are too restrictive for many important transformations.
+In particular, these lens laws do not permit transformations that put the data
+in canonical forms. In \bibtex{}, an author can be specified as \cd{lastname,
+  firstname} and \cd{firstname lastname}. While it is important to allow authors
+to be input in both ways, we would like these authors to only be output as
+\cd{firstname lastname}, but the lens laws prevent such functions.
+{\em Quotient lenses}~\cite{quotientlenses} are a generalization of lenses where
+each of the data formats is quotiented by some equivalence relation and the lens
+laws are taken modulo equivalence. This both permits canonization functions and
+allows lenses to be simpler and more flexible. Inessential details like
+whitespace and orderings of fields can be ignored when writing the
+transformations between the formats.
 
 However, while plain lenses are widely used in both standalone systems and
 popular libraries, Boomerang~\cite{boomerang} is the only implementation
-currently offering quotient lenses.  One reason for this is that there is
-some annoying redundancy in the quotient lens notation: The programmer often
-has to separately specify (1) the data formats on each side of the lens, (2) the
-equivalence relations over them, and (3) a lens between the canonical
-representatives of the equivalence classes, even though, typically, these three
-share a great deal of structure.  Moreover, writing the lens between the
-equivalence classes can be challenging due to the rather fiddly typechecking,
-mainly due to ``non-ambiguity'' conditions in the lens well-formedness rules.
+currently offering quotient lenses. Even though quotient lenses permit simpler
+transformations between the formats, they merely push complexity elsewhere. To
+write a quotient lens, programmers must write with both standard lens
+combinators and \emph{canonizers}. Canonizers encode two functions, one that
+maps a format to a canonical version of that format, and another that chooses
+which elements of the original format correspond to values in the canonical
+format. Furthermore, if a user wants to enforce that a quotient lens maps
+between two different formats, they must write regular expressions specifying
+such formats. In this way, writing quotient lenses involves writing 3 terms: (1)
+the data formats on each side of the lens, (2) canonizers to normalize the data
+and choose representatives, and (3) a lens between the data formats when in
+canonical form, even though, typically, these three share a great deal of
+structure. Moreover, writing the lens between the equivalence classes can be
+challenging due to the rather fiddly typechecking, mainly due to
+``non-ambiguity'' conditions in the lens well-formedness rules.
 
 In this paper, we make programming quotient lenses easier in two ways. First, we
 introduce a novel language of {\em Quotient Regular Expressions}, or QREs, which
-enable a programmer to simultaneously specify a regular expression as well as an
-equivalence relation on that regular expression. QREs make programming quotient
-lenses easire by saving the programmer the effort of defining the data and the
-equivalence relation on the data separately.
+enable a programmer to simultaneously specify a regular expression while
+simultaneously specifying the canonical representatives on the regular
+expression's language. With QREs, programmers needn't define the data and
+canonization functions separately -- by adding simple annotations to the data,
+the canonization functions can be inferred.
 
 Secondly, we use QREs to define a class of quotient lenses called {\em QRE
-lenses} which map betweeen QREs, and show how to synthesize QRE lenses given
-an specification described by pair of QREs and a set of input-output examples.
-This way, the programmer need not manually derive the lens herself. The net
-effect of these two contributions, that is QREs and QRE lens synthesis, is that
-in order to derive a quotient lens, the programmer will only need to specify the
-data formats on each side of the desired quotient lens and possibly a set of
-example input-output pairs that guide synthesis of the lens, a marked
-improvement over the current situation.
+  lenses} which map betweeen QREs, and show how to synthesize QRE lenses. Using
+this tool, a lens programmer need not manually derive the lens herself, she
+merely must provide a pair of QREs (describing the formats the lens should map
+between), and a suite of examples (demonstrating how the lens should act on
+specific instances).  The resulting lens is guaranteed to map between the
+languages of the QREs and satisfy the provided examples.
 
 In summary, our main contributions are:
 \begin{enumerate}
-\item We introduce a novel language of {\em Quotient Regular Expressions}
-(QREs) that a provide compact, convenient notation for a natural and useful
-class of equivalence relations on regular languages (Section~\ref{QRE}).
+\item We introduce a novel language of {\em Quotient Regular Expressions} (QREs)
+  that provide a compact, convenient notation for regular languages and their
+  canonical representatives (Section~\ref{QRE}).
 \item We define a language of {\em QRE lenses}, a subset of bijective quotient
 lenses whose types are given by QREs. Our main technical contribution in this
 paper is a proof that each QRE lens $q$ defines the same transformation as a
 QRE lens $q'$ that is in normal form. (Section~\ref{QRE-lenses}).
 \item Using this normal form, we reduce the problem of {\em synthesizing}
-QRE lenses from their QRE types and a set of examples to the previously studied
+QRE lenses to the previously studied
 problem of synthesizing bijective lenses between regular languages 
 (Section~\ref{synth}).
-\item We extend the Boomerang {\em implementation} with QREs, QRE lens operators,
-and QRE lens synthesis and demonstrate its applicability by using it to
+\item We extend the Boomerang {\em implementation} with QREs
+and QRE lens synthesis.  We demonstrate its applicability by using it to
 synthesize QRE lenses between several real-world data formats from the
 {\tt data.gov} database (Section~\ref{impl}).
 \end{enumerate}
@@ -181,7 +196,7 @@ Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 \label{sec:example}
 In this section, we explain the difficulties of programming with quotient lenses
 and show, by way of example, how our novel language of {\em Quotient Regular
-Expressions}, or QREs and QRE lenses address these difficulties.
+Expressions}, or QREs, and QRE lenses address these difficulties.
 
 Consider a bidirectional transformation that converts citation records such as
 \begin{verbatim}
@@ -201,15 +216,16 @@ Consider a bidirectional transformation that converts citation records such as
 
 \noindent in the EndNote format, and vice versa. 
 
-We wish for this transformation to have the same behaviour on records that
-differ only in ``inessential'' details. First, the transformation
-should allow whitespace characters to occur arbitrarily between the words in the
-label, author and title fields as well, as in between them. Second, an
-author's name can have the surname followed by a comma and then the other
-names separated by arbitrary whitespace, or just all the names separated by
-arbitrary whitespace (for example, the names ``Conway, J. H.'' and ``J. H.
-Conway'' are equivalent). Lastly, the transformation should also ignore the
-order in which the author and title fields occur in each citation record.
+If two \bibtex{} files differ in only ``inessential'' details, we would like
+these files to map to the same EndNote representations.
+First, the transformation should allow whitespace characters to occur
+arbitrarily between the words in the label, author, and title fields, as well as
+in between them. Second, an author's name can have the surname followed by a
+comma and then the other names separated by arbitrary whitespace, or just all
+the names separated by arbitrary whitespace (for example, the names ``Conway, J.
+H.'' and ``J. H. Conway'' are equivalent). Lastly, the transformation should
+also ignore the order in which the author and title fields occur in each
+citation record.
 
 For example, the desired transformation should map the following
 \bibtex{} citations to the same EndNote record in the forward direction:
@@ -229,60 +245,57 @@ For example, the desired transformation should map the following
 defined on them.
 
 While it is possible to express the equivalence on the \bibtex{} data above in
-Boomerang, actually doing so is a challenge. This is because the entire
-equivalence is composed of three separate equivalences---whitespace quotienting
-inside fields, whitespace quotenting in between fields, and permutation
-quotenting of fields---nest with each other in a way that makes them difficult
-to express with the standard Boomerang combinators. 
+Boomerang, actually doing so is a challenge.  Three of the inessential details
+we wish to ignore---whitespace quotienting
+inside fields, whitespace quotienting in between fields, and permutation
+quotenting of fields---nest within each other in a way that makes them difficult
+to express with the existing Boomerang combinators. 
 
-In general, there is also another issue in describing equivalences in
-Boomerang, which is that that the programmer often has to first specify the data
-itself in the form of a regular expression before she can define the
-equivalence relation on that data. This leads to verbose code.
+Furthermore, programming best practices require programmers provide type
+annotations to their lenses to make explicit the formats the quotient lenses map
+between. This practice prevents nefarious bugs that can result from the lenses
+mapping between incorrect formats, but it is also verbose and time consuming.
 
-To address these issues, we propose {\em Quotient Regular Expressions} or QREs
-which enable the programmer to define a regular expression $R$ as well as an
-equivalence relation on $R$ in the same expression. For example, with QREs we
-can specify \bibtex{} records as shown in Figure~\ref{fig:example-qre}.
+To address these issues, we propose {\em Quotient Regular Expressions}, or QREs,
+which enable the programmer to define a regular expression $R$ and its canonical
+elements in the same expression. For example, with QREs we can specify \bibtex{}
+records and their canonical elements, as shown in Figure~\ref{fig:example-qre}.
 
 \begin{figure}[t]
 \begin{lstlisting}
-let wsp = [ \n\t\r]
-
-(* map arbitrary occurrences of whitespace to a single space *)
-let wsp_to_space   = project wsp$^+$ $\to$ " "
+(* whitespace with " " as a canonical representative *)
+let wsp = project [ \n\t\r]$^+$ $\to$ " "
 
 (* define name representations with a space and with a comma *)
-let space_name     = name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
-let comma_name   = name | (name . "," . wsp_to_space . (name . wsp_to_space)$^*$ . name)
+let space_name     = name | (name . wsp . (name . wsp)$^*$ . name)
+let comma_name   = name | (name . "," . wsp . (name . wsp)$^*$ . name)
 
 (* synthesize a lens that maps the comma representation to the space representation *)
 let space_to_comma = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
 
 (* squash QRE maps comma_name to space_name *)
-let valid_name = squash comma_name $\to$ space_name using (get space_to_comma)
+let name = squash comma_name $\to$ space_name using (get space_to_comma)
 
 (* define rest of bibtex fields *)
-let wsp_to_and = project (wsp$^+$ . "and" . wsp$^+$) $\to$ " and " 
-let bib_names  = valid_name | (valid_name . wsp_to_and . (valid_name . wsp_to_and)$^*$ . valid_name) 
+let name_sep = wsp . "and" . wsp
+let bib_names  = name | (name . name_sep . (name . name_sep)$^*$ . name) 
 let bib_author = "author = \"" . bib_names . "\""
-let title     = word | (word . wsp_to_space . (word . wsp_to_space)$^*$ . word) 
+let title     = word | (word . wsp . (word . wsp)$^*$ . word) 
 let bib_title = "title = {" . title . "}" 
 
 (* allow any permutation of fields interspersed with arbitrary whitespace *)
-let bib_perm  = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
-let bibtex    = "@book{" . bib_perm . "}"
+let bib_fields  = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
+let bibtex    = "@book{" . bib_fields . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records. }
   \label{fig:example-qre}
 \end{figure}
 
-In Figure~\ref{fig:example-qre}, the QRE \cd{project wsp}+ $\to$ \cd{" "}
-matches any non-zero number of whitespace characters, but considers the matched
-string of whitespace characters as equivalent with a single space as the
-canonical representative. We call this QRE a \textit{projection} because it
-projects an entire regular language down to a single representative string in
-the language.
+In Figure~\ref{fig:example-qre}, the QRE \verb+project [ \n\t\r]+$^{+} \to$
+\verb+" "+ matches any non-zero number of whitespace characters, with a single
+space as the canonical representative. We call this QRE a \textit{projection}
+because an entire regular language is projected to a single representative
+string during canonization.
 
 Another QRE in Figure~\ref{fig:example-qre} is given by
 
@@ -304,7 +317,7 @@ an automatically \textit{synthesized} lens between the \cd{space_name} and
 \cd{comma_name} QREs, and we need to use the ``get'' direction of the lens to
 specify the squash transformation. (We'll say more about synthesis below.)
 
-The third example of a QRE in the Figure is \cd{bib_perm}, defined by:
+The third example of a QRE in the Figure is \cd{bib_fields}, defined by:
 \begin{center}
 \begin{lstlisting}
 perm (label, bib_author, bib_title) with (project ("," . wsp$^+$ ) $\to$ ",\n")
@@ -315,7 +328,7 @@ perm (label, bib_author, bib_title) with (project ("," . wsp$^+$ ) $\to$ ",\n")
 title, and author fields can occur in any order, with the fields separated by a
 comma followed by arbitrary amounts of whitespace. The canonical representation
 is that in which the label, author and title fields occur in that order,
-separated by a comma followed a newline. The \textit{permutation} QREs is
+separated by a comma followed by a newline. The \textit{permutation} QRE is
 designed for equivalences such as this, where different permutations of
 equivalences are interspersed with a separator which itself has an
 equivalence defined on it.
@@ -373,9 +386,8 @@ Consequently, we offer the programmer some relief by identifying a class of
 quotient lenses that we call {\em QRE lenses}, and show how to {\em synthesize}
 QRE lenses from a pair of QREs and a set of input-output example pairs. Our key
 insight is to reduce the problem of synthesizing QRE lenses to the problem of
-synthesizing {\em bijective lenses}, which are the bijections created from the
-Boomerang lens combinators. This is a problem which we solved in our prior work
-~\cite{popl18}.
+synthesizing {\em bijective lenses}~\cite{optician}, which are bijections created
+from the Boomerang lens combinators.
 
 QRE lenses lenses are the same as bijective lenses with ``canonizers at the
 edges'' as in Figure~\ref{fig:attheedges}, and are typed using QREs---every QRE
@@ -444,8 +456,8 @@ creating bidirectional transformations.
 \label{QRE}
 
 This section introduces Quotient Regular Expressions or QREs. QREs are regular
-expressions augmented with syntax that lets them simultaneously express an
-equivalence relation on the language described by the regular expression.
+expressions augmented with syntax that lets them simultaneously express a
+language and how to convert from that language into its canonical elements.
 
 \subsection{Syntax of Quotient Regular Expressions}
 The language of Quotient Regular Expressions (QREs) is given by the following
@@ -453,7 +465,7 @@ grammar:
 \begin{align*}
 c := \; &R \sep \project{R}{s} \sep \squash{c}{c'}{f} \sep
 \perm{c_1, \ldots, c_n}{c} \\
-  & | \; \normalize{R}{R'}{f} \sep c \semicolon c' \sep c \cdot c' \sep (c \sep
+  & | \; \normalize{R}{R'}{f} \sep c \semicolon c' \sep c \cdot c''' \sep (c \sep
   c') \sep c^*,
 \end{align*}
 where $c$ ranges over QREs, $R$ ranges over regular expressions, $f$ ranges over
@@ -490,8 +502,8 @@ Then we can express this equivalence relation by a composition of a
 
 \begin{lstlisting}
 (* Regular expressions matching different comma and space representations *)
-let comma_name = last_name . "," . wsp+ . first_name
-let space_name = first_name . wsp+ . last_name
+let comma_name = last_name . "," . wsp . first_name
+let space_name = first_name . wsp . last_name
 
 (* Squash comma representation into space representation *)
 let comma_to_space = 
@@ -1002,8 +1014,8 @@ equivalent to $R'$ (resp. $S$) from the star-semiring axioms:
 
 \begin{prooftree}
 \AxiomC{$\ell : R \Leftrightarrow S$}
-\AxiomC{$R \equiv^d R'$}
-\AxiomC{$S \equiv^d S'$}
+\AxiomC{$R \equiv^s R'$}
+\AxiomC{$S \equiv^s S'$}
 \TrinaryInfC{$\ell : R' \Leftrightarrow S'$}
 \end{prooftree}
 
@@ -1060,8 +1072,8 @@ S_2$}
 \DisplayProof
 \hskip 1.5em
 \AxiomC{$\ell : R \Leftrightarrow S$}
-\AxiomC{$R \equiv^d R'$}
-\AxiomC{$S \equiv^d S'$}
+\AxiomC{$R \equiv^s R'$}
+\AxiomC{$S \equiv^s S'$}
 \TrinaryInfC{$\ell : R' \Leftrightarrow S'$}
 \DisplayProof
 \end{center}
@@ -1625,7 +1637,7 @@ synthesize a bijective lens $l :
 K(c) \Leftrightarrow K(c')$ that is consistent with the canonized examples
 $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$
 
-In our previous work~\cite{popl18}, we showed that given regular expressions
+Optician~\cite{optician} showed that given regular expressions
 $R, S$ and a set of input-output pairs $\{(r_1, s_1), \ldots, (r_n, s_n)\}$, if
 there is a derivation $\ell : R \Leftrightarrow S$ of a bijective lens that
 maps $r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
@@ -1648,14 +1660,14 @@ procedure:
   \item
   Compute $K(c)$, $K(c')$,
   \item
-  compute $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$ where ${x_i}' =
+  Compute $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$ where ${x_i}' =
   \canonizer(c)(x_i)$ and ${y_i}' = \canonizer(c')(y_i)$,
   \item
-    synthesize a bijective lens $\ell : K(c) \Leftrightarrow K(c')$ that is
+    Synthesize a bijective lens $\ell : K(c) \Leftrightarrow K(c')$ that is
     consistent with the examples $\{({x_1}', {y_1}'), \ldots, ({x_n}',
     {y_n}')\}$
   \item 
-  return $q = \kw{rquot}(\kw{lquot}(c, \ell), c') : c \Leftrightarrow
+  Return $q = \kw{rquot}(\kw{lquot}(c, \ell), c') : c \Leftrightarrow
   c'$
 \end{enumerate}
 For example, recall that in the \bibtex{} to EndNote transformation we had the
@@ -1877,7 +1889,7 @@ well with the lens laws, but can be expressed using Boomerang quotient lenses.
 As far as synthesis goes, though there is a good deal of recent research on
 synthesizing unidirectional string
 transformations~\cite{singh2012learning,le-pldi-2014,gulwani-popl-2014,perelman2014test,Singh:blinkfill},
-the system Optician, which we introduced in ~\cite{popl18}, is the first attempt
+the system Optician, which we introduced in ~\cite{optician}, is the first attempt
 to synthesize bidirectional transformations that we are aware of. In that
 publication, we compared Optician to two of these unidirectional string
 transformers, Flash Fill~\cite{gulwani-popl-2014} and
@@ -1959,7 +1971,7 @@ flexible and compositional language designed for human programmers.
 \label{concl}
 
 \bibliographystyle{plain}
-\bibliography{local}
+\bibliography{local,bcp}
 
 
 \end{document}
