@@ -197,8 +197,9 @@ Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 \section{Quotient Regular Expressions and Lenses by Example}
 \label{sec:example}
 In this section, we explain the difficulties of programming with quotient lenses
-and show, by way of example, how our novel language of {\em Quotient Regular
-Expressions}, or QREs, and QRE lenses address these difficulties.
+in Boomerang and show, by way of example, how our novel language of {\em
+Quotient Regular Expressions}, or QREs, and QRE lenses address these
+difficulties.
 
 Consider a bidirectional transformation that converts citation records such as
 \begin{verbatim}
@@ -251,17 +252,22 @@ Boomerang, actually doing so is a challenge.  Three of the inessential details
 we wish to ignore---whitespace quotienting
 inside fields, whitespace quotienting in between fields, and permutation
 quotenting of fields---nest within each other in a way that makes them difficult
-to express with the existing Boomerang combinators.
-
-Furthermore, programming best practices require programmers provide type
-annotations to their lenses to make explicit the formats the quotient lenses map
-between. This practice prevents nefarious bugs that can result from the lenses
-mapping between incorrect formats, but it is also verbose and time consuming.
+to express with the existing Boomerang combinators. Furthermore, if the
+programmer wishes to specify the type of the lens, then she can only specify
+data formats on each side of the lens with a regular expression that does not
+keep track of the equivalence relation defined on the language of the regular
+expression. Consequently, the programmer has to write a regular expression as
+well as a canonizer that expresses the equivalence relation on that regular
+expression, even though a regular expression and the canonizer defined on it
+typically share much of the syntactic structure. Having to write both of these
+expressions makes programming with quotient lenses verbose and time consuming.
 
 To address these issues, we propose {\em Quotient Regular Expressions}, or QREs,
-which enable the programmer to define a regular expression $R$ and its canonical
-elements in the same expression. For example, with QREs we can specify \bibtex{}
-records and their canonical elements, as shown in Figure~\ref{fig:example-qre}.
+which enable the programmer to define a regular expression $R$, an equivalence
+relation $\sim$ on the language described by $R$ as well as a canonical set
+of representatives of $\sim$, all in one syntactic term. For example, with QREs
+we can specify \bibtex{} records and their canonical elements, as shown in
+Figure~\ref{fig:example-qre}.
 
 \begin{figure}[t]
 \begin{lstlisting}
@@ -294,10 +300,10 @@ let bibtex    = "@book{" . bib_fields . "}"
 \end{figure}
 
 In Figure~\ref{fig:example-qre}, the QRE \verb+project [ \n\t\r]+$^{+} \to$
-\verb+" "+ matches any non-zero number of whitespace characters, with a single
-space as the canonical representative. We call this QRE a \textit{projection}
-because an entire regular language is projected to a single representative
-string during canonization.
+\verb+" "+ matches any non-zero number of whitespace characters and quotients
+them to a single equivalence class with a single space as the canonical
+representative. We call this QRE a \textit{projection} because an entire regular
+language is projected to a single representative string.
 
 Another QRE in Figure~\ref{fig:example-qre} is given by
 
@@ -317,7 +323,7 @@ which transforms names in the \cd{comma_name} representation to names in the
 \cd{space_name} representation. In this example, \cd{space_to_comma} is itself
 an automatically \textit{synthesized} lens between the \cd{space_name} and
 \cd{comma_name} QREs, and we need to use the ``get'' direction of the lens to
-specify the squash transformation. (We'll say more about synthesis below.)
+specify the squash transformation.
 
 The third example of a QRE in the Figure is \cd{bib_fields}, defined by:
 \begin{center}
@@ -429,7 +435,7 @@ composition \cd{(q_1 ; q2) : bibtex} $\Leftrightarrow$ \cd{xml} of \cd{q_1} and
 \cd{q_2} is not necessarily in normal form due to the presence of canonizers
 on each side of the intermediary EndNote format:
 
-\sam{TODO: Put diagram of composition here}
+\sam{TODO: We need to put a diagram of composition here.}
 
 \noindent However, while \cd{q_1 ; q_2} is not in normal form, our main theorem
 shows that there is another QRE lens \cd{q : bibtex} $\Leftrightarrow$ \cd{xml}
@@ -450,7 +456,7 @@ strings given at the beginning of this Section.
 
 As we saw with the definition of \cd{space_to_comma} in
 Figure~\ref{fig:example-qre}, the synthesis procedure itself can be used to
-creates lenses that are in turn used to define other QREs.  This ability to mix
+create lenses that are in turn used to define other QREs.  This ability to mix
 QRE specification with QRE lens synthesis yields a powerful and flexible way of
 creating bidirectional transformations.
 
@@ -500,7 +506,6 @@ Then we can express this equivalence relation by a composition of a
 \textit{squash} QRE and a QRE that projects away the extra whitespace in between
 \kw{first\_name} and \kw{last\_name}:
 
-\saz{Fix the notation in the following code.}
 
 \begin{lstlisting}
 (* Regular expressions matching different comma and space representations *)
@@ -540,11 +545,11 @@ this here. The precise statement about how normalize is strong enough to
 express all QREs requires that we introduce W(c), K(c) and Canonizer(c) which
 we haven't introduced at this point in the paper}
 
-\saz{Say more about how normalize
-wouldn't be used in ``ordinary'' QRE programming?}\sam{I'm not sure what you
-mean here exactly\ldots} However, checking that the canonizing function $f$ is
-surjective and idempotent is undecidable in general, thus we do not use the
-$\normalize{R}{R'}{f}$ in practice. On the other hand, the
+Now in order for the programmer to ensure that the {\em normalize} QRE is well
+formed, she must define a canonizing function $f$ between two regular
+languages and prove that $f$ is surjective and idempotent: the compiler cannot
+verify this since this problem is undecidable in general. Consequently, we do
+not use the $\normalize{R}{R'}{f}$ QRE in practice. On the other hand, the
 $\normalize{R}{R'}{f}$ combinator gives a sufficient condition for potential
 QREs to be ``well-behaved'', particularly with respect to our strategy for
 synthesizing quotient lenses which we shall introduce in Section~\ref{synth}.
@@ -771,13 +776,11 @@ and $c$ canonized into $K(c_i)$ and $K(c)$ respectively.
 Figure~\ref{fig:canonizers} gives the inductive definitions of the
 $\canonizer{}$ function for each QRE. Again, the \textit{permutation} combinator
 gives the most interesting definition,
-
 \begin{align*}\canonizer(\perm{c_1, \ldots, c_n}{c})(r_{\sigma(1)}
 \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \\
 = (\canonizer(c_1)(r_1)) \cdot (\canonizer(c)(s_1)) \cdot \ldots \cdot
 (\canonizer(c_n)(r_n))
 \end{align*}
-
 \noindent which as we have explained is defined so that the strings that match
 $c_i, c$ are placed in the canonical permutation which is the identity
 permutation before $\canonizer(c_i)$ and $\canonizer(c)$ are applied
@@ -961,7 +964,6 @@ ranges over character strings.
 The denotation of a lens $\ell$ is $\llbracket \ell \rrbracket \subseteq
 \mathit{String} \times \mathit{String}$. If $(s_1, s_2) \in \llbracket \ell
 \rrbracket$, then $\ell$ maps between $s_1$ and $s_2$.
-
 \begin{align*}
 \llbracket R \rrbracket &= \{(r, r) \sep r \in \mathcal{L}(R)\}\\
 \llbracket const(r, s) \rrbracket &= \{(r, s)\}\\
@@ -981,7 +983,6 @@ The denotation of a lens $\ell$ is $\llbracket \ell \rrbracket \subseteq
 \text{ such that } (r, s) \in \llbracket \ell_1 \rrbracket \text{ and } (s, t)
 \in \llbracket \ell_2 \rrbracket\}
 \end{align*}
-
 The $\mathit{const}(s, t)$ lens replaces the string $s$ with $t$ in the source
 data in the forward direction, and $t$ with $s$ in the target data in the backward
 direction. $\mathit{id}(R)$ applies the identity function to the source and target
@@ -1116,8 +1117,7 @@ respectively, and the bijective lens \cd{bib_to_end} that maps between
 \cd{bibtex} and \cd{endnote} is given by the QRE lens
 
 \begin{lstlisting}
-let bib_to_end_q : (lens in bibtex $\Leftrightarrow$ endnote) =
-rquot (lquot (bibtex, bib_to_end), endnote)
+let bib_to_end_q : (lens in bibtex $\Leftrightarrow$ endnote)  = rquot (lquot(bibtex, bib_to_end), endnote)
 \end{lstlisting}
 
 \iffalse
@@ -1173,7 +1173,7 @@ In general, checking that $\canonizer(c') = \canonizer(c'')$ is an undecidable
 task, especially because of the $\normalize{R}{R'}{f}$ QRE. Therefore, our
 actual implementation of the composition rule for QRE lenses follows Boomerang's
 approach, which is to define the composition on QRE lenses if and only if
-$c'$ and $c''$ are syntactially equal to $id(R)$ and $id(R')$ for some $R$and
+$c'$ and $c''$ are syntactially equal to $id(R)$ and $id(R')$ for some $R$ and
 $R'$ satisfying $\mathcal{L}(R) = \mathcal{L}(R')$.
 
 Foster et al based this approach on two observations: first, that most quotient
@@ -1339,8 +1339,8 @@ bijective lens $\ell : K(c) \Leftrightarrow K(c')$ such that
 \end{theorem}
 \begin{proof}
 We elide a full proof of this statement, since the proof is attained via a
-straightforward induction on the derivation $q : c \Leftrightarrow c$. \saz{(The
-full details can be found in the appendix?)}Since
+straightforward induction on the derivation $q : c \Leftrightarrow c$ (the
+full details can be found in the appendix {\sam{which I need to write}}). Since
 bijective lenses are closed under strongly unambiguous regular operators, the
 tricky case is composition. The composition case is more involved since we need
 to show that we can get rid of the canonizers in the middle:
@@ -1616,8 +1616,8 @@ $\{(x_1, y_1), \ldots, (x_n, y_n)\}$ where the $x_i$'s are in $W(c)$ and the
 $y_i$'s are in $W(c')$. We wish $q$ to map the equivalence class of $x_i$ to the
 equivalence class of $y_i$ and vice versa:
 \begin{align*}
-q.get(x_i) \equiv_{c'} y_i \text{, and}\\
-q.put(y_i) \equiv_c x_i
+q.get(x_i) &\equiv_{c'} y_i \text{, and}\\
+q.put(y_i) &\equiv_c x_i
 \end{align*}
 
 Our approach in synthesizing QRE lenses is guided by Theorem~\ref{normal
