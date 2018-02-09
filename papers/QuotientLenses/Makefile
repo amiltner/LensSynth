@@ -13,3 +13,6 @@ bcp:
 	cp $(HOME)/common/bib/bcp.bib .
 	-pdflatex main
 	-bibtex main
+
+regenerate-graphs:
+	python transform-data.py size_data.csv
