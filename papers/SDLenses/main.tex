@@ -1,0 +1,935 @@
+\newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifplentyoftime\plentyoftimefalse  % :-)
+
+
+
+% % For double-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For double-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
+% % For single-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For single-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true} % For
+% final camera-ready submission, w/ required CCS and ACM Reference
+% \documentclass[acmsmall]{acmart}\settopmatter{}
+
+
+% % Journal information % Supplied to authors by publisher for camera-ready
+% submission; % use defaults for review submission.
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{ICDP} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+% % Copyright information % Supplied to authors (based on authors' rights
+% management selection; % see authors.acm.org) by publisher for camera-ready
+% submission; % use 'none' for review submission.
+\setcopyright{none}
+% \setcopyright{acmcopyright} \setcopyright{acmlicensed}
+% \setcopyright{rightsretained} \ccopyrightyear{2018}           %% If different
+% from \acmYear
+
+% % Bibliography style %\bibliographystyle{ACM-Reference-Format} % Citation
+% style % Note: author/year citations are required for papers published as an %
+% issue of PACMPL.
+% %\citestyle{acmauthoryear}   %% For author/year citations
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % Note:
+% Authors migrating a paper from PACMPL format to traditional % SIGPLAN
+% proceedings format must update the '\documentclass' and % topmatter commands
+% above; see 'acmart-sigplanproc-template.tex'.
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{amsmath, amssymb, amsthm, enumerate, graphicx, centernot, tikz,
+array, tikz-cd, extarrows, cleveref, mathrsfs, mathtools, stmaryrd, listings}
+
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+\newtheorem{fact}{Fact}
+\newtheorem{claim}{Claim}
+
+% Macros Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.7,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 179}
+\definecolor{lightgreen}{RGB}{170, 255, 220}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
+
+
+\newcommand{\FINISH}[3]{\ifdraft\textcolor{#1}{[#2: #3]}\fi}
+\newcommand{\bcp}[1]{\FINISH{dkred}{B}{#1}}
+\newcommand{\BCP}[1]{\FINISH{dkred}{B}{\bf #1}}
+\newcommand{\afm}[1]{\FINISH{dkgreen}{A}{#1}}
+\newcommand{\dpw}[1]{\FINISH{dkblue}{D}{#1}} % Toronto Maple Leafs Blue :-)
+\newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
+\newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
+\newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
+
+
+\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\get}{\ensuremath{\kw{get}}}
+\newcommand{\pput}{\ensuremath{\kw{put}}}
+\newcommand{\create}{\ensuremath{\kw{create}}}
+\newcommand{\ccopy}{\ensuremath{\kw{copy}}}
+\newcommand{\const}{\ensuremath{\kw{const}}}
+\newcommand{\default}{\ensuremath{\kw{default}}}
+\newcommand{\pos}{\ensuremath{\kw{posit}}}
+\newcommand{\length}{\ensuremath{\kw{length}}}
+\newcommand{\match}{\ensuremath{\kw{match}}}
+
+
+\lstset{ basicstyle=\ttfamily, escapeinside=|| }
+\begin{document}
+
+% % Title information
+\title{Stateful Delta Lenses}         %% [Short Title] is optional;
+% % when present, will be used in % header instead of Full Title.
+% %\titlenote{with title note}             %% \titlenote is optional; % can be
+% repeated if necessary; % contents suppressed with 'anonymous'
+% %\subtitle{Subtitle}                     %% \subtitle is optional
+% %\subtitlenote{with subtitle note}       %% \subtitlenote is optional; % can
+% be repeated if necessary; % contents suppressed with 'anonymous'
+
+
+% % Author information % Contents and number of authors suppressed with
+% 'anonymous'.
+% % Each author should be introduced by \author, followed by % \authornote
+% (optional), \orcid (optional), \affiliation, and % \email.
+% % An author may have multiple affiliations and/or emails; repeat the %
+% appropriate command.
+% % Many elements are not rendered, but should be provided for metadata %
+% extraction tools.
+
+% % Author with single affiliation.
+% \author{First1 Last1} \authornote{with author1 note}          %% \authornote
+% is optional; % can be repeated if necessary \orcid{nnnn-nnnn-nnnn-nnnn} %%
+% \orcid is optional \affiliation{ \position{Position1} \department{Department1}
+%              %% \department is recommended \institution{Institution1}
+%   %% \institution is required \streetaddress{Street1 Address1} \city{City1}
+% \state{State1} \postcode{Post-Code1} \country{Country1}                    %%
+% \country is recommended } \email{first1.last1@inst1.edu}          %% \email is
+% recommended
+
+\author{Solomon Maina}
+\position{PhD Student}
+\department{Computer Science}              %% \department is recommended
+\institution{University of Pennsylvania}            %% \institution is required
+\country{USA}                    %% \country is recommended }
+\email{smaina@seas.upenn.edu}          %% \email is recommended
+
+% % Abstract % Note: \begin{abstract}...\end{abstract} environment must come %
+% before \maketitle command
+\begin{abstract}
+A {\em lens} is a program that can be run in two directions. In the
+forward direction, the \get component of a lens produces a {\em view}
+from a {\em source}, while in the backward direction, the \pput component folds
+an updated view back into the original source. One of the reasons that
+lenses are appealing is that they satisfy laws which give guarantees on how the
+two transformations interact.
+
+Unfortunately, the lens laws only require that the \pput component of a lens
+return the original source unmodified whenever the update to the view is a
+no-op; they do not specify the behaviour of the \pput component when the update
+to the view is non-trivial. Consequently, a lens may be valid even though it
+does not propagate non-trivial updates made to the view back into the source in
+the manner intended. For example, a small update to the view can result
+in a large update to the source, such as when a lens updates records
+positionally even though the source and view are order agnostic. This paper
+introduces {\em stateful delta lenses} or SD-lenses as a solution to this
+shortcoming of traditional lenses. SD-lenses are lenses augmented with extra
+information that specifies what kind of updates are valid for a given lens, and
+how these updates should be propagated by the lens, and hence enable the
+programmer to specify more exactly the desired behaviour of a lens.
+\end{abstract}
+
+
+%% Keywords
+%% comma separated list
+\keywords{difference structure, stateful delta lens}  %% \keywords
+% are mandatory in final camera-ready submission
+
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\section{Introduction}
+A {\em lens} is a program that can be run in two directions. In the
+forward direction, the \get component of a lens produces a {\em view}
+from a {\em source}, while in the backward direction, the \pput component folds
+an updated view back into the original source.
+
+For example suppose that the source is an XML document representing the
+names, dates and nationalities of a collection of classical music
+composers such as,
+
+\begin{lstlisting}
+<composers>
+    <composer>
+        <name>Jean Sibelius</name>
+        <dates>1865-1956</dates>
+        <nationality>Finnish</nationality>
+    </composer>
+    <composer>
+        <name>Aaron Copland</name>
+        <dates>1910-1990</dates>
+        <nationality>American</nationality>
+    </composer>
+    <composer>
+        <name>Benjamin Briten</name>
+        <dates>1913-1976</dates>
+        <nationality>English</nationality>
+    </composer>
+</composers>
+\end{lstlisting}
+
+while the view is a list if ASCII text representing the names and dates of each
+composer:
+\begin{lstlisting}
+Jean Sibelius, 1865-1956
+Aaron Copland, 1910-1990
+Benjamin Briten, 1913-1976
+\end{lstlisting}
+
+After computing the initial view, we might want to edit it in some way---e.g.,
+correcting the error in Sibelius's death date and the misspelling in Britten's
+name
+\begin{lstlisting}
+Jean Sibelius, 1865-|\colorbox{orange}{1957}|
+Aaron Copland, 1910-1990
+Benjamin |\colorbox{orange}{Britten}|, 1913-1976
+\end{lstlisting}
+and push the changes back into the original XML format:
+\begin{lstlisting}
+<composers>
+    <composer>
+        <name>Jean Sibelius</name>
+        <dates>1865-|\colorbox{orange}{1957}|</dates>
+        <nationality>Finnish</nationality>
+    </composer>
+        <composer>
+        <name>Aaron Copland</name>
+        <dates>1910-1990</dates>
+        <nationality>American</nationality>
+    </composer>
+    <composer>
+        <name>Benjamin |\colorbox{orange}{Britten}|</name>
+        <dates>1913-1976</dates>
+        <nationality>English</nationality>
+    </composer>
+</composers>
+\end{lstlisting}
+
+Lenses are designed to perfom these kinds of computations. If $\ell$ is
+a suitably defined lens for the bidirectional tranfsormation that we
+have just described, then the \get component of the lens performs the
+XML to ASCII transformation that produces an ASCII view from an XML source,
+while the \pput component of the lens performs the ASCII to XML transformation
+that folds back an updated ASCII view back into the original XML source.
+
+Formally, Foster \cite{foster2007combinators,foster2009bidirectional} defined a lens $\ell :
+S \Leftrightarrow V$ from a source $S$ to a view $V$ to be a triple of
+functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : S \longrightarrow S
+\longrightarrow V$ and $\ell.\create : V \longrightarrow S$ satisfying the
+following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
+\ell.\get \; (\ell.\create \; v) &= v \tag{CREATEGET}\\
+\ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
+\end{align*}
+The original definition of lenses in \cite{foster2007combinators} involved only the \get
+and \pput functions, but a \create function was later added in
+\cite{foster2009bidirectional} to handle the special case where we need to construct a
+source from a view, but we have no source to use as the original. \sam{Perhaps
+we should include this in the footnotes?}
+
+The PUTGET and CREATEGET laws ensure that updates to the view are translated
+``exactly''---i.e. that, given a view, the \pput and \create functions produce
+a source that \get maps back to the very same view, while the GETPUT law ensures
+a ``stability'' property for the source---i.e. it requires that the \pput
+function returns the original source unmodified whenever the update to the view
+is a no-op.
+
+While these two laws give some guarantees on how the \get and \pput components
+of a lens interact, they are not strong enough to guarantee that the
+updates made to a view are indeed the updates reflected back into the source.
+This is because the GETPUT law only says that the \pput component must return
+the original source unmodified whenever the update to the view is a no-op; it
+does not say what the \pput component should do with a modified view.
+Consequently, a non-trivial update to a view could lead to an undesired update
+to the source.
+
+For example, suppose that a source $S$ consists of a pair of integers, and
+that the view $V$ for $S$ consists of a single integer. Further, suppose that we
+wish for the \get of any lens from $S$ to $V$ to simply project away
+the first factor:
+$\ell.\get \; (a, b) = b$. Suppose further that we wish to force the \pput
+function of any lens $\ell$ defined on the data to restore the factor projected
+away by the \get function: that is, we wish to enforce that for
+all integers $a, b, c$, $\pi_1(\ell.\pput \; (a, b) \; c) = a$, where $\pi_1$ is
+the projection on the first factor.
+
+Now consider the lens $\ell_{bad}$ defined by $\ell_{bad}.\get \; (a, b) = b$
+and
+\begin{align*}
+\ell_{bad}.\get \; (a, b) &= b\\
+\ell_{bad}.\pput \; (a, b) \; c &= \begin{cases}
+(a, c) & \text{if }b = c\\
+(0, c) & \text{otherwise}\\
+\end{cases}\\
+\ell.\create \; b &= (0,b)
+\end{align*}
+Then $\ell_{bad}$ is a valid lens even though $\ell_{bad}$ does not
+always restore the first factor. For example, observe that $\ell.\pput (1, 2) \;
+3 = (0,3)$. The lens laws do not allow us to specify how non-trivial updates are
+propagated, hence the \pput component can cause any update to the source, so
+long as the \get component maps the updated source back to the updated view.
+
+In this paper, we introduce {\em stateful delta lenses} or SD-lenses, which are
+lenses augmented with extra information that specifies what kind of updates are
+valid for a given lens, and how these updates should be propagated.
+
+In order to specify the intended behaviour of a lens, we will first need to
+define what updates can be made to the source and view. We do this by embedding
+source and views in {\em difference structures}:
+\begin{definition}
+A difference structure $(X, \partial X, \delta_X, i_X)$ is a 4-tuple such that
+$X$ is a set, $\partial X$ is a set denoting the set of updates that can be
+made in $X$, $\delta_X : X \times X \longrightarrow \partial X$, the {\em
+difference function} of the structure, is a map that takes two elements of $x,
+x' \in X$ and computes their difference $\delta_X$ as an element of $\partial
+X$, and $i_X : X \longrightarrow \partial X$, the {\em inclusion function} of
+the structure, is a map that given an $x \in X$ creates an update $i_X(x)$ in
+$\partial X$.
+\end{definition}
+
+Going back to our previous example, let $\epsilon$ denote an ``empty''
+symbol. On the source side, we define the ordered difference $\delta_S((a, b),
+(c, d))$ between $(a, b)$ and $(c, d)$ by
+$$\delta_S((a, b), (c,
+d)) = \begin{cases}
+(\epsilon, \epsilon) & \text{if }a = c, b = d\\
+(\epsilon, b) & \text{if }a=c, b \neq d\\
+(a, \epsilon) & \text{if }a \neq c, b = d\\
+(a, b) & \text{if }a \neq c, b \neq d
+\end{cases}$$
+On the view side, we define the ordered difference $\delta_V(a, b)$
+between $a$ and $b$ by, $$\delta_V(a, b) = \begin{cases}
+(\epsilon, \epsilon) & \text{if } a = b\\
+(\epsilon, a) & \text{if } a \neq b
+\end{cases}$$
+where we include an $\epsilon$ in the first factor to enforce the property that
+the first factor should always be left unchanged. Thus the update space
+$\partial S$ of $S$ is given by $(\{\epsilon\} \sqcup \mathbb{Z})
+\times(\{\epsilon\} \sqcup \mathbb{Z})$ and the update space $\partial V$ of
+$V$ is also given by $(\{\epsilon\} \sqcup \mathbb{Z}) \times(\{\epsilon\}
+\sqcup \mathbb{Z})$. For inclusion functions, we define $i_S : S \longrightarrow
+\partial S$ by $i_S(a, b) = (a, b)$ and $i_V : V \longrightarrow \partial V$ by
+$i_V(a) = (\epsilon, a)$.
+
+Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
+which describes how updates should be propagated. For this example, we let
+define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
+$\partial V$, keeping in mind that $\partial S = \partial V$:
+\begin{align*}
+(\partial(S, V)).\get \; (a, b) &= (a, b)\\
+(\partial(S, V)).\pput \; (a, b) \; (c, d) &= (c, d)\\
+(\partial(S, V)).\create \; (a, b) &= (a, b)
+\end{align*}
+To specify the intended behaviour of a lens $\ell$ from $S$ to $V$ we
+require that
+\begin{equation}\label{partialpreservesdelta}
+(\partial (S, V)).\get \; (\delta_S(\ell.\pput \; s \; v, s)) = \delta_V(v,
+\ell.\get \; s)
+\end{equation}
+This condition says that if we start with a source $s$, map $s$ to the view
+to get $\ell.\get \; s$ and then update $\ell.\get \; s$ to get a new view $v$,
+then the \get component of $\partial(S, V)$ applied to $\delta_S(\ell.\pput \; s
+\; v, s)$ is equal to $\delta_V(v, \ell.\get \; s)$.
+
+For example, observe that $\ell_{bad}$ does not satisfy this condition since
+\begin{align}
+(\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
+(\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
+&= (\partial (S, V)).\get \; (0,3)\\
+&= (0,3)\\
+&\neq (\epsilon, 3)\\
+&= \delta_V(3, 2)\\
+&= \delta_V(3, \ell_{bad}.\get \; (1, 2))
+\end{align}
+Consequently $\ell_{bad}$ is not a valid SD-lens. On the
+other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
+\begin{align*}
+\ell_{good}.\get \; (a, b) &= b\\
+\ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
+\ell_{good}.\create \; b &= (0, b)
+\end{align*}
+is indeed a SD-lens since the its \pput component always restores the first
+factor.
+
+Up to this point we have not yet explained the role of inclusion functions. Now
+assume that we have valid lenses $\ell_1$ and $\ell_2$ from source $S_i$ to
+view $V_i$ for $i \in  \{1, 2\}$. One of the standard lens combinators is the
+conditional combinator $\ell_1 \sqcup \ell_2$ which uses $\ell_1$ for $s \in
+S_1$ and $v \in V_1$ and $\ell_2$ for $s \in S_2$ and $v \in V_2$. Now assume
+that $s_1 \in S_1$ and $s_2 \in S_2$. When computing the difference between
+$s_1$ and $s_2$, we wish to say that $\delta_{S_1 \sqcup S_2}(s_1, s_2) = s_1$
+since $s_1$ and $s_2$ are in disjoing sets and are hence incomparable, but $s_1$
+is in $S_1$ rather than in $\partial S_1$! Hence for any source $S$ we need to
+embed $s$ as an update inside $\partial S$ and similarly for views, hence the
+need for inclusion functions $i_S : S \longrightarrow \partial S$ and $i_V : V
+\longrightarrow \partial V$. For inclusion functions $i_S$ and $i_V$, we
+require a law similar to \cref{partialpreservesdelta} to hold:
+$$(\partial (S, V)).\get \; (i_{S}(s)) = i_{V}(\ell.\get \; s)$$
+\section{Stateful Delta Lenses}
+\begin{definition}
+Let $(S, \partial S, \delta_S, i_S)$ and $(V, \partial V, \delta_V, i_V)$ be
+difference structures. A stateful delta-lens (SD-Lens) $\ell : (S, \partial S,
+\delta_S, i_S) \Leftrightarrow (V, \partial V, \delta_V, i_V)$ is a pair
+$(\ell, \partial (S, V))$ such that for all $s \in S$ and $v \in V$,
+\begin{enumerate}
+  \item
+  $\ell : S \Leftrightarrow V$ is a lens,
+  \item
+  $\partial(S, V) : \partial S \Leftrightarrow \partial V$ is a lens,
+  \item
+  $(\partial (S, V)).\get \; (\delta_S(\ell.\pput \; s \; v, s)) = \delta_V(v,
+  \ell.\get \; s)$
+  \item
+  $(\partial (S, V)).\get \; (i_{S}(s)) = i_{V}(\ell.\get \; s)$
+\end{enumerate}
+
+\end{definition}
+\subsection{Boomerang Lens Combinators}
+\subsubsection{Copy}
+Let $P$ be any set. Define the $\ccopy(P) : P \Leftrightarrow P$ by
+\begin{align}
+\ccopy(P).\get \; s &= s\\
+\ccopy(P).\pput \; s \; v &= v\\
+\ccopy(P).\create \; v &= v
+\end{align}
+Then $\ccopy(P)$ is a lens. Now let $(S, \partial S, \delta_S, i_S)$ be a
+difference structure.
+\begin{claim}
+$(\ccopy(S),  \ccopy(\partial S)) : (S, \partial S, \delta, i_S)
+\Leftrightarrow (S, \partial S, \delta, i_S)$ is an SD-lens.
+\end{claim}
+\begin{proof}
+First we need to show that $(\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput
+\; s \; v, s)) = \delta(v, \ccopy(S).\get \; s)$ which follows from the fact that
+$$ (\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput \; s
+\; v, s)) = \delta(\ccopy(S).\pput \; s \; v, s) = \delta(v, \ccopy(S).\get
+\; s) $$
+Next we need to show that $(\ccopy(\partial S)).\get \; (i_{S}(s)) =
+i_{S}(\ell.\get \; s)$, which follows from the fact that $(\ccopy(\partial
+S)).\get \; (i_{S}(s)) = (\ccopy(\partial S)).\get \; (i_{S}(\ccopy(S).\get \;
+s))$
+\end{proof}
+\subsubsection{Constant}
+Let $P$ be any set. Define the \const lens $\const(P) : P \Leftrightarrow \{*\}$
+by
+\begin{align*}
+\const.\get \; s &= *\\
+\const.\pput \; s \; v &= s\\
+\const.\create \; v &= p
+\end{align*}
+Now let $(S, \partial S, \delta, i_S)$ be a difference structure.
+\begin{claim}
+$(\const(S),  \const(\partial S)) : (S, \partial S, \delta_S, i_S)
+\Leftrightarrow (\{*\}, \{*\}, \delta_{\{*\}}, i_{\{*\}})$ is an SD-Lens
+\end{claim}
+\begin{proof}
+First we need to show that $(\const(\partial S)).\get \;
+(\delta_S(\const(S).\pput \; s \; v, s)) = \delta_{\{*\}}(v, \const(S).\get \;
+s)$ which follows from the fact that $ (\const(\partial S)).\get \;
+(\delta_S(\const(S).\pput \; s \; v, s)) = * = \delta_{\{*\}}(v, \const(S).\get
+\; s) $
+Next we need to show that $(\const(\partial S)).\get \; (i_{S}(s)) =
+i_{\{*\}}(\const(S).\get \; s)$ which follows from the fact that
+$(\const(\partial S)).\get \; (i_{S}(s)) = * = i_{\{*\}}(s)$
+\end{proof}
+
+\subsubsection{Default}
+Let $\ell : S \Leftrightarrow V$ be a lens. Let $f :
+V \longrightarrow S$ be any function. Define the lens $\default(\ell, f) :
+S \Leftrightarrow V$ by
+\begin{align*}
+\default(\ell, f).\get \; s &= \ell.\get \; s\\
+\default(\ell, f).\pput \; s \; v &= \ell.\pput \; s \; v\\
+\default(\ell, f).\create \; v &= \ell.\pput \; (f \; v) \; v
+\end{align*}
+Now let $(\ell, \partial (S, V)) : (S, \partial S, \delta_S, i_S) \Leftrightarrow
+(V, \partial V, \delta_V, i_V)$ be an SD-Lens and $f: S \longrightarrow V$ be
+any function.
+\begin{claim}
+$(\default(\ell, f), \partial (S, V))$ is an SD-lens.
+\end{claim}
+\begin{proof}
+Follows from the fact that $(\ell, \partial (S, V))$ is an SD-lens.
+\end{proof}
+\subsubsection{Product}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens $\ell_1 \times \ell_2 : (S_1 \times S_2) \Leftrightarrow
+(V_1 \times V_2)$ by
+\begin{align*}
+(\ell_1 \times \ell_2).\get \; (s_1, s_2) &= (\ell_1.\get \; s_1, \ell_2.\get
+\; s_1)\\
+(\ell_1 \times \ell_2).\pput \; (s_1, s_2) \; (v_1, v_2) &= (\ell_1.\pput \; s_1
+\; v_1, \ell_2.\pput \; s_2 \; v_2)\\
+(\ell_1 \times \ell_2).\create \; (v_1, v_2) &= (\ell_1.\create \; v_1,
+\ell_2.\create \; v_2)
+\end{align*}
+Given difference functions $\delta_S$ and $\delta_{S'}$ define $\delta_{S}
+\times \delta_{S'}$ by $$(\delta_{S} \times \delta_{S'})((s_1, s_2), (s'_1,
+s'_2)) = (\delta_S(s_1, s'_1), \delta_{S'}(s'_1, s'_2))$$
+Given inclusion functions $i_S$ and $i_{S'}$ define $i_S \times i_{S'}$ by
+$$(i_S \times i_{S'})(s, s') = (i_S(s), i_{S'}(s'))$$
+
+Now let $(\ell_1, \partial (S_1, V_1)) : (S_1, \partial S_1, \delta_{S_1},
+i_{S_1}) \Leftrightarrow (V_1, \partial V_1, \delta_{V_1}, i_{V_1})$ and $(\ell_2,
+\partial (S_2, V_2)) : (S_2, \partial S_2, \delta_{S_2}, i_{S_2})
+\Leftrightarrow (V_2, \partial V_2, \delta_{V_2}, i_{V_2})$ be SD-lenses. Define the lens
+$$(\ell_1, \partial (S_1, V_1)) \times (\ell_2, \partial (S_2, V_2)) : (S_1 \times S_2,
+\partial S_1 \times \partial S_2, \delta_{S_1} \times \delta_{S_2}, i_{S_1}
+\times i_{S_2}) \Leftrightarrow (V_1 \times V_2, \partial V_1 \times \partial
+V_2, \delta_{V_1} \times \delta_{V_2}, i_{V_1} \times i_{V_2})$$ by $(\ell_1,
+\partial (S_1, V_1)) \times (\ell_2, \partial (S_2, V_2)) = (\ell_1 \times \ell_2,
+\partial (S_1, V_1) \times \partial (S_2, V_2))$
+
+\begin{claim}\label{productislens}
+$(\ell_1 \times \ell_2, \partial (S_1, V_1) \times \partial (S_2, V_2))$ is an SD-lens.
+\end{claim}
+\begin{proof}
+First need to show that
+$$(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2))) = \delta((v_1, v_2),
+(\ell_1 \times \ell_2).\get \; (s_1, s_2))$$ which follows from the fact that
+\begin{align*}
+&(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2)))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1.\pput \;
+s_1 \; v_1, \ell_2.\pput \; s_2 \; v_2), (s_1, s_2))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta(\ell_1.\pput \;
+s_1 \; v_1, s_1), \delta(\ell_2.\pput \; s_2 \; v_2, s_2))\\
+&= ((\partial (S_1, V_1)).\get \; (\delta(\ell_1.\pput \;
+s_1 \; v_1, s_1)), (\partial (S_2, V_2)).\get \; (\delta(\ell_2.\pput \; s_2 \;
+v_2, s_2)))\\
+&= (\delta(v_1, \ell_1.\get \; s_1), \delta(v_2, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1.\get \; s_1, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1 \times \ell_2).\get \; (s_1, s_2))
+\end{align*}
+Next, we need to show that $(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(i_{S_1 \times S_2}(s_1, s_2)) = i_{V_1 \times V_2}((\ell_1 \times
+\ell_2).\get \; (s_1, s_2))$ which follows from the fact that
+\begin{align*}
+(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(i_{S_1 \times S_2}(s_1, s_2)) &= (\partial (S_1, V_1) \times \partial
+\ell_2).\get \; (i_{S_1}(s_1), i_{S_2}(s_2))\\
+&= ((\partial (S_1, V_1)).\get \; (i_{S_1}(s_1)), (\partial (S_2, V_2)).\get \;
+(i_{S_2}(s_2)))\\
+&= (i_{V_1}(\ell_1.\get \; s_1), i_{V_2}(\ell_2.\get \; s_2))\\
+&= i_{V_1 \times V_2}(\ell_1.\get \; s_1, \ell_2.\get \; s_2)\\
+&= i_{V_1 \times V_2}((\ell_1 \times \ell_2).\get \; (s_1, s_2))
+\end{align*}
+\end{proof}
+\subsubsection{Sum}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens
+$\ell_1 \sqcup \ell_2 :
+(S_1 \sqcup S_2) \Leftrightarrow (V_1 \sqcup V_2)$ by
+\begin{align*}
+(\ell_1 \sqcup \ell_2).\get \; s &=
+\begin{cases}
+\ell_1.\get \; s & \text{if } s \in S_1\\
+\ell_2.\get \; s & \text{if } s \in S_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\pput \; s \; v&=
+\begin{cases}
+\ell_1.\pput \; s \; v& \text{if } s \in S_1, \; v \in V_1\\
+\ell_2.\pput \; s \; v& \text{if } s \in S_2, \; v \in V_2\\
+\ell_1.\create \; v & \text{if } s \in S_2, \; v \in V_1\\
+\ell_2.\create \; v & \text{if } s \in S_1, \; v \in V_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\create \; v &=
+\begin{cases}
+\ell_1.\create \; v & \text{if } v \in V_1\\
+\ell_2.\create \; v & \text{if } v \in V_2\\
+\end{cases}
+\end{align*}
+Given difference functions $\delta_S, \delta_{S'}$ and inclusion functions $i_S,
+i_{S'}$ define $\delta_{S} \sqcup \delta_{S'}$ and $i_{S} \sqcup i_{S'}$ by
+$$(\delta_{S} \sqcup \delta_{S'})(x, y) =
+\begin{cases}
+\delta_S(x, y) & \text{if } x, y \in S\\
+\delta_{S'}(x, y) & \text{if } x, y \in S'\\
+i_S(x) & \text{if } x \in S, y \in S'\\
+i_{S'}(x) & \text{if } x \in S', y \in S
+\end{cases}$$
+and
+$$(i_S \sqcup i_{S'})(x) =
+\begin{cases}
+i_S(x) & \text{if } x \in S\\
+i_{S'}(x) & \text{if } x \in S'
+\end{cases}$$
+Now let $(\ell_1, \partial (S_1, V_1)) : (S_1, \partial S_1, \delta_{S_1}, i_{S_1})
+\Leftrightarrow (V_1, \partial V_1, \delta_{V_1}, i_{V_1})$ and $(\ell_2,
+\partial (S_2, V_2)) : (S_2, \partial S_2, \delta_{S_2}, i_{S_2}) \Leftrightarrow
+(V_2, \partial V_2, \delta_{V_2}, i_{V_2})$ be SD-lenses. Define the lens
+$$(\ell_1, \partial (S_1, V_1)) \sqcup (\ell_2, \partial (S_2, V_2)) : (S_1 \sqcup S_2,
+\partial S_1 \sqcup \partial S_2, \delta_{S_1} \sqcup \delta_{S_2}, i_{S_1}
+\sqcup i_{S_2}) \Leftrightarrow (V_1 \sqcup V_2, \partial V_1 \sqcup \partial
+V_2, \delta_{V_1} \sqcup \delta_{V_2}, i_{V_1} \sqcup i_{V_2})$$ by $(\ell_1,
+\partial (S_1, V_1)) \sqcup (\ell_2, \partial (S_2, V_2)) = (\ell_1 \sqcup \ell_2,
+\partial (S_1, V_1) \sqcup \partial (S_2, V_2))$
+\begin{claim}
+$\ell_1 \sqcup \ell_2$ is an SD-lens.
+\end{claim}
+\begin{proof}
+We need to show that $(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) = \delta(v, (\ell_1 \sqcup
+\ell_2).\get \; s)$. If $s \in S_1$ and $v \in V_1$ or $s \in S_2$ and $v \in
+V_2$, then the result follows from the fact that $(\ell_1, \partial (S_1, V_1))$ and
+$(\ell_2, \partial (S_2, V_2))$ are lenses. Otherwise, assume without loss of
+generality that $s \in S_1$ and $v \in V_2$. Then
+\begin{align*}
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) &=
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \; (\delta(\ell_2.\create \; v,
+s))\\
+&= (\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \; (i_2(\ell_2.\create \; v))\\
+&= (\partial (S_2, V_2)).\get \; (i_{S_2}(\ell_2.\create \; v))\\
+&= i_{V_2}(\ell_2.\get \; (\ell_2.\create \; v))\\
+&= i_{V_2}(v)\\
+&= \delta(v, (\ell_1 \sqcup \ell_2).\get \; s)
+\end{align*}
+\end{proof}
+\subsubsection{Positional Iteration}
+Let $\ell: S \Leftrightarrow V$ be a lens. Define the lens $\pos(\ell):
+S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\pos(\ell) .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot \ldots \cdot
+(\ell.\get \; s_n)\\
+\pos(\ell) .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= s'_1 \cdot
+\ldots \cdot s'_n\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\pos(\ell).\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot \ldots
+\cdot (\ell.\create \; v_n)
+\end{align*}
+Now let $\delta_S$ be a difference function and $i_S$ and inclusion function.
+We define the positional inclusion function $\pos(i_S)(s_1, \ldots, s_m) =
+(i_S(s_1), \ldots, i_S(s_m))$. Let $(x_1, \ldots, x_m), (y_1, \ldots, y_n) \in
+S^*$. We define the positional difference function $\pos(\delta)((x_1, \ldots,
+x_m), (y_1, \ldots, y_n))$ to be the list given by $\delta(x_i, y_i)$ for $1
+\leq i \leq \min\{m, n\}$, except that we omit $\delta(x_i, y_i)$ in position
+$i$ if $x_i = y_i$. For $\min\{m, n\} < i \leq m$ we add $i_S(x_i)$ at position
+$i$. Finally we collapse the list to get rid of the empty spaces left after the
+omissions.
+
+For instance suppose that $S$ is the set of all letters in the alphabet and
+$\partial S = S^*$ with $$\delta(x, y) =
+\begin{cases}
+\epsilon & \text{if } x = y\\
+x & \text{if } x \neq y
+\end{cases}$$
+and $i_S(x) = x$. Then $\pos(\delta_S)((a, b, c, d, e), (a, c, b, d)) = (b, c,
+e)$ where we match and remove the first $a$ and the fourth $d$ in $(a, b, d, c,
+e)$. Since $b \neq c$ we retain the $b$ and $c$ in the second and third
+positions, and since $e$ is unmatched, we include $e$ via the inclusion
+function $i_S(e) = e$. Finally we collapse the list to get rid of the two empty
+spaces created.
+
+Now let $(\ell, \partial (S, V)) : (S, \partial S, \delta_{S}, i_{S})
+\Leftrightarrow (V, \partial V, \delta_{V}, i_{V})$ be an SD-lens.
+\begin{claim}\label{positionalisvalid}
+$(\pos(\ell), \pos(\partial (S, V))) : (S^*, \partial S^*, \pos(\delta_{S}),
+\pos(i_{S})) \Leftrightarrow (V^*, \partial V^*, \pos(\delta_{V}), \pos(i_{V}))$
+is an SD-lens.
+\end{claim}
+\begin{proof}
+First, we need to show that
+\begin{multline}
+(\pos(\partial (S, V)).\get \;
+((\pos(\delta_S))(\pos(\ell).\pput \; (s_1, \ldots, s_n) \; (v_1, \ldots,
+v_m), (s_1, \ldots, s_n))) \\
+= (\pos(\delta_V))((v_1, \ldots, v_m), (\pos(\ell)).\get \; (s_1, \ldots, s_n))
+\end{multline}
+Let $1 \leq i \leq \min\{m, n\}$. Then $v_i = \ell.\get \; s_i$ if and only if
+$\ell.\pput \; s_i \; v_i = s_i$, so $\pos(\delta_V)$ omits $\delta_V(v_i,
+\ell.\get \; s_i)$ in position $i$ if and only if $\pos(\delta_S)$ also omits
+$\delta_S(\ell.\pput \; s_i \; v_i, s_i)$ in position $i$. For $\min\{m,n\}
+< i \leq m$, then $\pos(\delta_V)$ adds $i_V(v_i)$ in position $i$, and
+$\pos(\delta_S)$ adds $i_S(\ell.\create \; v_i)$ in position $i$, which gives
+the desired result since
+$$(\partial (S, V)).\get \; (i_S(\ell.\create \; v_i)) = i_V(\ell.\get \;
+(\ell.\create \; v_i)) = i_V(v_i)$$
+Next we need to show that
+$$(\pos(\partial (S, V))).\get \; ({\pos(i_S)}(s_1, \ldots, s_m)) =
+\pos(i_V)(\pos(\ell).\get \; (s_1, \ldots, s_m))$$
+which follows from the fact that
+\begin{align*}
+(\pos(\partial (S, V))).\get \; ({\pos(i_S)}(s_1, \ldots, s_m)) &=
+(\pos(\partial (S, V))).\get \; ({i_S}(s_1), \ldots, {i_S}(s_m))\\
+&= (\ell.\get \; (i_S(s_1)), \ldots, \ell.\get \; (i_S(s_m)))\\
+&= (i_V(\ell.\get \; s_1), \ldots, i_V(\ell.\get \; s_m))\\
+&= \pos(i_V)(\ell.\get \; s_1, \ldots, \ell.\get \; s_m)\\
+&= \pos(i_V)(\pos(\ell).\get \; (s_1, \ldots, s_m))
+\end{align*}
+\end{proof}
+\subsubsection{Matching Lenses}
+Let $X$ be a set. Let $x = (x_1, \ldots, x_m) \in X^*$. Define $\length(x) = m$
+Now $(y_1, \ldots, y_n) \in X^*$. Let $A_{x, y} \subseteq [m]$. We call any
+injective function $\varphi_{x, y} : A_{x, y} \longrightarrow [n]$ a {\em
+matching} from $x$ to $y$.
+
+Again let $x = (x_1, \ldots, x_m) \in X^*, (y_1, \ldots, y_n) \in X^*$ and
+$\varphi$ a matching from $x$ to $y$. Let $\delta$ be a difference function on
+$X$. Define $\delta^*_{\varphi}(x, y)$ to be the list given by $\delta(x_i,
+y_{\varphi(i)})$ for $i \in A$, except that we omit $\delta(x_i,
+y_{\varphi(i)})$ in position $i$ if $x_i = y_{\varphi(i)}$. If $i \not \in A$
+we add $i_S(x_i)$ at position $i$. Finally we collapse the list to get rid of
+the empty spaces. 
+
+Going back to our previous example, let $x = (a, b, c, d, e)$ and $y = (a, c, b,
+d)$, and assume that $\varphi : \{1, 2, 3, 4\} \longrightarrow [4]$ is
+given by $$\varphi(1) = 1, \; \varphi(2) = 3, \; \varphi(3) = 2, \text{ and }
+\varphi(4) = 4$$ Then $\delta_{\varphi}^*((a, b, c, d, e), (a, f, b, d)) = (c,
+e)$ Since $x_1 = y_{\varphi(1)} = a$, $x_2 = y_{\varphi(2)} = b$ and $x_{4} =
+y_{\varphi(4)} = d$, $a, b$ and $d$ will be omitted from the list at
+positions 1, 2 and 4. Also since $\delta(c, f) = c$ then $c$ will be included in
+the list at position 3 and since $e$ is unmatched, $i(e) = e$ will be
+included in the list at position 5. Finally we collapse the list to get rid of
+the three empty spaces created.
+
+Now let $M = \{\varphi_{x, y} \; | \; x, y \in X\}$ be a set of matchings
+between $x$ and $y$ for each $x, y \in X$. We define the difference function
+$\delta^*_M$ on $X^*$ by $\delta^*_{M}(x, y) = \delta^*_{\varphi_{x, y}}$. Let
+$(\ell, \partial (S, V)) : (S, \partial S, \delta_{S}, i_{S}) \Leftrightarrow
+(V, \partial V, \delta_{V}, i_{V})$ be an SD-lens. Let $M_V = \{\varphi_{x, y}
+\; | \; x, y \in V\}$ be a set of matchings between $x$ and $y$ for each $x, y
+\in V$. For $s = (s_1, \ldots, s_m), s' = (s'_1, \ldots, s'_n) \in S$, let
+$\varphi_{s, s'} = \varphi_{((\ell.\get \; s_1), \ldots, (\ell.\get \; s_m)),
+((\ell.\get \; s'_1), \ldots, (\ell.\get \; s'_n))}$. Let $M_S = \{\varphi_{s,
+s'} \; | \; s, s' \in S\}$. 
+
+Define the lens $\match(\ell, M_V) : S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\match(\ell, M_V) .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot
+\ldots \cdot (\ell.\get \; s_n)\\
+\match(\ell, M_V) .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= (s'_1
+, \ldots , s'_n)\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_{\psi(i)} \; v_i & \text{if } i \in Dom(\psi)\\
+\ell.\create \; v_i & \text{if } i \not \in Dom(\psi)
+\end{cases}\\
+\text{ and } \psi &= \varphi_{(v_1, \ldots, v_n), ((\ell.\get \; s_1), \ldots,
+(\ell.\get \; s_m))}\\
+\match(\ell, M_V).\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot
+\ldots \cdot (\ell.\create \; v_n)
+\end{align*}
+\begin{claim}
+$(\match(\ell, M_V), \pos(\partial (S, V))) : (S^*, \partial S^*, \delta^*_{M_S},
+\pos(i_{S})) \Leftrightarrow (V^*, \partial V^*, \delta^*_{M_V}, \pos(i_{V}))$
+is an SD-lens.
+\end{claim}
+\begin{proof}
+Observe that the matching used to compute the difference on the source side is
+the same as the matching used to compute the matching on the view side, hence we
+may take the update lens to be position and proceed with the rest of the proof
+as in \cref{positionalisvalid}.
+\end{proof}
+The \match combinator takes an SD-lens $(\ell, \partial (S, V)) : (S, \partial
+S, \delta_{S}, i_{S}) \Leftrightarrow (V, \partial V, \delta_{V}, i_{V})$ and a
+set $M_V$ of matchings $V$. If $S, \partial S$ and $V, \partial V$ have an
+appropriate notion of size defined on them, then we can define canonical
+matchings which minimize the size of the update according to some alignment
+strategy. We thus defined a {\em normed difference structure} as follows:
+\begin{definition}
+A normed set is a pair $(X, |\cdot|)$ where $X$ is a set and $|\cdot| : X
+\longrightarrow \mathbb{R}^{\geq 0}$
+\end{definition}
+\begin{definition}
+A difference structure $(X, \partial X, \delta_X, i_X)$ is a normed differene
+structure if $X$ and $\partial X$ are normed sets satisfing
+\begin{enumerate}
+  \item
+  $|\delta_X(x, x)| = 0$,
+  \item
+  $|\delta_X(x, x')| \leq |x|$, and
+  \item
+  $|i_X(x)| = |x|$
+\end{enumerate}
+\end{definition}
+The first axiom says that the size of the difference between $x$ and itself is
+0, the second axiom says that the size of the ordered difference between $x$
+and $x'$ is at most the size of $x$, and third axiom says that the size of $x$
+when it is included as an update in $\partial X$ is equal to the size of $x$.
+
+Now given a view $V$ we may define the set of matchings $M_{POS}$ by 
+$$M_{POS} = \{\varphi_{v, v'} \; | \; v = (v_1, \ldots, v_m), v' = (v'_1,
+\ldots, v'_n), \varphi_{v, v'}(i) = i \text{ for }1 \leq i \leq \min\{m, n\}\}$$
+Then $M_{POS}$ is an optimal set of matchings for a positional alignment
+strategy.
+
+For the non-crossing strategy, we want to our matchings to be increasing rather
+than positional. Hence we define the set of matchings $M_{NC}$ by
+$$M_{NC} = \{\varphi_{v, v'} \; | \; v, v' \in V, \varphi_{v, v'} \text{ is
+increasing}, |\delta^*_{\varphi_{v, v}}(v, v')| \text{ is minimal among all
+matchings from }v \text{ to }v'\}$$
+For any $v, v'$, there may be multiple matchings which for which the size of the
+difference is minimal, in which case we pick a canonical one. Then $M_{NC}$ is
+an optimal set of matchings for a non-crossing alignment strategy.
+
+Finally, for a min-edit distance strategy, we simply remove the condition that
+the matchings should be increasing. Hence we define the set of matchings
+$M_{MED}$ by
+$$M_{MED} = \{\varphi_{v, v'} \; | \; v, v' \in V, |\delta^*_{\varphi_{v,
+v'}}(v, v)| \text{ is minimal among all matchings from }v \text{ to }v'\}$$
+Again, for any $v, v'$, there may be multiple matchings which for which the size
+of the difference is minimal, in which case we pick a canonical one. Then
+$M_{MED}$ is an optimal set of matchings for a min-edit distance alignment
+strategy.
+\subsubsection{Composition}
+Let $\ell_1 : S \Leftrightarrow U$ and $\ell_2 : U \Leftrightarrow V$ be lenses.
+Define the lens $\ell_2 \circ \ell_1 : S \Leftrightarrow V$ by
+\begin{align*}
+(\ell_2 \circ \ell_1).\get \; s &= \ell_2.\get \; (\ell_1.\get \; s)\\
+(\ell_2 \circ \ell_1).\pput \; s \; v &= \ell_1.\pput \; s \; (\ell_2.\pput \;
+(\ell_1.\get \; s) \; v) \\
+(\ell_2 \circ \ell_1).\create \; v &= \ell_1.\create \; (\ell_2.\create \; v)
+\end{align*}
+Now let $(\ell_1, \partial (S_1, V_1)) : (S,
+\partial S, \delta_S, i_{S}) \Leftrightarrow (U,
+\partial U, \delta_U, i_{U})$ and $\ell_2 : (U,
+\partial U, \delta_U, i_{U}) \Leftrightarrow (V,
+\partial V, \delta_V, i_{V})$ be SD-lenses.
+\begin{claim}
+$(\ell_2 \circ \ell_1, \partial (S_2, V_2) \circ \partial (S_1, V_1))$ is an SD-lens.
+\end{claim}
+\begin{proof}
+We need to show that
+\begin{align}
+\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta(\ell_2 \circ
+\ell_1).\pput \; s \; v, s)&= \delta(v, (\ell_2 \circ \ell_1).\get \; s)
+\text{, and}\\
+(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (i_{S}(s)) &=
+i_{V}((\ell_2 \circ \ell_1).\get \; s)
+\end{align}
+
+For the first equation, observe that
+\begin{align*}
+&(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta((\ell_2 \circ
+\ell_1).\pput \; s \; v, s))\\
+&=(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta(\ell_1.\pput
+\; s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s))\\
+&= (\partial (S_2, V_2)).\get \; ((\partial (S_1, V_1)).\get \; (\delta(\ell_1.\pput \;
+s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s)))\\
+&= (\partial (S_2, V_2)).\get \; (\delta(\ell_2.\pput \; (\ell_1.\get \; s) \; v,
+\ell_1.\get \; s))\\
+&= \delta(v, \ell_2.\get \; (\ell_1.\get \; s))\\
+&= \delta(v, (\ell_2 \circ \ell_1).\get \; s)\\
+\end{align*}
+For the second equation, observe that
+\begin{align*}
+(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (i_{S}(s)) &= 
+(\partial (S_2, V_2)).\get \; ((\partial (S_1, V_1)).\get \; (i_{S}(s)))\\
+&= (\partial (S_2, V_2)).\get \; (i_{U}(\ell_1.\get \; s))\\
+&= i_{V}(\ell_2.\get \; (\ell_1.\get \; s))\\
+&= i_{V}((\ell_2
+\circ \ell_1).\get \; s)
+\end{align*}
+This completes the proof.
+\end{proof}
+
+
+%% Acknowledgments
+\begin{acks}                            %% acks environment is optional
+%% contents suppressed with 'anonymous'
+%% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+%% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+%% acknowledge financial support and will be used by metadata
+%% extraction tools.
+This material is based upon work supported by the
+\grantsponsor{GS100000001}{National Science
+Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
+No.~\grantnum{GS100000001}{nnnnnnn} and Grant
+No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
+conclusions or recommendations expressed in this material are those
+of the author and do not necessarily reflect the views of the
+National Science Foundation.
+\end{acks}
+
+\section{Related Work}
+In his thesis \cite{foster2009bidirectional}, Foster observed that while it would be
+ideal for the lens laws to force the \pput component of a lens to always have
+``minimal'' side effects, even stating this condition seems to require
+building a notion of what constitutes an update into the semantics---we need to
+be able to compare two updates to determine which one has a ``smaller'' effect.
+
+This idea of lenses carrying a notion of updates and update propagation has been
+explored in various ways. First, various categorical approaches have been
+explored under the name of {\em delta lenses}
+\cite{diskin2011state,johnson2017symmetric,pacheco2012delta,johnson2012lenses}
+Delta lenses are lenses defined in an appropriate category, where sources and
+views are the objects of the category, and the arrows are deltas (or updates)
+between the objects of the category. In this setting, lens transformations are
+functors which map objects to objects as well as deltas to deltas. Categorical
+delta lenses are thus similar to the SD-lenses described in this paper in that
+they map states to states as well as updates to updates. The main difference
+between SD-lenses and categorical delta lenses is that SD-lenses are
+set-based rather than categorical and arguably simpler to understand. Moreover,
+only \cite{pacheco2012delta} defines a fairly rich set of combinators for delta
+lenses over inductive types in the same vane as SD-lenses.
+
+{\em Alignment lenses} have also been explored in tackling the issue of update
+propagation in \cite{bohannon2008boomerang,barbosa2010matching}. Prior to this
+work, lenses could only perform updates positionally on data lists, but
+alignment lenses can match chunks using an optimal matching with
+respect to a certain alignment strategy such as a non-crossing strategy or
+min-edit distance strategy. While alignment lenses solved the problem of
+matching chunks in a way that causes minimal change with respect to some
+alignment strategy, they do not address the general problem of specifying how
+updates should be propagated for an arbitrary lens. The SD-lenses introduced in
+this paper do give a fairly general method for specifying and updates and update
+propagation.
+
+{\em Edit lenses} \cite{hofmann2012edit} are another approach to tackling the
+issue of update propagation. Edit lenses work with descriptions of changes to
+structures, rather than with the structures themselves. These lenses separate
+the description of edits from the action of applying an edit to a state, with
+the action of applying an edit to a state modelled by a monoid action, a design
+choice which guarantees compositionality of edits. SD-lenses differ from edit
+lenses in that edit lenses are not stateful---the only information passed to the
+lens is the intended update, hence edit lenses pass around less information. On
+the other hand, SD-lenses are again arguably simpler since they are stateful
+and are also built on top of traditional lenses which are ubiquitous in the
+bidirectional programming literature.
+\bibliographystyle{plain}
+\bibliography{local}
+
+%% Appendix
+%%\appendix
+%%\section{Appendix}
+
+\end{document}
