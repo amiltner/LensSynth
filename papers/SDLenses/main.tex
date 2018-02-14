@@ -148,15 +148,15 @@ Unfortunately, the lens laws only require that the \pput component of a lens
 return the original source unmodified whenever the update to the view is a
 no-op; they do not specify the behaviour of the \pput component when the update
 to the view is non-trivial. Consequently, a lens may be valid even though it
-does not propagate non-trivial updates made to the view back into the source in
-the manner intended. For example, a small update to the view can result
-in a large update to the source, such as when a lens updates records
-positionally even though the source and view are order agnostic. This paper
-introduces {\em stateful delta lenses} or SD-lenses as a solution to this
-shortcoming of traditional lenses. SD-lenses are lenses augmented with extra
-information that specifies what kind of updates are valid for a given lens, and
-how these updates should be propagated by the lens, and hence enable the
-programmer to specify more exactly the desired behaviour of a lens.
+does not propagate non-trivial updates in the manner intended. For example, a
+small update to the view can result in a large update to the source, such as
+when a lens updates records positionally even though the source and view are
+order agnostic. This paper introduces {\em stateful delta lenses} or SD-lenses
+as a solution to this shortcoming of traditional lenses. SD-lenses are lenses
+augmented with extra information that explicitly specifies the updates that can
+be made for a given lens and how these updates should be propagated. SD-lenses
+explicitly specify the intended behaviour of a lens hence enable programmers to
+give much stronger guarantees even when the update to a view is non-trivial.
 \end{abstract}
 
 
@@ -239,8 +239,8 @@ and push the changes back into the original XML format:
 </composers>
 \end{lstlisting}
 
-Lenses are designed to perfom these kinds of computations. If $\ell$ is
-a suitably defined lens for the bidirectional tranfsormation that we
+Lenses are designed to perfom these kinds of bidirectinoal transformations. If
+$\ell$ is a suitably defined lens for the tranfsormation that we
 have just described, then the \get component of the lens performs the
 XML to ASCII transformation that produces an ASCII view from an XML source,
 while the \pput component of the lens performs the ASCII to XML transformation
@@ -256,11 +256,10 @@ following properties:
 \ell.\get \; (\ell.\create \; v) &= v \tag{CREATEGET}\\
 \ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
 \end{align*}
-The original definition of lenses in \cite{foster2007combinators} involved only the \get
-and \pput functions, but a \create function was later added in
-\cite{foster2009bidirectional} to handle the special case where we need to construct a
-source from a view, but we have no source to use as the original. \sam{Perhaps
-we should include this in the footnotes?}
+The original definition of lenses in \cite{foster2007combinators} involved only
+the \get and \pput functions, but a \create function was later added in
+\cite{foster2009bidirectional} to handle the special case where we need to
+construct a source from a view, but we have no source to use as the original. 
 
 The PUTGET and CREATEGET laws ensure that updates to the view are translated
 ``exactly''---i.e. that, given a view, the \pput and \create functions produce
@@ -269,27 +268,24 @@ a ``stability'' property for the source---i.e. it requires that the \pput
 function returns the original source unmodified whenever the update to the view
 is a no-op.
 
-While these two laws give some guarantees on how the \get and \pput components
-of a lens interact, they are not strong enough to guarantee that the
-updates made to a view are indeed the updates reflected back into the source.
-This is because the GETPUT law only says that the \pput component must return
-the original source unmodified whenever the update to the view is a no-op; it
-does not say what the \pput component should do with a modified view.
-Consequently, a non-trivial update to a view could lead to an undesired update
-to the source.
+While these two laws give some guarantees on how the \get, \pput and \create
+components of a lens interact, they do not specify the behaviour of the \pput
+component when the update to the view is non-trivial, because the GETPUT law
+only says that the \pput component must return the original source unmodified
+whenever the update to the view is a no-op Consequently, a non-trivial update
+to a view could lead to an undesired update to the source.
 
 For example, suppose that a source $S$ consists of a pair of integers, and
 that the view $V$ for $S$ consists of a single integer. Further, suppose that we
-wish for the \get of any lens from $S$ to $V$ to simply project away
-the first factor:
-$\ell.\get \; (a, b) = b$. Suppose further that we wish to force the \pput
-function of any lens $\ell$ defined on the data to restore the factor projected
-away by the \get function: that is, we wish to enforce that for
-all integers $a, b, c$, $\pi_1(\ell.\pput \; (a, b) \; c) = a$, where $\pi_1$ is
-the projection on the first factor.
+wish for the \get component of any lens from $S$ to $V$ to simply project away
+the first factor:that is for any $\ell : \mathbb{Z} \times \mathbb{Z}
+\Leftrightarrow \mathbb{Z}$, $\ell.\get \; (a, b) = b$ for all integers $a, b$.
+Suppose further that we wish to force the \pput function of any lens $\ell$
+defined on the data to restore the factor projected away by the \get function:
+that is, we wish to enforce that for all integers $a, b, c$, $\pi_1(\ell.\pput
+\; (a, b) \; c) = a$, where $\pi_1$ is the projection on the first factor.
 
-Now consider the lens $\ell_{bad}$ defined by $\ell_{bad}.\get \; (a, b) = b$
-and
+Now consider the lens $\ell_{bad}$ defined by
 \begin{align*}
 \ell_{bad}.\get \; (a, b) &= b\\
 \ell_{bad}.\pput \; (a, b) \; c &= \begin{cases}
@@ -304,9 +300,9 @@ always restore the first factor. For example, observe that $\ell.\pput (1, 2) \;
 propagated, hence the \pput component can cause any update to the source, so
 long as the \get component maps the updated source back to the updated view.
 
-In this paper, we introduce {\em stateful delta lenses} or SD-lenses, which are
-lenses augmented with extra information that specifies what kind of updates are
-valid for a given lens, and how these updates should be propagated.
+SD-lenses are lenses augmented with extra information that explicitly specifies
+the updates that can be made for a given lens and how these updates should be
+propagated.
 
 In order to specify the intended behaviour of a lens, we will first need to
 define what updates can be made to the source and view. We do this by embedding
@@ -347,7 +343,7 @@ $V$ is also given by $(\{\epsilon\} \sqcup \mathbb{Z}) \times(\{\epsilon\}
 $i_V(a) = (\epsilon, a)$.
 
 Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
-which describes how updates should be propagated. For this example, we let
+which describes how updates should be propagated. For this example, we
 define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
 $\partial V$, keeping in mind that $\partial S = \partial V$:
 \begin{align*}
@@ -366,8 +362,10 @@ to get $\ell.\get \; s$ and then update $\ell.\get \; s$ to get a new view $v$,
 then the \get component of $\partial(S, V)$ applied to $\delta_S(\ell.\pput \; s
 \; v, s)$ is equal to $\delta_V(v, \ell.\get \; s)$.
 
-For example, observe that $\ell_{bad}$ does not satisfy this condition since
-\begin{align}
+This condition enable us to rule out lenses which do not propagate updates
+correctly. For example, observe that $\ell_{bad}$ does not satisfy
+\cref{partialpreservesdelta} since
+\begin{align*}
 (\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
 (\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
 &= (\partial (S, V)).\get \; (0,3)\\
@@ -375,7 +373,7 @@ For example, observe that $\ell_{bad}$ does not satisfy this condition since
 &\neq (\epsilon, 3)\\
 &= \delta_V(3, 2)\\
 &= \delta_V(3, \ell_{bad}.\get \; (1, 2))
-\end{align}
+\end{align*}
 Consequently $\ell_{bad}$ is not a valid SD-lens. On the
 other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
 \begin{align*}
@@ -383,8 +381,8 @@ other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
 \ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
 \ell_{good}.\create \; b &= (0, b)
 \end{align*}
-is indeed a SD-lens since the its \pput component always restores the first
-factor.
+is indeed a valid SD-lens since the its \pput component always restores the
+first factor.
 
 Up to this point we have not yet explained the role of inclusion functions. Now
 assume that we have valid lenses $\ell_1$ and $\ell_2$ from source $S_i$ to
@@ -393,13 +391,14 @@ conditional combinator $\ell_1 \sqcup \ell_2$ which uses $\ell_1$ for $s \in
 S_1$ and $v \in V_1$ and $\ell_2$ for $s \in S_2$ and $v \in V_2$. Now assume
 that $s_1 \in S_1$ and $s_2 \in S_2$. When computing the difference between
 $s_1$ and $s_2$, we wish to say that $\delta_{S_1 \sqcup S_2}(s_1, s_2) = s_1$
-since $s_1$ and $s_2$ are in disjoing sets and are hence incomparable, but $s_1$
-is in $S_1$ rather than in $\partial S_1$! Hence for any source $S$ we need to
-embed $s$ as an update inside $\partial S$ and similarly for views, hence the
-need for inclusion functions $i_S : S \longrightarrow \partial S$ and $i_V : V
-\longrightarrow \partial V$. For inclusion functions $i_S$ and $i_V$, we
-require a law similar to \cref{partialpreservesdelta} to hold:
-$$(\partial (S, V)).\get \; (i_{S}(s)) = i_{V}(\ell.\get \; s)$$
+since $s_1$ and $s_2$ are in disjoint sets and are hence incomparable, but $s_1$
+is in $S_1$ rather than in $\partial S_1$ and hence is not an update! Hence for
+any source $S$ we need to embed $s$ as an update inside $\partial S$ and
+similarly for views, hence the need for inclusion functions $i_S : S
+\longrightarrow \partial S$ and $i_V : V \longrightarrow \partial V$. For
+inclusion functions $i_S$ and $i_V$, we require a law similar to
+\cref{partialpreservesdelta} to hold: $$(\partial (S, V)).\get \; (i_{S}(s)) =
+i_{V}(\ell.\get \; s)$$
 \section{Stateful Delta Lenses}
 \begin{definition}
 Let $(S, \partial S, \delta_S, i_S)$ and $(V, \partial V, \delta_V, i_V)$ be
