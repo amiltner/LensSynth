@@ -50,7 +50,8 @@
 
 
 \usepackage{amsmath, amssymb, amsthm, enumerate, graphicx, centernot, tikz,
-array, tikz-cd, extarrows, cleveref, mathrsfs, mathtools, stmaryrd, listings}
+array, tikz-cd, extarrows, cleveref, mathrsfs, mathtools, stmaryrd, listings,
+xspace}
 
 \newtheorem{definition}{Definition}
 \newtheorem{example}{Example}
@@ -83,16 +84,16 @@ array, tikz-cd, extarrows, cleveref, mathrsfs, mathtools, stmaryrd, listings}
 \newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
 
 
-\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}}
-\newcommand{\get}{\ensuremath{\kw{get}}}
-\newcommand{\pput}{\ensuremath{\kw{put}}}
-\newcommand{\create}{\ensuremath{\kw{create}}}
-\newcommand{\ccopy}{\ensuremath{\kw{copy}}}
-\newcommand{\const}{\ensuremath{\kw{const}}}
-\newcommand{\default}{\ensuremath{\kw{default}}}
-\newcommand{\pos}{\ensuremath{\kw{posit}}}
-\newcommand{\length}{\ensuremath{\kw{length}}}
-\newcommand{\match}{\ensuremath{\kw{match}}}
+\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}\xspace}
+\newcommand{\get}{\ensuremath{\kw{get}}\xspace}
+\newcommand{\pput}{\ensuremath{\kw{put}}\xspace}
+\newcommand{\create}{\ensuremath{\kw{create}}\xspace}
+\newcommand{\ccopy}{\ensuremath{\kw{copy}}\xspace}
+\newcommand{\const}{\ensuremath{\kw{const}}\xspace}
+\newcommand{\default}{\ensuremath{\kw{default}}\xspace}
+\newcommand{\pos}{\ensuremath{\kw{posit}}\xspace}
+\newcommand{\length}{\ensuremath{\kw{length}}\xspace}
+\newcommand{\match}{\ensuremath{\kw{match}}\xspace}
 
 
 \lstset{ basicstyle=\ttfamily, escapeinside=|| }
@@ -889,17 +890,61 @@ be able to compare two updates to determine which one has a ``smaller'' effect.
 This idea of lenses carrying a notion of updates and update propagation has been
 explored in various ways. First, various categorical approaches have been
 explored under the name of {\em delta lenses}
-\cite{diskin2011state,johnson2017symmetric,pacheco2012delta,johnson2012lenses}
-Delta lenses are lenses defined in an appropriate category, where sources and
+\cite{diskin2011state,diskin2011asymmetric,johnson2017symmetric,pacheco2012delta,johnson2012lenses} Delta lenses are lenses defined in an appropriate category, where sources and
 views are the objects of the category, and the arrows are deltas (or updates)
 between the objects of the category. In this setting, lens transformations are
 functors which map objects to objects as well as deltas to deltas. Categorical
 delta lenses are thus similar to the SD-lenses described in this paper in that
-they map states to states as well as updates to updates. The main difference
-between SD-lenses and categorical delta lenses is that SD-lenses are
-set-based rather than categorical and arguably simpler to understand. Moreover,
-only \cite{pacheco2012delta} defines a fairly rich set of combinators for delta
-lenses over inductive types in the same vane as SD-lenses.
+they map states to states as well as updates to updates.
+
+Our SD-lenses are set-based version of the delta lenses introduced by Pacheco et
+al in \cite{pacheco2012delta}. Pacheco et al. define a delta lens $\ell$ (d-lens
+for short), denote by $\ell: SA \trianglerighteq_{\blacktriangle} VB$ to be a
+bidirectional transformations that comprises four total functions:
+\begin{align*}
+\get &: SA \longrightarrow SB\\
+\pput &: \forall(v, s) : VB \times SA. (v \triangle \get \;s) \longrightarrow
+SA\\
+\get_{\blacktriangle} &: \forall\{s':SA, s:SA\}. (s' \triangle s)
+\longrightarrow (\get \; s \triangle \get \; s)\\
+\pput_{\blacktriangle} &:\forall\{(v, s):VB \times SA\},d:(v \triangle \get
+\;s).(\pput \; (v, s) \; d) \triangle s
+\end{align*}
+The d-lens is called {\em well-behaved} iff it satisfies the following
+propertes:
+\begin{align*}
+\get \; (\pput \; (v, s) \; d) = v \tag{PUTGET}\\
+\pput \; (\get \; s, s) \; id = s \tag{GETPUT}\\
+\get_{\blacktriangle} \; (\pput_{\blacktriangle} \; d) = d
+\tag{$\text{PUTGET}_{\blacktriangle}$}\\
+\pput_{\blacktriangle} \; id = id \tag{$\text{PUTGET}_{\blacktriangle}$}
+\end{align*}
+In the above definition, the state-based component of the d-lens is given by
+the functions get, that computes a view of a source value, and put, that takes
+a pair containing a modified view and an original source, together with a delta
+from the modified view to the original view, and returns a new modified value.
+The delta-based function $\get_{\blacktriangle}$ translates a source delta into
+a delta between views produced by $\get$, and $\pput_{\blacktriangle}$ receives
+a view delta and computes a delta from the new source produced by put to the
+original source. Properties PUTGET and GETPUT are the traditional state-based
+ones: view-to-view roundtrips preserve view modifications; and $\pput$ must
+preserve the original source for identity updates.
+$\text{PUTGET}_{\blacktriangle}$ and $\text{PUTID}_{\blacktriangle}$ denote
+similar laws on deltas: view-to-view roundtrips preserve view updates; and
+$\text{PUTID}_{\blacktriangle}$ must preserve identity updates.
+
+SD-lenses are essentially equivalent to well-behaved d-lenses in the sense of
+Pacheco et al.
+by mapping the state-based and delta based components of an SD-lens to
+their respective state and delta based components in a well-behaved d-lens.
+The axiom $\text{PUTID}_{\blacktriangle}$ combined with the dependent type of
+$\pput_{\blacktriangle}$ hence implies the axiom
+$$(\partial (S, V)).\get \; (\delta_S(\ell.\pput \; s \; v, s)) = \delta_V(v,
+\ell.\get \; s)$$ 
+for SD-lenses. Pacheco et al. also observe that their formulation is equivalent
+to the well-behaved d-lenses defined by Diskin et al. in
+\cite{diskin2011asymmetric}, hence our SD-lenses are essentially equivalent to
+these lenses as well.
 
 {\em Alignment lenses} have also been explored in tackling the issue of update
 propagation in \cite{bohannon2008boomerang,barbosa2010matching}. Prior to this
