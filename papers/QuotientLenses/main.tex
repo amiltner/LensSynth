@@ -170,55 +170,78 @@ ignoring details that a programmer views as inessential.
 %flexible. For example, inessential details like whitespace and orderings of
 %fields can be ignored when writing the transformations between the formats.
 
-However, while plain lenses are widely used in both standalone systems and
-popular libraries, Boomerang~\cite{boomerang} is the only implementation
-currently offering quotient lenses. Even though quotient lenses permit simpler
-transformations between the formats, they merely push complexity elsewhere. To
-write a quotient lens, programmers must write with standard lens
-combinators and \emph{canonizers}. Canonizers encode two functions, one that
-maps a format to a canonical version of that format, and another that chooses
+%However, while plain lenses are widely used in both standalone systems and
+%popular libraries, Boomerang~\cite{boomerang} is the only implementation
+%currently offering quotient lenses. Even though quotient lenses permit simpler
+%transformations between the formats, they merely push complexity elsewhere.
+Ordinary bijective lenses are fairly tricky to program, especially for
+beginners, as they require programmers to think in two directions at once
+and learn a new type system, which comes with some tricky ambiguity constraints.
+Unfortunately, quotient lenses do not improve the situation:  To
+write a quotient lens in Boomerang, programmers must work with standard lens
+combinators as well as a system of \emph{canonizers}.
+These canonizers encode two functions, one that
+maps data represented in the original external format
+to a canonical element, and another, in the opposite direction, that chooses
 which elements of the original format correspond to values in the canonical
-format. Furthermore, if a user wants to enforce that a quotient lens maps
-between two different formats, they must write regular expressions specifying
-such formats. In this way, writing quotient lenses involves writing 3 terms: (1)
-the data formats on each side of the lens, (2) canonizers to normalize the data
-and choose representatives, and (3) a lens between the data formats when in
-canonical form, even though, typically, these three share a great deal of
-structure. Moreover, writing the lens between the equivalence classes can be
-challenging due to the rather fiddly typechecking, mainly due to
-``non-ambiguity'' conditions in the lens well-formedness rules.
+format. Furthermore, if a user wants to define the domain and range of
+a lens explicitly (a programming practice that is encouraged), she must
+provide regular expressions defining input and output formats.
+Consequently, to define a quotient lens, one must often three different sorts
+of terms: (1) regular expressions that define the two data formats
+to be processed, (2) canonizers to normalize the data
+and choose representatives, and (3) a bijective lens maps
+one canonical form into another.  Somewhat frustratingly,
+these three terms share a fair amount of structure.
+%Moreover, writing the lens between the equivalence classes can be
+%challenging due to the rather fiddly typechecking, mainly due to
+%``non-ambiguity'' conditions in the lens well-formedness rules.
 
-In this paper, we make programming quotient lenses easier in two ways. First, we
-introduce a novel language of {\em Quotient Regular Expressions}, or QREs, which
+In this paper, we improve the process of programming quotient lenses
+in two distinct, but connected ways. First, we
+introduce a new language of {\em Quotient Regular Expressions}, or QREs, which
 enable a programmer to simultaneously specify a regular expression as well as
-a set of canonical representatives on the regular expression's language. With
+a set of canonical representatives for strings that match the regular
+expression. With
 QREs, programmers do not need to define the data and canonization functions
-separately -- by adding simple annotations to the data, the canonization
-functions can be inferred.
+separately -- by adding simple annotations to ordinary regular expressions,
+canonization functions can be inferred.
 
 Second, we use QREs to define a class of quotient lenses called {\em QRE
-lenses} which map betweeen QREs, and show how to synthesize QRE lenses. In
-order to derive a lens, a programmer need not manually derive the lens
-herself, she only needs to provide a pair of QREs describing the formats the
-lens should map between, and a suite of examples that demonstrates how the
-lens should act on specific examples.  The resulting lens is guaranteed to
-map between the languages of the QREs and satisfy the provided examples.
+lenses}, and, we show how to synthesize such QRE
+lenses automatically.  
+More specifically, in
+order to generate a lens, a programmer provides a pair of QREs
+describing the source and target formats, and, optionally,
+a suite of examples that demonstrates how the
+lens should act on specific examples.  Given this information,
+we are able to exploit and extend recent work on algorithms for synthesis of
+bijective lenses~\cite{optician} to generate quotient lenses.
+Importantly, the lenses generated by
+our synthesis algorithm are guaranteed to translate data back and forth
+between source and target QREs and to satisfy the provided examples.
+Moreover, while our synthesized quotient lenses have a relatively
+restricted form (a fact that cuts down the amount of non-determinism in
+a specification and thus helps speed up synthesis), we prove that
+this rigidity does not compromise expressiveness.
 
-In summary, our main contributions are:
+The following list summarizes the central contributions of our work.
 \begin{enumerate}
   \item We introduce {\em Quotient Regular Expressions} (QREs)
   which provide a compact, convenient notation that expresses an equivalence
-  relation on a regular languages as well as as a canonical set representatives
+  relation on a regular languages as well as a canonical set representatives
   for this equavalence relation (Section~\ref{QRE}).
-  \item We define a language of {\em QRE lenses}, a subset of bijective quotient
-  lenses whose types are given by QREs. Our main technical contribution in this
-  paper is a proof that each QRE lens $q$ defines the same transformation as a
+  \item We define a language of {\em QRE lenses}.  This language is
+  a subset of the bijective quotient
+  lenses whose types are given by QREs. Our main technical contribution
+  is a proof that each QRE lens $q$ defines the same transformation as a
   QRE lens $q'$ that is in normal form. (Section~\ref{QRE-lenses}).
   \item Using this normal form, we reduce the problem of {\em synthesizing}
   QRE lenses to the previously studied problem of synthesizing bijective lenses
   between regular languages (Section~\ref{synth}).
   \item We extend the Boomerang {\em implementation} with QREs
-  and QRE lens synthesis.  We demonstrate its applicability by using it to
+  and QRE lens synthesis.  We demonstrate the utility of our
+  implementation by using it to
   synthesize QRE lenses between several real-world data formats from the
   {\tt data.gov} database (Section~\ref{impl}).
 \end{enumerate}
