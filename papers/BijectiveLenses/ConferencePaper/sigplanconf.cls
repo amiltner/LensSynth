@@ -694,7 +694,7 @@
                       (\noexpand\copyrightdoi)}{}%
     \fi
   \else
-    \noindent DOI: http://dx.doi.org/10.1145/\@copyrightdoi\par
+    \noindent DOI: https://doi.org/10.1145/\@copyrightdoi\par
   \fi}
   
 
