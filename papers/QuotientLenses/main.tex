@@ -247,14 +247,20 @@ The following list summarizes the central contributions of our work.
 \end{enumerate}
 Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
-\section{Quotient Regular Expressions and Lenses by Example}
+\section{Quotients by Example}
 \label{sec:example}
 
 %In this section, we explain the difficulties of programming with quotient
 %lenses in Boomerang and show, by way of example, how our 
 %{\em Quotient Regular Expressions} (QREs) help alleviate these difficulties.
 
-Consider a bidirectional transformation that converts
+\emph{Lenses} define computations that can be read in two directions, forwards and
+backwards.  The simplest lenses define bijections between source and
+data, but we are interested in \emph{quotient lenses}, which define
+bijections modulo some equivalence relation.  The remains of this section
+describe and motivate a new language and system for defining such lenses.
+
+To begin, consider a bidirectional transformation that converts
 \bibtex{} citation records such as
 \begin{verbatim}
 @Book {conway,
@@ -263,7 +269,7 @@ Title = {Regular Algebra and Finite Machines}
 }
 \end{verbatim}
 \noindent
-to an equivalent EndNote format like the following
+into an equivalent EndNote format like the following
 \begin{verbatim}
 %0 Book
 %T Regular Algebra and Finite Machines
@@ -273,17 +279,14 @@ to an equivalent EndNote format like the following
 \noindent
 and vice versa.
 %
-Transformations from one such representation to the other will preserve
-most of the information content of the data:  the title, the author,
-and the key, for instance.  However, intuitively,
-some of the information is inessential and may be discarded---indeed, this
-inessential information will likely appear so trivial that a casual
-reader may not even realize it is there to begin with.  For instance,
-there is no need to preserve the amount of whitespace between words, at the ends of lines, or
-between fields.  In addition, the order of author and title fields is irrelevant.
-There may also be additional equivalent ways of writing the same
-name:  ``Conway, J. H.'' and ``J. H. Conway'' should probably be treated
-the same.
+Notice that transformations from one format to the other preserve
+most of the information present in the data:  the title, the author,
+and the key, for instance.  However, some information in the syntax
+may be lost.  For instance, users are typically uninterested in preserving
+the amount of the whitespace between words or
+between fields.  The order of author and title fields is also likely
+irrelevant and there may be equivalent ways of writing the same
+name:  ``Conway, J. H.'' vs ``J. H. Conway.''
 
 %% Moreover,
 %% if two \bibtex{} files differ only in ``inessential'' details, we would like
@@ -298,8 +301,9 @@ the same.
 %% citation record.
 
 When two instances of the same format differ only terms of such inessential
-information, it is often useful to treat them as identical.
-For example, the following two
+information, it is often useful to treat them as identical and to map them
+into canonical representations.
+Continuing our example, the following two
 \bibtex{} citations represent the same logical object and as a result, should
 be translated to the same EndNote record.
 \begin{verbatim}
@@ -313,30 +317,77 @@ Title = {Regular Algebra
 and Finite Machines},
 Author = "Conway, J. H.",     }
 \end{verbatim}
-\noindent EndNote records should also have a similar equivalence relation
-defined on them.
 
-While it is possible to express the equivalence on the \bibtex{} data above in
-Boomerang, actually doing so is a challenge.  Three of the inessential details
-we wish to ignore---whitespace quotienting
-inside fields, whitespace quotienting in between fields, and permutation
-quotenting of fields---nest within each other in a way that makes them difficult
-to express with the existing Boomerang combinators. Furthermore, if the
-programmer wishes to specify the type of the lens, then she can only specify
-data formats on each side of the lens with a regular expression that does not
-keep track of the equivalence relation defined on the language of the regular
-expression. Consequently, the programmer has to write a regular expression as
-well as a canonizer that expresses the equivalence relation on that regular
-expression, even though a regular expression and the canonizer defined on it
-typically share much of the syntactic structure. Having to write both of these
-expressions makes programming with quotient lenses verbose and time consuming.
+One natural way to define lenses that will synchronize data in these formats
+is to provide the following items:
 
-To address these issues, we propose {\em Quotient Regular Expressions}, or QREs,
-which enable the programmer to define a regular expression $R$, an equivalence
-relation $\sim$ on the language described by $R$ as well as a canonical set
-of representatives of $\sim$, all in one syntactic term. For example, with QREs
-we can specify \bibtex{} records and their canonical elements, as shown in
-Figure~\ref{fig:example-qre}.
+\begin{enumerate}
+\item A pair of descriptions of the external source and target formats.
+Such descriptions may be given by regular expressions, for instance.
+They serve as documentation to describe the domains over which the lens
+is to operate.
+\item A pair of \emph{canonizers} that map external source (and target)
+objects into internal, canonical forms.  Such canonizers will take
+care of stripping away irrelevant information and otherwise normalizing
+differences between equivalent representations of the same logical data.
+When given an internal representation, such canonizers must also operate
+in the reverse direction, \emph{choosing} an element in the external format
+to represent the canonical internal element.
+\item A pair of descriptions of the internal source and
+target formats, again, to document the structure of the transformation.
+\item A bijective lens to map back and forth between canonical elements
+of the internal source and target formats.
+\end{enumerate}
+
+\noindent
+Indeed, Boomerang's quotient lenses are structured this way~\ref{boomerang}.
+Of course, some of these elements are optional.  For instance, it is
+not necessary to document internal and external formats.  However, we do
+view it as good engineering practice to do so, as such documentation makes
+lenses easier to read, understand, use and maintain.  In this case, there is
+significant redundancy here:  External and internal formats
+typically have some overlap; external formats and canonizers have related
+structure; and the structure of bijective lens computations is largely driven
+by the structure of the internal formats.  Hence, overall, a more compact
+notation would simplify description and legibility of such computations.
+In addition,
+the lens and canonizer languages themselves can be somewhat fiddly and
+difficult to
+master.  For instance, to quotient out whitespace inside, and in between,
+fields while also ignoring field order one must nest canonizing combinators
+within one another in a somewhat tricky and fiddly way.  
+
+%% %Foster's Boomerang~\ref{boomerang} language presents one design
+%% While it is possible to express the equivalence on the \bibtex{} data above in
+%% Boomerang, actually doing so is a challenge.  Three of the inessential details
+%% we wish to ignore---whitespace quotienting
+%% inside fields, whitespace quotienting in between fields, and permutation
+%% quotenting of fields---nest within each other in a way that makes them difficult
+%% to express with the existing Boomerang combinators. Furthermore, if the
+%% programmer wishes to specify the type of the lens, then she can only specify
+%% data formats on each side of the lens with a regular expression that does not
+%% keep track of the equivalence relation defined on the language of the regular
+%% expression. Consequently, the programmer has to write a regular expression as
+%% well as a canonizer that expresses the equivalence relation on that regular
+%% expression, even though a regular expression and the canonizer defined on it
+%% typically share much of the syntactic structure. Having to write both of these
+%% expressions makes programming with quotient lenses verbose and time consuming.
+
+We propose to do away with much of this overhead and the burden of a
+fiddly programming process by defining a single new compact notation,
+the \emph{Quotient Regular Expression}, which simultaneously describes
+external format, equivalence relation and canonical forms, and then to
+synthesize lenses that map between these objects automatically.
+
+\subsection{Quotient Regular Expressions}
+
+A {\em Quotient Regular Expression} (QRE) defines an external regular
+expression $R$,
+an equivalence relation $\sim$ on the language described by $R$, and a canonical set
+of representatives of $\sim$, all in one syntactic term.
+Figure~\ref{fig:example-qre} illustrates how to 
+specify \bibtex{} records and their canonical elements using QREs.
+
 
 \begin{figure}[t]
 \begin{lstlisting}
@@ -344,8 +395,8 @@ Figure~\ref{fig:example-qre}.
 let wsp = project [ \n\t\r]$^+$ $\to$ " "
 
 (* define name representations with a space and with a comma *)
-let space_name     = name | (name . wsp . (name . wsp)$^*$ . name)
-let comma_name   = name | (name . "," . wsp . (name . wsp)$^*$ . name)
+let space_name = name | (name . wsp . (name . wsp)$^*$ . name)
+let comma_name = name | (name . "," . wsp . (name . wsp)$^*$ . name)
 
 (* synthesize a lens that maps the comma representation to the space representation *)
 let space_to_comma = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
@@ -355,14 +406,14 @@ let name = squash comma_name $\to$ space_name using (get space_to_comma)
 
 (* define rest of bibtex fields *)
 let name_sep = wsp . "and" . wsp
-let bib_names  = name | (name . name_sep . (name . name_sep)$^*$ . name)
+let bib_names = name | (name . name_sep . (name . name_sep)$^*$ . name)
 let bib_author = "author = \"" . bib_names . "\""
-let title     = word | (word . wsp . (word . wsp)$^*$ . word)
+let title = word | (word . wsp . (word . wsp)$^*$ . word)
 let bib_title = "title = {" . title . "}"
 
 (* allow any permutation of fields interspersed with arbitrary whitespace *)
-let bib_fields  = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
-let bibtex    = "@book{" . bib_fields . "}"
+let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
+let bibtex = "@book{" . bib_fields . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records. }
 \label{fig:example-qre}
