@@ -78,6 +78,7 @@ mathescape
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
 \newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\codefont}[1]{\ensuremath{\mathsf{#1}}}
 \newcommand{\project}[2]{\ensuremath{\kw{project} \; #1 \mapsto #2}}
 \newcommand{\squash}[3]{\ensuremath{\kw{squash} \; #1 \rightarrow #2
 \kw{using} \; #3}}
@@ -373,20 +374,82 @@ within one another in a somewhat tricky and fiddly way.
 %% typically share much of the syntactic structure. Having to write both of these
 %% expressions makes programming with quotient lenses verbose and time consuming.
 
-We propose to do away with much of this overhead and the burden of a
-fiddly programming process by defining a single new compact notation,
-the \emph{Quotient Regular Expression}, which simultaneously describes
-external format, equivalence relation and canonical forms, and then to
-synthesize lenses that map between these objects automatically.
+We propose to do away with much of this overhead, and the burden of a
+fiddly programming process, by defining a single new compact notation
+to specify data formats modulo an equivalence relation and then by
+synthesizing the lenses that map between these formats automatically.
 
 \subsection{Quotient Regular Expressions}
 
 A {\em Quotient Regular Expression} (QRE) defines an external regular
-expression $R$,
-an equivalence relation $\sim$ on the language described by $R$, and a canonical set
-of representatives of $\sim$, all in one syntactic term.
-Figure~\ref{fig:example-qre} illustrates how to 
-specify \bibtex{} records and their canonical elements using QREs.
+expression $R$, an equivalence relation $\sim$ on the language
+described by $R$, and a canonical set of representatives of $\sim$,
+all at once.  QREs are constructed from a simple set of primitives
+and composed using familiar regular operators
+(choice `\cd{|}', concatenation `\cd{.}', sequential composition ``;''
+and Kleene star `$^*$').
+
+For example, to begin construction of our \bibtex{} format, we might
+first define a whitespace format, which, externally, matches
+any non-zero number of whitespace characters, and converts
+any such whitespace into a single space character (its canonical form).
+Such a definition uses the \kw{project} primitive to implement the
+specification:
+
+\begin{lstlisting}
+let wsp = project [ \n\t\r]$^+$ $\to$ " "
+\end{lstlisting}
+
+While a projection chooses a single canonical representative for all elements
+of a regular language, the \kw{squash} combinator maps data from one
+regular language to another via a user-defined
+function.  For instance,
+if \codefont{comma_name} describes the format for ``Conway, J. H.''
+and \codefont{space_name} describes the format for ``J. H. Conway''
+and \codefont{s_to_c} is a function from one to the other then
+the following instance of squash creates the desired canonizer.
+
+%Figure~\ref{fig:example-qre} illustrates
+%how to specify \bibtex{} records and their canonical elements using
+%QREs.
+
+\begin{lstlisting}
+let name = squash comma_name $\to$ space_name using s_to_c
+\end{lstlisting}
+
+One way to define the function used by squash is simply to write it
+from scratch in OCaml.  However, our system will also synthesize
+such functions automatically from pairs of regular languages and
+examples.
+%
+\begin{lstlisting}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
+let s_to_c = get l
+\end{lstlisting}
+%
+The first line above synthesizes a \emph{bidirectional} lens between
+\codefont{comma_name} and \codefont{space_name} using the listed example
+transformation as a guide.  The second line simply
+extracts the left-to-right transformation from the lens, which is what we need for squash.
+
+A third useful QRE primitive is the permutation combinator.  For example,
+the following instance of \kw{perm} allows label, author and title fields
+(which we assume have been defined earlier) to appear in any order.
+%
+\begin{lstlisting}
+let bib_fields = perm (label, bib_author, bib_title) 
+\end{lstlisting}
+%
+To normalize any repeated separator between fields, one can extend a permutation
+with any other QRE.  For instance, below, we normalize whitespace between fields,
+leaving only a single newline.
+%
+\begin{lstlisting}
+let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
+\end{lstlisting}
+%
+\noindent
+The QRE for the bibtex format is presented in its entirety in Figure~\ref{fig:example-qre}.
 
 
 \begin{figure}[t]
@@ -419,52 +482,52 @@ let bibtex = "@book{" . bib_fields . "}"
 \label{fig:example-qre}
 \end{figure}
 
-In Figure~\ref{fig:example-qre}, the QRE \verb+project [ \n\t\r]+$^{+} \to$
-\verb+" "+ matches any non-zero number of whitespace characters and quotients
-them to a single equivalence class with a single space as the canonical
-representative. We call this QRE a \textit{projection} because an entire regular
-language is projected to a single representative string.
+%% In Figure~\ref{fig:example-qre}, the QRE \verb+project [ \n\t\r]+$^{+} \to$
+%% \verb+" "+ matches any non-zero number of whitespace characters and quotients
+%% them to a single equivalence class with a single space as the canonical
+%% representative. We call this QRE a \textit{projection} because an entire regular
+%% language is projected to a single representative string.
 
-Another QRE in Figure~\ref{fig:example-qre} is given by
+%% Another QRE in Figure~\ref{fig:example-qre} is given by
 
-\begin{center}
-\begin{lstlisting}
-squash comma_name $\to$ space_name using (get space_to_comma)
-\end{lstlisting}
-\end{center}
+%% \begin{center}
+%% \begin{lstlisting}
+%% squash comma_name $\to$ space_name using (get space_to_comma)
+%% \end{lstlisting}
+%% \end{center}
 
-\noindent This QRE is a \textit{squash} QRE. A \textit{squash} QRE ``glues''
-two data formats using a user-defined function. For example,
-the QRE in the code above specifies that the \cd{comma_name} representation of
-the author's name is equivalent to the \cd{space_name} representation, with
-\cd{space_name} taken to be the canonical representation. The
-function that identifies the two formats is given by \cd{get space_to_comma},
-which transforms names in the \cd{comma_name} representation to names in the
-\cd{space_name} representation. In this example, \cd{space_to_comma} is itself
-an automatically \textit{synthesized} lens between the \cd{space_name} and
-\cd{comma_name} QREs, and we need to use the ``get'' direction of the lens to
-specify the squash transformation.
+%% \noindent This QRE is a \textit{squash} QRE. A \textit{squash} QRE ``glues''
+%% two data formats using a user-defined function. For example,
+%% the QRE in the code above specifies that the \cd{comma_name} representation of
+%% the author's name is equivalent to the \cd{space_name} representation, with
+%% \cd{space_name} taken to be the canonical representation. The
+%% function that identifies the two formats is given by \cd{get space_to_comma},
+%% which transforms names in the \cd{comma_name} representation to names in the
+%% \cd{space_name} representation. In this example, \cd{space_to_comma} is itself
+%% an automatically \textit{synthesized} lens between the \cd{space_name} and
+%% \cd{comma_name} QREs, and we need to use the ``get'' direction of the lens to
+%% specify the squash transformation.
 
-The third example of a QRE in the Figure is \cd{bib_fields}, defined by:
-\begin{center}
-\begin{lstlisting}
-perm (label, bib_author, bib_title) with (project ("," . wsp$^+$ ) $\to$ ",\n")
-\end{lstlisting}
-\end{center}
+%% The third example of a QRE in the Figure is \cd{bib_fields}, defined by:
+%% \begin{center}
+%% \begin{lstlisting}
+%% perm (label, bib_author, bib_title) with (project ("," . wsp$^+$ ) $\to$ ",\n")
+%% \end{lstlisting}
+%% \end{center}
 
-\noindent This is a \textit{permutation} QRE that specifies that the label,
-title, and author fields can occur in any order, with the fields separated by a
-comma followed by arbitrary amounts of whitespace. The canonical representation
-is that in which the label, author and title fields occur in that order,
-separated by a comma followed by a newline. The \textit{permutation} QRE is
-designed for equivalences such as this, where different permutations of
-equivalences are interspersed with a separator which itself has an
-equivalence defined on it.
+%% \noindent This is a \textit{permutation} QRE that specifies that the label,
+%% title, and author fields can occur in any order, with the fields separated by a
+%% comma followed by arbitrary amounts of whitespace. The canonical representation
+%% is that in which the label, author and title fields occur in that order,
+%% separated by a comma followed by a newline. The \textit{permutation} QRE is
+%% designed for equivalences such as this, where different permutations of
+%% equivalences are interspersed with a separator which itself has an
+%% equivalence defined on it.
 
-Given the \textit{projection}, \textit{squash}, and \textit{permutation}
-QRE primitives, we can build more complex languages using the usual regular
-expression combinators of alternative choice `\cd{|}', concatenation `\cd{.}'
-and Kleene star `$^*$', and also sequential composition ``;''.
+%% Given the \textit{projection}, \textit{squash}, and \textit{permutation}
+%% QRE primitives, we can build more complex languages using the usual regular
+%% expression combinators of alternative choice `\cd{|}', concatenation `\cd{.}'
+%% and Kleene star `$^*$', and also sequential composition ``;''.
 
 \subsection{QRE Lenses}
 While QREs make it easier to write equivalence relations on regular expressions
