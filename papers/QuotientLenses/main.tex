@@ -320,7 +320,9 @@ Author = "Conway, J. H.",     }
 \end{verbatim}
 
 One natural way to define lenses that will synchronize data in these formats
-is to provide the following items:
+is to provide the following items: \dpw{this is slightly redundant from the intro.  It
+adds a little more info, but not much.  Should this be cut?  Should the intro be expanded
+slightly?  Should it be left as is (more or less)?}
 
 \begin{enumerate}
 \item A pair of descriptions of the external source and target formats.
@@ -462,10 +464,11 @@ let space_name = name | (name . wsp . (name . wsp)$^*$ . name)
 let comma_name = name | (name . "," . wsp . (name . wsp)$^*$ . name)
 
 (* synthesize a lens that maps the comma representation to the space representation *)
-let space_to_comma = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
+let s_to_c = get l
 
 (* squash QRE maps comma_name to space_name *)
-let name = squash comma_name $\to$ space_name using (get space_to_comma)
+let name = squash comma_name $\to$ space_name using s_to_c
 
 (* define rest of bibtex fields *)
 let name_sep = wsp . "and" . wsp
@@ -530,12 +533,34 @@ let bibtex = "@book{" . bib_fields . "}"
 %% and Kleene star `$^*$', and also sequential composition ``;''.
 
 \subsection{QRE Lenses}
-While QREs make it easier to write equivalence relations on regular expressions
-by specifying the data and the equivalence relation on the data in one
-expression, in order to define a quotient lens, the programmer still has to
-manually derive the underlying lens that maps the equivalence classes of the
-source data to the equivalence classes of the target data. This is itself a
-tricky task as Figure~\ref{fig:example-lens} illustrates.
+QREs allow users to specify regular languages modulo equivalence relations,
+a first step in writing many data transformations.  However, writing the
+quotient lens itself still takes a fair amount of work.  Each such lens
+is constructed from simple primitive combinators including:
+%
+\begin{itemize}
+\item \kw{del} $s$: delete the constant string $s$ in the left-to-right direction; produce the constant string $s$ in the right-to-left direction.
+\item \kw{ins} $s$: produce the string $s$ in the left-to-right direction;
+delete the string $s$ in the right-to-left direction.
+\item \kw{id} $r$: copy the text matching $r$ from left-to-right (also from
+right-to-left) \dpw{this was not the exact syntax.  fix this.}
+\end{itemize}
+%
+In addition, such primitives may be combined using the regular operators
+Kleene star, alternation and concatenation, or functional composition of
+lenses.  Figure~\ref{fig:example-lens} illustrates the use of these
+combinators to transform \bibtex{} to EndNote (and vice versa).
+A fair amount of trickiness in writing these transformations as users
+must keep mental track of what they have parsed so far \emph{in both
+directions}, carefully inserting and deleting the relevant syntax on both
+sides.
+
+%% While QREs make it easier to write equivalence relations on regular expressions
+%% by specifying the data and the equivalence relation on the data in one
+%% expression, in order to define a quotient lens, the programmer still has to
+%% manually derive the underlying lens that maps the equivalence classes of the
+%% source data to the equivalence classes of the target data. This is itself a
+%% tricky task as Figure~\ref{fig:example-lens} illustrates.
 
 \begin{figure}[t]
 \begin{lstlisting}
@@ -563,31 +588,38 @@ expressions with no equivalences.}
 \label{fig:example-lens}
 \end{figure}
 
-The lens shown in Figure~\ref{fig:example-lens} transforms \bibtex{} data to
-EndNote data  (and vice versa) by matching the delimiters and separators in a
-bijective manner. For example, the \cd{preamble} lens replaces the \bibtex{}
-preamble \verb|@Book| with the EndNote preamble \verb|%0 Book\n%F|. When the
-programmer is writing the lens, she has to make sure that all of these small
-deletions and insertions are correct, which can be a challenging task if the
-lens is large enough, as in the definition of the lens \verb!author_lens! in
-Figure~\ref{fig:example-lens}. This makes lens programming tedious and
-error-prone.
+%% The lens shown in Figure~\ref{fig:example-lens} transforms \bibtex{} data to
+%% EndNote data  (and vice versa) by matching the delimiters and separators in a
+%% bijective manner. For example, the \cd{preamble} lens replaces the \bibtex{}
+%% preamble \verb|@Book| with the EndNote preamble \verb|%0 Book\n%F|. When the
+%% programmer is writing the lens, she has to make sure that all of these small
+%% deletions and insertions are correct, which can be a challenging task if the
+%% lens is large enough, as in the definition of the lens \verb!author_lens! in
+%% Figure~\ref{fig:example-lens}. This makes lens programming tedious and
+%% error-prone.
 
 Consequently, we offer the programmer some relief by identifying a class of
-quotient lenses that we call {\em QRE lenses}, and show how to {\em synthesize}
+quotient lenses that we call {\em QRE lenses}, and by showing how to {\em synthesize}
 QRE lenses from a pair of QREs and a set of input-output example pairs. Our key
 insight is to reduce the problem of synthesizing QRE lenses to the problem of
-synthesizing {\em bijective lenses}~\cite{optician}, which are bijections created
-from the Boomerang lens combinators.
+synthesizing {\em bijective lenses}~\cite{optician}, a simpler subset of
+lenses that support strict bijections, rather than bijections modulo
+equivalence relations.
 
-QRE lenses lenses are the same as bijective lenses with ``canonizers at the
-edges'' as in Figure~\ref{fig:attheedges}, and are typed using QREs---every QRE
-lens $q$ has a type $q: c \Leftrightarrow c'$ where $c$ and $c'$ are QREs.
+Intuitively, our QRE lenses are bijective lenses with ``canonizers at the
+edges''---Figure~\ref{fig:attheedges} presents the architecture of each lens.
+Every QRE lens $q$ has a type $q: c \Leftrightarrow c'$ where $c$ and $c'$ are QREs.
 In the forward direction, a QRE lens $q: c \Leftrightarrow c'$ uses the source
 QRE $c$ to compute a unique representative for the data modulo the equivalence
 relation defined by $c$ and then applies the $\get$ function of a bijective
 lens $\ell$ to this representative. In the backward direction, $q$ operates
 similarly,  but using the view QRE $c'$ and the $\lput$ function of $\ell$.
+
+Because the QREs $c$ and $c'$ determine the internal formats for data after
+canonization, and because the algorithm for synthesizing bijective lenses is
+directed by these formats, $c$ and $c'$ are all that is required to synthesize
+QRE lenses end-to-end.  Indeed, we structured QRE lenses as bijective lenses with
+canonizers at the edges, precisely to facilitate the use of this synthesis algorithm.
 
 \begin{figure}[t]
 \centering
@@ -604,42 +636,49 @@ language so we just use the inclusion as the choose function.}}
 \label{fig:attheedges}
 \end{figure}
 
-One potential pitfall with QRE lenses is that the combinators that we define on
-them may not preserve this normal form. For example, the composition $q'; q$ of
-QRE lenses $q$ and $q'$ might not be equivalent to any quotient lens that has
-the canonical normal form of a bijective lens with canonizers at the edges.
-Our main technical contribution in this paper is a proof that each QRE lenses
-$q$ defines the same transformation as a QRE lens $q'$ that is in normal form.
+%% One potential pitfall with QRE lenses is that the combinators that we define on
+%% them may not preserve this normal form. For example, the composition $q'; q$ of
+%% QRE lenses $q$ and $q'$ might not be equivalent to any quotient lens that has
+%% the canonical normal form of a bijective lens with canonizers at the edges.
 
-For example, suppose \cd{q_1 : bibtex} $\Leftrightarrow$ \cd{endnote} is a QRE
-lens that maps between \bibtex{} and EndNote formats, and that \cd{q_2 : endnote
-<=> xml} is a QRE lens that maps between EndNote and XML formats. The
-composition \cd{(q_1 ; q2) : bibtex} $\Leftrightarrow$ \cd{xml} of \cd{q_1} and
-\cd{q_2} is not necessarily in normal form due to the presence of canonizers
-on each side of the intermediary EndNote format:
+On the other hand, our restriction that canonizers appear only at the edges
+raises a key technical question:  Are we limiting the expressiveness of our transformations
+by demanding all programs fit into this normal form?  It turns out that we are not:
+any lens that uses canonizers internally can be transformed into a lens that uses canonizers
+at the edges.  The main technical contribution of this paper is a proof of this fact.  The
+crucial step in the proof is a demonstration that functional composition of two lenses
+with ``canonizers at the edge'' can be represented as some single lens with ``canonizers at the
+edge.''
 
-\sam{TODO: We need to put a diagram of composition here.}
+%% For example, suppose \cd{q_1 : bibtex} $\Leftrightarrow$ \cd{endnote} is a QRE
+%% lens that maps between \bibtex{} and EndNote formats, and that \cd{q_2 : endnote
+%% <=> xml} is a QRE lens that maps between EndNote and XML formats. The
+%% composition \cd{(q_1 ; q2) : bibtex} $\Leftrightarrow$ \cd{xml} of \cd{q_1} and
+%% \cd{q_2} is not necessarily in normal form due to the presence of canonizers
+%% on each side of the intermediary EndNote format:
 
-\noindent However, while \cd{q_1 ; q_2} is not in normal form, our main theorem
-shows that there is another QRE lens \cd{q : bibtex} $\Leftrightarrow$ \cd{xml}
-of the same type as \cd{(q_1 ; q2) : bibtex} $\Leftrightarrow$ \cd{xml} such
-that \cd{q_1 ; q_2} and \cd{q} define the same transformation. This proof
-will allow justify our approach for synthesizing quotient lenses so that the
-programmer can replace all of the code in Figure~\ref{fig:example-lens} with a
-call to the synthesis prodedure:
+%% \sam{TODO: We need to put a diagram of composition here.}
+
+%% \noindent However, while \cd{q_1 ; q_2} is not in normal form, our main theorem
+%% shows that there is another QRE lens \cd{q : bibtex} $\Leftrightarrow$ \cd{xml}
+%% of the same type as \cd{(q_1 ; q2) : bibtex} $\Leftrightarrow$ \cd{xml} such
+%% that \cd{q_1 ; q_2} and \cd{q} define the same transformation.
+
+This technical investigation justifies replacing manually constructed lenses that may use
+functional composition and nested canonizers with synthesized lenses in normal form.
+The end result is that users may synthesize complex transformations with a single line
+of code.  For instance, all the code in Figure~\ref{fig:example-lens} may be replaced by
+a single call to the synthesis prodedure:
 
 \begin{lstlisting}
 let bib_to_end : (lens in bibtex $\Leftrightarrow$ endnote)
 = synth bibtex $\Leftrightarrow$ endnote  using  {(bib_example, end_example)}
 \end{lstlisting}
-\noindent Here, the resulting  quotient lens maps between the \cd{bibtex} and
-\cd{endnote} QREs, and sends the equivalence class of \cd{bib_example} to
-the equivalence class of \cd{end_example}, which are the two concrete example
-strings given at the beginning of this Section.
-
-As we saw with the definition of \cd{space_to_comma} in
-Figure~\ref{fig:example-qre}, the synthesis procedure itself can be used to
-create lenses that are in turn used to define other QREs.  This ability to mix
+\noindent Here, the generated  quotient lens synchronizes \cd{bibtex} and
+\cd{endnote} formats.  It uses \cd{bib_example} and \cd{end_example} (the two concrete example
+strings given at the beginning of this section) to disambiguate.
+In additiona, and as we saw earlier with the definition of \cd{s_to_c}, the synthesis procedure itself
+can be used to create lenses that are in turn used to define other QREs.  The ability to intermix
 QRE specification with QRE lens synthesis yields a powerful and flexible way of
 creating bidirectional transformations.
 
