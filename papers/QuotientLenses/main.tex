@@ -123,7 +123,7 @@ Oftentimes, the same data is stored in a variety different formats. For
 example, \bibtex{} and EndNote both store bibliography data; spreadsheet data
 can be represented as a CSV file or a TSV file; web APIs can return data as a
 JSON or
-XML object. When different applications manipulate data in different formats,
+XML object. When different applications manipulate the same data in different formats,
 synchronizing the applications amounts to synchronizing their respective data
 formats. One way to synchronize data formats is to use \emph{lenses}, \emph{i.e.,} programs that represent pairs of functions for translating data from
 format A to B (the \emph{get} direction) and back again (the \emph{put}
@@ -131,7 +131,7 @@ direction).  These lenses, when defined using domain-specific
 languages like Boomerang~\cite{boomerang} or
 BiGul~\cite{DBLP:conf/pepm/KoZH16}, typically come with a variety of guarantees,
 the \emph{lens laws}, that help ensure put and get functions are effective
-inverses of one another.
+inverses of one another.  
 %comprise such synchronization functions, and the ``lens
 %laws'' provide restrictions on how these synchronization functions interoperate%.
 %Bidirectional languages like Boomerang~\cite{boomerang} and
@@ -140,8 +140,8 @@ inverses of one another.
 
 One way to classify lenses is by the laws they obey.  Amongst the most
 restrictive lenses are the \emph{bijective lenses}.  These lenses demand
-that get and put functions for a bijection, meaning no information
-is lost when one translates from data format to another.  While this
+that get and put functions form a bijection, meaning no information
+is lost when one translates from one data format to another.  While this
 strong guarantee can be useful in some contexts, it is more often the case
 that some of the information in one or both of the data formats is superfluous.
 For instance, one typically does not care to preserve the amount of
@@ -151,15 +151,17 @@ or the order of fields in a record or items in a list may be unimportant.
 %bijective lenses have
 %strong correctness guarantees, they are often
 %However, these lens laws are too restrictive for many important transformations.
-In particular, these lens laws do not permit transformations that put the data
-in canonical forms.
-For instance, to return to our bibliography example, in \bibtex{},
+%The bijective lens laws do not permit transformations that ignore this
+%unimportant information---.
+Many data formats have other ad hoc rules as well.  
+Returning to our bibliography example, recall that in \bibtex{},
 an author can be specified as
 ``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''---it does not matter which of the
 two formats is used.
 %While it is important to allow authors
 %to be input in both ways, we would like these authors to only be output as
 %\cd{firstname lastname}, but the lens laws prevent such functions.
+%
 {\em Quotient lenses}~\cite{quotientlenses} loosen many of the restrictions
 of bijective lenses by introducing an equivalence relation and considering
 bijections modulo that relation.  Such quotient lenses make it possible
@@ -188,10 +190,11 @@ which elements of the original format correspond to values in the canonical
 format. Furthermore, if a user wants to define the domain and range of
 a lens explicitly (a programming practice that is encouraged), she must
 provide regular expressions defining input and output formats.
-Consequently, to define a quotient lens, one must often three different sorts
+Consequently, to define a quotient lens, one must often
+construct three different sorts
 of terms: (1) regular expressions that define the two data formats
 to be processed, (2) canonizers to normalize the data
-and choose representatives, and (3) a bijective lens maps
+and choose representatives, and (3) a bijective lens that maps
 one canonical form into another.  Somewhat frustratingly,
 these three terms share a fair amount of structure.
 %Moreover, writing the lens between the equivalence classes can be
@@ -205,7 +208,7 @@ enable a programmer to simultaneously specify a regular expression as well as
 a set of canonical representatives for strings that match the regular
 expression. With
 QREs, programmers do not need to define the data and canonization functions
-separately -- by adding simple annotations to ordinary regular expressions,
+separately---by adding simple annotations to ordinary regular expressions,
 canonization functions can be inferred.
 
 Second, we use QREs to define a class of quotient lenses called {\em QRE
@@ -228,22 +231,25 @@ this rigidity does not compromise expressiveness.
 
 The following list summarizes the central contributions of our work.
 \begin{enumerate}
-  \item We introduce {\em Quotient Regular Expressions} (QREs)
-  which provide a compact, convenient notation that expresses an equivalence
-  relation on a regular languages as well as a canonical set representatives
-  for this equavalence relation (Section~\ref{QRE}).
+  \item We introduce {\em Quotient Regular Expressions} (QREs),
+  a compact, convenient notation for defining (1) a
+  regular language modulo some equivalence relation, and (2) a canonizer
+  for that relation (Section~\ref{QRE}).
   \item We define a language of {\em QRE lenses}.  This language is
-  a subset of the bijective quotient
+  a subset of the full set of bijective quotient
   lenses whose types are given by QREs. Our main technical contribution
-  is a proof that each QRE lens $q$ defines the same transformation as a
-  QRE lens $q'$ that is in normal form. (Section~\ref{QRE-lenses}).
-  \item Using this normal form, we reduce the problem of {\em synthesizing}
+  is a proof that our QREs are just as expressive as the full set of bijective
+  quotient lenses.
+  % In other words, if there eeach QRE lens $q$ defines the same transformation as a
+  %QRE lens $q'$ that is in normal form.
+  (Section~\ref{QRE-lenses}).
+  \item We reduce the problem of {\em synthesizing}
   QRE lenses to the previously studied problem of synthesizing bijective lenses
   between regular languages (Section~\ref{synth}).
   \item We extend the Boomerang {\em implementation} with QREs
   and QRE lens synthesis.  We demonstrate the utility of our
   implementation by using it to
-  synthesize QRE lenses between several real-world data formats from the
+  synthesize QRE lenses between data formats drawn from the
   {\tt data.gov} database (Section~\ref{impl}).
 \end{enumerate}
 Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
