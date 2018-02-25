@@ -35,7 +35,6 @@ array, mathtools, bussproofs, stmaryrd, enumitem, stackengine, subcaption}
 \usepackage{relsize}
 \usepackage{listings}
 \usepackage{proof}
-\usepackage{xspace}
 
 
 \lstset{
@@ -102,15 +101,15 @@ mathescape,
 \newcommand{\create}{\ensuremath{\kw{create}}}
 \newcommand{\eqrel}[1]{\ensuremath{\equiv_{#1}}}
 
-\newcommand{\Name}{Optometrist\xspace}
+\newcommand{\Name}{Optometrist}
 
 \newcommand{\QRESize}{\textbf{QS}}
 \newcommand{\CanonizerAndSpecSize}{\textbf{CS}}
 \newcommand{\LensAndSpecSize}{\textbf{LS}}
 
 \newcommand{\OpticianRuntime}{\textbf{OO}}
-\newcommand{\SystemOnOptician}{\textbf{QO}}
-\newcommand{\SystemOnBenchmarks}{\textbf{QQ}}
+\newcommand{\SystemOnOptician}{\textbf{SO}}
+\newcommand{\SystemOnBenchmarks}{\textbf{SS}}
 \newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
 
 
@@ -290,18 +289,18 @@ describe and motivate a new language and system for defining such lenses.
 To begin, consider a bidirectional transformation that converts
 \bibtex{} citation records such as
 \begin{verbatim}
-@Book {conway,
-Author = "J. H. Conway",
-Title = {Regular Algebra and Finite Machines}
+@Book {Doe,
+Author = "John Doe",
+Title = {Generic Title}
 }
 \end{verbatim}
 \noindent
 into an equivalent EndNote format like the following
 \begin{verbatim}
 %0 Book
-%T Regular Algebra and Finite Machines
-%A J. H. Conway
-%F conway
+%T Generic Title
+%A John Doe
+%F Doe
 \end{verbatim}
 \noindent
 and vice versa.
@@ -313,7 +312,7 @@ may be lost.  For instance, users are typically uninterested in preserving
 whitespace between words or
 between fields.  The order of author and title fields is also likely
 irrelevant and there may be equivalent ways of writing the same
-name:  ``Conway, J. H.'' vs ``J. H. Conway.''
+name:  ``Doe, John'' vs ``John Doe.''
 
 %% Moreover,
 %% if two \bibtex{} files differ only in ``inessential'' details, we would like
@@ -322,8 +321,8 @@ name:  ``Conway, J. H.'' vs ``J. H. Conway.''
 %% arbitrarily between the words in the label, author, and title fields, as well as
 %% in between them. Second, an author's name can have the surname followed by a
 %% comma and then the other names separated by arbitrary whitespace, or just all
-%% the names separated by arbitrary whitespace (for example, the names ``Conway, J.
-%% H.'' and ``J. H. Conway'' are equivalent). Lastly, the transformation should
+%% the names separated by arbitrary whitespace (for example, the names ``Doe, J.
+%% H.'' and ``John Doe'' are equivalent). Lastly, the transformation should
 %% also ignore the order in which the author and title fields occur in each
 %% citation record.
 
@@ -334,15 +333,14 @@ Continuing our example, the following two
 \bibtex{} citations represent the same logical object and as a result, should
 be translated to the same EndNote record.
 \begin{verbatim}
-@Book {conway,
-Author = "J. H. Conway",
-Title = {Regular Algebra and Finite Machines},
+@Book {Doe,
+Author = "John Doe",
+Title = {Generic Title},
 }
 
-@Book{     conway,
-Title = {Regular Algebra
-and Finite Machines},
-Author = "Conway, J. H.",     }
+@Book{     Doe,
+Title = {Generic Title},
+Author = "Doe, John",     }
 \end{verbatim}
 
 One natural way to define lenses that will synchronize data in these formats
@@ -387,22 +385,6 @@ master.  For instance, to quotient out whitespace inside, and in between,
 fields while also ignoring field order, one must nest canonizing combinators
 within one another in a somewhat tricky way.
 
-%% %Foster's Boomerang~\ref{boomerang} language presents one design
-%% While it is possible to express the equivalence on the \bibtex{} data above in
-%% Boomerang, actually doing so is a challenge.  Three of the inessential details
-%% we wish to ignore---whitespace quotienting
-%% inside fields, whitespace quotienting in between fields, and permutation
-%% quotenting of fields---nest within each other in a way that makes them difficult
-%% to express with the existing Boomerang combinators. Furthermore, if the
-%% programmer wishes to specify the type of the lens, then she can only specify
-%% data formats on each side of the lens with a regular expression that does not
-%% keep track of the equivalence relation defined on the language of the regular
-%% expression. Consequently, the programmer has to write a regular expression as
-%% well as a canonizer that expresses the equivalence relation on that regular
-%% expression, even though a regular expression and the canonizer defined on it
-%% typically share much of the syntactic structure. Having to write both of these
-%% expressions makes programming with quotient lenses verbose and time consuming.
-
 We propose to do away with much of this overhead, and the burden of a
 fiddly programming process, by defining a single new compact notation
 to specify data formats modulo an equivalence relation and then by
@@ -428,7 +410,7 @@ any such whitespace into a single space character (its canonical form).
 Such a definition uses the \kw{project} primitive.
 
 \begin{lstlisting}
-let wsp = project [ \n\t\r]$^+$ $\to$ " "
+let p_wsp = project wsp+ $\to$ " "
 \end{lstlisting}
 
 Sometimes there are multiple disjoint representations of the same data.
@@ -436,8 +418,8 @@ In such situations, the \kw{squash} combinator creates a QRE that
 allows external data to be in either format, and converts any
 data in one format to the other.
 For instance, assume
-the \codefont{comma\_name} format describes ``Conway, J. H.''
-and the \codefont{space\_name} format describes ``J. H. Conway''
+the \codefont{comma\_name} format describes ``Doe, John''
+and the \codefont{space\_name} format describes ``John Doe''
 and \codefont{s\_to\_c} is a function from the first to the second.  In this case,
 the following instance of \kw{squash} creates the desired canonizer.
 
@@ -455,7 +437,7 @@ such functions automatically from pairs of regular languages and
 examples.
 %
 \begin{lstlisting}
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Doe, John", "John Doe")}
 let s_to_c = get l
 \end{lstlisting}
 %
@@ -464,6 +446,17 @@ The first line above synthesizes a \emph{bidirectional} lens between
 transformation as a guide.  The second line simply
 extracts the get direction transformation from the lens,
 which is what we need for squash.
+
+Another QRE primitive is the composition combinator ``;''. This combinator
+applies two equivalence relations to a regular language in sequence. For
+example, suppose that we wish to express a name as $\kw{last\_name \cdot
+``,\text{''} \cdot \text{wsp+} \cdot first\_name}$, or as $\kw{first\_name\cdot
+\text{wsp+} \cdot last\_name}$, with $\kw{first\_name\cdot \text{wsp+} \cdot
+last\_name}$ as the canonical representation. We also wish to project away the
+extra whitespace in between \kw{first\_name} and \kw{last\_name} once this
+identification has been made. Then we can express this compound equivalence
+relation by a composition of a \textit{squash} QRE and a QRE that projects away
+the extra whitespace in between \kw{first\_name} and \kw{last\_name}
 
 A third useful QRE primitive is the permutation combinator.  For example,
 the following instance of \kw{perm} allows label, author and title fields
@@ -478,91 +471,64 @@ with any other QRE.  For instance, below, we normalize whitespace between fields
 leaving only a single newline.
 %
 \begin{lstlisting}
-let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
+let bib_fields = perm (label, bib_author, bib_title) with (project (wsp+ . "," . wsp+) $\to$ ",\n")
 \end{lstlisting}
 %
-\noindent
-The QRE for the bibtex format is presented in its entirety in Figure~\ref{fig:example-qre}.
+The final QRE combinator is the normalize combinator.
+This combinator allows a programmer to manually define a function
+$f$ which sends each string that matches a regular expression $R$ to some
+canonical representative in another regular expression $R'$. The equivalence
+relation defined by the normalize combinator is hence the equivalence relation
+defined by the {\em fibres} of $f$; that is, for all strings $s$ and $s'$ that
+match $R$, $s$ is equivalent to $s'$ if and only if $f(s) = f(s')$.
 
-
+For instance, assume that $f(s)=$ `` '' for all whitespace strings $s$. Then the
+project QRE \kw{p_wsp} which matches any non-zero number of whitespace
+characters and converts any such whitespace into a single space character can
+be expressed using the normalize combinator as
+\begin{lstlisting}
+let p_wsp = normalize (wsp+, " ", f)
+\end{lstlisting}
+The QRE for the bibtex format is presented in its entirety in
+Figure~\ref{fig:example-qre}.
 \begin{figure}[t]
 \begin{lstlisting}
-(* whitespace with " " as a canonical representative *)
-let wsp = project [ \n\t\r]$^+$ $\to$ " "
+let wsp = [ \n\t\r]
 
 (* define name representations with a space and with a comma *)
-let space_name = name | (name . wsp . (name . wsp)$^*$ . name)
-let comma_name = name | (name . "," . wsp . (name . wsp)$^*$ . name)
+let space_name = first_name . wsp+ . last_name
+let comma_name = last_name . "," . wsp+ . first_name
 
-(* synthesize a lens that maps the comma representation to the space representation *)
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Conway, J. H.", "J. H. Conway")}
+(* synthesize a lens that maps comma representation to space representation *)
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Doe, John", "John Doe")}
 let s_to_c = get l
 
 (* squash QRE maps comma_name to space_name *)
-let name = squash comma_name $\to$ space_name using s_to_c
+let comma_to_space = squash comma_name $\to$ space_name using (get comma_to_space)
+
+(* map arbitrary whitespace into " " as a canonical representative *)
+let p_wsp = project wsp+ $\to$ " "
+
+(* Project away whitespace in space_name representation *)
+let project_in_space = first_name . p_wsp . last_name
+
+(* Compose the two QREs to get a canonical representation for a name *)
+let name = project_in_space ; comma_to_space
 
 (* define rest of bibtex fields *)
-let name_sep = wsp . "and" . wsp
+let name_sep = p_wsp . "and" . p_wsp
 let bib_names = name | (name . name_sep . (name . name_sep)$^*$ . name)
 let bib_author = "author = \"" . bib_names . "\""
-let title = word | (word . wsp . (word . wsp)$^*$ . word)
+let title = word | (word . p_wsp . (word . p_wsp)$^*$ . word)
 let bib_title = "title = {" . title . "}"
 
 (* allow any permutation of fields interspersed with arbitrary whitespace *)
-let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp$^+$) $\to$ ",\n")
+let bib_fields = perm (label, bib_author, bib_title) with (project (wsp+ . "," . wsp+) $\to$ ",\n")
 let bibtex = "@book{" . bib_fields . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records. }
 \label{fig:example-qre}
 \end{figure}
-
-%% In Figure~\ref{fig:example-qre}, the QRE \verb+project [ \n\t\r]+$^{+} \to$
-%% \verb+" "+ matches any non-zero number of whitespace characters and quotients
-%% them to a single equivalence class with a single space as the canonical
-%% representative. We call this QRE a \textit{projection} because an entire regular
-%% language is projected to a single representative string.
-
-%% Another QRE in Figure~\ref{fig:example-qre} is given by
-
-%% \begin{center}
-%% \begin{lstlisting}
-%% squash comma_name $\to$ space_name using (get space_to_comma)
-%% \end{lstlisting}
-%% \end{center}
-
-%% \noindent This QRE is a \textit{squash} QRE. A \textit{squash} QRE ``glues''
-%% two data formats using a user-defined function. For example,
-%% the QRE in the code above specifies that the \cd{comma_name} representation of
-%% the author's name is equivalent to the \cd{space_name} representation, with
-%% \cd{space_name} taken to be the canonical representation. The
-%% function that identifies the two formats is given by \cd{get space_to_comma},
-%% which transforms names in the \cd{comma_name} representation to names in the
-%% \cd{space_name} representation. In this example, \cd{space_to_comma} is itself
-%% an automatically \textit{synthesized} lens between the \cd{space_name} and
-%% \cd{comma_name} QREs, and we need to use the ``get'' direction of the lens to
-%% specify the squash transformation.
-
-%% The third example of a QRE in the Figure is \cd{bib_fields}, defined by:
-%% \begin{center}
-%% \begin{lstlisting}
-%% perm (label, bib_author, bib_title) with (project ("," . wsp$^+$ ) $\to$ ",\n")
-%% \end{lstlisting}
-%% \end{center}
-
-%% \noindent This is a \textit{permutation} QRE that specifies that the label,
-%% title, and author fields can occur in any order, with the fields separated by a
-%% comma followed by arbitrary amounts of whitespace. The canonical representation
-%% is that in which the label, author and title fields occur in that order,
-%% separated by a comma followed by a newline. The \textit{permutation} QRE is
-%% designed for equivalences such as this, where different permutations of
-%% equivalences are interspersed with a separator which itself has an
-%% equivalence defined on it.
-
-%% Given the \textit{projection}, \textit{squash}, and \textit{permutation}
-%% QRE primitives, we can build more complex languages using the usual regular
-%% expression combinators of alternative choice `\cd{|}', concatenation `\cd{.}'
-%% and Kleene star `$^*$', and also sequential composition ``;''.
-
 \subsection{QRE Lenses}
 QREs allow users to specify regular languages modulo equivalence relations,
 a first step in writing many data transformations.  However, writing the
@@ -601,12 +567,12 @@ let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") =
 let author_lens : (lens in (",\n" . bib_author) $\Leftrightarrow$ ("\n" . end_author)) =
     del ",\nauthor = \""
         . ins "\n%A "
-        . valid_name
+        . name
         . (del " and "
         . ins "\n"
-        . (ins "%A " . valid_name . del " and " . ins "\n")* 
+        . (ins "%A " . name . del " and " . ins "\n")* 
         . ins "%A "
-        . valid_name
+        . name
         || "")
 
 let title_lens : (lens in ("\",\n" . bib_title . "},\n}") $\Leftrightarrow$ ("\n" . end_title)) =
@@ -616,9 +582,7 @@ let bib_to_end : (lens in bibtex $\Leftrightarrow$ end_note) =
     preamble . label . author_lens . title_lens
 \end{lstlisting}
 \caption{An example lens between \cd{bibtex} and \cd{end_note} regular
-expressions with no equivalences.\bcp{Indentation needs work.  And there was
-a suggestion to colorize the new keywords that we're introducing here
-(including symbolic ones, I guess)}}
+expressions with no equivalences.}
 \label{fig:example-lens}
 \end{figure}
 
@@ -631,7 +595,6 @@ a suggestion to colorize the new keywords that we're introducing here
 %% lens is large enough, as in the definition of the lens \verb!author_lens! in
 %% Figure~\ref{fig:example-lens}. This makes lens programming tedious and
 %% error-prone.
-
 Consequently, we offer the programmer some relief by identifying a class of
 quotient lenses that we call {\em QRE lenses}, and by showing how to {\em synthesize}
 QRE lenses from a pair of QREs and a set of input-output example pairs. Our key
@@ -698,30 +661,23 @@ functional composition and nested canonizers with synthesized lenses in normal f
 The end result is that users may synthesize complex transformations with a single line
 of code.  For instance, all the code in Figure~\ref{fig:example-lens} may be replaced by
 a single call to the synthesis prodedure:
-
 \begin{lstlisting}
 let bib_to_end : (lens in bibtex $\Leftrightarrow$ endnote)
 = synth bibtex $\Leftrightarrow$ endnote  using  {(bib_example, end_example)}
 \end{lstlisting}
 \noindent Here, the generated  quotient lens synchronizes \cd{bibtex} and
-\cd{endnote} formats.  It uses \cd{bib_example} and \cd{end_example} (the two concrete example
-strings given at the beginning of this section) to disambiguate.
-In additiona, and as we saw earlier with the definition of \cd{s_to_c}, the synthesis procedure itself
-can be used to create lenses that are in turn used to define other QREs.  The ability to intermix
-QRE specification with QRE lens synthesis yields a powerful and flexible way of
-creating bidirectional transformations.
+\cd{endnote} formats.  It uses \cd{bib_example} and \cd{end_example} (the two
+concrete example strings givn at the beginning of this section) to disambiguate.
+In addition. as we saw earlier with the definition of \cd{s_to_c}, the synthesis
+procedure itself can be used to create lenses that are in turn used to define
+other QREs. The ability to mix QRE specification with QRE lens synthesis
+yields a powerful and flexible way of creating bidirectional transformations.
 
 \section{Quotient Regular Expressions}
 \label{QRE}
-
-Quotient Regular Expressions allow programs to specify a regular language,
-an equivalence relation over elements of the language and a function to convert
-elements of the language into normal form.
-
-\subsection{Syntax}
-
-The language of Quotient Regular Expressions (QREs) is given by the following
-grammar:
+\subsection{Syntax and Semantics of QREs}
+Formally, the language of Quotient Regular Expressions (QREs) is given by the
+following grammar:
 \begin{align*}
 c := \; &R \sep \project{R}{s} \sep \squash{c}{c'}{f} \sep
 \perm{c_1, \ldots, c_n}{c} \\
@@ -730,93 +686,9 @@ c') \sep c^*,
 \end{align*}
 where $c$ ranges over QREs, $R$ ranges over regular expressions, $f$ ranges over
 functions between regular languages, and $s$ ranges over character strings.
-$\mathcal{L}(R)$ is
-the language accepted by the regular expression $R$.
 
-%Section~\ref{subsec:qre-expressions} presented a number of examples
-
-\subsection{Overview of Quotient Regular Expression}
-In the \bibtex{} to EndNote example, we encountered the $\project{R}{s}$,
-
-\noindent $\squash{c}{c'}{f}$ and $\perm{c_1, \ldots, c_n}{c}$ QREs, as well as
-the regular operators applied to these, as in
-
-\begin{lstlisting}
-let space_name  = name | (name . wsp_to_space . (name . wsp_to_space)$^*$ . name)
-\end{lstlisting}
-
-One combinator that we haven't yet introduced is sequential composition.
-The $c \semicolon c'$ QRE successively applies
-two equivalence relations to a regular language. For example, suppose that
-we wish to express a name as $\kw{last\_name \cdot ``,\text{''} \cdot
-\text{wsp+} \cdot first\_name}$, or as $\kw{first\_name\cdot \text{wsp+} \cdot
-last\_name}$, with $\kw{first\_name\cdot \text{wsp+} \cdot last\_name}$ as the
-canonical representation. We also wish to project away the extra whitespace in
-between \kw{first\_name} and \kw{last\_name} once this identification has been
-made. Then we can express this equivalence relation by a composition of a
-\textit{squash} QRE and a QRE that projects away the extra whitespace in between
-\kw{first\_name} and \kw{last\_name}:
-
-
-\begin{lstlisting}
-(* Regular expressions matching different comma and space representations *)
-let comma_name = last_name . "," . wsp . first_name
-let space_name = first_name . wsp . last_name
-
-(* Squash comma representation into space representation *)
-let comma_to_space =
-synth comma_name <=> space_name using {("Conway, J. H.", "J. H. Conway")}
-let comma_to_space = squash comma_name $\to$ space_name using (get comma_to_space)
-
-(* Project away whitespace in space_name representation *)
-let project_in_space = first_name . (project wsp+ $\to$ " ") . last_name
-
-(* Compose the two QREs *)
-let valid_name = project_in_space ; comma_to_space
-\end{lstlisting}
-
-The final combinator is $\normalize{R}{R'}{f}$, which expresses
-the equivalence relation that sends each element in $\mathcal{L}(R)$ to its
-canonical representation $f(r) \in \mathcal{L}(R')$. The equivalence relation
-defined by $\normalize{R}{R'}{f}$ is thus the equivalence relation on
-$\mathcal{L}(R)$ defined by the {\em fibres} of $f$ (i.e. $r \sim r'$ if and
-only if $f(r) = f(r'))$. The canonizing function $f$ is required to be
-surjective and idempotent.
-
-The $\normalize{R}{R'}{f}$ QRE is the most general QRE in that for each QRE
-$q$, there exist regular expressions $R, R'$ and a surjective, idempotent
-function $f:\mathcal{L}(R) \longrightarrow \mathcal{L}(R')$ such that $q$ and
-$\normalize{R}{R'}{f}$ each define the same equivalence relation on
-$\mathcal{L}(R)$, with $\mathcal{L}(R')$ forming a complete set of
-representatives for this equivalence relation. The $\normalize{R}{R'}{f}$
-combinator is included so as to express equivalence relations that are either
-difficult to define, or that cannot be defined using the other combinators.
-\saz{Add something about being ``complete'' here?}\sam{I'm not sure how to do
-this here. The precise statement about how normalize is strong enough to
-express all QREs requires that we introduce W(c), K(c) and Canonizer(c) which
-we haven't introduced at this point in the paper}
-
-Now in order for the programmer to ensure that the {\em normalize} QRE is well
-formed, she must define a canonizing function $f$ between two regular
-languages and prove that $f$ is surjective and idempotent: the compiler cannot
-verify this since this problem is undecidable in general. Consequently, we do
-not use the $\normalize{R}{R'}{f}$ QRE in practice. On the other hand, the
-$\normalize{R}{R'}{f}$ combinator gives a sufficient condition for potential
-QREs to be ``well-behaved'', particularly with respect to our strategy for
-synthesizing quotient lenses which we shall introduce in Section~\ref{synth}.
-
-The equivalence relations definable by QREs are a strict subset of those that
-can be expressed in Boomerang. For instance, in Boomerang, one can use any lens
-to canonize a regular language described by $R$ to a regular language described
-by $S$, with $\mathcal{L}(S) \not \subseteq \mathcal{L}(R)$, whereas each QRE
-$c$ canonizes a regular language described by $R$ to regular subset
-$\mathcal{L}(R') \subseteq \mathcal{L}(R)$ described by $R'$. QREs therefore are
-not as expressive as Boomerang canonizers. On the other hand, QREs enable us to
-express many equivalences that occur in real world data as we shall demonstrate
-in the evaluation section (Section~\ref{impl}).
-
-The net effect of these design decisions means that each QRE $c$ enables
-us to simultaneously express
+Using the conventional notation that $\mathcal{L}(R)$ is the language accepted
+by the regular expression $R$, then each QRE $c$ enables us to express
 \begin{enumerate}
   \item a regular expression $W(c)$ (the ``whole'' of $c$),
   \item an equivalence relation $\eqrel{c}$ on $\mathcal{L}(W(c))$,
@@ -828,20 +700,146 @@ us to simultaneously express
   computes $\canonizer(c)(w)$ as the unique $k$ in $\mathcal{L}(K(c))$ such that
   $k$ is equivalent to $w$ mod $\eqrel{c}$
 \end{enumerate}
-Observe that since $\canonizer(c)$ computes $\canonizer(c)(w)$ as the unique
-$k$ in $\mathcal{L}(K(c))$ such that $w$ is equivalent to $k$ mod $\eqrel{c}$,
-then the equivalence classes of $\eqrel{c}$ are the same as the fibres of
-$\canonizer(c)$.
+Figures~\ref{fig:wk} gives the inductive definitions for the whole and
+kernel languages $W(c)$ and $K(c)$ of a QRE.
+\begin{figure}[t]
+\centering
+\[
+\begin{array}{l@{\quad}l@{\quad}l}
 
-\subsection{Well Formed QREs and ambiguity}
-Before giving the formal semantics for QREs, we address the issue of {\em
-ambiguity}, which arises when defining QREs. If $c$ and  $c'$ are QREs, then
-when applying the regular combinators to QREs, we require that if a string $s$
-matches any of the regular expressions $W(c) \cdot W(c')$, $W(c) \sep W(c')$,
-$W(c)^*$, $K(c) \cdot K(c')$, $K(c) \sep K(c')$, $K(c)^*$, then $s$ matches
-that regular expression in only one way. This unambiguity condition is called
-{\em strong unambiguity}~\cite{Sippu1988}, and is necessary, firstly because it
-ensures that the canonizing function of a QRE is well-defined.
+c & W(c) & K(c) \\ \hline
+R & R & R \\
+\project{R}{s} & R & s \\
+\squash{c}{c'}{f} & W(c) \sep W(c') & K(c') \\
+\normalize{R}{R'}{f} & R & R' \\
+c_2 \; ; \; c_1 & W(c_1) & K(c_2) \\
+c_1 \cdot c_2 & W(c_1) \cdot W(c_2) & K(c_1) \cdot K(c_2) \\
+c_1 \sep c_2 & W(c_1) \sep W(c_2) & K(c_1) \sep K(c_2) \\
+c^* & W(c)^* & K(c)^* \\
+\end{array}
+\]
+\[
+\begin{array}{r@{\quad}l}
+W( \perm{c_1, \ldots, c_n}{c} ) = &
+\bigcup \limits_{\sigma \in S_n} W(c_{\sigma(1)}) \cdot W(c) \cdot \ldots \cdot
+W(c) \cdot W(c_{\sigma(n)})\\
+K( \perm{c_1, \ldots, c_n}{c} ) = & K(c_1) \cdot K(c) \cdot \ldots \cdot K(c)
+\cdot K(c_n)
+\end{array}
+\]
+\caption{Whole and Kernel Regular Expressions}
+\label{fig:wk}
+\end{figure}
+The \textit{squash} and \textit{permutation} combinators give the two
+interesting definitions. If $c = \squash{c}{c'}{f}$, then the whole language of
+$c$ is $W(c) \sep W(c')$. This is because the \textit{squash} combinator takes
+the whole language $W(c)$ of $c$, the whole language $W(c')$ of $c'$ and a
+function $f : \mathcal{L}(W(c)) \longrightarrow \mathcal{L}(W(c'))$, maps
+$\mathcal{L}(W(c))$ into $\mathcal{L}(W(c'))$ using $f$ and then canonizes
+$W(c')$ into $K(c')$ using $\canonizer(c')$.
+
+For the $\perm{c_1, \ldots, c_n}{c}$ combinator, the whole language is the
+union of languages of the form $W(c_{\sigma(1)}) \cdot W(c) \cdot \ldots \cdot
+W(c) \cdot W(c_{\sigma(n)})$. This is because the \textit{permutation}
+combinator allows for the string to match any permutation the $c_i$'s while also
+taking into account the separator $c$ in between each of the $c_i$'s. The kernel
+of the \textit{permutation} combinator is the language $K(c_1) \cdot K(c) \cdot
+\ldots \cdot K(c) \cdot K(c_n)$, because the canonical permutation is the
+identity permuation, with each of the parts of the string that match $c_i$
+and $c$ canonized into $K(c_i)$ and $K(c)$ respectively.
+
+Figure~\ref{fig:canonizers} gives the inductive definitions of the
+$\canonizer{}$ function for each QRE.
+\begin{figure}[t]
+\begin{center}
+\[
+\begin{array}{l@\quad l @\quad l}
+\canonizer(R) &=& id_{\mathcal{L}(R)} \\
+\canonizer(\project{R}{s})(w) &=& s\\
+\canonizer(\squash{c}{c'}{f})(w) &=&
+\begin{cases}
+\canonizer(c)(f(w)) & \text{if } w \in \mathcal{L}(W(c))\\
+\canonizer(c')(w) & \text{otherwise}
+\end{cases}\\
+\canonizer(\normalize{R}{R'}{f}) &=& f\\
+\canonizer(c' \; ; \; c) &=& \canonizer(c') \circ \canonizer(c)\\
+\canonizer(c' \cdot c) &=& \canonizer(c') \cdot \canonizer(c)\\
+\canonizer(c_1 \sep c_2)(w) &=&
+\begin{cases}
+\canonizer(c_1)(w) & \text{if } w \in \mathcal{L}(W(c_1))\\
+\canonizer(c_2)(w) & \text{if } w \in \mathcal{L}(W(c_2))\\
+\end{cases}\\
+\canonizer(c^*) &=& \canonizer(c)^* \\
+\end{array}
+\]
+\end{center}
+\begin{align*}
+&\canonizer(\perm{c_1, \ldots, c_n}{c})(r_{\sigma(1)}
+\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)})\\
+&= (\canonizer(c_1)(r_1)) \cdot (\canonizer(c)(s_1)) \cdot \ldots \cdot
+(\canonizer(c_n)(r_n))
+\end{align*}
+\caption{QRE canonizers}
+\label{fig:canonizers}
+\end{figure}
+Again, the \textit{permutation} combinator gives the most interesting
+definition,
+\begin{align*}\canonizer(\perm{c_1, \ldots, c_n}{c})(r_{\sigma(1)}
+\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \\
+= (\canonizer(c_1)(r_1)) \cdot (\canonizer(c)(s_1)) \cdot \ldots \cdot
+(\canonizer(c_n)(r_n))
+\end{align*}
+\noindent which as we have explained is defined so that the strings that match
+$c_i, c$ are placed in the canonical permutation which is the identity
+permutation before $\canonizer(c_i)$ and $\canonizer(c)$ are applied
+respectively.
+
+Finally, Figure ~\ref{fig:relations} gives the induction defintion of the
+equivalence relation $\eqrel{c}$. These are the set-theoretic semantics of QREs
+as an equivalence relation on a regular language.
+
+\begin{figure}[t]
+\centering
+\[
+\begin{array}{l@{\quad}l@{\quad}l}
+w \; \equiv_R \; w' &\iff& w = w' \\
+w \; \equiv_{\project{R}{s}} \; w' \text{ for all }w, w'\\
+w \; \equiv_{\squash{c}{c'}{f}} \; w' &\iff& f(w) \equiv_{c'} w'
+\text{ or } w \equiv_{c'} w' \\
+w \; \equiv_{\normalize{R}{R'}{f}} \; w' &\iff&
+f(w)=f(w') \text{ or }w = w'\\
+w \; \equiv_{c_2 \; ; \; c_1} \; w' &\iff& \exists k, k' \in
+\mathcal{L}(K(c_2)) \text{ such that } w \; \equiv_{c_1} \; k, \; w' \;
+\equiv_{c_1} \; k', \text{ and } k \; \equiv_{c_2} \; k'\\
+w \; \equiv_{c_1 \cdot c_2} \; w'  &\iff& w = r_1
+\cdot r_2, \; w' = {r'}_1 \cdot {r'}_2 \text{ with } r_1 \; \equiv_{c_1}
+\; {r'}_1, \; r_2 \; \equiv{c_n} \; {r'}_2\\
+w \; \equiv_{c' \sep c} \; w' &\iff& w \; \equiv_{c_1} \; w'
+\text{ or } \; w \; \equiv_{c_2} \; w'\\
+w \; \equiv_{c^*} \; w' &\iff& w = r_1 \cdot \ldots \cdot r_n, \; w'
+= {r'}_1 \cdot \ldots \cdot {r'}_n \text{ and } r_i \equiv_{c} \; {r'}_i
+\\
+w \; \equiv_{\perm{c_1, \ldots, c_n}{c}} \; w' &\iff& w = r_{\sigma(1)}
+\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}, \;
+w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
+\cdot {r'}_{\theta(n)} \\
+& & \text{ for some } \sigma, \theta \in S_n, \text{ with } r_i \;
+\equiv_{q_i} \; r'_i \text{ and } s_k \; \equiv_{c} \; s'_{k}
+\end{array}
+\]
+\caption{QRE Equivalence Relations}
+\label{fig:relations}
+\end{figure}
+\subsection{Ambiguity and Well Formed QREs}
+Before giving the inferrence rules for deriving well formed QREs, we address
+the issue of {\em ambiguity}, which appears in the premises of the inferrence
+rules for the regular combinators. If $c$ and $c'$ are QREs, then when applying
+the regular combinators to QREs, we require that if a string $s$ matches any of
+the regular expressions $W(c) \cdot W(c')$, $W(c) \sep W(c')$, $W(c)^*$, $K(c)
+\cdot K(c')$, $K(c) \sep K(c')$, $K(c)^*$, then $s$ matches that regular
+expression in only one way. This unambiguity condition is called {\em strong
+unambiguity}~\cite{Sippu1988}, and is necessary because it ensures
+that the canonizing function of a QRE is well-defined.
 
 For example consider the QRE
 
@@ -851,13 +849,11 @@ let ambiguous : canonizer = "a"* . (project "a"* $\to$ "a")
 
 \noindent The behaviour of \cd{ambiguous} is not-well defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"} depending on how
-\cd{"aaa"} is parsed.
-
-We also require that the regular combinators applied to
-the kernels are unambiguous since the underlying lenses will end up operating
+\cd{"aaa"} is parsed. We also require that the regular combinators applied to
+the kernels be unambiguous since the underlying lenses will end up operating
 on the kernels, and these lenses impose the same restrictions for similar
 reasons.
-%
+
 To this end, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
 $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
@@ -872,6 +868,8 @@ strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \sep S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
+Figure~\ref{fig:qrerules} gives the inferrence rules for deriving well-formed
+QREs.
 \begin{figure}[tp!]
 \begin{center}
 \AxiomC{$R$ is strongly unambiguous}
@@ -950,10 +948,8 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 }
 \label{fig:qrerules}
 \end{figure}
-
-Figure~\ref{fig:qrerules} gives the inferrence rules for deriving well-formed
-QREs. As expected, the unambiguity conditions come into play when defining QREs
-using the regular combinators. For example, the inferrence rule for
+As we already mentioned, the unambiguity conditions come into play when defining
+QREs using the regular combinators. For example, the inferrence rule for
 concatenation is as follows:
 \begin{prooftree}
 \AxiomC{$\wf{c, c'}$}
@@ -995,147 +991,28 @@ the kernel of the \textit{permutation} QRE. As we mentioned, the underlying
 lens will require that the source and target regular expressions of the lens be
 unambiguous so that the lens can match strings uniquely.
 
-The rest of the inferrence rules for deriving QREs are given in
-Figure~\ref{fig:qrerules}.
-\subsection{Semantics of QREs}
-As we mentioned before, each QRE $c$ enables us to express the whole and kernel
-languages $W(c)$ and $K(c)$, an equivalence relation $\eqrel{c}$ on
-$\mathcal{L}(W(c))$ that has $\mathcal{L}(K(c))$ as a complete set of
-representatives and a canonizing function $\canonizer(c):\mathcal{L}(W(c))
-\longrightarrow \mathcal{L}(K(c))$ whose fibres are the same as $\eqrel{c}$.
+At this point we also bring to attention the fact that in order for the {\em
+normalize} QRE to be well-formed, then canonizing function $f$ used by this
+combinator must be surjective and idempotent. Unfortunately, verifying
+that a function satisfies these properties is in general undecidable.
+Nonetheless, we allow a programmer to use normalize at their own risk without
+checking these side conditions.
 
-Figures~\ref{fig:wk} gives the inductive definitions for the whole and
-kernel languages $W(c)$ and $K(c)$ of a QRE. The \textit{squash} and
-\textit{permutation} combinators give the two interesting definitions. If $c =
-\squash{c}{c'}{f}$, then the whole language of $c$ is $W(c) \sep W(c')$. This
-is because the \textit{squash} combinator takes the whole language $W(c)$ of
-$c$, the whole language $W(c')$ of $c'$ and a function $f : \mathcal{L}(W(c))
-\longrightarrow \mathcal{L}(W(c'))$, maps $\mathcal{L}(W(c))$ into
-$\mathcal{L}(W(c'))$ using $f$ and then canonizes $W(c')$ into $K(c')$ using
-$\canonizer(c')$.
+We do this firstly because the {\em normalize} combinator allows one to express
+equivalence relations that are either difficult to define, or that cannot be
+defined using the other combinators. Secondly, the {\em normalize} canonizer
+enjoys the property that each of the other combinators $c$ is semantically
+equivalent to $\normalize{W(c)}{K(c)}{f}$ for some surjective, idempotent
+function $f : \mathcal{L}(W(c)) \longrightarrow \mathcal{L}(K(c))$. The {\em
+normalize} combinator hence gives a sufficient condition for potential QREs to
+be ``well-behaved'', particularly with respect to our strategy for synthesizing
+quotient lenses which we shall introduce in Section~\ref{synth}.
 
-For the $\perm{(c_1, \ldots, c_n)}{c}$ combinator, the whole language is the
-union of languages of the form $W(c_{\sigma(1)}) \cdot W(c) \cdot \ldots \cdot
-W(c) \cdot W(c_{\sigma(n)})$. This is because the \textit{permutation}
-combinator allows for the string to match any permutation the $c_i$'s while also
-taking into account the separator $c$ in between each of the $c_i$'s. The kernel
-of the \textit{permutation} combinator is the language $K(c_1) \cdot K(c) \cdot
-\ldots \cdot K(c) \cdot K(c_n)$, because the canonical permutation is the
-identity permuation, with each of the parts of the string that match $c_i$
-and $c$ canonized into $K(c_i)$ and $K(c)$ respectively.
-
-Figure~\ref{fig:canonizers} gives the inductive definitions of the
-$\canonizer{}$ function for each QRE. Again, the \textit{permutation} combinator
-gives the most interesting definition,
-\begin{align*}\canonizer(\perm{c_1, \ldots, c_n}{c})(r_{\sigma(1)}
-\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \\
-= (\canonizer(c_1)(r_1)) \cdot (\canonizer(c)(s_1)) \cdot \ldots \cdot
-(\canonizer(c_n)(r_n))
-\end{align*}
-\noindent which as we have explained is defined so that the strings that match
-$c_i, c$ are placed in the canonical permutation which is the identity
-permutation before $\canonizer(c_i)$ and $\canonizer(c)$ are applied
-respectively.
-
-Finally, Figure ~\ref{fig:relations} gives the induction defintion of the
-equivalence relation $\eqrel{c}$. These are the set-theoretic semantics of QREs
-as an equivalence relation on a regular language.
-
-\begin{figure}[t]
-\centering
-\[
-\begin{array}{l@{\quad}l@{\quad}l}
-
-c & W(c) & K(c) \\ \hline
-R & R & R \\
-\project{R}{s} & R & s \\
-\squash{c}{c'}{f} & W(c) \sep W(c') & K(c') \\
-\normalize{R}{R'}{f} & R & R' \\
-c_2 \; ; \; c_1 & W(c_1) & K(c_2) \\
-c_1 \cdot c_2 & W(c_1) \cdot W(c_2) & K(c_1) \cdot K(c_2) \\
-c_1 \sep c_2 & W(c_1) \sep W(c_2) & K(c_1) \sep K(c_2) \\
-c^* & W(c)^* & K(c)^* \\
-\end{array}
-\]
-\[
-\begin{array}{r@{\quad}l}
-W( \perm{c_1, \ldots, c_n}{c} ) = &
-\bigcup \limits_{\sigma \in S_n} W(c_{\sigma(1)}) \cdot W(c) \cdot \ldots \cdot
-W(c) \cdot W(c_{\sigma(n)})\\
-K( \perm{c_1, \ldots, c_n}{c} ) = & K(c_1) \cdot K(c) \cdot \ldots \cdot K(c)
-\cdot K(c_n)
-\end{array}
-\]
-\caption{Whole and Kernel Regular Expressions}
-\label{fig:wk}
-\end{figure}
-
-\begin{figure}[t]
-\begin{center}
-\[
-\begin{array}{l@\quad l @\quad l}
-\canonizer(R) &=& id_{\mathcal{L}(R)} \\
-\canonizer(\project{R}{s})(w) &=& s\\
-\canonizer(\squash{c}{c'}{f})(w) &=&
-\begin{cases}
-\canonizer(c')(f(w)) & \text{if } w \in \mathcal{L}(W(c))\\
-\canonizer(c')(w) & \text{otherwise}
-\end{cases}\\
-\canonizer(\normalize{R}{R'}{f}) &=& f\\
-\canonizer(c' \; ; \; c) &=& \canonizer(c') \circ \canonizer(c)\\
-\canonizer(c' \cdot c) &=& \canonizer(c') \cdot \canonizer(c)\\
-\canonizer(c_1 \sep c_2)(w) &=&
-\begin{cases}
-\canonizer(c_1)(w) & \text{if } w \in \mathcal{L}(W(c_1))\\
-\canonizer(c_2)(w) & \text{if } w \in \mathcal{L}(W(c_2))\\
-\end{cases}\\
-\canonizer(c^*) &=& \canonizer(c)^* \\
-\end{array}
-\]
-\end{center}
-\begin{align*}
-&\canonizer(\perm{c_1, \ldots, c_n}{c})(r_{\sigma(1)}
-\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)})\\
-&= (\canonizer(c_1)(r_1)) \cdot (\canonizer(c)(s_1)) \cdot \ldots \cdot
-(\canonizer(c_n)(r_n))
-\end{align*}
-\caption{QRE canonizers}
-\label{fig:canonizers}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\[
-\begin{array}{l@{\quad}l@{\quad}l}
-w \; \equiv_R \; w' &\iff& w = w' \\
-w \; \equiv_{\project{R}{s}} \; w' \text{ for all }w, w'\\
-w \; \equiv_{\squash{c}{c'}{f}} \; w' &\iff& f(w) \equiv_{c'} w'
-\text{ or } w \equiv_{c'} w' \\
-w \; \equiv_{\normalize{R}{R'}{f}} \; w' &\iff&
-f(w)=f(w') \text{ or }w = w'\\
-w \; \equiv_{c_2 \; ; \; c_1} \; w' &\iff& \exists k, k' \in
-\mathcal{L}(K(c_2)) \text{ such that } w \; \equiv_{c_1} \; k, \; w' \;
-\equiv_{c_1} \; k', \text{ and } k \; \equiv_{c_2} \; k'\\
-w \; \equiv_{c_1 \cdot c_2} \; w'  &\iff& w = r_1
-\cdot r_2, \; w' = {r'}_1 \cdot {r'}_2 \text{ with } r_1 \; \equiv_{c_1}
-\; {r'}_1, \; r_2 \; \equiv{c_n} \; {r'}_2\\
-w \; \equiv_{c' \sep c} \; w' &\iff& w \; \equiv_{c_1} \; w'
-\text{ or } \; w \; \equiv_{c_2} \; w'\\
-w \; \equiv_{c^*} \; w' &\iff& w = r_1 \cdot \ldots \cdot r_n, \; w'
-= {r'}_1 \cdot \ldots \cdot {r'}_n \text{ and } r_i \equiv_{c} \; {r'}_i
-\\
-w \; \equiv_{\perm{c_1, \ldots, c_n}{c}} \; w' &\iff& w = r_{\sigma(1)}
-\cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}, \;
-w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
-\cdot {r'}_{\theta(n)} \\
-& & \text{ for some } \sigma, \theta \in S_n, \text{ with } r_i \;
-\equiv_{q_i} \; r'_i \text{ and } s_k \; \equiv_{c} \; s'_{k}
-\end{array}
-\]
-\caption{QRE Equivalence Relations}
-\label{fig:relations}
-\end{figure}
-
+In spite of this ``completeness'' property of the {\em normalize} combinator,
+our experience with QREs shows that using the {\em project}, {\em squash} and
+{\em perm} combinators as well as the regular operators applied to these is
+much easier than using just {\em normalize} because of the compositional nature
+of the other combinators.
 
 The formal semantics of QREs satisfy the following theorem:
 \begin{theorem}
@@ -1152,7 +1029,6 @@ If $c$ is a well formed QRE, then
   $\eqrel{c}$.
 \end{enumerate}
 \end{theorem}
-
 \section{QRE Lenses}
 \label{QRE-lenses}
 As we have seen, QREs express a broad class of equivalence relations
@@ -1568,7 +1444,7 @@ q_2 \rrbracket.put
 \label{fig:qlenssemantics}
 \end{figure}
 
-\subsection{Normal Forms of QRE Lenses}
+\subsection{Normal Forms for QRE Lenses}
 Recall that our approach in defining QRE lenses is to have each QRE lens $q: c
 \Leftrightarrow c'$ be such that
 \begin{align*}
@@ -1932,9 +1808,9 @@ end_example)} where
 
 \begin{lstlisting}
 bib_example =
-"@Book {conway,
-Author = \"J. H. Conway\",
-Title = {Regular Algebra and Finite Machines},
+"@Book {Doe,
+Author = \"John Doe\",
+Title = {Generic Title},
 }"
 \end{lstlisting}
 
@@ -1943,9 +1819,9 @@ Title = {Regular Algebra and Finite Machines},
 \begin{lstlisting}
 end_example =
 "%0 Book
-%T Regular Algebra and Finite Machines
-%A J. H. Conway
-%F conway"
+%T Generic Title
+%A John Doe
+%F Doe"
 \end{lstlisting}
 
 Since the transformation between the kernel of \cd{bibtex} and the kernel of
@@ -1962,23 +1838,22 @@ let bib_to_end : (lens in bibtex <=> endnote)
 \label{impl}
 
 
-We have integrated QREs and quotient lens synthesis into Boomerang. With this
-integration, QREs and quotient lens synthesis tasks can be expressed alongside
-existing Boomerang terms.
+We have integrated QREs and quotient lens synthesis into Boomerang allowing QREs
+and synthesis tasks to be expressed alongside existing Boomerang expressions.
 
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS High Sierra.
 
 Our evaluations serve to answer the following questions:
 \begin{enumerate}
-\item Does synthesizing quotient lenses from QREs permit an easier development
-  process than existing approaches?
+  \item Does synthesizing quotient lenses from QREs permit for an easier
+  development process than existing approaches?
   
-\item Does the increase in expressivity gained from synthesizing from QREs
-  permit synthesis of more useful lenses than existing approaches.
+  \item Are QREs sufficiently expressive that more lenses can be synthesized
+  without modifications to the format?
   
-\item Does our tool synthesize lenses fast enough to be used as part of a
-  standard development process.
+  \item Is our synthesis algorithm competitive with existing lens synthesis
+  tools?
 \end{enumerate}
 
 \subsection{Benchmark Suite Construction}
@@ -2001,11 +1876,11 @@ Our benchmarks were constructed from two sources:
 
 \subsection{Easing the Development Process}
 
-\begin{figure}[t]
+\begin{figure}
 \includegraphics{generated-graphs/asts.eps}
 \caption{Count of benchmark programs definable using a given AST count. We find
-  that it takes far fewer AST nodes to define benchmark lenses using QRE
-  synthesis than with Optician without QRE synthesis or without synthesis. }
+that it takes far fewer AST nodes to define benchmark lenses in \Name{} than
+with Optician or without synthesis. }
 \label{fig:asts}
 \end{figure}
 
@@ -2013,26 +1888,28 @@ To test if our tool eases the development process, we compare the following
 number of AST nodes.
 %
 \begin{itemize}
-  \item[\QRESize{}] is the number of AST nodes in the QRE
+  \item[\QRESize{}] \QRESize{} is the number of AST nodes in the QRE
   specifications involved in QRE lens synthesis task.
-  \item[\CanonizerAndSpecSize{}] is the number of
+  \item[\CanonizerAndSpecSize{}] \CanonizerAndSpecSize{} is the number of
   AST nodes in $W(q)$ summed with the number of AST nodes in $\canonizer(q)$,
   for each QRE used in QRE lens synthesis task.
-  \item[\LensAndSpecSize{}] is the number of AST nodes
+  \item[\LensAndSpecSize{}] \LensAndSpecSize{} is the number of AST nodes
   in $W(q)$ summed with the number of AST nodes in the synthesized QRE lens.
 \end{itemize}
 
 The value of \QRESize{} represents the difficulty in writing our benchmarks.
 
 The value of \CanonizerAndSpecSize{} represents the difficulty in writing our
-benchmarks within the Optician system. This is only an approximation, as both
-$W(q)$ and $\canonizer(q)$ are automatically generated from the QRE, instead of
-written by a human.
+benchmarks without QREs.  This is only an approximation, as both $W(q)$ and
+$\canonizer(q)$ are automatically generated from the QRE.  In our
+experience, these automatically generated regular expressions and canonizers are
+the ones we would naturally write.
 
-The value of \LensAndSpecSize{} represents the difficulty in writing our
-benchmarks in Boomerang with neither QREs nor synthesis. This is also an
-approximation, as $W(q)$ and $\canonizer(q)$ and the bijective lens are all
-automatically generated.
+The value of \LensAndSpecSize{} represents the difficulty in writing our benchmarks
+with neither QREs nor synthesis.  This is also an approximation, as $W(q)$ and
+$\canonizer(q)$ and the bijective lens are all automatically generated.
+We have found that the generated bijective lens is fairly similar in size to the
+one we would manually write, though it is typically less modular.
 
 Figure~\ref{fig:asts} shows the number of benchmarks written with at most a
 given number of AST nodes. For a given benchmark, we found \QRESize{} to be
@@ -2040,12 +1917,12 @@ about half as large as \CanonizerAndSpecSize, and about a third as large as
 \LensAndSpecSize{}. This demonstrates that introducing QREs saves programmers
 significant effort compared to both Optician and basic Boomerang.
 
-\subsection{Increasing Expressivity}
+\subsection{Increase of Expressivity}
 
 Optician was only able to synthesize fully bijective data transformations.
-Synthesizing from QREs loosens that restriction, making it possible to
-synthesize data which is bijective when put in canonical form. To determine the
-increase of expressivity, we analyzed:
+\Name{} loosens that restriction, and is able to synthesize data which is
+bijective when put in canonical form.
+To determine the increase of expressivity, we analyzed:
 \begin{enumerate}
   \item How many data formats in Optician's benchmark suite required modifications
   to be bijective.
@@ -2054,17 +1931,18 @@ increase of expressivity, we analyzed:
 \end{enumerate}
 
 We found that 10 of Opticians 39 benchmarks required modifications to be
-bijective. We found that 4 of Optician's 39 benchmarks required modifications to
-be in bijective correspondence when in canonical form. Furthermore, we found
-that all of the data.gov examples required no modifications to be in bijective
-correspondence when in canonical form. While we did not put the data.gov
-examples into a form suitable for Optician, we found only 4 of the 8 data.gov
-examples did not require canonization, so making suitable for Optician would
-have required a modification of 4 of the data.gov formats.
+bijective. We found that 4 of Optician's 39
+benchmarks required modifications to be in bijective correspondence when in
+canonical form.  Furthermore, we found that all of the data.gov examples
+required no modifications to be in canonical form.  While we did not put the
+data.gov examples into a form suitable for Optician, we found only 4 of
+the 8 data.gov examples did not require canonization, so making suitable
+for Optician would have required a modification of 4 of the data.gov
+formats.
 
-\subsection{Maintaining Competitive Performance}
+\subsection{Competitive Performance}
 
-\begin{figure}[t]
+\begin{figure}
 \centering
 \begin{subfigure}[b]{.49\textwidth}
 \centering
@@ -2077,8 +1955,8 @@ have required a modification of 4 of the data.gov formats.
 \caption{}
 \label{subfig:examplesused}
 \end{subfigure}
-\caption{Runtimes of Optician and our system.
-In (a), we run Optician and our system on Optician's benchmarks.  We find that
+\caption{Runtimes of Optician and \Name{}.
+In (a), we run Optician and \Name{} on Optician's benchmarks.  We find that
 there is only a negligible difference incurred by Optometrist's overhead.
 In (b), we run Optometrist on its benchmark suite.  We find that it is able
 to synthesize all quotient lenses in under 20 seconds, and typically
@@ -2086,26 +1964,24 @@ finished in under 5 seconds. }
 \label{fig:times}
 \end{figure}
 
-To be used in a development environment, we found it important to validate
-performance did not significantly degrade from Optician. To validate this, we
-tested the runtimes when:
+While we expanded on the Optician system, we found it important to validate
+performance did not degrade in this expansion.  To validate this, we tested:
 \begin{itemize}
   \item[\OpticianRuntime{}] Optician runs on its own benchmarks.
-  \item[\SystemOnOptician{}] Our system runs on Optician's benchmarks.
-  \item[\SystemOnBenchmarks{}] Our system runs on its own benchmarks.
+  \item[\SystemOnOptician{}] \Name{} runs on Optician's benchmarks.
+  \item[\SystemOnBenchmarks{}] \Name{} runs on its own benchmarks.
 \end{itemize}
 
 We summarize the results of these experiments in Figure~\ref{fig:times}.
-Our system was
+\Name{} was
 able to synthesize all of Optician's benchmarks at a speed competitive with
 Optician.  There was additional overhead in calculating $W(q)$ and $K(q)$,
 resulting in a very slight decrease in performance.
 
 Also notable was one of the data.gov examples, which converted demographic
-statistics by zip code from xml form into rdf form. This merely took longer
-because it was an exceptionally large format, converting over 40 fields. We
-added in additional fields to make this format suitable for Optician, which
-took over 15 seconds synthesize the modified lens.
+statistics by zip code from xml form into rdf form.  This merely took longer because it was
+an exceptionally large format, converting over 40 fields.  After adding in additional
+fields to make this format bijective, it still took over 15 seconds to complete.
 
 \section{Related Work}
 \label{relwork}
