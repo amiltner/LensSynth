@@ -78,14 +78,14 @@ mathescape, }
 
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
-\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\kw}[1]{\ensuremath{\mathit{#1}}}
 \newcommand{\codefont}[1]{\ensuremath{\mathsf{#1}}}
 \newcommand{\project}[2]{\ensuremath{\kw{project} \; #1 \mapsto #2}}
 \newcommand{\squash}[3]{\ensuremath{\kw{squash} \; #1 \rightarrow #2\; \kw{using} \; #3}}
 \newcommand{\perm}[2]{\ensuremath{\kw{perm}\; (#1)\; \kw{with}\; #2}}
 \newcommand{\normalize}[3]{\ensuremath{\kw{normalize} \; (#1, #2, #3)}}
 \newcommand{\sep}{\ensuremath{\ | \ }}
-\newcommand{\canonizer}{\ensuremath{\kw{Canonizer}}}
+\newcommand{\canonizer}{\ensuremath{\kw{canonizer}}}
 \newcommand{\bibtex}{\textsc{Bib}\TeX{}}
 \newcommand{\get}{\ensuremath{\kw{get}}}
 \newcommand{\semicolon}{\ensuremath{\; ; \;}}
@@ -966,14 +966,24 @@ enjoys the property that each of the other combinators $c$ is semantically
 equivalent to $\normalize{W(c)}{K(c)}{f}$ for some surjective, idempotent
 function $f : \mathcal{L}(W(c)) \longrightarrow \mathcal{L}(K(c))$. The {\em
 normalize} combinator hence gives a sufficient condition for potential QREs to
-be ``well-behaved'', particularly with respect to our strategy for synthesizing
-quotient lenses which we shall introduce in Section~\ref{synth}.
+be ``well-behaved'', particularly with respect to the strategy for synthesizing
+quotient lenses which we shall introduce in Section~\ref{synth}.  \bcp{I
+  think here we're mixing concerns of language design with the concerns of
+  the underlying theory.  Indeed, I think it would be clearer to reorganize
+  the whole section as follows: first present just normalize and discuss its
+  properties; then observe that the side condition is annoying because it
+  cannot be checked automatically; then introduce project, squash, and perm
+  as a pragmatically motivated, extensible set of safe combinators that
+  we've found useful for a broad range of examples.  This will also help
+  address the complaint that extracting half of a lens is a hack.}
 
 In spite of this ``completeness'' property of the {\em normalize} combinator,
 our experience with QREs shows that using the {\em project}, {\em squash} and
 {\em perm} combinators as well as the regular operators applied to these is
 much easier than using just {\em normalize} because of the compositional nature
-of the other combinators.
+of the other combinators.  \bcp{Maybe this comment is not needed?  It seems
+  obvious, besides the fact that these other combinators are safe while
+  normalize requires a proof by hand.}
 
 The formal semantics of QREs satisfy the following theorem:\bcp{That bit is
   entirely redundant with the theorem itself.  Either simply delete it or
@@ -997,12 +1007,18 @@ If $c$ is a well formed QRE, then
 \label{QRE-lenses}
 As we have seen, QREs express a broad class of equivalence relations
 directly on regular languages.  QREs are therefore a good \textit{specification}
-language for quotient lenses. In this section of the paper, we introduce
+language for quotient lenses. We next introduce
 \textit{QRE Lenses}, a class of quotient lenses specified using QREs.
+
+\bcp{A question about variable names: If we use $R$ and $S$ for plain
+  regular expressions, it seems inconsistent to use $c$ for QREs.  (And even
+  more inconsistent to use $c$ and $c'$ or $c$ and $c_1$!) I suggest $P$ and
+  $Q$ for QREs (with $Q$ as the default when we are only talking about
+  one).}
 
 Given regular expressions $R, S$ and equivalence relations
 $\sim_R$ and $\sim_S$ defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$
-respectively, we define a {\em bijective quotient lens} $q : R /{\sim_R}
+respectively, we\bcp{can we clarify that this is exactly Foster et al's definition?} define a {\em bijective quotient lens} $q : R /{\sim_R}
 \Leftrightarrow S/{\sim_S}$ to be a pair of functions $q.get :
 \mathcal{L}(R) \longrightarrow \mathcal{L}(S)$ and $q.put : \mathcal{L}(S)
 \longrightarrow \mathcal{L}(R)$ such that for all $r \in \mathcal{L}(R)$ and $s
@@ -1012,13 +1028,19 @@ q.put(q.get(r)) &\sim_R r \text{, and}\\
 q.get(q.put(s)) &\sim_R s
 \end{align*}
 Moreover, if $r \sim_R r'$, then $q.get(r) = q.get(r')$, and if $s \sim_S s'$,
-then $q.put(s) = q.put(s')$.
+then $q.put(s) = q.put(s')$.  \bcp{We should emphasize that this is
+  precisely the desired loosening of the too-strict plain lens laws.}
 
 In words, a bijective quotient lens $q$ from $R$ to $S$ modulo $\sim_R$
 and $\sim_S$ is a pair of functions $q.get$ and $q.put$ such that $q.get$
-respects $\sim_R$ and $q.put$ respects $\sim_S$, and such that the respective
-functions defined on $\mathcal{L}(R)/{\sim_R}$ and $\mathcal{L}(S)/{\sim_S}$ are
-mutual inverses of each other.
+respects $\sim_R$ and $q.put$ respects $\sim_S$, and such that the $get$ and
+$put$ functions lifted to $\mathcal{L}(R)/{\sim_R}$ and
+$\mathcal{L}(S)/{\sim_S}$ are mutual inverses.
+
+\bcp{Typesetting: $q.get$ and $q.\get$ are subtly different, as are
+  $q.put$ and $q.\lput$, and the latter forms are the correct ones.
+  In general, you should never put a whole word in math mode without
+  wrapping it in mathit: the inter-letter spacing will be wrong.}
 
 Now let $c$ and $c_1$ be QREs. Given a bijection $\ell : K(c) \Leftrightarrow
 K(c_1)$, we may define a quotient lens $q : W(c)/\eqrel{c} \Leftrightarrow
@@ -1409,7 +1431,7 @@ indeed is the case:
 
 \begin{theorem}\label{normal form}
 If there is a derivation $q : c \Leftrightarrow c_1$, then there exists a
-bijective lens $\ell : K(c) \Leftrightarrow K(c_1)$ such that
+bijective lens $\ell : K(c) \Leftrightarrow K(c_1)$ such that:
 \begin{align*}
 \llbracket q \rrbracket.get &= \llbracket \ell \rrbracket\circ \canonizer(c)\\
 \llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1} \circ
@@ -1689,7 +1711,8 @@ This completes the proof.
 \fi
 \section{Synthesizing QRE Lenses}
 \label{synth}
-Our goal in this section is to demonstrate how to synthesize a quotient lens
+We next demonstrate how to use previous results from~\cite{optician} to
+synthesize a quotient lens 
 $q: c \Leftrightarrow c_1$ from the QREs $c, c_1$ and a set of input-output pairs
 $\{(x_1, y_1),\allowbreak \ldots,\allowbreak (x_n, y_n)\}$ where the $x_i$'s are in $W(c)$ and the
 $y_i$'s are in $W(c_1)$. We wish $q$ to map the equivalence class of $x_i$ to the
@@ -1699,14 +1722,19 @@ q.get(x_i) &\equiv_{c_1} y_i \text{, and}\\
 q.put(y_i) &\equiv_c x_i
 \end{align*}
 
+\bcp{Another question about choice of variables: if we rename $c$ and $c_1$
+  to $P$ and $Q$, could we also choose names like $p$ and $q$ for their
+  elements?  (I guess $q$ was used to range over QRE-lenses, so we can't use
+  that suggestion without further renaming...)}
+
 Our approach in synthesizing QRE lenses is guided by Theorem~\ref{normal
-form}, which says that if there is a derivation $q :
+form}, which says that, if there is a derivation $q :
 c \Leftrightarrow c_1$ of a QRE lens, then there exists a bijective lens $\ell :
 K(c) \Leftrightarrow K(c_1)$ such that
 \begin{align*}
 \llbracket q \rrbracket.get &= \llbracket \ell \rrbracket\circ \canonizer(c)\\
 \llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1} \circ
-\canonizer(c_1)
+\canonizer(c_1).
 \end{align*}
 
 For our synthesis task, since the $x_i$'s are in $W(c)$ and the $y_i$'s are
