@@ -561,6 +561,7 @@ let bibtex = "@book{" . bib_fields . "}"
 \label{fig:example-qre}
 \end{figure}
 \subsection{QRE Lenses and QRE Lens Synthesis}
+\label{sec:examplesynth}
 At this point we already have a tool for synthesizing bijective lenses from a
 pair of regular expressions and a set of example input-output pairs, as well as
 the language of QREs for defining equivalence relations on regular expressions.
@@ -1711,120 +1712,168 @@ This completes the proof.
 \fi
 \section{Synthesizing QRE Lenses}
 \label{synth}
-We next demonstrate how to use previous results from~\cite{optician} to
-synthesize a quotient lens 
-$q: c \Leftrightarrow c_1$ from the QREs $c, c_1$ and a set of input-output pairs
-$\{(x_1, y_1),\allowbreak \ldots,\allowbreak (x_n, y_n)\}$ where the $x_i$'s are in $W(c)$ and the
-$y_i$'s are in $W(c_1)$. We wish $q$ to map the equivalence class of $x_i$ to the
-equivalence class of $y_i$ and vice versa:
+
+QRE lenses address some of the limitations of bijective lenses because a single
+lens program expresses both the canonizers and the transformation between kernel
+languages simultaneously, which reduces programmer effort.  But we can go even
+further by recognizing that the type structure of QRE lenses contains
+information that can be exploited to automatically synthesize lenses from their
+types.  Rather than writing the QRE lens manually, the programmer can instead
+specify the desired behavior of a lens by giving its interface types and providing
+examples, if necessary, to disambiguate among possible implementations.  This
+way of constructing lenses can often be much simpler than building them by
+hand---see the example of lens synthesis in
+Section~\ref{sec:examplesynth}.
+
+The Optician framework~\cite{optician} showed how to do such lens synthesis in
+the case for bijective lenses. Here we show how to reduce QRE lens synthesis to
+that case, so that we can re-use the Optician algorithm but in the more
+expressive context of QRE lenses.  The basic idea is straightforward: we run the
+Optician algorithm to synthesize a lens between the kernels of two QREs and then
+apply the canonizers at the edges to recover a lens between the whole
+languages.  This simple strategy turns out to be remarkably effective, and the
+idea of using Optician in this way is part the impetus for the design of our QRE
+lenses.  
+
+The Optician synthesis algorithm works as follows. Given regular expressions $R$
+and $S$ and a set of example input--output pairs
+$\{(r_1, s_1),\allowbreak \ldots,\allowbreak (r_n, s_n)\}$, Optician will try to
+find a bijective lens $\ell : R \Leftrightarrow S$ that that agrees on the
+examples, \textit{i.e.}, it maps $r_i$ to $s_i$ in the forward direction and
+$s_i$ to $r_i$ in the backward direction.  The Optician algorithm is guaranteed
+to succeed if such a lens exists.    \saz{We should probably mention what happens if the examples aren't sufficient to uniquely
+  determine the lens.}
+
+% equivalent regular expressions $R' \equiv R$ and $S' \equiv S$
+
+% if there is a , $\ell'$
+% derivation 
+% then there is an algorithm that computes a bijective lens
+% $\ell' : R' \Leftrightarrow S'$ such that 
+% maps $r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
+% direction, and $\llbracket \ell \rrbracket = \llbracket \ell' \rrbracket$.
+
+In our setting, we want to synthesize a quotient lens $q: c \Leftrightarrow c_1$
+from the QREs $c_1$ and $c_2$ and a set of example input-output pairs
+$\{(x_1, y_1),\allowbreak \ldots,\allowbreak (x_n, y_n)\}$ where the $x_i$'s are
+in $W(c_1)$ and the $y_i$'s are in $W(c_2)$. We furthermore wish $q$ to map the
+equivalence class of $x_i$ to the equivalence class of $y_i$ and vice versa:
 \begin{align*}
-q.get(x_i) &\equiv_{c_1} y_i \text{, and}\\
-q.put(y_i) &\equiv_c x_i
+q.get(x_i) &\equiv_{c_2} y_i \text{, and}\\
+q.put(y_i) &\equiv_{c_1} x_i
 \end{align*}
 
 \bcp{Another question about choice of variables: if we rename $c$ and $c_1$
   to $P$ and $Q$, could we also choose names like $p$ and $q$ for their
   elements?  (I guess $q$ was used to range over QRE-lenses, so we can't use
-  that suggestion without further renaming...)}
+  that suggestion without further renaming...)}\saz{I like the idea of doing a
+  consistent renaming of the variables in the paper following this suggestion.
+  I would also suggest not using so many primes. }
 
-Our approach in synthesizing QRE lenses is guided by Theorem~\ref{normal
-form}, which says that, if there is a derivation $q :
-c \Leftrightarrow c_1$ of a QRE lens, then there exists a bijective lens $\ell :
-K(c) \Leftrightarrow K(c_1)$ such that
+Our approach to synthesizing QRE lenses is guided by Theorem~\ref{normal form},
+which says that, if there is a derivation $q : c_1 \Leftrightarrow c_2$ of a QRE
+lens, then there exists a bijective lens $\ell : K(c_1) \Leftrightarrow K(c_2)$
+such that
 \begin{align*}
-\llbracket q \rrbracket.get &= \llbracket \ell \rrbracket\circ \canonizer(c)\\
+\llbracket q \rrbracket.get &= \llbracket \ell \rrbracket\circ \canonizer(c_1)\\
 \llbracket q \rrbracket.put &= \llbracket \ell \rrbracket^{-1} \circ
-\canonizer(c_1).
+\canonizer(c_2).
 \end{align*}
 
-For our synthesis task, since the $x_i$'s are in $W(c)$ and the $y_i$'s are
-in $W(c_1)$, then ${x_i}' = \canonizer(c)(x_i)$ is in $K(c)$ and ${y_i}' =
-\canonizer(c_1)(y_i)$ is in $K(c_1)$. Consequently in order to synthesize the
-desired quotient lens $q: c \Leftrightarrow c_1$ that is consistent with the
+For the QRE examples, the $x_i$'s are in $W(c_1)$ and the $y_i$'s are
+in $W(c_2)$, so we can construct ${x'_i} = \canonizer(c_1)(x_i)$ in $K(c_1)$ and ${y'_i} =
+\canonizer(c_2)(y_i)$ is in $K(c_2)$. To synthesize the
+desired quotient lens $q: c_1 \Leftrightarrow c_2$ that is consistent with the
 input-output examples $\{(x_1, y_1), \ldots, (x_n, y_n)\}$ it suffices to
 synthesize a bijective lens $l :
-K(c) \Leftrightarrow K(c_1)$ that is consistent with the canonized examples
-$\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$
+K(c_1) \Leftrightarrow K(c_2)$ that is consistent with the canonized examples
+$\{({x'_1}, {y'_1}), \ldots, ({x'_n}, {y'_n})\}$ and then apply the canonizers
+at the outside.  QRE lens synthesis is 
 
-Optician~\cite{optician} showed that given regular expressions
-$R, S$ and a set of input-output pairs $\{(r_1, s_1),\allowbreak \ldots,\allowbreak (r_n, s_n)\}$, if
-there is a derivation $\ell : R \Leftrightarrow S$ of a bijective lens that
-maps $r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
-direction, then there is an algorithm that computes a bijective lens $\ell' :
-R' \Leftrightarrow S'$ such that $R \equiv R'$, $S \equiv S'$, $\ell'$ maps
-$r_i$ to $s_i$ in the forward direction and $s_i$ to $r_i$ in the backward
-direction, and $\llbracket \ell \rrbracket = \llbracket \ell'
-\rrbracket$.
-
-This implies that if there is a derivation $q : c \Leftrightarrow
-c_1$ of a QRE lens as well as a derivation $\ell : K(c) \Leftrightarrow K(c_1)$
-that is consistent with the canonized examples $\{({x_1}', {y_1}'),\allowbreak
-\ldots,\allowbreak ({x_n}', {y_n}')\}$, then we can synthesize a quotient lens $q$ of
-type $c \Leftrightarrow c_1$ that is consistent with $\{({x_1}', {y_1}'),
-\ldots, ({x_n}', {y_n}')\}$. More concretely, in order to synthesize a
-quotient lens $q: c \Leftrightarrow c_1$, that is consistent with the examples
-$\{(x_1, y_1),\allowbreak \ldots, (x_n, y_n)\}$ it suffices to perform the following
-procedure:
+% This implies that if there is a derivation $q : c \Leftrightarrow
+% c_1$ of a QRE lens as well as a derivation $\ell : K(c) \Leftrightarrow K(c_1)$
+% that is consistent with the canonized examples $\{({x_1}', {y_1}'),\allowbreak
+% \ldots,\allowbreak ({x_n}', {y_n}')\}$, then we can synthesize a quotient lens $q$ of
+% type $c \Leftrightarrow c_1$ that is consistent with $\{({x_1}', {y_1}'),
+% \ldots, ({x_n}', {y_n}')\}$. More concretely, in order to synthesize a
+% quotient lens $q: c \Leftrightarrow c_1$, that is consistent with the examples
+% $\{(x_1, y_1),\allowbreak \ldots, (x_n, y_n)\}$ it suffices to perform the following
+% procedure:
 \begin{enumerate}
   \item
-  Compute $K(c)$, $K(c_1)$,
+  Compute $K(c_1)$, $K(c_2)$,
   \item
-  Compute $\{({x_1}', {y_1}'), \ldots, ({x_n}', {y_n}')\}$ where ${x_i}' =
-  \canonizer(c)(x_i)$ and ${y_i}' = \canonizer(c_1)(y_i)$,
+  Compute $\{({x'_1}, {y'_1}), \ldots, ({x'_n}, {y'_n})\}$ where ${x'_i} =
+  \canonizer(c_1)(x_i)$ and ${y'_i} = \canonizer(c_2)(y_i)$,
+\item Synthesize, using Optician's algorithm, a bijective lens
+  $\ell : K(c_1) \Leftrightarrow K(c_2)$ that is consistent with the examples
+  $\{({x'_1}, {y'_1}),\allowbreak \ldots,\allowbreak ({x'_n}, {y'_n})\}$
   \item
-  Synthesize a bijective lens $\ell : K(c) \Leftrightarrow K(c_1)$ that is
-  consistent with the examples $\{({x_1}', {y_1}'),\allowbreak
-  \ldots,\allowbreak ({x_n}',
-  {y_n}')\}$
-  \item
-  Return $q = \kw{rquot}(\kw{lquot}(c, \ell), c_1) : c \Leftrightarrow
-  c_1$
+  Return $q = \kw{rquot}(\kw{lquot}(c_1, \ell), c_2) : c_1 \Leftrightarrow
+  c_2$
 \end{enumerate}
-For example, recall that in the \bibtex{} to EndNote transformation we had the
-QREs \cd{bibtex} and \cd{endnote} describing a \bibtex{} record and an Endnote
-record respectively. We also had the example pair \cd{(bib_example ,
-end_example)} where
 
+\saz{Do we want to state formally the completeness of this algorithm?}
+
+Returning to the \bibtex{} to EndNote transformation of
+Section~\ref{sec:examplesynth}, we had the QREs \cd{bibtex} and \cd{endnote}
+describing a \bibtex{} record and an Endnote record respectively. We also had
+the example pair \cd{(bib_example , end_example)} where
+
+\begin{minipage}{3in}
 \begin{lstlisting}
 bib_example =
 "@Book {Doe,
-Author = \"John Doe\",
-Title = {Generic Title},
+ Author = \"John Doe\",
+ Title = {Generic Title},
 }"
 \end{lstlisting}
-
-\noindent and
-
+\end{minipage}
+\begin{minipage}{3in}
 \begin{lstlisting}
 end_example =
 "%0 Book
-%T Generic Title
-%A John Doe
-%F Doe"
+ %T Generic Title
+ %A John Doe
+ %F Doe"
 \end{lstlisting}
+\end{minipage}
 
 Since the transformation between the kernel of \cd{bibtex} and the kernel of
 \cd{endnote} that maps \cd{bib_example} to \cd{end_example} can be
-expressed by a bijective lens, we can synthesize a lens that maps between the
-QREs \cd{bibtex} and \cd{endnote}. We do this using the expression
+expressed as a bijective lens, we can synthesize a lens that maps between the
+QREs \cd{bibtex} and \cd{endnote}, using the code below:
 
 \begin{lstlisting}
 let bib_to_end : (lens in bibtex <=> endnote)
 = synth bibtex <=> endnote  using  {(bib_example, end_example)}
 \end{lstlisting}
 
+In this case, one example is sufficient to uniquely determine the desired
+transformation.\saz{Is that true?}
+
+\saz{We might want to say something more precise about the running time or
+  expected performance of this algorithm, perhaps to set up the evaluation
+  section.  Something along the lines of: ``Although the algorithm is complete
+  in theory, in the worst case, it may take an unbounded [???IS THIS CORRECT?]
+  amount time to search for a satisfactory lens.  Nevertheless, this algorithm
+  performs well in practice on numerous examples, as we show in the next
+  section.} 
+
+
 \section{Implementation and Evaluation}
 \label{impl}
 
 
-We have integrated QREs and quotient lens synthesis into Boomerang. With this
-integration, QREs and quotient lens synthesis tasks can be expressed alongside
-existing Boomerang terms.
+We have implemented QREs and the quotient lens synthesis algorithm described
+above as part of Boomerang. Thanks to this integration, QREs and quotient lens
+synthesis tasks can now be expressed alongside existing Boomerang terms, and we
+can combine the two kinds of lenses seamlessly in the same application.
+Intuition suggests that the increased expressiveness of QREs should make many
+lens programming tasks easier, but we would like more quantitative understanding
+of that claim.  We thus conducted several experiments that aim to provide
+answers to the following questions:
 
-All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
-of 1600 MHz DDR3 running macOS High Sierra.
-
-Our evaluations serve to answer the following questions:
 \begin{enumerate}
   \item Does synthesizing quotient lenses from QREs permit an easier development
   process than existing approaches?
@@ -1836,22 +1885,33 @@ Our evaluations serve to answer the following questions:
   standard development process.
 \end{enumerate}
 
+All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
+of 1600 MHz DDR3 running macOS High Sierra.
+
+
 \subsection{Benchmark Suite Construction}
-Our benchmarks were constructed from two sources:
+
+To evaluate our QRE implementation, we constructed a set of lens synthesis tasks
+drawn from two sources:
 \begin{enumerate}
-  \item 39 of our benchmarks were derived from the Optician system.  These
-  benchmarks were a combination of custom benchmarks, benchmarks derived from
-  FlashFill, and benchmarks derived from Augeas.  Many of the formats mapped
-  between had to be modified to work with the bijectivity constraints
-  Optician required.  Commonly, one format had whitespace where the other did
-  not allow for whitespace.  To address the bijectivity issues surrounding this,
-  we added whitespace to the format that typically did not have whitespace.  We
-  were able to remove these alterations in adopting these benchmarks to our
-  system.
+\item 39 of our benchmarks were adapted from the evaluation of the original
+  Optician system.  These benchmarks are a combination of custom benchmarks,
+  benchmarks derived from FlashFill~\cite{}\saz{TODO:cite}, and benchmarks
+  derived from Augeas~\cite{}\saz{TODO:cite}.  In the pre-QRE version of
+  Optician, many of these data formats had to be modified to work with the
+  bijectivity constraints that Optician required.  For instance, when one format
+  permits whitespace where the other does not allow it, the original versions of
+  benchmark formats were modified to allow more whitespace, thereby restoring
+  bijectivity.  With the new QRE support, we were able to remove these
+  alterations when porting these benchmarks.  (This experience alone suggests
+  that QREs make the lens development process easier.)
   
-  \item 8 of our benchmarks were derived from data.gov.  Data.gov contains
-  many transformations between formats.  In addition to the formats previously
-  adopted for Optician, we synthesized transformers between these formats.
+\item The remaining eight benchmarks were derived from
+  data.gov.\footnote{\url{http://data.gov}} Data.gov contains many
+  transformations between formats.  In addition to the formats previously
+  used for Optician, we synthesized transformers between these formats.\saz{This
+    description is not specific enough.  What are the data formats for?  How did
+    we pick which ones to try?}
 \end{enumerate}
 
 \subsection{Easing the Development Process}
@@ -1860,47 +1920,55 @@ Our benchmarks were constructed from two sources:
 \includegraphics{generated-graphs/asts.eps}
 \caption{Count of benchmark programs definable using a given AST count. We find
 that it takes far fewer AST nodes to define benchmark lenses using QRE
-synthesis than with Optician without QRE synthesis or without synthesis. }
+synthesis than with Optician without QRE synthesis or without synthesis.\saz{Why
+is the bar for ``All QRE Benchmarks'' at 14? Shouldn't it be at 47 = 39+8? Are
+we not testing all QRE benchmarks?}}
 \label{fig:asts}
 \end{figure}
 
-To test if our tool eases the development process, we compare the following
-number of AST nodes.
+To get a sense of how much the new expressiveness that combining QRE lenses with
+synthesis saves in terms of programmer effort, we compared the amount of code
+that would need to be written for each of the lens benchmarks.  We use number of
+nodes in the abstract syntax tree as a measure of code size, and calculated
+three quantities for each lens synthesis benchmark task.  \saz{Say something
+  about why there are only 14 benchmarks?}
 %
 \begin{itemize}
-  \item[\QRESize{}] is the number of AST nodes in the QRE
-  specifications involved in QRE lens synthesis task.
-  \item[\CanonizerAndSpecSize{}] is the number of
-  AST nodes in $W(q)$ summed with the number of AST nodes in $\canonizer(q)$,
-  for each QRE used in QRE lens synthesis task.
-  \item[\LensAndSpecSize{}] is the number of AST nodes
+  \item[\QRESize{}] the number of AST nodes in the QRE
+  specifications (including examples)\saz{CHECK THIS}
+  \item[\CanonizerAndSpecSize{}]  the number of
+  AST nodes in $W(q)$ summed with the number of AST nodes in $\canonizer(q)$
+  \item[\LensAndSpecSize{}] the number of AST nodes
   in $W(q)$ summed with the number of AST nodes in the synthesized QRE lens.
 \end{itemize}
 
-The value of \QRESize{} represents the difficulty in writing our benchmarks.
+The value of \QRESize{} is our measure of the programmer burden for
+writing our benchmarks---it measures the number of AST nodes the programmer has
+to write using the full expressiveness of QREs and synthesis.
 
-The value of \CanonizerAndSpecSize{} represents the difficulty in writing our
-benchmarks within the Optician system. This is only an approximation, as both
-$W(q)$ and $\canonizer(q)$ are automatically generated from the QRE, instead of
-written by a human.
+The value of \CanonizerAndSpecSize{} estimates the burden for writing our
+benchmarks within the Optician system, without QREs but still using
+synthesis. This is only an approximation, as both $W(q)$ and $\canonizer(q)$ are
+automatically generated from the QRE, and it is possible that a human-written
+version might be smaller.
 
-The value of \LensAndSpecSize{} represents the difficulty in writing our
-benchmarks in Boomerang with neither QREs nor synthesis. This is also an
+The value of \LensAndSpecSize{} estimates the burden in writing our benchmarks
+in Boomerang, using neither QREs nor synthesis. This value is also an
 approximation, as $W(q)$ and $\canonizer(q)$ and the bijective lens are all
 automatically generated.
 
-Figure~\ref{fig:asts} shows the number of benchmarks written with at most a
-given number of AST nodes. For a given benchmark, we found \QRESize{} to be
-about half as large as \CanonizerAndSpecSize, and about a third as large as
-\LensAndSpecSize{}. This demonstrates that introducing QREs saves programmers
+Figure~\ref{fig:asts} shows the number of benchmarks that can be expressed using
+at most a given number of AST nodes. For a given benchmark, we found \QRESize{}
+to be about half as large as \CanonizerAndSpecSize, and about a third as large
+as \LensAndSpecSize{}. This demonstrates that introducing QREs saves programmers
 significant effort compared to both Optician and basic Boomerang.
 
 \subsection{Increasing Expressivity}
 
-Optician was only able to synthesize fully bijective data transformations.
-Synthesizing from QREs loosens that restriction, making it possible to
-synthesize data which is bijective when put in canonical form. To determine the
-increase of expressivity, we analyzed:
+The pre-QRE version of Optician was only able to synthesize fully bijective data
+transformations.  Synthesizing from QREs loosens that restriction, making it
+possible to synthesize data which is bijective when put in canonical form. To
+determine the increase of expressivity, we analyzed:
 \begin{enumerate}
   \item How many data formats in Optician's benchmark suite required modifications
   to be bijective.
@@ -1908,14 +1976,17 @@ increase of expressivity, we analyzed:
   to be bijective when put in canonical form.
 \end{enumerate}
 
-We found that 10 of Opticians 39 benchmarks required modifications to be
+We found that 10 of Optician's 39 benchmarks required modifications to be
 bijective. We found that 4 of Optician's 39 benchmarks required modifications to
-be in bijective correspondence when in canonical form. Furthermore, we found
-that all of the data.gov examples required no modifications to be in bijective
-correspondence when in canonical form. While we did not put the data.gov
-examples into a form suitable for Optician, we found only 4 of the 8 data.gov
-examples did not require canonization, so making suitable for Optician would
-have required a modification of 4 of the data.gov formats.
+be in bijective correspondence when in canonical form.\saz{Is this somehow where
+  the 14 = 10+4 points in Fig. 10 come from?}\saz{Do these 10 and 4 intersect?}
+Furthermore, we found that all eight of the data.gov examples required no
+modifications to be in bijective correspondence when in canonical form. While we
+did not put the data.gov examples into a form suitable for pre-QRE Optician, we
+found that only four of the eight data.gov examples did not require
+canonization, so making them suitable for pre-QRE Optician would have required 
+changes to of four of the data.gov formats.  Here again, we see that QREs add
+significant expressive power.
 
 \subsection{Maintaining Competitive Performance}
 
@@ -1941,26 +2012,27 @@ finished in under 5 seconds. }
 \label{fig:times}
 \end{figure}
 
-To be used in a development environment, we found it important to validate
-performance did not significantly degrade from Optician. To validate this, we
-tested the runtimes when:
+To assess the performance impact of adding QRE support to Optician, we measured
+the running time of the following configurations:
 \begin{itemize}
-  \item[\OpticianRuntime{}] Optician runs on its own benchmarks.
-  \item[\SystemOnOptician{}] Our system runs on Optician's benchmarks.
-  \item[\SystemOnBenchmarks{}] Our system runs on its own benchmarks.
+  \item[\OpticianRuntime{}] pre-QRE Optician running on its own benchmarks.
+  \item[\SystemOnOptician{}] Optician with QREs running on the pre-QRE benchmarks.
+  \item[\SystemOnBenchmarks{}] Optician with QREs running on its own benchmarks.
 \end{itemize}
 
-We summarize the results of these experiments in Figure~\ref{fig:times}.
-Our system was
-able to synthesize all of Optician's benchmarks at a speed competitive with
-Optician.  There was additional overhead in calculating $W(q)$ and $K(q)$,
+We summarize the results of these experiments in Figure~\ref{fig:times}.  The
+new version of Optician was able to synthesize all of pre-QRE Optician's
+benchmarks at a speed competitive with the old version.  There is a small amount
+of additional overhead introduced by QREs when calculating $W(q)$ and $K(q)$,
 resulting in a very slight decrease in performance.
 
-Also notable was one of the data.gov examples, which converted demographic
-statistics by zip code from xml form into rdf form. This merely took longer
-because it was an exceptionally large format, converting over 40 fields. We
-added in additional fields to make this format suitable for Optician, which
-took over 15 seconds synthesize the modified lens.
+Also notable is one of the data.gov examples, which converts demographic
+statistics by zip code from xml form into rdf form. This took longer because it
+was an exceptionally large format, converting over 40 fields.\saz{We need to
+  explain more detail here.  I guess this is about the last benchmark in Fig. 11
+  (b), which takes a long time?}  We added in additional fields to make this
+format suitable for Optician, which took over 15 seconds synthesize the modified
+lens.\saz{This needs more context, explanation.}
 
 \section{Related Work}
 \label{relwork}
