@@ -72,7 +72,7 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    ax.step([0,8000],[14,14],label="All QRE\nBenchmarks",linestyle=":",
+    ax.step([0,8000],[14,14],label="Benchmarks With\nNontrivial Quotients",linestyle=":",
             linewidth=1, dashes=(1,1))
 
     create_step_plot("OO","\\textbf{QS}",'-',normal_size)
@@ -83,8 +83,8 @@ def generate_time_vs_tasks_graph(input_csv):
     ax.set_xlabel('AST Count')
     ax.set_title("AST Count vs Benchmarks Definable")
 
-    l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
-    plt.setp(l.texts,weight='bold') 
+    l = ax.legend(bbox_to_anchor=(1.56,1),borderaxespad=0)
+    plt.setp(l.texts,weight='bold')
 
     plt.xticks(np.arange(0, 7501, 2500))
     plt.yticks(np.arange(0, 15.1, 5))
