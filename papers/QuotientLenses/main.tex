@@ -157,86 +157,110 @@ the {\tt data.gov} database.
 \maketitle
 
 \section{Introduction}
-Oftentimes, the same data is stored in a variety different formats. For
-example, bibliography data may be stored in \bibtex{} and
-EndNote formats; spreadsheet data can be represented as a CSV file
-or a TSV file; web APIs can return data as a JSON or XML object. In such cases,
-it is necessary to synchronize the two or more copies of data so that they
-store the same information.
-
-One way to synchronize data stored in different formats is to use \emph{lenses},
-\emph{i.e.,} programs that represent pairs of functions for translating data
-from format the source format to the target formant (the \emph{get}
+Often, the same data is stored in more than one format. For example,
+bibliographic data may be stored in \bibtex{} or EndNote formats,
+spreadsheet data can be represented as either CSV and TSV files, and web
+APIs can return data as either JSON or XML objects.  When changes are
+made to data in one format, data in the other must be updated so the
+two representations continue to store the same information.
+One way to synchronize such data is to use \emph{lenses}\ksf{include citations?}, which
+are programs that simultaneously define pairs of functions for translating
+the data 
+from the source format to the target formant (the \emph{get}
 direction) and back again (the \emph{put} direction). Lenses are usually
-derived using domain-specific bidirectional languages which guarantee that the
-lenses defined in that language satisfy a certain set of \emph{lens laws} that
-give guarantees on how the two transformations interact.
+defined using domain-specific bidirectional languages that 
+ensure the specified lenses satisfy various \emph{lens laws} that
+guarantee how the \emph{put} and \emph{get} functions interact.
 
-Amongst the most restrictive lenses are the \emph{bijective lenses}.
-A bijective lens $\ell : S \Leftrightarrow T$ is simply a bijection from
+\emph{Bijective lenses} are amongst the most restrictive. 
+A bijective lens $\ell : S \Leftrightarrow T$ specifies a bijection from
 a source set $S$ to a target set $T$:
 \begin{equation}\label{bijectivelenslaws}
 \ell.\get \; (\ell.\lput \; t) = t \text{, and } \ell.\lput \; (\ell.\get \; s)
 = s
 \end{equation}
-Since these lenses demand that get and put functions form a bijection, then
-no information is lost when one translates from one data format to another. 
-While this strong guarantee can be useful in some contexts, it is more often
-the case that some of the information in one or both of the data formats is
-superfluous. For instance, one typically does not care to preserve the amount of
-whitespace between characters.  In other circumstances, capitalization
-or the order of fields in a record or items in a list may be unimportant. Many
-data formats have other ad hoc rules as well. In bibliographies, for example,
-recall that in \bibtex{}, an author can be specified as
-``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''---it does not
-matter which of the two formats is used.
+Since these lenses demand that the \emph{get} and \emph{put} functions form a bijection, 
+no information is lost during translation from one data format to another. 
+While this very strong guarantee can be useful, more often
+some of the information in one or both of the data formats is
+superfluous. For instance, the number of white space characters
+between data items, the capitalization of various strings, the
+sequence of fields in record, or the order of items in a list are
+often irrelevant.  Many
+data formats have their own ad hoc rules as well. In \bibtex{}, for example,
+an author can be specified as
+``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''---
+the specific choice does not matter.
 
-{\em Quotient lenses}~\cite{quotientlenses} loosen many of the restrictions of
-bijective string lenses by allowing a programmer to define an equivalence
-relation on the source and target formats so that the round-tripping lens laws
+{\em Quotient lenses}~\cite{quotientlenses} loosen the restrictions of
+bijective string lenses by including equivalence
+relations on the source and target formats so that the round-tripping lens laws
 hold modulo these equivalence rather than modulo equality. Quotient lenses thus
-make it possible to align many more data sources than would otherwise be
-possible, by ignoring details that a programmer views as inessential. The only
-language we are aware of that implements a general class of quotient lenses is
-{\em Boomerang}~\cite{boomerang}. While Boomerang enables a programmer to
-define a very general class of quotient lenses, these lenses to have two main
-drawbacks.
+make it possible to synchronize many more data formats than would otherwise be
+possible by ignoring details deemed inessential. 
 
-First, in order to define an equivalence relation in Boomerang, a programmer
-must define a {\em canonizer}; pair of functions $f$ and $g$ where $f$ maps
-data represented in the original external format to a canonical element and $g$
-chooses which elements of the original format correspond to values in the
-canonical format. The disadvantage of this approach is that in order for a
-programmer to {\em specify} a quotient lens in Boomerang, she must define four
-different data formats: two ``outer'' formats which specify the data that is to
-be transformed by the lens, and two ``inner'' formats which specify the
-canonical formats for the source and target data.
+The bidirectional programming language {\em
+Boomerang}~\cite{boomerang} is the only language we know of that
+implements a general class of quotient lenses.  Unfortunately, these
+lenses to have two main drawbacks.  
+
+The first drawback is that defining an equivalence
+relation in Boomerang requires specifying a {\em canonizer}, which is
+a pair of functions $f$ and $g$ where $f$
+normalizes data from the
+external format by choosing canonical representations
+and $g$ provides an
+inverse by specifying the external form of each canonical
+representation. 
+The disadvantage of this approach is that writing
+a quotient lens in Boomerang requires defining four
+different data formats: two ``external'' formats which specify the data to
+be transformed by the lens, and two ``internal'' formats which specify the
+canonical representations for the source and target data.
 
 Our solution to this shortcoming is to introduce {\em Quotient Regular
-Expressions} or QREs, which enable a programmer to simultaneously specify a
-regular expression as well as a set of canonical representatives for strings
-that match the regular expression. QREs have the added advantage that once the
-programmer has defined a well formed QRE, then she need not define a
-canonization function seperately; the canonization function can automatically be
-inferred from the QRE.
+Expressions} (QREs), which enable programmers to simultaneously specify a
+regular expression and a set of canonical representatives for matching
+strings.  Given an QRE, we can automatically infer the corresponding
+canonization functions. 
 
-The second challenge with programming lenses in Boomerang is that even after the
-programmer has specified the data as well as a canonizer that maps each member
-in the source and target sets to their respective canonical representative, she
-must still define the underlying lens that maps between the respective sets of
-canonical representatives. This can be a slow and tedious task due to the
-constraints that Boomerang imposes on its terms. For example, Boomerang
-programmers often must rearrange the order of data items by recursively using
-operators that \swap adjacent fields. Furthermore, the Boomerang type checker is
-very strict, disallowing many programs because they contain ambiguity about how
-certain data is transformed.
+The second drawback with writing quotient lenses in Boomerang is that
+even after specifying the four required data formats, the programmer must
+still define a lens for converting between the canonical
+representations.   Experience shows that writing such lenses can be
+tedious 
+(consider having to rearrange the order of data items by recursively
+using operators to \swap adjacent fields) 
+and that satisfying the type checker can be difficult because 
+many seemingly useful lenses contain ambiguities disallowed by the 
+Boomerang type checker~\cite{optician}.
 
-Our solution to this problem is that we use QREs to define a class of quotient
-lenses called {\em QRE lenses}, and, we show how to synthesize such QRE lenses
-automatically. More specifically, in order to generate a lens, a programmer
-provides a pair of QREs describing the source and target formats, plus
-a (possibly empty) suite of examples that demonstrates how the
-lens should act in specific cases.  Given this information, we can exploit and
+Our solution to this problem is to introduce {\em QRE lenses}, which
+are a new class of quotient lens that can be automatically
+synthesized, obviating the need to write lenses by hand.  A QRE lens
+is like a normal lens except it maps between formats described by
+QREs. We prove that every composition of QRE lenses can be rewritten
+to be the composition of a source canonizer, a bijective lens, and a
+target canonizer. This normalization property means we can synthesize
+QRE lenses by extending an existing algorithm for synthesizing
+bijective lenses~\cite{optician}.  
+
+Generating a QRE lens requires only a pair of QREs to describe the
+source and target formats and a (possibly empty) suite of examples
+demonstrating the mapping.  For example, the following code
+
+\begin{lstlisting}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
+\end{lstlisting}
+
+binds \codefont{l} to a synthesized QRE lens mapping between names in
+the comma-separated form describd by the QRE \codefont{comma_name}
+and the space-separated form described by the
+QRE \codefont{space_name}. 
+
+
+
+Given this information, we can exploit and
 extend recent work on algorithms for synthesis of bijective
 lenses~\cite{optician} to generate quotient lenses. The lenses generated by
 our synthesis algorithm are guaranteed to translate data back and forth
@@ -279,8 +303,8 @@ introduction.  Should we?}
 Consider a bidirectional transformation that converts \bibtex{} citation records
 such as
 \begin{verbatim}
-@Book {Doe,
-Author = "John Doe",
+@Book {Lovelace,
+Author = "Ada Lovelace",
 Title = {Generic Title}
 }
 \end{verbatim}
@@ -288,8 +312,8 @@ Title = {Generic Title}
 into an equivalent EndNote format like the following
 \begin{verbatim}
 %0 Book
-%F Doe
-%A John Doe
+%F Lovelace
+%A Ada Lovelace
 %T Generic Title
 \end{verbatim}
 \noindent
@@ -369,7 +393,7 @@ programming bijective string lenses, not all bidirectional tranformations are bi
 in nature. For instance, users are typically uninterested in preserving
 whitespace between words or between fields.  The order of author and title
 fields is also likely irrelevant and there may be equivalent ways of writing
-the same name:  ``Doe, John'' vs ``John Doe.''
+the same name:  ``Lovelace, Adan'' vs ``Ada Lovelace.''
 
 When two instances of the same format differ only terms of such inessential
 information, it is useful\bcp{Would it be worth spelling out the alternative
@@ -378,15 +402,15 @@ to treat them as identical and to map them into canonical representations.
 Continuing our example, the following two \bibtex{} citations represent the same
 logical object and as a result, should be translated to the same EndNote record.
 \begin{verbatim}
-@Book {Doe,
-Author = "John Doe",
+@Book {Lovelace,
+Author = "Ada Lovelace",
 Title = {Generic Title},
 }
 
-@Book{     Doe,
+@Book{     Lovelace,
 Title = {Generic
 Title},
-Author = "Doe, John",     }
+Author = "Lovelace, Ada",     }
 \end{verbatim}
 
 One natural way to define lenses that will synchronize data in these formats
@@ -453,8 +477,8 @@ In such situations, the \kw{squash} combinator creates a QRE that
 allows external data to be in either format, and converts any
 data in the first format to the second.
 For instance, assume that
-the \codefont{comma\_name} format describes ``Doe, John''
-and that the \codefont{space\_name} format describes ``John Doe''
+the \codefont{comma\_name} format describes ``Lovelace, Ada''
+and that the \codefont{space\_name} format describes ``Ada Lovelace''
 and \codefont{c\_to\_s} is a function from the first to the second.  In this
 case, the following instance of \kw{squash} creates the desired canonizer.
 
@@ -473,7 +497,7 @@ of regular languages and examples---here, \codefont{c\_to\_s} is the
 \codefont{get} direction of a lens that can be synthesized by:
 %
 \begin{lstlisting}
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Doe, John", "John Doe")}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
 let c_to_s = get l
 \end{lstlisting}
 
@@ -534,7 +558,7 @@ let space_name = first_name . wsp+ . last_name
 let comma_name = last_name . "," . wsp+ . first_name
 
 (* synthesize a lens that maps comma representation to space representation *)
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Doe, John", "John Doe")}
+let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
 let c_to_s = get l
 
 (* squash QRE maps comma_name to space_name *)
@@ -1534,8 +1558,8 @@ the example pair \cd{(bib_example , end_example)} where
 \begin{minipage}{2.5in}
 \begin{lstlisting}
 bib_example =
-"@Book {Doe,
- Author = \"John Doe\",
+"@Book {Lovelace,
+ Author = \"Ada Lovelace\",
  Title = {Generic Title},
 }"
 \end{lstlisting}
@@ -1545,8 +1569,8 @@ bib_example =
 end_example =
 "%0 Book
  %T Generic Title
- %A John Doe
- %F Doe"
+ %A Ada Lovelace
+ %F Lovelace"
 \end{lstlisting}
 \end{minipage}
 \end{center}
