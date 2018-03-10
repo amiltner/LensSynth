@@ -1642,31 +1642,29 @@ transformation.\SAZ{Is that true?}\BCP{Seems more likely that the desired
 \section{Implementation and Evaluation}
 \label{impl}
 
-
 We have implemented QREs and the quotient lens synthesis algorithm described
-above as an extension to the Boomerang interpreter~\cite{boomerang,quotientlenses}. Thanks to this integration, QREs and quotient lens
-synthesis tasks can now be expressed alongside existing Boomerang
-terms\bcp{what's the difference between a task and a term (and how do each
-  of them relate to ``lenses'' just below)?}, and we
-can combine the two kinds of lenses seamlessly in the same application.
-Intuition suggests that the increased expressiveness of QREs should make many
-lens programming tasks easier, but we would like more quantitative understanding
-of that claim.  We thus conducted several experiments that aim to provide
-answers to the following questions:
+above as an extension to the Boomerang
+interpreter~\cite{boomerang,quotientlenses}. We have added QREs and QRE lens
+synthesis tasks to Boomerang. Furthermore, these synthesis tasks evaluate to
+Boomerang lens values, so Boomerang treats synthesized lenses the same as
+hand-written ones. Intuition suggests that the increased expressiveness
+of QREs should make many lens programming tasks easier, but we would like more
+quantitative understanding of that claim. We thus conducted several experiments
+that aim to provide answers to the following questions:
 
 \begin{enumerate}
-  \item Does synthesizing quotient lenses from QREs permit an easier development
-  process than existing approaches?  \bcp{Needlessly vague: What existing approaches?  Writing
-  them by hand?}
+  \item Does synthesizing QRE lenses from QREs permit an easier development
+  process than manually writing canonizers, and synthesizing the lenses between
+  their canonized forms?  Does synthesizing QRE lenses from QREs permit an
+  easier development process than writing the lenses by hand?
   
   \item Does the increase in expressivity gained from synthesizing from QREs
   permit synthesis of more useful lenses than existing approaches.  \bcp{Is
     this really an interesting empirical question?  Seems obvious, from the
-    arguments we made in Section 2 and the intro.}
+    arguments we made in Section 2 and the intro.}\afm{I'm happy to remove it}
   
   \item Does our tool synthesize lenses fast enough to be used as part of a
-  standard development process.  \bcp{Should there be some question marks
-    around here.}
+  standard development process?
 \end{enumerate}
 
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
@@ -1698,7 +1696,8 @@ drawn from two sources:
   plain text or PDF documents.  \BCP{Besides differing formats, why did we
     include these eight new 
     ones?  Are they significantly different (more complex, exercising
-    different features of the synthesis algorithm or QRE syntax, ...)?}
+    different features of the synthesis algorithm or QRE syntax,
+    ...)?}\afm{Solomon, could you fill this out?}
 \end{enumerate}
 
 \subsection{Easing the Development Process}
@@ -1720,7 +1719,7 @@ sizes on benchmarks where the canonization functions are nontrivial.
 %
 \begin{itemize}
   \item[\QRESize{}] the number of AST nodes in the QRE
-  specifications (including examples)\saz{CHECK THIS}
+  specifications (including examples)\saz{CHECK THIS}\afm{no but i'll add it in}
   \item[\CanonizerAndSpecSize{}]  the number of
   AST nodes in $W(q_1)$ summed with the number of AST nodes in $\canonizer(q_1)$
   \item[\LensAndSpecSize{}] the number of AST nodes
@@ -1749,38 +1748,21 @@ as \LensAndSpecSize{}.\BCP{These are really the critical conclusions, and
   they are hard to see, the way the graph is drawn.  I wonder whether we
   could instead present with the individual examples on the X axis (sorted
   by number of AST nodes), with a bar above each one containing three
-  regions, colored differently, for LS, CS-LS, and QC-CS...} This suggests
+  regions, colored differently, for LS, CS-LS, and QC-CS...}\afm{will do} This suggests
 that introducing QREs saves programmers 
 significant effort compared to both Optician and basic Boomerang.
 
 \subsection{Increasing Expressivity}
 
 The pre-QRE version of Optician was only able to synthesize fully bijective data
-transformations.  Synthesizing from QREs loosens that restriction, making it
-possible to synthesize data which is bijective when put in canonical
-form\bcp{No: We do not synthesize data, nor is the data itself bijective.}. To
-determine the increase of expressivity, we analyzed:
-\begin{enumerate}
-  \item How many data formats in Optician's benchmark suite required modifications
-  to be bijective.
-  \item How many data formats in Optician's benchmark suite required modifications
-  to be bijective when put in canonical form.  \bcp{I don't understand the
-    difference between these.}
-\end{enumerate}
-
-We found that 10 of Optician's 39 benchmarks required modifications to be
-bijective. Of these We found that 4 of Optician's 39 benchmarks required
-modifications to be in bijective correspondence when in canonical form.
-Furthermore, we found that all eight of the data.gov examples required no
-modifications to be in bijective correspondence when in canonical
-form.\BCP{Is this surprising?  We could have chosen the examples so that
-  this is true.} While we
-did not put the data.gov examples into a form suitable for pre-QRE
-Optician\bcp{What does that mean?}, we
-found that only four of the eight data.gov examples did not require
-canonization, so making them suitable for pre-QRE Optician would have required
-changes to of four of the data.gov formats. Here again, we see that QREs add
-significant expressive power.
+transformations. Synthesizing from QREs loosens that restriction, making it
+possible to synthesize data transformations involving bijections with
+canonization functions. Because Optician could previously only synthesize
+bijective lenses, some of the data formats in the example suite were modified to
+include additional fields containing information should should be canonized from
+the other format. In total, 12 of Optician's original benchmarks and 3 of the
+data.gov benchmarks would require such additional fields when input to Optician
+without QREs.
 
 \subsection{Maintaining Competitive Performance}
 
@@ -1797,17 +1779,14 @@ significant expressive power.
 \caption{}
 \label{subfig:examplesused}
 \end{subfigure}
-\caption{Runtimes of Optician and our system.
-In (a), we run Optician and our system on Optician's benchmarks.  We find that
-there is only a negligible difference incurred by Optometrist's overhead.
-In (b), we run Optometrist on its benchmark suite.  We find that it is able
-to synthesize all quotient lenses in under 20 seconds, and typically
-finished in under 5 seconds. \bcp{The left-hand graph, especially, is hard
-  to make anything out of, because the curves are squished against the
-  axes and have almost identical shapes.  Not sure what to do about this.
-  Also, I'm finding the terms 
-  ``Optician'' and ``Optometrist'' really hard to keep straight---in part
-  because, in English, they are almost synonyms.}}
+\caption{Runtimes of Optician and our system. In (a), we run Optician and our
+  system on Optician's benchmarks. We find that there is only a negligible
+  performance overhead incurred by using QREs. In (b), we run Optician with QREs
+  on its benchmark suite. We find that it is able to synthesize all quotient
+  lenses in under 20 seconds, and typically finished in under 5 seconds.
+  \bcp{The left-hand graph, especially, is hard to make anything out of, because
+    the curves are squished against the axes and have almost identical shapes.
+    }\afm{will fix}}
 \label{fig:times}
 \end{figure}
 
@@ -1820,7 +1799,7 @@ the running time of the following configurations:
   benchmarks. \BCP{What is the difference between QO and QQ??  The eight
     additional benchmarks?  Why not measure just these?  Seems like this
     graphj repeats some information from the one to the left, obscuring the
-    new information.}
+    new information.}\afm{will do}
 \end{itemize}
 
 We summarize the results of these experiments in Figure~\ref{fig:times}.  The
@@ -1830,11 +1809,14 @@ of additional overhead introduced by QREs when calculating $W(q_1)$ and $K(q_1)$
 resulting in a very slight decrease in performance.
 
 Also notable is one of the data.gov examples, which converts demographic
-statistics by zip code from xml form into rdf form.\bcp{It's a bit hidden in the figure...} To validate this performance
-was not due to our overhead, we modified this format to be bijective, so it
+statistics by zip code from xml form into rdf form. Synthesizing this
+transformation certainly took the longest, nearly fifteen seconds, where the
+next slowest took hardly over five. To validate this performance was not due to
+our overhead, we modified these format to be bijective, so the synthesis task
 could be input into Optician. Optician took over 15 seconds synthesize this
 modified lens. We believe this conversion took longer because the input formats
-were exceptionally large, requiring conversions between over 40 fields.
+were exceptionally large, requiring conversions between over 40 fields, not due
+to an overhead from synthesizing from QREs.
 
 
 \section{Related Work}
