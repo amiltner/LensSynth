@@ -376,80 +376,60 @@ the synthesized lens should behave on those examples.
 \section{QRE Lenses by Example}
 \label{sec:example}
 
-\subsection{Quotient Lenses}
-Unfortunately, while {\em Optician} greatly simplifies the task of
-programming bijective string lenses, not all bidirectional tranformations are bijective
-in nature. For instance, users are typically uninterested in preserving
-whitespace between words or between fields.  The order of author and title
-fields is also likely irrelevant and there may be equivalent ways of writing
-the same name:  ``Lovelace, Ada'' vs ``Ada Lovelace.''
-
-When two instances of the same format differ only terms of such inessential
-information, it is desirable
-to treat them as identical and to map them into canonical
-representations.
-The alternative is to require extra machinery to preserve the
-inessential details, which leads to complex and brittle lenses.
-Continuing our example, the following two \bibtex{} citations represent the same
-logical object and as a result, should be translated to the same EndNote record.
+{\em Optician} greatly simplifies the task of programming bijective
+string lenses, but not all bidirectional transformations are
+bijective.  For instance, \bibtex{} users are not typically interested
+in preserving whitespace between words.  The order of author and title
+fields is also likely irrelevant, and there may be equivalent ways of
+writing the same name: ``Lovelace, Ada'' vs ``Ada Lovelace.''
+Consequently, the following two \bibtex{} citations represent the same
+logical object even though they differ in nonessential details.
 \begin{verbatim}
 @Book {Lovelace,
 Author = "Ada Lovelace",
-Title = {Generic Title},
+Title = {Notes},
 }
 
 @Book{     Lovelace,
-Title = {Generic
-Title},
+Title = {Notes},
 Author = "Lovelace, Ada",     }
 \end{verbatim}
 
-One natural way to define lenses that will synchronize data in these formats
-is to provide the following items:
-\begin{enumerate}
-  \item A pair of descriptions of the external source and target formats, here
-  \bibtex{} and EndNote. Such descriptions may be given by regular
-  expressions, for instance.
-  \item A pair of \emph{canonizers} that map external source (and target)
-  objects into internal, canonical forms.  Such canonizers will take
-  care of stripping away irrelevant information and otherwise normalizing
-  differences between equivalent representations of the same logical data.
-  When given an internal representation, such canonizers must also operate
-  in the reverse direction, \emph{choosing} an element in the external format
-  to represent the canonical internal element.
-  \item A pair of descriptions of the internal source and
-  target formats.
-  \item A bijective string lens to map back and forth between canonical elements
-  of the internal source and target formats.
-\end{enumerate}
+When mapping these records into another format, such as EndNote, we
+must decide what to do with the nonessential information.  A bijective
+mapping must preserve all the information, including the extraneous
+details, which leads to complex and brittle lenses complicated by the
+need to preserve unimportant details.  
+A better approach is to identify records that differ only in the
+nonessential information, mapping them into a canonical representation.
+This canonical representation is then mapped into the target format.
+With this approach, both of the above \bibtex{} records would be
+mapped to the same EndNote record.
 
-\noindent
-Indeed, Boomerang's quotient lenses are structured this
-way~\cite{quotientlenses}. Of course, some of these elements are optional.  For
-instance, it is not necessary to document internal and external formats.
-However, we do view it as good engineering practice to do so, as such
-documentation makes lenses easier to read, understand, use and maintain.
+We use {\em Quotient Regular Expresions} (QREs) to specify the
+external format in full detail and to mark which pieces of it are
+inessential.  From a QRE, we can infer a regular expression that
+describes only the essential information, which we call the internal
+format, and we can derive a canonizer that maps between the external
+and internal formats.
 
-The first way in which our work simplifies Boomerang's quotient lenses is
-that we merge the first three pieces of quotient lenses that we just described
-into a single concept, {\em Quotient Regular Expression}, or QREs. A single QRE
-enables a programmer to add annotations to the outer regular expression; these
-annotations can then be used to infer an inner regular expression, as well as a
-canonizer from the outer regular expression to the inner one. In the following
-subsection, we describe a set of QRE combinators that we have integrated into
-Boomerang and give an example of how a programmer might define a QRE
-specification of \bibtex{} using these combinators.
 
 \subsection{Specifying \bibtex{} Using QREs}
 \label{subsec:qre-expressions}
-To construct a QRE specification of a \bibtex{} format, we might first define a
-whitespace format, which, externally, matches any non-zero number of whitespace
-characters, and converts any such whitespace into a single space character (its
-canonical form). This whitespace-normalizing QRE is easily defined by using the
-\kw{project} primitive: \bcp{Why is it called ``project''?}
+
+In this subsection, we develop a QRE specification of \bibtex{}
+records, introducing various QRE combinators along the way. 
+Our first step in this process is to define a
+whitespace format, which externally matches any non-zero number of whitespace
+characters. It converts any such whitespace into a single space
+character, its canonical form. 
+We use the QRE \kw{project} primitive to define this
+whitespace-normalizing QRE. \bcp{Why is it called
+``project''?} \ksf{select seems like it might be a better name as we
+are choosing one representative element from a set of possibilities.}
 
 \begin{lstlisting}
-let wsp = project [ \n\t\r]$^+$ $\to$ " "
+let p_wsp = project [ \n\t\r]$^+$ $\to$ " "
 \end{lstlisting}
 \iflastminute
 \bcp{Can we display blanks as a distinct ``visible blank'' symbol
@@ -464,7 +444,7 @@ tweaking stage.}
 \fi
 
 Sometimes there are multiple disjoint representations of the same data.
-In such situations, the \kw{squash} combinator creates a QRE that
+In such situations, the ARE \kw{squash} combinator creates a QRE that
 allows external data to be in either format, and converts any
 data in the first format to the second.
 For instance, assume that
@@ -481,32 +461,34 @@ case, the following instance of \kw{squash} creates the desired canonizer.
 let name = squash comma_name $\to$ space_name using c_to_s
 \end{lstlisting}
 
-One way to define the \codefont{c\_to\_s} canonization function used by squash
+One way to define the \codefont{c\_to\_s} function
 is simply to write it from scratch in some ordinary programming language.
-However, our system will also synthesize such functions automatically from pairs
-of regular languages and examples---here, \codefont{c\_to\_s} is the
-\codefont{get} direction of a lens that can be synthesized by:
+However, we can synthesize such functions automatically---here, \codefont{c\_to\_s} is the
+\codefont{get} direction of a lens that can be synthesized using the 
+\kw{synth} combinator:
 %
 \begin{lstlisting}
 let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
 let c_to_s = get l
 \end{lstlisting}
-
+\noindent
 The first line above synthesizes a lens between \codefont{comma\_name} and
 \codefont{space\_name} using the listed example transformation as a guide.  The
-second line simply extracts the get direction transformation from the lens,
+second line extracts the \codefont{get} direction transformation from the lens,
 which is what we need for \kw{squash}.
 
-Another QRE primitive is the sequential composition combinator ``;''.  For
-example, suppose that we wish to express a name as $\kw{last\_name \cdot
-``,\text{''} \cdot \text{wsp+} \cdot first\_name}$, or as $\kw{first\_name\cdot
-\text{wsp+} \cdot last\_name}$, with $\kw{first\_name\cdot \text{wsp+} \cdot
-last\_name}$ as the canonical representation. We also wish to project away the
-extra whitespace in between \kw{first\_name} and \kw{last\_name} once this
-identification has been made. Then we can express this compound equivalence
-relation by a composition of a \kw{squash} QRE and a QRE that projects away
-the extra whitespace in between \codefont{first\_name} and
-\codefont{last\_name}.
+Another QRE primitive is the sequential composition combinator,
+written ``;''.
+For an example of its use, suppose we have already defined a QRE
+\codefont{comma_to_space} that accepts names in either space-separated
+or name-separated format and chooses the space-separated format as canonical.
+Suppose we have also already defined a
+QRE \codefont{project_in_space}, which projects away extra white space
+between the first and last name in the space-separated name format. 
+We can use the sequential composition combinator to combine these two QREs:
+\begin{lstlisting}
+let name = project_in_space ; comma_to_space
+\end{lstlisting}
 
 The permutation QRE combinator, \kw{perm}, allows data to be unordered. For example,
 the following instance of \kw{perm} allows label, author and title fields
@@ -516,7 +498,8 @@ the following instance of \kw{perm} allows label, author and title fields
 let bib_fields = perm (label, bib_author, bib_title)
 \end{lstlisting}
 %
-To normalize the field separators, one can specify that the components of the
+To normalize the field separators, one can specify 
+in an optional \kw{with} clause that the components of the
 permutation are conjoined by another QRE. For instance, below, we normalize
 whitespace between fields, leaving only a single newline.
 %
@@ -524,17 +507,17 @@ whitespace between fields, leaving only a single newline.
 let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp+) $\to$ ",\n")
 \end{lstlisting}
 
-The final QRE combinator is the normalize combinator, which is also implemented
-in Boomerang. This combinator allows a programmer to manually define a function
-$f$ which sends each string that matches a regular expression $R$ to some
-canonical representative in another regular expression $R'$. The equivalence
-relation defined by the normalize combinator is hence the equivalence relation
-defined by the {\em fibres} of $f$; that is, for all strings $s$ and $s'$ that
-match $R$, $s$ is equivalent to $s'$ if and only if $f(s) = f(s')$.
+The final QRE combinator is the \kw{normalize} combinator. This combinator
+allows a programmer to manually define a function $f$ which sends each
+string that matches a regular expression $R$ to some canonical
+representative in another regular expression $R'$. The equivalence
+relation defined by the normalize combinator is hence the equivalence
+relation defined by the {\em fibres} of $f$; that is, for all strings
+$s$ and $s'$ that match $R$, $s$ is equivalent to $s'$ if and only if
+$f(s) = f(s')$.
 
 For instance, assume that $f(s)=$ `` '' for all whitespace strings $s$. Then the
-project QRE \kw{p\_wsp} which matches any non-zero number of whitespace
-characters and converts any such whitespace into a single space character can
+project QRE \kw{p\_wsp} defined above can
 be expressed using the normalize combinator as
 \lstinline{normalize (wsp+, " ", f)}.
 
@@ -575,9 +558,13 @@ let bib_title = "title = {" . title . "}"
 let bib_fields = perm (label, bib_author, bib_title) with (project ("," . wsp+) $\to$ ",\n")
 let bibtex = "@book{" . bib_fields . "}"
 \end{lstlisting}
-\caption{QRE specification of \bibtex{} records. }
+\caption{QRE specification of \bibtex{} records. \ksf{Is all this code
+correct?  Does it run through the system correctly?  I'm suspicious of
+the comma\_to\_space definition which seems to be recurisive.  If it's
+correct, we should comment on it.}}
 \label{fig:example-qre}
 \end{figure}
+
 \subsection{QRE Lenses and QRE Lens Synthesis}
 \label{sec:examplesynth}
 At this point we already have a tool for synthesizing bijective string lenses from a
