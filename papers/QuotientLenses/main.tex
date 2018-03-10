@@ -289,49 +289,47 @@ The following list summarizes the contributions of our work.
 \end{enumerate}
 Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
-\section{QRE Lenses by Example}
-\label{sec:example}
-\subsection{Bijective String Lenses}
-Consider a bidirectional transformation that converts \bibtex{} citation records
-such as
+\section{Background: Bijective String Languages}
+\label{sec:background}
+Before describing QREs and QRE lenses, we briefly review bijective
+string lenses. Consider a bidirectional transformation that converts
+between \bibtex{} citation records such as
 \begin{verbatim}
-@Book {Lovelace,
-Author = "Ada Lovelace",
-Title = {Generic Title}
+  @Book {Lovelace,
+  Author = "Ada Lovelace",
+  Title = {Notes}
 }
 \end{verbatim}
 \noindent
-into an equivalent EndNote format like the following
+and equivalent EndNote records like the following
 \begin{verbatim}
-%0 Book
-%F Lovelace
-%A Ada Lovelace
-%T Generic Title
+  %0 Book
+  %F Lovelace
+  %A Ada Lovelace
+  %T Notes
 \end{verbatim}
 \noindent
-and vice versa.
-
-Boomerang's bijective string lenses are designed to define a bidirectional
-transformation such as this, where the data formats can be matched in a
+Boomerang's bijective string lenses are designed to define bidirectional
+transformations such as this one, where the data formats can be matched in a
 one-to-one manner, in this case by matching the label, author and title fields.
-Boomerang allows programmers to define such bijecive transformations using
-combinators which favour a compositional approach in which the programmer
-defines small lenses which are then put together using the combinators to
-define larger and larger lenses until the final lens is defined.
+Boomerang encourages a compositional approach in which programmers
+define simple lenses and then compose them using a variety of
+combinators. 
 
-Each bijective string lens is constructed from simple primitive combinators including:
+Primitive lenses include:
 \begin{itemize}
-  \item \kw{del} $s$: \textit{delete} the constant string $s$ in the get
+  \item \kw{del} $s$: delete the constant string $s$ in the get
   direction; insert it in the put direction.
-  \item \kw{ins} $s$: \textit{insert} the constant string $s$ in the get
+  \item \kw{ins} $s$: insert the constant string $s$ in the get
   direction; delete it in the put direction.
   \item \kw{copy} $R$: copy the text matching the regular expression $R$ in
   both directions.
 \end{itemize}
-In addition, such primitives may be combined using the regular operators
-Kleene star, alternation and concatenation, or functional composition of
-lenses.  Figure~\ref{fig:example-lens} illustrates the use of these
-combinators to transform \bibtex{} to EndNote (and vice versa).
+Such primitives may be combined using the regular operators
+Kleene star, alternation and concatenation, as well as lens composition.
+Figure~\ref{fig:example-lens} illustrates the use of these
+combinators to define a lens \cd{bib_to_end} that transforms data
+in \bibtex{} to EndNote (and vice versa). 
 \begin{figure}[t]
 \begin{lstlisting}
 let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") =
@@ -353,44 +351,45 @@ del "\",\ntitle = {" . ins "\n%T " . title . del "},\n}"
 
 let bib_to_end : (lens in bibtex $\Leftrightarrow$ end_note) = preamble . label . author_lens . title_lens
 \end{lstlisting}
-\caption{An example lens between \cd{bibtex} and \cd{end_note} regular
-expressions with no equivalences.\bcp{And a readability suggestion:
+\caption{An example bijective lens \cd{bib_to_end} between data
+matching \cd{bibtex} and \cd{end_note} regular 
+expressions, which are omitted for brevity.  
+\bcp{And a readability suggestion:
 define a named constant for a quote character.}}
 \label{fig:example-lens}
 \end{figure}
 
-Unfortunately, programming bijective string lenses in Boomerang is often slow and
-tediuos because of the fiddly constraints that Boomerang imposes on its
-terms. making lens programming slow and tedious. For example, Boomerang
-programmers often must rearrange the order of data items by recursively using
-operators that \swap adjacent fields. Furthermore, the Boomerang type checker is
-very strict, disallowing many programs because they contain ambiguity about how
-certain data is transformed.
+Recent work described the {\em Optician}
+algorithm/tool~\cite{optician}, which can synthesize bijective lenses
+such as \cd{bib_to_end}, obviating the sometimes tedious tasks
+involved in writing such lenses by hand.  Given the directive
+\begin{lstlisting}
+synth S <=> T using exs
+\end{lstlisting}
+\noindent
+{\em Optician} will synthesize a bijective lens between 
+source and target formats described by regular expressions
+\cd{S} and \cd{T}, respectively, and a set of input-output example pairs \cd{exs} specifying how
+the synthesized lens should behave on those examples.
 
-In our previous work in~\cite{optician}, we presented a solution to these
-shortcomings of bijective string lenses by developing a tool called {\em Optician}
-which enables a programmer to synthesize a bijective string lens from a pair of regular
-expressions $(S, T)$ and a set of input-output example \cd{exs} pairs that
-determines how the synthesized lens should behave on those examples. With {\em
-Optician}, the programmer need only spend the effort of specifying the data
-formats and the behavior of the lens on a few inputs in order to define a
-bijective string lens. As a result defining bijective string lenses becomes faster and less
-error prone, since the programmer need only invoke the synthesis procedure
-\lstinline{synth S <=> T using exs} in order to define a bijective string lens rather
-than manually derive the lens herself.
+
+\section{QRE Lenses by Example}
+\label{sec:example}
 
 \subsection{Quotient Lenses}
-Unfortunately, while our synthesis tool greatly simplifies the task of
+Unfortunately, while {\em Optician} greatly simplifies the task of
 programming bijective string lenses, not all bidirectional tranformations are bijective
 in nature. For instance, users are typically uninterested in preserving
 whitespace between words or between fields.  The order of author and title
 fields is also likely irrelevant and there may be equivalent ways of writing
-the same name:  ``Lovelace, Adan'' vs ``Ada Lovelace.''
+the same name:  ``Lovelace, Ada'' vs ``Ada Lovelace.''
 
 When two instances of the same format differ only terms of such inessential
-information, it is useful\bcp{Would it be worth spelling out the alternative
-(i.e., what lenses would look like if they had to preserve all this stuff?)}
-to treat them as identical and to map them into canonical representations.
+information, it is desirable
+to treat them as identical and to map them into canonical
+representations.
+The alternative is to require extra machinery to preserve the
+inessential details, which leads to complex and brittle lenses.
 Continuing our example, the following two \bibtex{} citations represent the same
 logical object and as a result, should be translated to the same EndNote record.
 \begin{verbatim}
