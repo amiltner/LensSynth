@@ -1016,36 +1016,66 @@ condition that $r \sim_R r'$ implies $q.\get(r) = q.\get(r')$ ensures that the
 {\em get} function induced on the equivalence classes if $\equiv_c$ is
 well-defined, and similarly for the {\em put} function. 
 
-Now let $Q_1$ and $Q_2$ be QREs. Given a bijection $\ell : K(Q_1)
-\Leftrightarrow K(Q_2)$, we may define a quotient lens $q : W(Q_1)/\eqrel{Q_1}
-\Leftrightarrow W(Q_2)/\eqrel{Q_2}$ by $q.\get = \ell \circ \canonizer(Q_1)
-$ and $q.\lput = \ell_1^{-1} \circ \canonizer(Q_2)$. In other words, the get
-function of $q$ first canonizes the source data using $\canonizer(Q_1)$
-and then applies $f$ to the result, while the put function of $q$ first
-canonizes the target data using $\canonizer(Q_2)$ and the applies $f^{-1}$ to
-the result. This is our approach in defining QRE lenses.
+Having identified QREs as a natural way of specifing equivalence relations on
+regular expressions, a natural next step in defining quotient lenses is to map
+between two QREs via a bijection between their; this is our
+approach in defining {\em QRE lenses}.
 
-One potential pitfall with QRE lenses is that a lens derived using the QRE lens
-combinators may not have the form of a bijection with ``canonizers at the
-edges''. Such a situation would be undesirable since our strategy for
-synthesizing QRE lenses is to synthesize a bijective string lens which plugs
-into the two QREs provided as input to the synthesis procedure; if there were
-some QREs which could not be transformed to the desired form, then our synthesis
-algorithm would necessarily be incomplete.
+More concretely, in order to define a language of QRE lenses, our approach is
+to (1) define a language of bijections (Section \ref{subsec:bijective-lenses}),
+and then (2) add quotients by allowing canonizers to be prepended or postpended
+to bijections and (3) allowing composition of such quotient lenses via the
+regular operators and functional composition
+(Sections \ref{subsec:qre-lenses-syntax} and \ref{subsec:qre-lenses-semantics}).
 
-Thankfully, this turns out not to be an issue if we use the bijections that
-can be expressed in Boomerang; following ~\cite{optician} we call these
-lenses {\em bijective string lenses}. Once we restrict the bijections that we
-use to derive QRE lenses to include just bijective string lenses, we will be
-able show that every QRE lens can be transformed to a QRE lens which has the
-form of a bijective string lens with canonizers at the edges.
+However, we also have a secondary objective, which is to support synthesis of
+lenses: When provided with QREs describing the source and target languages, we
+would like to be able to generate quotient lenses automatically. One way to do
+that is to generate canonizers $\canonizer(Q_1)$ and $\canonizer(Q_2)$ from QREs
+$Q_1$ and $Q_2$ and then to synthesize bijective lenses between the kernel
+languages for $Q_1$ and $Q_2$.
+
+Unfortunately, the composition of two such quotient lenses does not have have
+the form of a bijective lens with canonizers at the edges. Hence, an important
+technical question is whether we give up expressiveness if we restrict
+ourselves to this form. Thankfully, this turns out not to be an issue if
+the bijections that we use to define QRE lenses are derived using a particular
+set of combinators that we describe in the next section.
 
 \subsection{Bijective String Lenses}
-The syntax for the language of bijective string lenses is given by $$\ell_1 :=
-\mathit{id} \; (R) \sep \const(s_1, s_2) \sep  \swap(\ell_1, \ell_2) \sep
-\ell_1 \cdot \ell_2 \; |  \; (\ell_1 \sep \ell_2) \sep \ell^* \; | \; \ell_1 \;
-; \;  \ell_2,$$ where $R$ ranges over regular expressions and $s$ ranges over
-character strings.
+\label{subsec:bijective-lenses}
+We define the set of \textit{bijective string lenses} to be the set of
+bijections between regular languages constructed using the following combinators.
+
+$$\ell := \mathit{id} \; (R) \sep \const(s_1, s_2) \sep  \swap(\ell_1, \ell_2)
+\sep \ell_1 \cdot \ell_2 \; |  \; (\ell_1 \sep \ell_2) \sep \ell^* \; | \;
+\ell_1 \; ; \;  \ell_2,$$ where $R$ ranges over regular expressions and $s$
+ranges over character strings.
+
+The $\mathit{\const}(s, t)$ lens replaces the string $s$ with $t$ in the source
+data in the forward direction, and $t$ with $s$ in the target data in the
+backward direction, while $\mathit{id}(R)$ applies the identity function to the
+source and target  in $\mathcal{L}(R)$ in both directions. The composition lens
+$\ell_1 \; ; \; \ell_2$ applies $\ell_1$ followed by then $\ell_2$ to the
+source in the forward direction, and applies $\ell_2$ followed by $\ell_1$ to
+the target in the backward direction. The lens $\ell_1 \cdot \ell_2$ first
+splits the string $s$ into $s_1$ and $s_2$, applies $\ell_1$ and $\ell_2$ to
+$s_1$ and $s_2$ to get $t_1$ and $t_2$ respectively, then concatenates $t_1$
+and $t_2$ and returns $t_1 \cdot t_2$ as the final result in the forward
+direction. $\ell_1 \cdot \ell_2$ operates similarly in the backward direction,
+but with $s, s_1$ and $s_2$ substituted for $t, t_1$ and $t_2$. The
+$\mathit{\swap} \; (\ell_1, \ell_2)$ lens operates like $\ell_1 \cdot \ell_2$,
+except that it swaps $t_1$ and $t_2$ before concatenating the two for a final
+result of $t_2 \cdot t_1$ in the forward direction. In the backward direction,
+$\mathit{\swap}(\ell_1, \ell_2)$ first undoes the \swap, then behaves like
+$cdot$. The $\ell_1 \; | \; \ell_2$ lens chooses to apply $\ell_1$ or $\ell_2$
+depending on whether the source (resp. target) data is matched by $\ell_1$ or
+$\ell_2$ in the forward (resp. backward direction). The $\ell^*$ lens splits the
+string $s$ into strings $s_1, \ldots, s_n$, applies $\ell_1$ to each $s_i$ to
+get $t_i$, and then concatenates each of the $t_i$'s for a final result of $t_1
+\cdot \ldots \cdot t_n$ in the forward direction. The iteration lens $\ell^*$
+operates similarly in the backward direction, but with $s, s_i$ substituted for
+$t, t_i$.
 
 The denotation of a lens $\ell_1$ is $\llbracket \ell_1 \rrbracket \subseteq
 \mathit{String} \times \mathit{String}$. If $(s_1, s_2) \in \llbracket \ell_1
@@ -1069,42 +1099,18 @@ The denotation of a lens $\ell_1$ is $\llbracket \ell_1 \rrbracket \subseteq
 \text{ such that } (r, s) \in \llbracket \ell_1 \rrbracket \text{ and } (s, t)
 \in \llbracket \ell_2 \rrbracket\}
 \end{align*}
-The $\mathit{\const}(s, t)$ lens replaces the string $s$ with $t$ in the source
-data in the forward direction, and $t$ with $s$ in the target data in the backward
-direction, while $\mathit{id}(R)$ applies the identity function to the
-source and target  in $\mathcal{L}(R)$ in both directions. The composition lens
-$\ell_1 \; ; \; \ell_2$ applies $\ell_1$ followed by then $\ell_2$ to the
-source in the forward direction, and applies $\ell_2$ followed by $\ell_1$ to
-the target in the backward direction. The lens $\ell_1 \cdot \ell_2$ first
-splits the string $s$ into $s_1$ and $s_2$, applies $\ell_1$ and $\ell_2$ to
-$s_1$ and $s_2$ to get $t_1$ and $t_2$ respectively, then concatenates $t_1$
-and $t_2$ and returns $t_1 \cdot t_2$ as the final result in the forward
-direction. $\ell_1 \cdot \ell_2$ operates similarly in the backward direction,
-but with $s, s_1$ and $s_2$ substituted for $t, t_1$ and $t_2$. The
-$\mathit{\swap} \; (\ell_1, \ell_2)$ lens operates like $\ell_1 \cdot \ell_2$,
-except that it swaps $t_1$ and $t_2$ before concatenating the two for a final
-result of $t_2 \cdot t_1$ in the forward direction. In the backward direction,
-$\mathit{\swap}(\ell_1, \ell_2)$ first undoes the \swap, then behaves like
-$cdot$. The $\ell_1 \; | \; \ell_2$ lens chooses to apply $\ell_1$ or $\ell_2$
-depending on whether the source (resp. target) data is matched by $\ell_1$ or
-$\ell_2$ in the forward (resp. backward direction). The $\ell^*$ lens splits the
-string $s$ into strings $s_1, \ldots, s_n$, applies $\ell_1$ to each $s_i$ to
-get $t_i$, and then concatenates each of the $t_i$'s for a final result of $t_1
-\cdot \ldots \cdot t_n$ in the forward direction. The iteration lens $\ell^*$
-operates similarly in the backward direction, but with $s, s_i$ substituted for
-$t, t_i$.
 
 Each bijective string lens $\ell$ has a type $\ell : R \Leftrightarrow S$ where
 $R$ and $S$ are regular expressions. If $\ell : R \Leftrightarrow S$, then the
 source language of $\ell$ is $\mathcal{L}(R)$ and the target language of $\ell$
-is $\mathcal{L}(S)$. Interestingly, with the bijective string lens type system,
-a lens $\ell : R \Leftrightarrow S$ can also be considered to be of type $\ell
-: R' \Leftrightarrow S'$ provided that $R$ (resp. $S$) can be proven to be
-equivalent to $R'$ (resp. $S$) from the star-semiring axioms (associativity and
-commutativity of | and $\cdot$, identity of the empty string $\epsilon$,
-distibutivity of $\cdot$ over |, annihilative property of $\varnothing$ with
-respect to $\cdot$, and that $R^* = \epsilon \; | \; R \cdot R* = \epsilon \; |
-\; R^* \cdot R$ for all $R$):
+is $\mathcal{L}(S)$. IThe final rule in the figure deserves special attention.
+It states that a lens $\ell : R \Leftrightarrow S$ can also be considered to be
+of type $\ell : R' \Leftrightarrow S'$ provided that $R$ (resp. $S$) can be
+proven to be equivalent to $R'$ (resp. $S$) from the star-semiring axioms
+(associativity and commutativity of | and $\cdot$, identity of the empty string
+$\epsilon$, distibutivity of $\cdot$ over |, annihilative property of
+$\varnothing$ with respect to $\cdot$, and that $R^* = \epsilon \; | \; R \cdot
+R* = \epsilon \; | \; R^* \cdot R$ for all $R$):
 
 \begin{prooftree}
 \AxiomC{$\ell_1 : R \Leftrightarrow S$}
@@ -1113,8 +1119,9 @@ respect to $\cdot$, and that $R^* = \epsilon \; | \; R \cdot R* = \epsilon \; |
 \TrinaryInfC{$\ell_1 : R' \Leftrightarrow S'$}
 \end{prooftree}
 
-The other typing rules for bijective string lenses are given in
-Figure~\ref{fig:lensrules}.
+\noindent
+This rule makes it significantly more difficult to synthesize a bijective lens
+from its type.\sam{Should we explain why?}
 
 \begin{figure}[t]
 \begin{center}
@@ -1176,8 +1183,9 @@ S_2$}
 \end{figure}
 
 \subsection{Syntax of QRE Lenses}
-Having given a brief overview of the class of bijective lenses, we now introduce
-the class of QRE lenses. The language of QRE lenses is given by following
+\label{subsec:qre-lenses-syntax}
+Having given a brief overview of the class of bijective string lenses, we now
+introduce the class of QRE lenses. The language of QRE lenses is given by following
 grammar:
 $$ q := \kw {id}(R) \sep  \kw{const}(r, s) \sep q_1 \cdot q_2 \sep
 \kw{swap}(q_1, q_2) \sep (q_1 \sep q_2) \sep q^* \sep q_1 \; ; \; q_2 \sep
@@ -1202,24 +1210,8 @@ that maps between
 let bib_to_end_q : (lens in bibtex $\Leftrightarrow$ endnote) =  rquot (lquot(bibtex, bib_to_end), endnote)
 \end{lstlisting}
 
-\iffalse
-The difference between QRE lenses and Boomerang quotient lenses lies in the
-typing judgements. More concretely, each QRE lens $q_1$ has a type $q_1 : c
-\Leftrightarrow Q_1$ where $c, Q_1$ are QREs. In contrast, the approach used to
-type quotient lenses in Boomerang is to classify equivalences according to
-whether they are or are not the equality relation. This type system is based on
-two observations: first, that most quotient lenses originate as lifted basic
-lenses, and therefore have types whose equivalence relations are both equality;
-and second, that equality is preserved by many of the quotient lens
-combinators. Foster et al also discuss a second possible approach to typing
-quotient lenses, where equivalence relations are represented by rational
-functions that induce them. While this second approach is more refined than the
-first, Boomerang favours the first approach since the second appears to be too
-expensive to be useful in practice~\cite{quotientlenses}.
-\fi
-
 \subsection{Semantics of QRE Lenses}
-
+\label{subsec:qre-lenses-semantics}
 Each QRE lens $q$ has a type $q : Q_1 \Leftrightarrow Q_2$ where $Q_1, Q_2$ are
 QREs. If $q : Q_1 \Leftrightarrow Q_2$, then the source format is described by
 $W(Q_1)$ and the canonical set of representative for the source data is
@@ -1390,13 +1382,10 @@ bijective lens $\ell : K(Q_1) \Leftrightarrow K(Q_2)$ such that:
 \end{align*}
 \end{theorem}
 \begin{proof}
-By straightforward induction on the derivation
-$q_1 : Q_1 \Leftrightarrow Q_2$. Since bijective lenses are closed under strongly unambiguous
-regular operators, the tricky case is composition.  The composition case is
-more involved since we need to show that we can get rid of the canonizers in
-the middle:
-
-\sam{TODO: Put a diagram here to show what you mean.}
+The proof follows by induction on the derivation of $q : c \Leftrightarrow c$.
+The most interesting part of the proof is the case for functional composition
+as we must demonstrate that it is possible to eliminate the canonizers in the
+middle of the term.
 
 The derivation rule and denotation for composition are as follows:
 \begin{prooftree}
