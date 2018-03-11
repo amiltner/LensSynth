@@ -291,6 +291,9 @@ Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
 \section{Background: Bijective String Languages}
 \label{sec:background}
+\ksf{We are inconsistent in how we typeset get/put.  Sometimes we use
+codefont, sometimes we use italics of various flavors, and sometimes
+we don't do anything distinctive.  It would be good to be consistent!}
 Before describing QREs and QRE lenses, we briefly review bijective
 string lenses. Consider a bidirectional transformation that converts
 between \bibtex{} citation records such as
@@ -416,6 +419,13 @@ and internal formats.
 
 \subsection{Specifying \bibtex{} Using QREs}
 \label{subsec:qre-expressions}
+\ksf{Are these QRE combinators or QRE lens combinators?  
+We are currently mushy about this distinction.  
+The section needs a pass to clarify this point.
+The headers of this section and the next imply that this section is
+about QREs and the next section is about QRE lenses, but this section
+is where we introduce the QRE lens combinators, right?  If so, we need
+to do something to make the structure clearer.}
 
 In this subsection, we develop a QRE specification of \bibtex{}
 records, introducing various QRE combinators along the way. 
@@ -444,7 +454,7 @@ tweaking stage.}
 \fi
 
 Sometimes there are multiple disjoint representations of the same data.
-In such situations, the ARE \kw{squash} combinator creates a QRE that
+In such situations, the QRE \kw{squash} combinator creates a QRE that
 allows external data to be in either format, and converts any
 data in the first format to the second.
 For instance, assume that
@@ -561,28 +571,31 @@ let bibtex = "@book{" . bib_fields . "}"
 \caption{QRE specification of \bibtex{} records. \ksf{Is all this code
 correct?  Does it run through the system correctly?  I'm suspicious of
 the comma\_to\_space definition which seems to be recurisive.  If it's
-correct, we should comment on it.}}
+correct, we should comment on it.}\ksf{In what sense is this a QRE
+spec vs a QRE lens spec?}}
 \label{fig:example-qre}
 \end{figure}
 
 \subsection{QRE Lenses and QRE Lens Synthesis}
 \label{sec:examplesynth}
-At this point we already have a tool for synthesizing bijective string lenses from a
-pair of regular expressions and a set of example input-output pairs, as well as
-the language of QREs for defining equivalence relations on regular expressions.
-An obvious next step in simplifying the quotient lens programming is thus to use
-the bijective string lens synthesis procedure as a subroutine for a quotient lens
-synthesis procedure. This new procedure should take two QREs and a set
-of example input-output pairs as input, compute the canonical data formats on
-both sides of the lens from the pair of QREs, map the example input-output pairs
-to their canonical representatives to get a set of examples in canonical form,
+At this point we have a tool for synthesizing bijective string lenses from a
+pair of regular expressions and a set of example input-output pairs
+({\em Optician}), 
+and we have a way of defining regular expressions with equivalence
+relations indicating the essential information (QREs).
+A tantalyzing possibility would be to use the bijective string lens
+synthesis procedure as a subroutine for a quotient lens synthesis procedure. 
+This new synthesizer would take as input source and target QREs and 
+example input-output pairs, 
+compute the canonical source/target formats from the QREs, 
+map the example input-output pairs to their canonical representations,
 and then invoke the bijective string lens synthesis procedure on the canonical data
-formats and the new set of examples that are in canonical form.
+formats and the canonical examples.
 
-Indeed this basic idea is what motivates our definition of {\em QRE Lenses}.
-Intuitively, just like Boomerang's quotient lenses, our QRE lenses are bijective
-lenses with ``canonizers at the edges''---Figure~\ref{fig:attheedges} presents
-the architecture of each lens.
+Indeed this idea is what motivates our definition of {\em QRE lenses}.
+Intuitively, our QRE lenses are bijective lenses with ``canonizers at the edges,''
+just like Boomerang's quotient lenses. 
+Figure~\ref{fig:attheedges} depicts the architecture of QRE lenses.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.7\textwidth]{canonizers-outside}
@@ -590,46 +603,47 @@ the architecture of each lens.
 \label{fig:attheedges}
 \end{figure}
 Every QRE lens $q_1$ has a type $q_1: Q_1 \Leftrightarrow Q_2$ where $Q_1$ and $Q_2$
-are QREs. In the get direction, a QRE lens $q_1: Q_1 \Leftrightarrow Q_2$ uses the
-source QRE $Q_1$ to compute a unique representative for the data modulo the
+are QREs. In the {\em get} direction, a QRE lens $q_1: Q_1 \Leftrightarrow Q_2$ uses the
+source QRE $Q_1$ to compute a canonical representative for the data modulo the
 equivalence relation defined by $Q_1$ and then applies the $\get$ function of a
-bijective string lens $\ell_1$ to this representative. In the backward direction, $q_1$
-operates similarly, but using the view QRE $Q_2$ and the $\lput$ function of
+bijective string lens $\ell_1$ to this representative. In the {\em put} direction, $q_1$
+operates similarly, but using the QRE $Q_2$ and the $\lput$ function of
 $\ell_1$.
 
 Because the QREs $Q_1$ and $Q_2$ determine the internal formats for data after
 canonization, and because the algorithm for synthesizing bijective string lenses is
 directed by these formats, $Q_1$ and $Q_2$ are all that is required to
-synthesize QRE lenses end-to-end. Indeed, we structured QRE lenses as bijective
-lenses with canonizers at the edges, precisely to facilitate the use of this
-synthesis algorithm.
+synthesize QRE lenses end-to-end. 
 
-On the other hand, our restriction that canonizers appear only at the edges
-raises a key technical question:  Are we limiting the expressiveness of our
-transformations by demanding all programs fit into this normal form?\bcp{I wish
-we could have previewed this issue a bit more in the introduction, since it is
-our main contribution.}  It turns out that we are not: any lens that uses
-canonizers internally can be transformed into a lens that uses canonizers at
-the edges. The main technical contribution of this paper is a proof of this
-fact.
-
-This technical investigation justifies replacing manually constructed lenses
-using the QRE lens combinators with synthesized QRE lenses with canonizers at
-the edges. For instance, after defining the \bibtex{} and EndNote QREs and
-storing them in the variables \cd{bibtex} and \cd{endnote} respectively, then
+However, our restriction that canonizers appear only at the edges
+raises a key technical question: Are we limiting the expressiveness of
+our transformations by demanding all programs fit into this normal
+form?  It turns out that we are not: any lens that uses canonizers
+internally can be transformed into a lens that uses canonizers only at
+the edges. The main technical contribution of this paper
+(Theorem~\ref{normal form})
+is a proof of this fact.
+This technical result justifies 
+using synthesis to produce QRE lenses instead of manually writing
+them,
+which can lead to substantial savings in program complexity.
+For instance, after defining the \bibtex{} and EndNote QREs and
+binding them to the variables \cd{bibtex} and \cd{endnote} respectively, then
 all the code in Figure~\ref{fig:example-lens} may be replaced by a single call
 to the synthesis prodedure:
-
+\ksf{What is the notation ``lens in'' below?  We should explain it
+intuitively here.}
 \begin{lstlisting}
 let bib_to_end : (lens in bibtex $\Leftrightarrow$ endnote) =
 synth bibtex $\Leftrightarrow$ endnote using {(bib_example, end_example)}
 \end{lstlisting}
-\noindent Here, the generated  quotient lens synchronizes \cd{bibtex} and
+\noindent 
+Here, the generated quotient lens synchronizes \cd{bibtex} and
 \cd{endnote} formats, using \cd{bib_example} and \cd{end_example} (the two
 concrete example strings given at the beginning of this section) to
 disambiguate. In addition, and as we saw earlier with the definition of
 \cd{c_to_s}, the synthesis procedure itself can be used to create lenses that
-are in turn used to define other QREs.  The ability to intermix QRE
+are in turn used to define other QREs.  The ability to interleave QRE
 specification with QRE lens synthesis yields a powerful and flexible way of
 creating bidirectional transformations.
 
