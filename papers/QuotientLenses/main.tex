@@ -850,6 +850,7 @@ w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
 \label{fig:relations}
 \end{figure}
 \subsection{Well Formed QREs}
+\label{subsec:well-formed-qres}
 \subsubsection{Completeness of {\em normalize}}
 Before we present the full inference rules, for QREs, we discuss the {\em
 normalize} QRE which is special in two main ways, the first of which has to do
@@ -1810,101 +1811,168 @@ were exceptionally large, requiring conversions between over 40 fields, not due
 to an overhead from synthesizing from QREs.
 \section{Related Work}
 \label{relwork}
-
-\iffalse
-Bidirectional transformations have been used in diverse areas of computing
-where they arise as parsers and pretty printers, marshallers
-and unmarshallers, serializers and deserializers, database views and view
-updaters and many others\sam{TODO put citations}. Such transformations have
-been extensively studied since they were proposed as a solution to the classical
-{\em view-update problem} in the database community, where the challenge is to
-derive a program that extracts a view of data from a source, as well as a
-program that folds view updates back into the source safely and correctly.
-\fi
 This paper builds on the work of Foster et al~\cite{quotientlenses} who
 introduced the theory of quotient lenses and implemented quotient lenses as a
 refinement of the bidirectional string processing language
-Boomerang~\cite{boomerang}.  
-In Boomerang, the source and target types are specified using regular
-expressions, and the equivalence relations are expressed using canonizers, which
-are functions that map elements of a regular language to their canonical
-representative\bcp{If their use of the word is exactly what we've been using
-throughout, then why define it?  Or, if we mean their exact set of
-expressible canonizers, rather than the core concept of canonizer, can we be
-precise about that distinction?}. Boomerang canonizers can express a very
-broad class of 
-equivalence relations between regular languages, but actually doing so is often
-difficult with complicated equivalence relations. For instance, Boomerang's
-in-build permutation combinator does not account for separators in between the
-regular expressions\bcp{This sounds like a kind of trivial distinction.}. Also, this combinator permutes regular expressions rather
-than canonizers, thus making it difficult to express nested permutations that
-occur in many data formats, especially XML and XML-like formats.
+Boomerang~\cite{boomerang}. As we mentioned in
+Section\cref{subsec:well-formed-qres}, all our QRE combinators can be expressed
+using just the {\em normalize} combinator, which is one of the canonizer
+primitives that Boomerang already supports. Also, all our QRE lens combinators
+are already supported in Boomerang. Consequently Boomerang quotient lenses are
+at least as expressive as our language of QRE lenses. 
 
-Foster et al.\relax also discuss other bidirectional programming
-languages that support quotienting of data including XSugar~\cite{xsugar},
-biXid~\cite{bixid} and X/Inv~\cite{Hu2004,Mu2004,Mu2006}.\bcp{The fact that
-  Fosater et al discuss these things is not germane to the present
-  discussion.  We need to make our own comparisons (unless they are
-  exactly the same, in which case we can just refer to Foster et al.).}
-XSugar programs 
-bidirectionally convert data stored in XML and ASCII formats respectively, with the
-transformations specified by a pair of unambiguous grammars. The quotienting
-occurs on the XML side by use of a generic canonizer that standardizes the
-representation of trees. Well-formed XSugar programs are guaranteed to be
-bijective modulo an equivalence relation that captures XML normalization. biXid
-programs convert between pairs of XML documents, with the XML formats specified
-using a pair of grammars as in XSugar. However, biXid grammars can be ambiguous.
-This ambiguity is what allows biXid to express equivalences on the data.
-Finally, Foster et al discuss a possible connection with the languages
-X and Inv which support a primitive duplication combinator that does not work
-well with the lens laws, but can be expressed using Boomerang quotient
-lenses.\bcp{Same comment.}
+Boomerang's canonizers allow one to canonize a regular language $R$ to by
+mapping it to another regular language $S$ which may not be contained in $S$.
+Formally, given sets $C$ and $B$ and an equivalence relation on $B$, Foster et
+al defined a {\em canonizer} $q$ from $C$ to $B/{\sim_B}$ to be a pair of
+functions $q.\kw{canonize} : C \longrightarrow B$ and $q.\kw{choose} : B
+\longrightarrow C$ such that for every $b \in B$,
+$$q.\kw{canonize} \; (q.\kw{choose} \; b) \sim_B \; b$$
+This definition gives allows much more latitude for defining canonizers than
+QREs. For example, if $\sim_B = \kw{Tot}(B)$, the equivalence relation that
+relates every element in $B$ to every other element in $B$, then every function
+from $C$ to $B$ is a canonizer.
 
-\BCP{Are there really no bidirectional languages since 2008 that support any
-form of quotienting??}
+Because of this extra elbow-room, Boomerang has two primitive {\em duplication}
+quotient lenses, the first of which can be derived using the following inference
+rule,
+\begin{prooftree}
+\AxiomC{$\ell : C/{\sim_C} \Leftrightarrow A_1/{\sim_{A_1}}$}
+\AxiomC{$f : C \longrightarrow A_2$}
+\AxiomC{$A_1 \cdot^! A_2$}
+\AxiomC{$\sim_A = \sim_{A_1} \cdot \kw{Tot}(A_2)$}
+\QuaternaryInfC{$\kw{dup}_1 \ell \; f \; : \; C/{\sim_C} \Longrightarrow A_1
+\cdot A_2/{\sim_A}$}
+\end{prooftree}
+\begin{align*}
+(\kw{dup}_1 \; \ell \; f).\get \; c &= (\ell.\get \; c) \cdot (f \; c)\\
+(\kw{dup}_1 \; \ell \; f).\lput \; (a_1 \cdot a_2) \; c &= \ell.\lput \; a_1 \; c\\
+(\kw{dup}_1 \; \ell \; f).\create \; (a_1 \cdot a_2) &= \ell.\create \; a_1
+\end{align*}
+wiht the symmetric $\kw{dup}_2$ combinator discarding the first copy instead of
+the second in the \lput/\create direction. 
 
-As far as synthesis goes, though there is a good deal of recent research on
-synthesizing unidirectional string
-transformations~\cite{singh2012learning,le-pldi-2014,gulwani-popl-2014,perelman2014test,Singh:blinkfill},
-the system Optician, which we introduced in ~\cite{optician}, is the first attempt
-to synthesize bidirectional transformations. In that
-publication, we\bcp{confusing: Not the same ``we''!} compared Optician to
-two of these unidirectional string 
-transformers, Flash Fill~\cite{gulwani-popl-2014} and
-FlashExtract~\cite{le-pldi-2014}, and found that these tools were unsuccessful
-in synthesizing the complex transformatiunons that can be expressed in Optician.
+Boomerang's more general definition for canonizers also allows quotient lenses
+to be used as canonizers by using the taking the \kw{canonize} function to be
+the \get component of a lens and the \kw{choose} function to be its \create
+component. Naturally, QREs also take advantage of this ability to use lenses as
+canonizers by allowing for user-defined functions to be used by the \kw{squash}
+and \kw{normalize} combinators. Moreover, the added functionality of
+synthesizing lenses further makes it easier to define canonizers, as well as
+lenses.
 
-\bcp{This paragraph seems redundant.}While Optician improved on prior effors
-at synthesizing unidirectional string 
-transformers and introduced synthesis for bidirectional string transformations,
-Optician was only able to synthesize fully bijective data transformations. Our
-new system \Name{} improves on Optician in that \Name{} loosens this
-restriction, and is able to synthesize data which is bijective when put in
-canonical form. \Name{} is therefore a refinement of Optician since the
-new synthesis algorithm (i.e. the quotient lens synthesis algorithm) restricted
-to ``pure'' regular expressions degenerates to the synthesis algorithm that
-we introduced in Optician. Indeed, as we mentioned in the evaluation section,
-\Name{} was able to synthesize all of Optician's benchmarks at a speed
-competitive with Optician, though there was additional overhead in calculating
-the whole language $W(c)$ and the kernel language $K(c)$ of QREs, which
-resulted in a very slight decrease in performance.
+Foster et al also discuss other bidirectional programming languages that
+support quotienting of data including XSugar~\cite{xsugar}, biXid~\cite{bixid}
+and X/Inv~\cite{Hu2004,Mu2004,Mu2006}; we refer the reader to the related work
+section in \cite{quotientlenses} for this discussion.
 
-Much of the research in synthesis assumes that the synthesizer is provided with
-a collection of examples. Optician and Optometrist differ in that they requires
-that the programmer supplies both examples {\em and} format descriptions in the
-form of regular expressions or QREs.\bcp{But we are far from the only ones
-  to consider type-based synthesis!!}  There is a trade-off here.  On the one
-hand, a user must have some programming expertise to write regular expression
-(or QRE) specifications, and it requires some work. On the other hand, such
-specifications provide a great deal of information to the synthesis system,
-which decreases the number of examples needed (often to zero), makes the system
-scale well, and allows it to handle large, complex formats.  By providing these
-format specifications, the synthesis engine does not have to both infer the
-format of the data as well as the transformations on it, obviating the need to
-infer tricky formats like those involving nested iterations. Furthermore, by
-focusing on bidirectional transformations, we limit the space of synthesized
-functions to bijective ones, reducing the search space, and the expressiveness
-of the search space.
+Another language which supports quotenting is BiFluX~\cite{pacheco2014biflux}, a
+bidirectional functional update language for XML. BiFluX is inspired by
+the FLUX XML update language~\cite{cheney2008flux}, and adopts a bidirectional
+programming by update paradigm, where a program succintly and precisely
+describes {\em how} to update a source document with a target document, in an
+intuitive way, such that there is a unique ``inverse'' source query for each
+update program. The source and view types of BiFluX programs are given by
+regular expressions.
+
+In BiFluX, a regular expression $R$ is said to be unambiguous if there is only
+one way to parse a {\em flat} value of type $R$ to a stuctured value of type
+$R$; here a flat value of $R$ is a value of $R$ with all left/right tags,
+parantheses and list brackets removed. The bidirectional part of BiFluX involves
+transforming source regular expressions to view regular expressions so that
+data sequences described by the two types can be matched. This process can
+result in intermediate types that are unambiguous, and this ambiguity can cause
+unintended updates to be made the source, especially when information is
+discared in this process. The typechecking phase of a BiFluX program therefore
+includes a {\em type normalization} phase that tries to normalize a source types
+using automata reduction techniques, and derive a lens between ambiguous and
+unambiguous types. On the view side, this phase only tries to normalize view
+types into isomorphic types.
+
+{\em Formlenses}~\cite{rajkumar2014lenses} are a variant of lenses that perform
+transformations up to equivalence. Formlenses are a bidirectional generalization
+of {\em formlets}~\cite{cooper2008essence}. Formlets are a high-level
+abstraction for building Web forms, and can be represented in Haskell as
+functions that take a source of names---concretely, an \kw{Int}---as an
+argument and produce a triple consisting of an HTML document, a {\em collect}
+function, and a modified namesource:
+\begin{center}
+\begin{lstlisting}
+type Formlet a = Int -> (Html, Env -> a, Int)
+\end{lstlisting}
+\end{center}
+The names of any generated form fields are drawn from the namesource, and the
+{\em collect} function looks up precisely these names.
+Rajkumar et. al.~\cite{rajkumar2014lenses} observe that formlets are a useful
+abstraction, but they only address one half of the problem---they make it easy
+to construct a function that {\em produces} a value of type \kw{a}, but they do
+not provide a way to describe a function that {\em consumes} a value of type
+\kw{a} and embeds it in a form. A different way to think about this problem is
+to observe that forms are often used to present an {\em updateable view} of the
+data source. Therefore, Rajkumar et. al. leverage the power of bidirectional
+transformations to define formlets that behave like updatable views, yielding
+the abstraction of formlenses.
+
+They \kw{Formless} type is given by,
+\begin{center}
+\begin{lstlisting}
+type Formlens a = Maybe a -> [Int] -> (Html,Env -> Maybe a,[Int])
+\end{lstlisting}
+\end{center}
+with the differences between this definition and the standard definition for
+formlets being an extra \kw{Maybe a} parameter that provides an optional initial
+value of the form, the namesource being changed to a list of integers, and the
+{\em collect} function being allowed to return an optional value.
+
+Rajkumar et. al. consider only formlenses that are well-formed in that a
+well-formed formlens should only draw names from the namesource provided as an
+argument, and the {\em collect} function should only look up corresponding
+names.
+Under this assumption, Rajkumar et. al. define what it means for a formlens to
+be well behaved by defining a version of the classical GETPUT and PUTGET laws
+for formlenses. These laws hold modulo an equivalence relation on environments,
+since a formlens may be invoked with two separate namespaces, but this should
+not affect the value stored in the information encapsulated in the type $a$.
+Consequently, the GETPUT and PUTGET laws defined for formlenses are in spirit
+analogous to the GETPUT and PUTGET laws for quotient lenses, since they hold up
+to renaming of environment variables.
+
+\iffalse
+Well-behaved formlenses satisfy properties that are analogous to the classical
+GETPUT and PUTGET law. If {\em extract} is a function from \kw{Html} to \kw{Env} that
+extracts an environment containing the names and values of all the form fields
+from an HTML document, then a formlens $f$ satisfies the Acceptability law if
+for any $v$ of type $a$, $n$ of type \kw{Int} and environment $e$ of type
+\kw{Env} if $f$ applied to \kw{Just v} and $n$ yields an HTML file $h$ and a
+{\em collect} function $c$ where \kw{extract h} is contained in $e$, then
+collect $e$
+\fi
+
+Finally, in Cunha~\cite{cunha2010relational} uses relational algebra to
+encompass many of the existing approaches to bidirectional programming. For
+example, using $\cdot$ to express relational composition, the GETPUT law states
+that $\get \cdot \lput \subseteq \sim_V \cdot \pi_1$, where $\pi_1$ is the
+projection onto the first factor. In addition to its generality, this
+``point-free'' approach to defining bidirectional transformations has the
+advantage of creating equational proofs of lens laws that proceed by folding
+and unfolding combinator laws.
+
+Now we turn to related work in synthesis. Much of the research in synthesis
+assumes that the synthesizer is provided with a collection of examples. Optician
+and Optometrist differ in that they require that the programmer supplies both
+examples {\em and} format descriptions in the form of regular expressions or
+QREs, though we are far from the only ones to consider type-based synthesis.
+There is a trade-off here.  On the one hand, a user must have some programming
+expertise to write regular expression (or QRE) specifications, and it requires
+some work. On the other hand, such specifications provide a great deal of
+information to the synthesis system, which decreases the number of examples
+needed (often to zero), makes the system scale well, and allows it to handle
+large, complex formats.  By providing these format specifications, the 
+synthesis engine does not have to both infer the format of the data as well as
+the transformations on it, obviating the need to infer tricky formats like
+those involving nested iterations. Furthermore, by focusing on bidirectional
+transformations, we limit the space of synthesized functions to bijective ones,
+reducing the search space, and the expressiveness of the search space.
 
 There are many other recent results showing how to synthesize functions from
 type-based
