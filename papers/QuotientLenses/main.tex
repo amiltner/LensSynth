@@ -222,10 +222,22 @@ Our solution to this shortcoming is to introduce {\em Quotient Regular
 Expressions} (QREs), which enable programmers to simultaneously specify a
 regular expression and a set of canonical representatives for matching
 strings.  Given an QRE, we can automatically infer the corresponding
-canonization functions.  
-\ksf{Define comma\_name here as a really simple example? }
-\afm{Right now comma\_name is just a regular expression.  Further details in Fig
-2}
+canonization functions.  As an example, consider the following QRE for writing
+author names:
+%
+\begin{lstlisting}
+let wsp_sp = project wsp $\to$ " "
+let comma_name = first_name . "," . wsp_sp . last_name
+\end{lstlisting}
+%
+In this example, \lstinline{wsp} is an existing regular expression for a
+nonempty sequence of whitespace characters, and \lstinline{first_name} and
+\lstinline{last_name} are existing regular expressions for first and last names.
+The QRE \lstinline{wsp_sp} is a QRE with the same underlying language as
+\lstinline{wsp}, but with a single canonical representative: \lstinline{" "}.
+This is then used to build up \lstinline{comma_name}, a QRE with an
+underlying language of two names, separated by a command and whitespace, where
+the names with a single space between them are canonical.
 
 The second drawback with writing quotient lenses in Boomerang is that
 even after specifying the four required data formats, the programmer must
@@ -359,9 +371,10 @@ let bib_to_end : (lens in bibtex $\Leftrightarrow$ end_note) = preamble . label 
 \caption{An example bijective lens \cd{bib_to_end} between data
 matching \cd{bibtex} and \cd{end_note} regular 
 expressions, which are omitted for brevity.  
-\iflater
+\ifdraft
 \bcp{And a readability suggestion:
-  define a named constant for a quote character.}\fi}
+  define a named constant for a quote character.}
+\fi}
 \label{fig:example-lens}
 \end{figure}
 
@@ -428,7 +441,8 @@ The section needs a pass to clarify this point.
 The headers of this section and the next imply that this section is
 about QREs and the next section is about QRE lenses, but this section
 is where we introduce the QRE lens combinators, right?  If so, we need
-to do something to make the structure clearer.}
+to do something to make the structure clearer.}\afm{I believe this are QRE
+combinators, so we should be good.}
 
 In this subsection, we develop a QRE specification of \bibtex{}
 records, introducing various QRE combinators along the way. 
@@ -443,7 +457,7 @@ are choosing one representative element from a set of possibilities.}\bcp{Or
 ``collapse''?}
 
 \begin{lstlisting}
-let p_wsp = project [ \n\t\r]$^+$ $\to$ " "
+let wsp_sp = project wsp $\to$ " "
 \end{lstlisting}
 \iflastminute
 \bcp{Can we display blanks as a distinct ``visible blank'' symbol
@@ -491,19 +505,6 @@ The first line above synthesizes a lens between \codefont{comma\_name} and
 second line extracts the \codefont{get} direction transformation from the lens,
 which is what we need for \kw{squash}.
 
-Another QRE primitive is the sequential composition combinator,
-written ``;''.
-For an example of its use, suppose we have already defined a QRE
-\codefont{comma_to_space} that accepts names in either space-separated
-or name-separated format and chooses the space-separated format as canonical.
-Suppose we have also already defined a
-QRE \codefont{project_in_space}, which projects away extra white space
-between the first and last name in the space-separated name format. 
-We can use the sequential composition combinator to combine these two QREs:
-\begin{lstlisting}
-let name = comma_to_space ; space_name_p
-\end{lstlisting}
-
 The permutation QRE combinator, \kw{perm}, allows data to be unordered. For example,
 the following instance of \kw{perm} allows label, author and title fields
 (which we assume have been defined earlier) to appear in any order.
@@ -518,8 +519,18 @@ permutation are conjoined by another QRE. For instance, below, we normalize
 whitespace between fields, leaving only a single newline.
 %
 \begin{lstlisting}
-let bib_fields = perm (label, bib_author, bib_title) with (project ("," .wsp+) $\to$ ",\n")
+let bib_fields = perm (label, bib_author, bib_title) with (project ("," . wsp) $\to$ ",\n")
 \end{lstlisting}
+
+Another QRE primitive is the sequential composition combinator, written ``;''.
+For an example of its use, suppose we have already defined a QRE,
+\lstinline{canonized_whitespace}, that accepts XML documents and chooses
+documents with no whitespace as canonical. Suppose that we also have defined a
+QRE, \lstinline{canonized_order}, which accepts whitespace-normalized XML
+documents, and chooses a specific ordering of XML elements as canonical. We can
+use the sequential composition combinator to combine these two QREs into
+\lstinline{canonized_whitespace ; canonized_order}, a QRE that accepts all XML
+documents, and chooses ordered XML documents without whitespace as canonical.
 
 The final QRE combinator is the \kw{normalize} combinator. This combinator
 allows a programmer to manually define a function $f$ which sends each
@@ -531,66 +542,22 @@ $s$ and $s'$ that match $R$, $s$ is equivalent to $s'$ if and only if
 $f(s) = f(s')$.
 
 For instance, assume that $f(s)=$ `` '' for all whitespace strings $s$. Then the
-project QRE \kw{p\_wsp} defined above can
+project QRE \lstinline{wsp_sp} defined above can
 be expressed using the normalize combinator as
-\lstinline{normalize (wsp+, " ", f)}.
+\lstinline{normalize (wsp," ", f)}.
 
 Figure~\ref{fig:example-qre} gives the complete QRE specification for the
 \bibtex{}.
 \begin{figure}
 \begin{lstlisting}
-let wsp = [ \n\t\r]
-
-(* define name representations with a space and with a comma *)
-let space_name = first_name . wsp+ . last_name
-let comma_name = last_name . "," . wsp+ . first_name
-
-(* synthesize a lens that maps comma representation to space representation *)
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
-let c_to_s = get l
-
-(* squash QRE maps comma_name to space_name *)
-let comma_to_space = squash comma_name $\to$ space_name using c_to_s
-
-(* map arbitrary whitespace into " " as a canonical representative *)
-let p_wsp = project wsp+ $\to$ " "
-
-(* Project away whitespace in space_name representation *)
-let space_name_p = first_name . p_wsp . last_name
-
-(* Compose the two QREs to get a canonical representation for a name *)
-let name = comma_to_space ; space_name_p
-
-(* define rest of bibtex fields *)
-let name_sep = p_wsp . "and" . p_wsp
-let bib_names = name . (name_sep . name)$^*$)
-let bib_author = "author = \"" . bib_names . "\""
-let title = word . (p_wsp . word)$^*$
-let bib_title = "title = {" . title . "}"
-
-(* allow any permutation of fields interspersed with arbitrary whitespace *)
-let bib_fields = perm (label, bib_author, bib_title) with (project ("," . wsp+) $\to$ ",\n")
-let bibtex = "@book{" . bib_fields . "}"
-\end{lstlisting}
-\caption{QRE specification of \bibtex{} records.\ksf{In what sense is this a QRE
-spec vs a QRE lens spec?}\afm{I don't really like the way this is set up.  The
-use of the sequential composition operator makes the QREs appear really
-operational, and in my opinion makes them seem less cool, and distinct from
-canonizers, than they actually are.  I include a proposed alternative in the
-next figure.  However, this would mean that the previous section which describes
-the sequential composition operator would require it be talked about without the
-concrete example.}}
-\label{fig:example-qre}
-\end{figure}
-
-\begin{figure}
-\begin{lstlisting}
 let wsp = [ \n\t\r]+
-let wsp_s = project wsp $\to$ " "
+let wsp_sp = project wsp $\to$ " "
+let last_name = [A-Z][a-z]
+let first_name = [A-Z][a-z]
 
 (* define name representations with a space and with a comma *)
-let space_name = first_name . wsp_s . last_name
-let comma_name = last_name . "," . wsp_s . first_name
+let space_name = first_name . wsp_sp . last_name
+let comma_name = last_name . "," . wsp_sp . first_name
 
 (* synthesize a lens that maps comma representation to space representation *)
 let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
@@ -600,9 +567,9 @@ let c_to_s = get l
 let name = squash comma_name $\to$ space_name using c_to_s
 
 (* define rest of bibtex fields *)
-let bib_names = name . (wsp_s . "and" . wsp_s . name)$^*$
+let bib_names = name . (wsp_sp . "and" . wsp_sp . name)$^*$
 let bib_author = "author = \"" . bib_names . "\""
-let title = word . (wsp_s . word)$^*$
+let title = word . (wsp_sp . word)$^*$
 let bib_title = "title = {" . title . "}"
 
 (* allow any permutation of fields interspersed with arbitrary whitespace *)
@@ -611,7 +578,7 @@ let bibtex = "@book{" . bib_fields . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records.\ksf{In what sense is this a QRE
 spec vs a QRE lens spec?}}
-\label{fig:example-qre-anders-proposal}
+\label{fig:example-qre}
 \end{figure}
 
 
