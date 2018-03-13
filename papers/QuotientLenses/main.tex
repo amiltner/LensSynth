@@ -903,7 +903,7 @@ of a QRE $Q$ as an equivalence relation on the regular language $W(Q)$.
 w \; \equiv_{\normalize{R_1}{R_2}{f}} \; w' &\iff&
 f(w)=f(w') \\
 w \; \equiv_{\id(R)} \; w' &\iff& w = w' \\
-w \; \equiv_{\project{R}{s}} \; w' && \text{for all }w, w'\\
+w \; \equiv_{\project{R}{s}} \; w' &\iff& True \\ % \text{for all }w, w'\\
 w \; \equiv_{\squash{Q_1}{Q_2}{f}} \; w' &\iff& f(w) \equiv_{Q_2} w'
 \text{ or } w \equiv_{Q_2} w' \\
 w \; \equiv_{Q_1 \; ; \; Q_2} \; w' &\iff& \exists k, k' \in
@@ -928,17 +928,16 @@ w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
 \caption{QRE Equivalence Relations}
 \label{fig:relations}
 \end{figure}
-\subsection{Ambiguity and Well Formed QREs}
+\subsection{Ambiguity and Well-Formed QREs}
 \label{subsec:well-formed-qres}
-An issue that we address before presenting the full set of inference
-rules for QREs is the issue of {\em ambiguity}, which appears in the
-premises of the inference rules for the regular combinators. If $Q_1$ and $Q_2$
-are QREs, then when applying the regular combinators to QREs, we require that
+
+To ensure that regular combinations of QREs are well-formed, we need
+to enforce a variety of {\em unambiguity} constraints.  
+Specifically, when applying regular combinators to QREs $Q_1$ and $Q_2$, we require that
 if a string $s$ matches any of the regular expressions $W(Q_1) \cdot W(Q_2)$,
 \quad $W(Q_1) \sep W(Q_2)$, \quad $W(Q_1)^*$, \quad $K(Q_1) \cdot K(Q_2)$,
 \quad $K(Q_1) \sep K(Q_2)$, \quad $K(Q_1)^*$, then $s$ matches that regular
 expression in only one way.
-
 Formally, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
 $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
@@ -954,14 +953,16 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 
 Strong unambiguity is necessary in the premises of the regular QRE combinators
 because it ensures that the canonizing function of a QRE is well-defined.
-For example consider the QRE \lstinline{"a"* . (project "a"* $\to$ "a")}. The
-behaviour of this QRE is not-well defined since the string
+For example, consider the QRE \lstinline{"a"* . (project "a"* $\to$ "a")}. The
+behaviour of this QRE is not well-defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"}
 depending on how \cd{"aaa"} is parsed. We also require that the regular
 combinators applied to the kernels of QREs be unambiguous since the underlying
 bijective string lens of a QRE lens operates on kernels, and bijective string lenses
 impose the same unambiguity restrictions so that they too are well defined as
 functions.
+
+\subsection{Well-formedness of QREs}
 
 Figure~\ref{fig:qrerules} gives the inference rules for deriving well-formed
 QREs.
@@ -982,9 +983,9 @@ QREs.
 \begin{prooftree}
 \AxiomC{$\wf{Q_i, Q}$}
 \RightLabel{(Perm)}
-\AxiomC{${\substack{\forall \sigma \neq \theta, \; W(c_{\sigma(1)}) \cdot W(Q)
-\cdot \ldots \cdot W(c_{\sigma(n)})\\ \cap W(c_{\theta(1)}) \cdot W(Q)
-\cdot \ldots \cdot W(c_{\theta(n)}) =\varnothing}}$}
+\AxiomC{${\substack{\forall \sigma \neq \theta, \; W(Q_{\sigma(1)}) \cdot W(Q)
+\cdot \ldots \cdot W(Q_{\sigma(n)})\\ \cap W(Q_{\theta(1)}) \cdot W(Q)
+\cdot \ldots \cdot W(Q_{\theta(n)}) =\varnothing}}$}
 \AxiomC{$K(Q_1) \cdot^! K(Q) \cdot^! \ldots \cdot^! K(Q) \cdot^! K(Q_n)$}
 \TrinaryInfC{$\wf{\perm{Q_1, \ldots, Q_n}{Q}}$}
 \end{prooftree}
@@ -1046,28 +1047,30 @@ QREs.
 \caption{Well-formed QREs}
 \label{fig:qrerules}
 \end{figure}
-As we already mentioned, the unambiguity conditions come into play when defining
-QREs using the regular combinators. For example, the (Concat) inference rule
-for concatenation says that the concatenation $Q_1 \cdot Q_2$ of QREs $Q_1$ and
-$Q_2$ is well formed only if the concatentions of $W(Q_1)$ and $W(Q_2)$, and
-$K(Q_1)$ and $K(Q_2)$ are unambiguous.
+The unambiguity conditions are pertinent when defining QREs using the
+regular combinators. For example, the (Concat) inference rule 
+says that the concatenation $Q_1 \cdot Q_2$ of QREs
+$Q_1$ and $Q_2$ is well formed only if the concatentions of $W(Q_1)$
+and $W(Q_2)$, and $K(Q_1)$ and $K(Q_2)$ are unambiguous.
 
 The most complicated inference rule is the (Perm) rule for the
 \kw{permutation} combinator. The second hypothesis for the
 Perm rule says that for any two different permutations $\sigma$
-and $\theta$, the languages $W(c_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(c_{\sigma(n)})$ and $W(c_{\theta(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(c_{\theta(n)})$ must be disjoint. This is because any string that matches the
-\kw{permutation} combinator matches the language $W(c_{\theta(1)}) \cdot
-W(Q) \cdot \ldots \cdot W(c_{\theta(n)})$ for some permutation $\theta$, so we
-require that these regular expressions be disjoint.
+and $\theta$, the languages $W(Q_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q_{\sigma(n)})$ and $W(Q_{\theta(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q_{\theta(n)})$ must be disjoint. This restriction is important
+because any string that matches the 
+\kw{permutation} combinator matches the language $W(Q_{\theta(1)}) \cdot
+W(Q) \cdot \ldots \cdot W(Q_{\theta(n)})$ for some permutation $\theta$, so we
+must require that these regular expressions be disjoint.
 %
 The third hypothesis says that the regular expression $K(Q_1) \cdot K(Q)
-\cdot \ldots \cdot K(Q) \cdot K(Q_n)$ must be unambiguous. This is because the
+\cdot \ldots \cdot K(Q) \cdot K(Q_n)$ must be unambiguous. This
+restriction arises because the
 underlying lens that maps to or from a \kw{permutation} QRE operates on
-the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$ which is
-the kernel of the \kw{permutation} QRE. As we mentioned, the underlying
-lens will require that the source and target regular expressions of the lens be
+the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$, 
+the kernel of the \kw{permutation} QRE. The underlying
+lens requires that the source and target regular expressions be
 unambiguous so that the lens can match strings uniquely.
 
 
