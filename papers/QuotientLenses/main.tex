@@ -40,10 +40,12 @@ cleveref}
 
 \lstset{ language=Caml, basicstyle=\linespread{0.8}\upshape\sffamily,
 keywordstyle=\upshape\sffamily\color{dkblue}, keepspaces=true,
-framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=false,
+framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
 commentstyle=\itshape\rmfamily,
-emph={synth,project,perm,squash,normalize,using,ins,del,lens},
-emphstyle=\upshape\sffamily\color{dkblue}, columns=fullflexible,
+emph={synth,project,perm,squash,normalize,using,ins,del,lens,let},
+emphstyle=\upshape\sffamily\color{dkred}, 
+columns=fullflexible,
+escapechar=\#,
 % BCP: I find this distracting:
 % stringstyle=\sffamily\color{dkred},
 mathescape, }
@@ -127,20 +129,22 @@ a transformation that ignores the order of fields in XML data, so
 that two XML files with the same fields but in different orders would be
 considered the same, allowing a single, simple lens to handle them both. 
 
-This paper simplifies the task of programming quotient lenses with
-three connected innovations.
+We offer three interconnected innovations to simplify the task of programming
+quotient lenses.  
 First, we introduce {\em quotient regular expressions} (QREs), to
 easily mark aspects of data formats that are
 inessential.  A QRE is an augmented regular expression that
 simultaneously defines a regular language and an equivalence
 relation on this language.  Variations within the same
 equivalence class are deemed inessential. 
-Next, we introduce {\em QRE lenses}---lenses mapping
+Next, we introduce {\em QRE lenses}, i.e., lenses mapping
 between QREs.
 Our key technical result is a proof that every QRE lens can be
-transformed into a QRE lens that has the form $c_1 \cdot \ell \cdot
-c_2$, where $c_1$ and $c_2$ are {\em canonizers} 
-and $\ell$ is a bijective transformation.  Intuitively,
+transformed into one of the form $c_1 ; \ell ;
+c_2^{-1}$, where $c_1$ and $c_2^{-1}$ are {\em canonizers}, $\ell$ is a bijective
+transformation, and $;$ is composition\iflastminute\bcp{$c_2^{-1}$ is ugly, but I think
+  we need the superscript for accuracy.  Perhaps calling them $c$ and $d$
+  instead of $c_1$ and $c_2$ would be better?}\fi.  Intuitively,
 the canonizers normalize data by picking a
 canonical representative of the relevant equivalence relations. 
 This theorem means we can push all normalization to the outer edges of a
@@ -166,15 +170,15 @@ Often, the same data is stored in more than one format. For example,
 bibliographic data may be stored in \bibtex{} or EndNote formats,
 spreadsheet data can be represented as either CSV and TSV files, and web
 APIs can return data as either JSON or XML objects.  When changes are
-made to data in one format, data in the other must be updated so the
-two representations continue to store the same information.
-One way to synchronize such data is to use \emph{lenses}~\cite{Lenses}, which
-are programs that simultaneously define pairs of functions for translating
+made one version, the data in the other must be updated so the
+two continue to represent the same information.
+One way to synchronize such data is to use \emph{lenses}~\cite{Lenses}, 
+programs that simultaneously define pairs of functions for translating
 the data from the source format to the target formant (the \emph{get}
-direction) and back again (the \emph{put} direction). Lenses are usually
-defined using domain-specific bidirectional languages that 
-ensure the specified lenses satisfy various \emph{lens laws} that
-guarantee how the \emph{put} and \emph{get} functions interact.
+direction) and back again (the \emph{put} direction). Lenses can be
+written in one of several domain-specific bidirectional languages that 
+guarantee various \emph{lens laws} constraining how the \emph{put} and
+\emph{get} functions must fit together. 
 
 \emph{Bijective lenses} are amongst the most restrictive. 
 A bijective lens $\ell : S \Leftrightarrow T$ specifies a bijection from
@@ -183,25 +187,26 @@ a source set $S$ to a target set $T$:
 \ell.\get \; (\ell.\lput \; t) = t \text{, and } \ell.\lput \; (\ell.\get \; s)
 = s
 \end{equation}
-Since these lenses demand that the \emph{get} and \emph{put} functions form a bijection, 
+Since the \emph{get} and \emph{put} functions form a bijection, 
 no information is lost during translation from one data format to another. 
-While this very strong guarantee can be useful, more often
-some of the information in one or both of the data formats is
+While this very strong guarantee can sometimes be useful, it is more common for 
+some of the details in one or both of the data formats to be
 superfluous. For instance, the number of white space characters
 between data items, the capitalization of various strings, the
 sequence of fields in a record, or the order of items in a list are
-often irrelevant.  Many
-data formats have their own ad hoc rules as well. In \bibtex{}, for example,
-an author can be specified as
-``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''---
-the specific choice does not matter.
+often irrelevant.  Also, many
+data formats introduce their own ad hoc conventions about formatting details
+that are taken to be inessential. In \bibtex{}, for example,
+an author can be specified either as 
+``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''.
 
-{\em Quotient lenses}~\cite{quotientlenses} loosen the restrictions of
+{\em Quotient lenses}~\cite{quotientlenses} loosen the strong restrictions of
 bijective string lenses by including equivalence
-relations on the source and target formats so that the round-tripping lens laws
-hold modulo these equivalences rather than modulo equality. Quotient lenses thus
-make it possible to synchronize many more data formats than would otherwise be
-possible by ignoring details deemed inessential. 
+relations on the source and target formats and requiring that the
+round-tripping lens laws 
+hold  modulo these equivalences, rather than ``on the nose.'' Quotient lenses 
+make it possible to synchronize many more data formats than is possible with
+plain bijective lenses\bcp{Do we justify this claim later?}. 
 
 The bidirectional programming language {\em
 Boomerang}~\cite{boomerang} is the only language we know of that
@@ -228,6 +233,11 @@ regular expression and a set of canonical representatives for matching
 strings.  Given an QRE, we can automatically infer the corresponding
 canonization functions.  As an example, consider the following QRE for writing
 author names:
+\iflastminute
+\bcp{I'd love to use a visible space symbol for important space characters
+  -- this would make the code examples very much clearer!  But it will
+  require a bit of hacking: We can use showstringspaces=false}
+\fi
 %
 \begin{lstlisting}
 let wsp_sp = project wsp $\to$ " "
@@ -307,9 +317,11 @@ Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
 \section{Background: Bijective String Languages}
 \label{sec:background}
+\iflastminute
 \ksf{We are inconsistent in how we typeset get/put.  Sometimes we use
 codefont, sometimes we use italics of various flavors, and sometimes
 we don't do anything distinctive.  It would be good to be consistent!}
+\fi
 Before describing QREs and QRE lenses, we briefly review bijective
 string lenses. Consider a bidirectional transformation that converts
 between \bibtex{} citation records such as
@@ -373,9 +385,9 @@ let bib_to_end : (lens in bibtex $\Leftrightarrow$ end_note) = preamble . label 
 \caption{An example bijective lens \cd{bib_to_end} between data
 matching \cd{bibtex} and \cd{end_note} regular 
 expressions, which are omitted for brevity.  
-\ifdraft
-\bcp{And a readability suggestion:
-  define a named constant for a quote character.}
+\iflastminute
+\bcp{a possible readability suggestion: define a named constant for a quote
+  character.  (Not sure if this makes sense, or if it improves things...)}
 \fi}
 \label{fig:example-lens}
 \end{figure}
@@ -468,7 +480,7 @@ on the showstringspaces option at the top, but that doesn't do everything we
 want--it only works inside quotes.  But the latex ``textvisiblespace'' command
 produces a single one, and the lstlisting ``escapechar'' option will allow
 us to use it inside listings.  But we should save this for the final
-tweaking stage.}
+tweaking stage.}\bcp{Done, I think.}
 % Here is an example: if you set escapechar=\%, you could use it inside the
 % listings as follows: \begin{lstlisting} t %\leftarrow% 0 \end{lstlisting}
 \fi
@@ -543,7 +555,8 @@ relation defined by the {\em fibres} of $f$; that is, for all strings
 $s$ and $s'$ that match $R$, $s$ is equivalent to $s'$ if and only if
 $f(s) = f(s')$.
 
-For instance, assume that $f(s)=$ `` '' for all whitespace strings $s$. Then the
+For instance, assume that $f(s)=$ ``\textvisiblespace'' (a space
+character) for all whitespace strings $s$. Then the 
 project QRE \lstinline{wsp_sp} defined above can
 be expressed using the normalize combinator as
 \lstinline{normalize (wsp," ", f)}.
@@ -552,7 +565,7 @@ Figure~\ref{fig:example-qre} gives the complete QRE specification for the
 \bibtex{}.
 \begin{figure}
 \begin{lstlisting}
-let wsp = [ \n\t\r]+
+let wsp = [#\,\textvisiblespace\,#\n\t\r]+
 let wsp_sp = project wsp $\to$ " "
 let last_name = [A-Z][a-z]
 let first_name = [A-Z][a-z]
@@ -660,7 +673,12 @@ creating bidirectional transformations.
 A Quotient Regular Expression (or QRE) is a regular expression $R$ augmented
 with syntax that expresses an equivalence relation on the language of $R$. This
 section describes in further detail the set of QRE combinators that we described
-in \cref{sec:example}.\saz{Why does the ``cref'' macro not capitalize Section?}
+in \cref{sec:example}.
+\iflastminute 
+\saz{Why does the ``cref'' macro not capitalize Section?}
+\bcp{Dunno.  Because SIGPLAN does not want it to??  But maybe we should be
+  using autoref instead anyway...}
+\fi
 
 \subsection{Syntax of Semantics of QREs}
 Formally, the language of Quotient Regular Expressions (QREs) is given by the
@@ -727,7 +745,8 @@ is surjective and idempotent is in general undecidable.  This means that a
 programmer wishing to use \kw{normalize} must discharge strong proof
 obligations, which is cumbersome in practice.\footnote{In our implementation we allow a programmer to use \kw{normalize} at their
 own risk without checking these side conditions as an ``escape hatch'' for the
-case when other QRE combinators are insufficient.}
+case when other QRE combinators are insufficient.\bcp{Do we use this in any
+  of the programs we've written?}}
 
 The remaining QRE combinators provide simpler, more compositional ways of
 building canonizers.  Nevertheless, the \kw{normalize} combinator gives a
