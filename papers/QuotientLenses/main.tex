@@ -29,14 +29,15 @@
 % management selection; % see authors.acm.org) by publisher for camera-ready
 % submission; % use 'none' for review submission.
 \setcopyright{none}
-\usepackage{amsmath, amssymb, verbatim, enumerate, graphicx, centernot, tikz,
-array, mathtools, bussproofs, stmaryrd, enumitem, stackengine, subcaption,
-cleveref}
+\usepackage{algorithm, amsmath, amssymb, verbatim, enumerate, graphicx,
+  centernot, tikz, array, mathtools, bussproofs, stmaryrd, enumitem,
+  stackengine, subcaption, cleveref}
 \captionsetup{compatibility=false}
 \usepackage{relsize}
 \usepackage{listings}
 \usepackage{proof}
 \usepackage{xspace}
+\usepackage[noend]{algpseudocode}
 
 \lstset{ language=Caml, basicstyle=\linespread{0.8}\upshape\sffamily,
 keywordstyle=\upshape\sffamily\color{dkblue}, keepspaces=true,
@@ -351,10 +352,10 @@ combinators to define a lens \cd{bib_to_end} that transforms data
 in \bibtex{} to EndNote (and vice versa). 
 \begin{figure}[t]
 \begin{lstlisting}
-let preamble : (lens in "@book{" $\Leftrightarrow$ "%0 Book\n%F ") =
+let preamble : "@book{" $\Leftrightarrow$ "%0 Book\n%F " =
 del "@book{" . ins "%0 Book\n%F "
 
-let author_lens : (lens in (",\n" . bib_author) $\Leftrightarrow$ ("\n" . end_author)) =
+let author_lens : (",\n" . bib_author) $\Leftrightarrow$ ("\n" . end_author) =
 del ",\nauthor = \""
 . ins "\n%A "
 . name
@@ -365,10 +366,10 @@ del ",\nauthor = \""
 . name
 || "")
 
-let title_lens : (lens in ("\",\n" . bib_title . "},\n}") $\Leftrightarrow$ ("\n" . end_title)) =
+let title_lens : ("\",\n" . bib_title . "},\n}") $\Leftrightarrow$ ("\n" . end_title) =
 del "\",\ntitle = {" . ins "\n%T " . title . del "},\n}"
 
-let bib_to_end : (lens in bibtex $\Leftrightarrow$ end_note) = preamble . label . author_lens . title_lens
+let bib_to_end : bibtex $\Leftrightarrow$ end_note = preamble . label . author_lens . title_lens
 \end{lstlisting}
 \caption{An example bijective lens \cd{bib_to_end} between data
 matching \cd{bibtex} and \cd{end_note} regular 
@@ -639,10 +640,8 @@ For instance, after defining the \bibtex{} and EndNote QREs and
 binding them to the variables \cd{bibtex} and \cd{endnote} respectively, then
 all the code in Figure~\ref{fig:example-lens} may be replaced by a single call
 to the synthesis prodedure:
-\ksf{What is the notation ``lens in'' below?  We should explain it
-intuitively here.}
 \begin{lstlisting}
-let bib_to_end : (lens in bibtex $\Leftrightarrow$ endnote) =
+let bib_to_end : bibtex $\Leftrightarrow$ endnote =
 synth bibtex $\Leftrightarrow$ endnote using {(bib_example, end_example)}
 \end{lstlisting}
 \noindent 
@@ -1217,7 +1216,7 @@ that maps between
 \cd{bibtex} and \cd{endnote} is then given by the following QRE lens:
 
 \begin{lstlisting}
-let bib_to_end_q : (lens in bibtex $\Leftrightarrow$ endnote) =  rquot (lquot(bibtex, bib_to_end), endnote)
+let bib_to_end_q : bibtex $\Leftrightarrow$ endnote =  rquot (lquot(bibtex, bib_to_end), endnote)
 \end{lstlisting}
 
 \subsection{Semantics of QRE Lenses}
@@ -1492,15 +1491,17 @@ apply the canonizers at the edges to recover a lens between the whole
 languages.  This simple strategy turns out to be remarkably effective, and the
 idea of using Optician in this way inspired the design of our QRE lenses.  
 
-The Optician synthesis algorithm works as follows. Given regular expressions $R$
-and $S$ and a set of example input--output pairs
-$\{(r_1, s_1),\allowbreak \ldots,\allowbreak (r_n, s_n)\}$, Optician will try to
-find a bijective lens $\ell : R \Leftrightarrow S$ that that agrees on the
-examples, \textit{i.e.}, it maps $r_i$ to $s_i$ in the forward direction and
-$s_i$ to $r_i$ in the backward direction.  The Optician algorithm is guaranteed
-to succeed (eventually!) if such a lens exists.    \saz{We should probably
-  mention what happens if the examples aren't sufficient to uniquely
-  determine the lens.}
+The Optician bijective lens synthesis algorithm works as follows. Given regular
+expressions $R$ and $S$ and a set of example input--output pairs $\{(r_1,
+s_1),\allowbreak \ldots,\allowbreak (r_n, s_n)\}$, Optician will try to find a
+bijective lens $\ell : R \Leftrightarrow S$ that agrees on the examples,
+\textit{i.e.}, it maps $r_i$ to $s_i$ in the forward direction and $s_i$ to
+$r_i$ in the backward direction. The bijective lens synthesis algorithm is
+guaranteed to succeed (eventually!) if such a bijective lens exists. There are
+typically a large number of such lenses, so this algorithm chooses the one that
+corresponds to a minimal \emph{alignment} of the regular expressions. Additional
+details on this algorithm can be found in the original paper on synthesizing
+bijective lenses~\cite{optician}.
 
 In our setting, we want to synthesize a quotient lens $q: Q_1 \Leftrightarrow
 Q_2$ from the QREs $Q_1$ and $Q_2$ and a set of example input-output pairs
@@ -1528,35 +1529,42 @@ input-output examples $\{(x_1, y_1), \ldots, (x_n, y_n)\}$ it suffices to
 synthesize a bijective lens $\ell : K(Q_1) \Leftrightarrow K(Q_2)$ that is
 consistent with the canonized examples $\{({x'_1}, {y'_1}), \ldots, ({x'_n},
 {y'_n})\}$ and then apply the canonizers at the outside. Our procedure for QRE
-lens synthesis is thus
-\begin{enumerate}
-  \item
-  compute $K(Q_1)$, $K(Q_2)$,
-  \item
-  compute $\{({x'_1}, {y'_1}), \ldots, ({x'_n}, {y'_n})\}$ where ${x'_i} =
-  \canonize(Q_1)(x_i)$ and ${y'_i} = \canonize(Q_2)(y_i)$,
-\item synthesize, using Optician's algorithm, a bijective lens
-  $\ell : K(Q_1) \Leftrightarrow K(Q_2)$ that is consistent with the examples
-  $\{({x'_1}, {y'_1}),\allowbreak \ldots,\allowbreak ({x'_n}, {y'_n})\}$,
-  \item
-  return $q = \rquot(\lquot(Q_1, \ell), Q_2) : Q_1 \Leftrightarrow
-  Q_2$.
-\end{enumerate}
-This algorithm is complete in the following sense: given any QREs $Q_1$ and
-$Q_2$ and set of examples $\{(x_1, y_2), \ldots, (x_n, y_n)\}$ with $x_i \in
-W(Q_1)$ and $y_i \in W(Q_2)$, then if there exists a derivation of a QRE lens
-$q : Q_1 \Leftrightarrow Q_2$ such that 
-\begin{equation}\label{qrelensequation}
-q.\get(x_i) \equiv_{Q_2} y_i \text{ and } q.\lput(y_i) \equiv_{Q_1} x_i \text{
-for all } i,
-\end{equation}
-then the algorithm will return a QRE lens $q': Q_1 \Leftrightarrow Q_2$ that
-also satisfies \cref{qrelensequation}. The justification for this fact follows
-from the completeness of the Optician algorithm and \cref{normal form}.
+lens synthesis is given formally in Algorithm~\ref{alg:synthqrelens}.
+
+\begin{algorithm}
+  \caption{\textproc{SynthQRELens}}
+  \label{alg:synthqrelens}
+  \begin{algorithmic}[1]
+    \Function{\textproc{SynthQRELens}}{$Q_1,Q_2,exs$}
+    \State $R_1 \gets K(Q_1)$
+    \State $R_2 \gets K(Q_2)$
+    \State $c_1 \gets \canonize(Q_1)$
+    \State $c_2 \gets \canonize(Q_2)$
+    \State $exs' \gets \Call{Map}{exs,fun \, (ex_l,ex_r) \to
+      (c_1(ex_l),c_2(ex_r))}$
+    \State $l \gets \Call{SynthBijectiveLens}{R_1,R_2,exs'}$
+    \State $\Return \, \rquot(\lquot(Q_1, \ell), Q_2)$
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\noindent
+We have also proven the correctness of this algorithm.
+\begin{theorem}\label{thm:alg-correct}
+  Given QREs $Q_1$ and $Q_2$, and a set of examples
+  $\{(x_1,y_1),\ldots,(x_n,y_n)\}$, if there is a QRE lens $q : Q_1
+  \Leftrightarrow Q_2$ such that $q.\get(x_i) \equiv_{Q_2} y_i \text{ and }
+q.\lput(y_i) \equiv_{Q_1} x_i$, then $\textproc{SynthQRELens}(Q_1,Q_2,exs)$ will
+return such a lens.
+\end{theorem}
+
+\noindent
+This theorem follows from the correctness of the Optician algorithm and
+Theorem~\ref{normal form}.
 
 Returning to the \bibtex{} to EndNote transformation of
-Section~\ref{sec:examplesynth}, we had the QREs \cd{bibtex} and \cd{endnote}
-describing a \bibtex{} record and an Endnote record respectively. We also had
+Section~\ref{sec:examplesynth}, the QREs \cd{bibtex} and \cd{endnote}
+describe a \bibtex{} record and an Endnote record respectively. We also had
 the example pair \cd{(bib_example , end_example)} where
 
 \begin{center}
@@ -1580,32 +1588,13 @@ end_example =
 \end{minipage}
 \end{center}
 
-Since the transformation between the kernel of \cd{bibtex} and the kernel of
-\cd{endnote} that maps \cd{bib_example} to \cd{end_example} can be
-expressed as a bijective lens, we can synthesize a lens that maps between the
-QREs \cd{bibtex} and \cd{endnote}, using the code below:
-
-\begin{lstlisting}
-let bib_to_end : (lens in bibtex <=> endnote) = 
-  synth bibtex <=> endnote
-  using {(bib_example, end_example)}
-\end{lstlisting}
-
-In this case, one example is sufficient to uniquely determine the desired
-transformation.\SAZ{Is that true?}\BCP{Seems more likely that the desired
-  transformation happened to be the first one that the synthesis algorithm
-  reached.  Indeed, my intuition is that {\em every} synthesis problem with
-  a finite set of examples has infinitely many solutions.  Is that right?}
-
-\SAZ{We might want to say something more precise about the running time or
-  expected performance of this algorithm, perhaps to set up the evaluation
-  section.  Something along the lines of: ``Although the algorithm is complete
-  in theory, in the worst case, it may take an unbounded [???IS THIS
-  CORRECT?]\bcp{Surely it's bounded by some exponential formula involving the
-    size of the inputs...?} 
-  amount time to search for a satisfactory lens.  Nevertheless, this algorithm
-  performs well in practice on numerous examples, as we show in the next
-  section.} 
+There exists a bijective lens between the kernel of \cd{bibtex} and the kernel
+of \cd{endnote} that maps the normalized form of \cd{bib_example} to the
+normalized form of \cd{end_example}, so calling \textproc{SynthQRELens} on the
+QREs \cd{bibtex} and \cd{endnote}, with the example set of
+$\{(\text{\cd{bib\_example}},\text{\cd{end\_example}})\}$ will return a
+satisfying lens. In this instance, the example set guides the algorithm to also
+find the desired lens.
 
 \section{Implementation and Evaluation}
 \label{impl}
