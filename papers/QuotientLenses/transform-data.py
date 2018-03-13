@@ -84,6 +84,7 @@ def generate_ast_sizes_graph(input_csv):
     width = 0.25       # the width of the bars
 
     fig, ax = plt.subplots()
+    input_csv.sort(key=lambda x : int(x["OO"]))
 
     qre_optician_means = project_column_from_csv(input_csv, "OO")
     rects1 = ax.bar(ind, qre_optician_means, width, color='r')
@@ -100,7 +101,7 @@ def generate_ast_sizes_graph(input_csv):
     ax.set_xticks(ind + width*1.5)
     ax.set_xticklabels(project_column_from_csv(input_csv, "Test"),rotation=45)
 
-    ax.legend((rects1[0], rects2[0], rects3[0]), ('\\textbf{QS}', '\\textbf{BS}', '\\textbf{NS}'))
+    ax.legend((rects1[0], rects2[0], rects3[0]), ('\\textbf{QS}', '\\textbf{BS}', '\\textbf{NS}'),bbox_to_anchor=(0.92,.922),borderaxespad=0)
 
     fig = plt.figure(1,tight_layout=True)
     fig.set_figheight(2)
