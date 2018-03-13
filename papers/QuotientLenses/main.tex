@@ -110,8 +110,8 @@ xleftmargin=1.5em,
 \newcommand{\Name}{Optometrist\xspace}
 
 \newcommand{\QRESize}{\textbf{QS}}
-\newcommand{\canonizeAndSpecSize}{\textbf{CS}}
-\newcommand{\LensAndSpecSize}{\textbf{LS}}
+\newcommand{\canonizeAndSpecSize}{\textbf{BS}}
+\newcommand{\LensAndSpecSize}{\textbf{NS}}
 
 \newcommand{\OpticianRuntime}{\textbf{OO}}
 \newcommand{\SystemOnOptician}{\textbf{QO}}
@@ -1648,45 +1648,43 @@ find the desired lens.
 
 We have implemented QREs and the quotient lens synthesis algorithm described
 above as an extension to the Boomerang
-interpreter~\cite{boomerang,quotientlenses}. We have added QREs and QRE lens
-synthesis tasks to Boomerang. Furthermore, these synthesis tasks evaluate to
-Boomerang lens values, so Boomerang treats synthesized lenses the same as
-hand-written ones. Intuition suggests that the increased expressiveness
-of QREs should make many lens programming tasks easier, but we would like more
-quantitative understanding of that claim. We thus conducted several experiments
-that aim to provide answers to the following questions:
-
-\begin{enumerate}
-  \item Does synthesizing QRE lenses from QREs permit an easier development
-  process than manually writing canonizers, and synthesizing the lenses between
-  their canonized forms?  Does synthesizing QRE lenses from QREs permit an
-  easier development process than writing the lenses by hand?
-  
-  \item Does our tool synthesize lenses fast enough to be used as part of a
-  standard development process?
-\end{enumerate}
-
+interpreter~\cite{boomerang,quotientlenses}. 
+The synthesis algorithm produces Boomerang lens values, so Boomerang
+treats synthesized lenses the same as hand-written ones.
+To evaluate the effectiveness of QREs, QRE lenses, and QRE lens
+synthesis, we conducted experiments to answer the following questions:
+%
+\begin{itemize}
+  \item {\bf Ease of use.} Does synthesizing QRE lenses from QREs permit an
+  easier development process than writing lenses by hand?
+  Does synthesizing QRE lenses from QREs permit an easier development
+  process than manually writing canonizers and then synthesizing lenses between
+  their canonized forms?  
+  \item {\bf Performance.} Is the synthesis algorithm/implementation fast enough to be
+  used as part of a standard development process?
+\end{itemize}
+%
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS High Sierra.
 
 
 \subsection{Benchmark Suite Construction}
 
-To evaluate our QRE implementation, we adapted 39 lens synthesis tasks from the
-benchmark suite of the original Optician system. These benchmarks are a
-combination of custom benchmarks, benchmarks derived from
-FlashFill~\cite{flashfill}, and benchmarks derived from Augeas~\cite{augeas2}.
-In the pre-QRE version of Optician, many of these data formats had to be
-modified to work with the bijectivity constraints that Optician required. For
-instance, when one format permits whitespace where the other does not allow it,
-the original versions of benchmark formats were modified to allow more
-whitespace, thereby restoring bijectivity (but altering the data format). With
-the new QRE support, we were able to remove these alterations when porting these
-benchmarks. 10 of Optician's 39 benchmarks had formats modified in this way ---
-introducing QREs removed these format alterations. (This experience alone
-suggests that QREs make the lens development process easier.)
+To evaluate our QRE implementation, we adapted 39 lens synthesis tasks
+from the benchmark suite of the original Optician system. These
+benchmarks are a combination of custom benchmarks, benchmarks derived
+from FlashFill~\cite{flashfill}, and benchmarks derived from
+Augeas~\cite{augeas2}.  In the pre-QRE version of Optician, 10 of
+these data formats had to be modified to work with the bijectivity
+constraints that Optician required. For instance, when one
+representation permits whitespace where the other does not, we
+modified the original version of the benchmark to allow more whitespace,
+thereby restoring bijectivity (but altering the data format). With the
+new QRE support, we were able to remove these alterations.  This
+experience alone suggests that QREs make the lens development process
+more flexible.
 
-\subsection{Easing the Development Process}
+\subsection{Ease of Use}
 
 \begin{figure}[t]
 \includegraphics{generated-graphs/asts.eps}
@@ -1696,37 +1694,56 @@ synthesis than with Optician without QRE synthesis or without synthesis.}
 \label{fig:asts}
 \end{figure}
 
-To get a sense of how much the new expressiveness that combining QRE lenses with
-synthesis saves in terms of programmer effort, we compared the amount of code
-that would need to be written for each of the lens benchmarks. We use number of
-nodes in the abstract syntax tree as a measure of code size, and calculated
-three quantities for each lens synthesis benchmark task. We only compared the
-sizes on benchmarks where the canonization functions are nontrivial.
+To evaluate the impact of QRE lens synthsis on programmer effort,
+we focus our attention on the 10 problems in the benchmark suite that
+are not bijective and hence require non-trivial canonizers. 
+(Optician already handles the other problems with minimal programmer
+effort.)
+
+We are interested in comparing three different approaches, which vary
+in the amount of synthesis used. 
+In the first approach, which we call \QRESize{} for QRE Synthesis, the programmer uses
+QRE synthesis.  She must write QRE specifications of the source and
+target formats and she may give examples.
+In the second approach, which we call \canonizeAndSpecSize{} for
+Bijective Synthesis, the
+programmer uses bijective lens synthesis \`a la the original version
+of Optician.  She must write canonizers by hand, along with the
+regular expressions describing the external
+representations of the source and target formats. (The internal
+regular expressions can be inferred from the canonizers.) She may also
+provide examples to help in the synthesis of the bijective lens.
+In the third approach, which we call \LensAndSpecSize{} for No Synthesis, the
+programmer writes the lens between the source and target lenses
+entirely by hand.
+
+To measure the programmer effort using each of these approaches, we
+calculate three different quantities for each problem in the benchmark suite:
 %
 \begin{itemize}
-  \item[\QRESize{}] the number of AST nodes in the QRE
-  specifications (including examples).
-  \item[\canonizeAndSpecSize{}]  the number of
-  AST nodes in $W(q_1)$ summed with the number of AST nodes in $\canonize(q_1)$
-  and the number of examples.
-  \item[\LensAndSpecSize{}] the number of AST nodes
-  in $W(q_1)$ summed with the number of AST nodes in the synthesized QRE lens.
+  \item[\QRESize{}:] 
+  The number of AST nodes in the QRE specifications for the source and
+  target formats, including examples. 
+  \item[\canonizeAndSpecSize{}:] 
+  The sum of (1) the number of AST nodes in $W(q)$ for each QRE $q$ in the source and target
+  formats, (2) the number of AST nodes $\canonize(q)$ for each such QRE $q$ with a
+  non-trivial canonizer, and (3) the number of AST nodes in the
+  examples.  We use (1) and (2) to estimate the burden of describing
+  the external source and target formats and of writing the requisite canonizers
+  by hand.  We count the nodes in the examples because they would be
+  fed to the bijective synthesizer.  
+  These counts are an approximation, as both $W(q)$ and $\canonize(q)$ are
+  automatically generated from the QRE, and it is possible that a human-written
+  version might be smaller.
+  \item[\LensAndSpecSize{}:] The sum of (1) the number of AST nodes in
+  $W(q)$ for each QRE $q$ in the source and target formats and (2) the
+  number of AST nodes in the synthesized QRE lens.  We use (1) to
+  estimate the burdern for describing the source and target formats
+  and (2) to estimate the burdern for writing the appropriate lens by
+  hand. These counts are also approximations, as
+  $W(q)$ and the synthesized lens may be larger than one written by hand.
 \end{itemize}
 
-The value of \QRESize{} is our measure of the programmer burden for
-writing our benchmarks---it measures the number of AST nodes the programmer has
-to write using the full expressiveness of QREs and synthesis.
-
-The value of \canonizeAndSpecSize{} estimates the burden for writing our
-benchmarks within the Optician system, without QREs but still using
-synthesis. (This is only an approximation, as both $W(q_1)$ and $\canonize(q_1)$ are
-automatically generated from the QRE, and it is possible that a human-written
-version might be smaller.)
-
-The value of \LensAndSpecSize{} estimates the burden in writing our benchmarks
-in Boomerang, using neither QREs nor synthesis. (This is also an
-approximation, as $W(q_1)$ and $\canonize(q_1)$ and the bijective lens are all
-automatically generated.)
 
 Figure~\ref{fig:asts} shows the number of benchmarks that can be expressed using
 at most a given number of AST nodes. On average, \canonizeAndSpecSize{} used
