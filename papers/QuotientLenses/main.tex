@@ -119,41 +119,42 @@ mathescape, }
 \begin{document}
 \title{Synthesizing Quotient Lenses}
 \begin{abstract}
-{\em Quotient lenses} are bidirectional transformations that respect
-specified equivalence relations with the goal of 
-appropriately handling inessential details in data formats. 
+{\em Quotient lenses} are bidirectional transformations whose correctness
+laws are ``loosened'' by specified equivalence relations, allowing
+inessential details in concrete data formats to be suppressed. 
 For example, a programmer could use a quotient lens to define 
 a transformation that ignores the order of fields in XML data, so
 that two XML files with the same fields but in different orders would be
-considered the same. 
-This paper simplifies the task of programming quotient lenses in three
-steps.
-First, we introduce {\em quotient regular expressions} (QREs) to
-make it easy to express which portions of a data format are
+considered the same, allowing a single, simple lens to handle them both. 
+
+This paper simplifies the task of programming quotient lenses with
+three connected innovations.
+First, we introduce {\em quotient regular expressions} (QREs), to
+easily mark aspects of data formats that are
 inessential.  A QRE is an augmented regular expression that
-simultaneously defines a regular expression and an equivalence
-relation over matching strings.  Variations within the same
+simultaneously defines a regular language and an equivalence
+relation on this language.  Variations within the same
 equivalence class are deemed inessential. 
-Next, we introduce {\em QRE lenses}, which are lenses that map
+Next, we introduce {\em QRE lenses}---lenses mapping
 between QREs.
 Our key technical result is a proof that every QRE lens can be
 transformed into a QRE lens that has the form $c_1 \cdot \ell \cdot
 c_2$, where $c_1$ and $c_2$ are {\em canonizers} 
 and $\ell$ is a bijective transformation.  Intuitively,
-the canonizers normalize the data  by picking a
+the canonizers normalize data by picking a
 canonical representative of the relevant equivalence relations. 
-This theorem means we can push all the normalization to the edges of a
+This theorem means we can push all normalization to the outer edges of a
 bidirectional transformation, leaving in the middle a pure bijective
 transformation.  
 Finally,
-we levarage this insight to {\em synthesize} QRE lenses from a pair
-of QREs and example input-output pairs by reusing earlier work on
-synthesizing bijective lenses.
+we leverage this normalization theorem to {\em synthesize} QRE lenses from a pair
+of QREs and example input-output pairs, reusing earlier work on
+synthesizing plain bijective lenses.
 We have implemented QREs and QRE lens synthesis 
 in the bidirectional programming language Boomerang.
 We evaluate the effectiveness of our approach by using it to
 synthesize QRE lenses between various real-world data formats in
-the {\tt data.gov} database.
+the Optician benchmark suite.
 
 \end{abstract}
 
@@ -300,7 +301,7 @@ The following list summarizes the contributions of our work.
   \item We extend Boomerang with QREs and QRE lens synthesis. 
   We use the resulting implementation to demonstrate the utility of
   our approach by synthesizing QRE lenses between
-  data formats drawn from the {\tt data.gov} database (Section~\ref{impl}).
+  data formats drawn from the Optician benchmark suite (Section~\ref{impl}).
 \end{enumerate}
 Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
 
@@ -1670,8 +1671,9 @@ instance, when one format permits whitespace where the other does not allow it,
 the original versions of benchmark formats were modified to allow more
 whitespace, thereby restoring bijectivity (but altering the data format). With
 the new QRE support, we were able to remove these alterations when porting these
-benchmarks. (This experience alone suggests that QREs make the lens development
-process easier.)
+benchmarks. 10 of Optician's 39 benchmarks had formats modified in this way ---
+introducing QREs removed these format alterations. (This experience alone
+suggests that QREs make the lens development process easier.)
 
 \subsection{Easing the Development Process}
 
@@ -1692,9 +1694,10 @@ sizes on benchmarks where the canonization functions are nontrivial.
 %
 \begin{itemize}
   \item[\QRESize{}] the number of AST nodes in the QRE
-  specifications (including examples)\saz{CHECK THIS}\afm{no but i'll add it in}
+  specifications (including examples).
   \item[\canonizeAndSpecSize{}]  the number of
   AST nodes in $W(q_1)$ summed with the number of AST nodes in $\canonize(q_1)$
+  and the number of examples.
   \item[\LensAndSpecSize{}] the number of AST nodes
   in $W(q_1)$ summed with the number of AST nodes in the synthesized QRE lens.
 \end{itemize}
@@ -1715,15 +1718,12 @@ approximation, as $W(q_1)$ and $\canonize(q_1)$ and the bijective lens are all
 automatically generated.)
 
 Figure~\ref{fig:asts} shows the number of benchmarks that can be expressed using
-at most a given number of AST nodes. For a given benchmark, we found \QRESize{}
-to be about half as large as \canonizeAndSpecSize, and about a third as large
-as \LensAndSpecSize{}.\BCP{These are really the critical conclusions, and they
-  are hard to see, the way the graph is drawn. I wonder whether we could instead
-  present with the individual examples on the X axis (sorted by number of AST
-  nodes), with a bar above each one containing three regions, colored
-  differently, for LS, CS-LS, and QC-CS...}\afm{will do} This suggests that
-introducing QREs saves programmers significant effort compared to both Optician
-and basic Boomerang.
+at most a given number of AST nodes. On average, \canonizeAndSpecSize{} used
+44\% more AST nodes than \QRESize{}, using an average of 237 more AST nodes. On
+average, \LensAndSpecSize{} used 193\% more AST nodes than \QRESize{}, using an
+average of 1267 more AST nodes. This suggests that introducing QREs saves
+programmers significant effort compared to both pre-QRE Optician and basic
+Boomerang.
 
 \subsection{Maintaining Competitive Performance}
 
@@ -1743,11 +1743,9 @@ and basic Boomerang.
 \caption{Runtimes of Optician and our system. In (a), we run Optician and our
   system on Optician's benchmarks. We find that there is only a negligible
   performance overhead incurred by using QREs. In (b), we run Optician with QREs
-  on its benchmark suite. We find that it is able to synthesize all quotient
-  lenses in under 20 seconds, and typically finished in under 5 seconds.
-  \bcp{The left-hand graph, especially, is hard to make anything out of, because
-    the curves are squished against the axes and have almost identical shapes.
-    }\afm{will fix}}
+  on the Optician benchmarks we modified to use QREs. We find that it is able to
+  synthesize all quotient lenses in under 20 seconds, and typically finished in
+  under 5 seconds.}
 \label{fig:times}
 \end{figure}
 
@@ -1755,12 +1753,10 @@ To assess the performance impact of adding QRE support to Optician, we measured
 the running time of the following configurations:
 \begin{itemize}
   \item[\OpticianRuntime{}] pre-QRE Optician running on its own benchmarks.
-  \item[\SystemOnOptician{}] Optician with QREs running on the pre-QRE benchmarks.
-  \item[\SystemOnBenchmarks{}] Optician with QREs running on its own
-  benchmarks. \BCP{What is the difference between QO and QQ??  The eight
-    additional benchmarks?  Why not measure just these?  Seems like this
-    graphj repeats some information from the one to the left, obscuring the
-    new information.}\afm{will do}
+  \item[\SystemOnOptician{}] Optician with QREs running on the pre-QRE
+    benchmarks.
+  \item[\SystemOnBenchmarks{}] Optician with QREs running on the benchmarks that
+    were altered from Optician to include quotients.
 \end{itemize}
 
 We summarize the results of these experiments in Figure~\ref{fig:times}.  The
@@ -1769,15 +1765,6 @@ benchmarks at a speed competitive with the old version.  There is a small amount
 of additional overhead introduced by QREs when calculating $W(q_1)$ and $K(q_1)$,
 resulting in a very slight decrease in performance.
 
-Also notable is one of the data.gov examples, which converts demographic
-statistics by zip code from xml form into rdf form. Synthesizing this
-transformation certainly took the longest, nearly fifteen seconds, where the
-next slowest took hardly over five. To validate this performance was not due to
-our overhead, we modified these format to be bijective, so the synthesis task
-could be input into Optician. Optician took over 15 seconds synthesize this
-modified lens. We believe this conversion took longer because the input formats
-were exceptionally large, requiring conversions between over 40 fields, not due
-to an overhead from synthesizing from QREs.
 \section{Related Work}
 \label{relwork}
 This paper builds on the work of Foster et al~\cite{quotientlenses} who
