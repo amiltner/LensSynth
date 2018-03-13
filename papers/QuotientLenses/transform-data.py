@@ -47,6 +47,67 @@ def write_to_filename(filename, s):
     with open(filename, "wb") as f:
         f.write(s)
 
+def generate_ast_sizes_graph_confused(input_csv):
+    N = 10
+    opt_quot_ast = project_column_from_csv(input_csv, "OO")
+
+    ind = np.arange(N)  # the x locations for the groups
+    width = 0.35       # the width of the bars
+
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(ind - width, opt_quot_ast, width=width, color='r',align='center')
+
+    opt_noquot_ast = project_column_from_csv(input_csv, "SO")
+    rects2 = ax.bar(ind, opt_noquot_ast, width=width,align='center')
+
+    pure_boom_ast = project_column_from_csv(input_csv, "SS")
+    rects3 = ax.bar(ind + width, pure_boom_ast, width=width, color='y',align='center')
+
+    # add some text for labels, title and axes ticks
+    ax.set_ylabel('Scores')
+    ax.set_title('Scores by group and gender')
+    ax.set_xticks(ind + width*(1.5))
+    ax.set_xticklabels(project_column_from_csv(input_csv, "Test"))
+
+    ax.legend((rects1[0], rects2[0], rects3[0]), ('OO', 'SS', 'SO'))
+
+    fig = plt.figure(1,tight_layout=True)
+    fig.set_figheight(2)
+    fig.set_figwidth(6)
+
+    fig.savefig(generated_graphs_base + "asts.eps", bbox_inches='tight')
+
+def generate_ast_sizes_graph(input_csv):
+    N = 10
+    ind = np.arange(N)  # the x locations for the groups
+
+    width = 0.25       # the width of the bars
+
+    fig, ax = plt.subplots()
+
+    qre_optician_means = project_column_from_csv(input_csv, "OO")
+    rects1 = ax.bar(ind, qre_optician_means, width, color='r')
+
+    basic_boomerang_means = project_column_from_csv(input_csv, "SO")
+    rects2 = ax.bar(ind + width, basic_boomerang_means, width, color='y')
+
+    optician_means = project_column_from_csv(input_csv, "SS")
+    rects3 = ax.bar(ind+width*2, optician_means, width, color='b')
+
+    # add some text for labels, title and axes ticks
+    ax.set_ylabel('AST Count')
+    ax.set_title('AST Counts by Benchmark')
+    ax.set_xticks(ind + width*1.5)
+    ax.set_xticklabels(project_column_from_csv(input_csv, "Test"),rotation=45)
+
+    ax.legend((rects1[0], rects2[0], rects3[0]), ('\\textbf{QS}', '\\textbf{CS}', '\\textbf{LS}'))
+
+    fig = plt.figure(1,tight_layout=True)
+    fig.set_figheight(2)
+    fig.set_figwidth(6)
+
+    fig.savefig(generated_graphs_base + "asts.eps", bbox_inches='tight')
+
 def generate_time_vs_tasks_graph(input_csv):
     fig, ax = plt.subplots()
 
@@ -92,14 +153,14 @@ def generate_time_vs_tasks_graph(input_csv):
     fig = plt.figure(1,tight_layout=True)
     fig.set_figheight(2)
     fig.set_figwidth(4)
-       
+
     fig.savefig(generated_graphs_base + "asts.eps", bbox_inches='tight')
 
 def main(args):
     if len(args) == 2:
         input_filepath = args[1]
         input_csv = retrieve_csv(input_filepath)
-        generate_time_vs_tasks_graph(input_csv)
+        generate_ast_sizes_graph(input_csv)
     else:
         print_usage(args)
 
