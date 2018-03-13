@@ -1997,6 +1997,11 @@ Boomerang's bijective lens combinators with another one, what would happen?)
 }
 \label{concl}
 
+\bcp{Some of the citations need some love---e.g., the first one.}
+
+\bibliographystyle{plain}
+\bibliography{local}
+
 \appendix
 \addcontentsline{toc}{section}{Appendices}
 \section*{Appendices}
@@ -2253,9 +2258,60 @@ This completes the proof.
 \end{enumerate}
 \end{proof}
 
-\bcp{Some of the citations need some love---e.g., the first one.}
-\bibliographystyle{plain}
-\bibliography{local}
+\section{Proof of Correctness of \textproc{SynthQRELens}}
+Theorem~\ref{thm:alg-correct} states that
+  Given QREs $Q_1$ and $Q_2$, and a set of examples
+  $\{(x_1,y_1),\ldots,(x_n,y_n)\}$, if there is a QRE lens $q : Q_1
+  \Leftrightarrow Q_2$ such that $q.\get(x_i) \equiv_{Q_2} y_i \text{ and }
+q.\lput(y_i) \equiv_{Q_1} x_i$, then $\textproc{SynthQRELens}(Q_1,Q_2,exs)$ will
+return such a lens.  We prove that here.
 
+\begin{lemma}[Algorithm Soundness]
+  If $q = \textproc{SynthQRELens}(Q_1,Q_2,exs)$, then $q : Q_1 \Leftrightarrow
+  Q_2$ and $q.\get(x_i) \equiv_{Q_2} y_i$  and 
+$q.\lput(y_i) \equiv_{Q_1} x_i$ for all $(x_i,y_i)\in exs$.
+\end{lemma}
+\begin{proof}
+  As $q = \textproc{SynthQRELens}(Q_1,Q_2,exs)$, we know that $q =
+  \rquot(\lquot(Q_1, \ell), Q_2)$. Furthermore, we know that $\ell =
+  \Call{SynthBijectiveLens}{R_1,R_2,exs'}$, where $exs' = \Call{Map}{exs,fun \,
+    (ex_l,ex_r) \to (\canonize(Q_1)(ex_l),\canonize(Q_2)(ex_r))}$. By the correctness of
+  $\textproc{SynthBijectiveLens}$, we know that $\ell.\get(x_i') = y_i'$ and
+  $\ell.\lput(y_i') = x_i'$ for all $(x_i',y_i')\in exs'$. By definitions of
+  $\rquot$ and $\lquot$, this means that:\\
+$\rquot(\lquot(Q_1, \ell),
+  Q_2).\get(x_i)$\\
+ = $\ell.get(\canonize(Q_1)(x_i))$\\ $= \ell.get(x_i') = y_i' =
+  \canonize(Q_2)(y_i) \equiv_{Q_2} y_i$ and\\
+\\
+$\rquot(\lquot(Q_1, \ell),
+  Q_2).\lput(y_i)$\\
+ = $\ell.\lput(\canonize(Q_2)(y_i))$\\ $= \ell.\lput(y_i') = x_i' =
+  \canonize(Q_1)(x_i) \equiv_{Q_1} x_i$ as desired.
+\end{proof}
+
+\begin{lemma}[Algorithm Completeness]
+  If there exists a QRE lens $q : Q_1 \Leftrightarrow Q_2$ such that
+  $q.\get(x_i) \equiv_{Q_2} y_i$ and $q.\lput(y_i) \equiv_{Q_1} x_i$ for all
+  $(x_i,y_i)\in exs$, then $\textproc{SynthQRELens}(Q_1,Q_2,exs)$ terminates.
+\end{lemma}
+\begin{proof}
+  By Theorem~\ref{normal form}, there exists a bijective lens $\ell : K(Q_1)
+  \Leftrightarrow K(Q_2)$, such that $q' = \rquot(\lquot(Q_1, \ell), Q_2)$ is
+  semantically equal to $q$.
+
+  This means that $q'.\get(x_i) \equiv_{Q_2} y_i$ and $q'.\lput(y_i)
+  \equiv_{Q_1} x_i$ for all $(x_i,y_i)\in exs$. Unfolding the definitions of
+  $\rquot$ and $\lquot$, we get:\\
+  $q'.\get(x_i) = \ell.\get(\canonize(Q_1)(x_i)) = \canonize(Q_2)(y_i)$ and\\
+  $q'.\lput(y_i) = \ell.\lput(\canonize(Q_2)(y_i)) = \canonize(Q_1)(x_i)$ for all
+  $(x_i,y_i)\in exs$.
+
+  By correctness of $\textproc{SynthBijectiveLens}$, we know that
+  $\Call{SynthBijectiveLens}{R_1,R_2,exs'}$ terminates, so the entire algorithm
+  terminates. 
+\end{proof}
+
+With soundness and completeness, we trivially get the correctness theorem.
 
 \end{document}
