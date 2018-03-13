@@ -100,7 +100,7 @@ def generate_ast_sizes_graph(input_csv):
     ax.set_xticks(ind + width*1.5)
     ax.set_xticklabels(project_column_from_csv(input_csv, "Test"),rotation=45)
 
-    ax.legend((rects1[0], rects2[0], rects3[0]), ('\\textbf{QS}', '\\textbf{CS}', '\\textbf{LS}'))
+    ax.legend((rects1[0], rects2[0], rects3[0]), ('\\textbf{QS}', '\\textbf{BS}', '\\textbf{NS}'))
 
     fig = plt.figure(1,tight_layout=True)
     fig.set_figheight(2)
