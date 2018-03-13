@@ -47,9 +47,11 @@ emph={synth,project,perm,squash,normalize,using,ins,del,lens,let},
 emphstyle=\upshape\sffamily\color{dkred}, 
 columns=fullflexible,
 escapechar=\#,
+mathescape, 
+xleftmargin=1.5em,
 % BCP: I find this distracting:
 % stringstyle=\sffamily\color{dkred},
-mathescape, }
+}
 
 % %%%% Macros Colors
 \definecolor{dkblue}{rgb}{0,0.1,0.5}
@@ -208,25 +210,32 @@ round-tripping lens laws
 hold  modulo these equivalences, rather than ``on the nose.'' Quotient lenses 
 make it possible to synchronize many more data formats than is possible with
 plain bijective lenses\bcp{Do we justify this claim later?}. 
-
+%
 The bidirectional programming language {\em
-Boomerang}~\cite{boomerang} is the only language we know of that
+Boomerang}~\cite{boomerang} 
 implements a general class of quotient lenses.  Unfortunately, these
-lenses to have two main drawbacks.  
+lenses to have two main drawbacks.  \bcp{This wording may raise a question
+  in the reader's mind about whether this paper is really about quotient
+  lenses in general or whether it is specifically a proposal to tweak
+  Boomerang.  I.e., ``if I am not a Boomerang user, do I want to bother
+  reading this paper?''  My answer would be yes, because quotient
+  lenses and QREs are interesting in themselves.  But I don't think we've
+  made this point very convincingly in the way we've framed the paper.}
 
-The first drawback is that defining an equivalence
-relation in Boomerang requires specifying a {\em canonizer}, which is
-a pair of functions $f$ and $g$ where $f$
+The first shortcoming is that defining an equivalence
+relation in Boomerang requires explicitly providing a {\em canonizer}, 
+a pair of functions $(f,g)$ where $f$
 normalizes data from the
 external format by choosing canonical representations
 and $g$ provides an
 inverse by specifying the external form of each canonical
 representation. 
 The disadvantage of this approach is that writing
-a quotient lens in Boomerang requires defining four
+a quotient lens in Boomerang requires separately defining four
 different data formats: two ``external'' formats which specify the data to
 be transformed by the lens, and two ``internal'' formats which specify the
-canonical representations for the source and target data.
+canonical representations for the source and target data\bcp{Plus writing
+  two canonizers!}.
 
 Our solution to this shortcoming is to introduce {\em Quotient Regular
 Expressions} (QREs), which enable programmers to simultaneously specify a
@@ -234,11 +243,6 @@ regular expression and a set of canonical representatives for matching
 strings.  Given an QRE, we can automatically infer the corresponding
 canonization functions.  As an example, consider the following QRE for writing
 author names:
-\iflastminute
-\bcp{I'd love to use a visible space symbol for important space characters
-  -- this would make the code examples very much clearer!  But it will
-  require a bit of hacking: We can use showstringspaces=false}
-\fi
 %
 \begin{lstlisting}
 let wsp_sp = project wsp $\to$ " "
@@ -254,14 +258,15 @@ This is then used to build up \lstinline{comma_name}, a QRE with an
 underlying language of two names, separated by a command and whitespace, where
 the names with a single space between them are canonical.
 
-The second drawback with writing quotient lenses in Boomerang is that
-even after specifying the four required data formats, the programmer must
-still define a lens for converting between the canonical
-representations.   Experience shows that writing such lenses can be
-tedious (consider having to rearrange the order of data items by recursively
-using operators to \kw{swap} adjacent fields)  and that satisfying the type
-checker can be difficult because many seemingly useful lenses contain
-ambiguities disallowed by the Boomerang type checker~\cite{optician}.
+The second drawback with writing quotient lenses in Boomerang is that even
+after specifying the four required data formats, the programmer must still
+define a lens for converting between the canonical representations.
+Experience shows that writing such lenses can be tedious (e.g., consider
+having to rearrange the order of data items by recursively using operators
+to \kw{swap} adjacent fields) and that satisfying the type checker can be
+difficult because the most obvious way to express a lens runs afoul of one
+or more ``ambiguity checks'' that the type checker performs in order to make
+sure that the lens laws hold~\cite{optician}.
 
 Our solution to this problem is to introduce {\em QRE lenses}, which
 are a new class of quotient lens that can be automatically
@@ -281,40 +286,38 @@ demonstrating the mapping.  For example, the following code
 \begin{lstlisting}
 let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
 \end{lstlisting}
-binds \codefont{l} to a synthesized QRE lens mapping between names in
-the comma-separated form describd by the QRE \codefont{comma\_name}
-and the space-separated form described by the
-QRE \codefont{space\_name}. 
-The lenses generated by
-our synthesis algorithm are guaranteed to translate data back and forth
-between source and target QREs and to satisfy the provided examples.
-Our synthesized quotient lenses have a relatively
-restricted form (which greatly speeds up synthesis), but the 
-normalization theorem means 
-this restriction does not compromise expressiveness.
+binds \codefont{l} to a synthesized QRE lens mapping between names in the
+comma-separated form describd by the QRE \codefont{comma\_name} and the
+space-separated form described by the QRE \codefont{space\_name}.  The
+lenses generated by our synthesis algorithm are guaranteed to translate data
+back and forth between source and target QREs and to satisfy the provided
+examples.  Our synthesized quotient lenses have a relatively restricted
+form, where the sequential composition operator is not used and all
+canonization occurs at the very edges (which greatly speeds up synthesis),
+but the normalization theorem means this restriction does not compromise
+expressiveness.
 
-The following list summarizes the contributions of our work.
+In summary, our main contributions are:
 \begin{enumerate}
-  \item We introduce {\em Quotient Regular Expressions} (QREs), which are
+  \item We introduce {\em Quotient Regular Expressions} (QREs), 
   a compact, convenient notation for simultaneously defining a
   regular language modulo some equivalence relation and a canonizer
   for that relation (Section~\ref{QRE}).
-  \item We introduce {\em QRE lenses}, which are lenses that translate
-  between data formats specified using QREs. (Section~\ref{QRE-lenses}).
-  \item We descibe a particular set of QRE lens combinators and prove
-  that QRE lenses defined using these combinators can be normalized
-  (Theorem~\ref{normal form}), which is the main technical
-  contribution of this paper.
-  (Section~\ref{QRE-lenses}).
-  \item We use this result to reduce the problem of {\em synthesizing} QRE
-  lenses to the problem of synthesizing bijective string lenses
-  previously studied in~\cite{optician}(Section~\ref{synth}).
-  \item We extend Boomerang with QREs and QRE lens synthesis. 
-  We use the resulting implementation to demonstrate the utility of
-  our approach by synthesizing QRE lenses between
-  data formats drawn from the Optician benchmark suite (Section~\ref{impl}).
+  \item We introduce {\em QRE lenses}, which translate between data formats
+  specified using QREs (Section~\ref{QRE-lenses}).
+  \item We design a specific set of useful QRE lens combinators and prove
+  that QRE lenses defined using these combinators can be put into a
+  restricted normal form (Section~\ref{QRE-lenses}).  This is
+  the main technical contribution of this paper.
+  \item We leverage this result to reduce the problem of {\em synthesizing} QRE
+  lenses to the problem of synthesizing bijective string lenses, which was
+  previously studied in~\cite{optician} (Section~\ref{synth}).
+  \item We extend Boomerang with QREs and QRE lens synthesis and demonstrate
+  the utility and practicality of our approach by synthesizing QRE lenses
+  between a variety of data formats drawn from the Optician benchmark suite
+  (Section~\ref{impl}).
 \end{enumerate}
-Sections~\ref{relwork} and~\ref{concl} discuss related and future work.
+Sections~\ref{relwork} and~\ref{concl} present related and future work.
 
 \section{Background: Bijective String Languages}
 \label{sec:background}
@@ -327,18 +330,18 @@ Before describing QREs and QRE lenses, we briefly review bijective
 string lenses. Consider a bidirectional transformation that converts
 between \bibtex{} citation records such as
 \begin{verbatim}
-  @Book {Lovelace,
-  Author = "Ada Lovelace",
-  Title = {Notes}
-}
+   @Book {Lovelace,
+   Author = "Ada Lovelace",
+   Title = {Notes}
+   }
 \end{verbatim}
 \noindent
 and equivalent EndNote records like the following
 \begin{verbatim}
-  %0 Book
-  %F Lovelace
-  %A Ada Lovelace
-  %T Notes
+   %0 Book
+   %F Lovelace
+   %A Ada Lovelace
+   %T Notes
 \end{verbatim}
 \noindent
 Boomerang's bijective string lenses are designed to define bidirectional
@@ -383,9 +386,9 @@ del "\",\ntitle = {" . ins "\n%T " . title . del "},\n}"
 
 let bib_to_end : bibtex $\Leftrightarrow$ end_note = preamble . label . author_lens . title_lens
 \end{lstlisting}
-\caption{An example bijective lens \cd{bib_to_end} between data
+\caption{A plain bijective lens \cd{bib_to_end} between data
 matching \cd{bibtex} and \cd{end_note} regular 
-expressions, which are omitted for brevity.  
+expressions (which are omitted for brevity).  
 \iflastminute
 \bcp{a possible readability suggestion: define a named constant for a quote
   character.  (Not sure if this makes sense, or if it improves things...)}
@@ -419,14 +422,14 @@ writing the same name: ``Lovelace, Ada'' vs ``Ada Lovelace.''
 Consequently, the following two \bibtex{} citations represent the same
 logical object even though they differ in nonessential details.
 \begin{verbatim}
-@Book {Lovelace,
-Author = "Ada Lovelace",
-Title = {Notes},
-}
+   @Book {Lovelace,
+   Author = "Ada Lovelace",
+   Title = {Notes},
+   }
 
-@Book{     Lovelace,
-Title = {Notes},
-Author = "Lovelace, Ada",     }
+   @Book{     Lovelace,
+   Title = {Notes},
+   Author = "Lovelace, Ada",     }
 \end{verbatim}
 
 When mapping these records into another format, such as EndNote, we
