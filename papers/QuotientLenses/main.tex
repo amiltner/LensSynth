@@ -677,7 +677,7 @@ creating bidirectional transformations.
 \label{QRE}
 A Quotient Regular Expression (or QRE) is a regular expression $R$ augmented
 with syntax that expresses an equivalence relation on the language of $R$. This
-section describes in further detail the set of QRE combinators that we described
+section formalizes the set of QRE combinators that we introduced informally
 in \cref{sec:example}.
 \iflastminute 
 \saz{Why does the ``cref'' macro not capitalize Section?}
@@ -685,46 +685,59 @@ in \cref{sec:example}.
   using autoref instead anyway...}
 \fi
 
-\subsection{Syntax of Semantics of QREs}
+\subsection{Syntax and Semantics of QREs}
 Formally, the language of Quotient Regular Expressions (QREs) is given by the
 following grammar:
 \newcommand{\bsep}{\ \ \sep{} \ \ }
 \begin{align*}
-Q := \; & \normalize{R}{R'}{f} \bsep{} \id(R) \bsep \project{R}{s} \bsep \squash{Q_1}{Q_2}{f} \\
+Q := \; & \normalize{R_1}{R_2}{f} \bsep{} \id(R) \bsep \project{R}{s} \bsep \squash{Q_1}{Q_2}{f} \\
  | \; & \perm{Q_1, \ldots, Q_n}{Q} \bsep Q_1 \semicolon Q_2 \bsep Q_1 \cdot Q_2 \bsep (Q_1
-\sep Q_2) \bsep Q^*,
+\sep Q_2) \bsep Q^*
 \end{align*}
-where $Q$ ranges over QREs, $R$ ranges over regular expressions, $f$ ranges over
-functions between regular languages, and $s$ ranges over character strings.
+where $Q$ ranges over QREs, 
+$R$ ranges over regular expressions, 
+$f$ ranges over functions between regular languages, and 
+$s$ ranges over character strings.
 
 Using the conventional notation that $\mathcal{L}(R)$ is the language accepted
-by the regular expression $R$, each QRE $Q$ enables us to express four semantic objects
+by the regular expression $R$, each QRE $Q$ yields four semantic
+objects:
 
 \begin{tabular}{rl}
-  $W(Q)$  & a regular expression (the ``whole'' of $Q$),\\
-  $\eqrel{Q}$  & an equivalence relation on $\mathcal{L}(W(Q))$,\\
-  $K(Q)$ & a regular expression (the ``kernel'' of $Q$) such that
-           $\mathcal{L}(K(Q))$ forms a complete \\
-             & set of representatives for $\eqrel{Q}$, and \\
+  $W(Q)$       & A regular expression, denoting the ``whole'' of $Q$\\
+  $\eqrel{Q}$  & An equivalence relation on $\mathcal{L}(W(Q))$\\
+  $K(Q)$       & A regular expression, denoting the ``kernel'' of $Q$, such that
+                  $\mathcal{L}(K(Q))$ forms a \\
+               & complete set of representatives for $\eqrel{Q}$ \\
   $\canonize(Q)$ & 
-  a ``canonizing'' function that, given any $w \in \mathcal{L}(W(Q))$,
-  yields $\canonize(Q)(w)$ \\ & as the unique $k$ in $\mathcal{L}(K(Q))$ such
+  A ``canonizing'' function. Given any $w \in \mathcal{L}(W(Q))$,
+  $\canonize(Q)(w)$ \\ & is the unique $k$ in $\mathcal{L}(K(Q))$ such
   that $k$ is equivalent to $w$ mod $\eqrel{Q}$
 \end{tabular}
   % of type $\mathcal{L}(W(Q)) \longrightarrow \mathcal{L}(K(Q))$  which
 
+\noindent
+Intuitivley, $W(Q)$ is the regular expression representing the
+external format, while $K(Q)$ is the regular expression representing
+the internal format.  The equivalence relation $\eqrel{Q}$ groups
+together elements in the language of $W(Q)$ that contain the same
+essential information.  The function $\canonize(Q)$ picks the
+representative element from each of the resulting equivalence classes.
+
 The well-formedness constraints for QREs ensure that these four semantic
-components fit together to form a coherent quotient $W(Q)/\eqrel{Q}$ whose
+objects fit together to form a coherent quotient $W(Q)/\eqrel{Q}$ whose
 equivalence classes are determined by \canonize(Q).
 
 \subsection{The \kw{normalize} Combinator}
 
 The relationship among the semantic objects of a QRE can be understood in terms
-of the \normalize{R}{S}{f} combinator, which exposes each of these pieces
-explicitly.  Its whole language is just $R$, its kernel language is just
-$S$, and $\canonize(\normalize{R}{S}{f}) = f$.  Its equivalence relation is
+of the combinator \normalize{R_1}{R_2}{f}, which expresses each of these pieces
+explicitly.  Its whole language is just $R_1$, its kernel language is just
+$R_2$, and its canonizer is just $f$; 
+its equivalence relation $\equiv$ is
 determined by the fibres of $f$, so we have
-$s_1 \equiv s_2 \Leftrightarrow f(s_1) = f(s_2)$.
+$s_1 \equiv s_2 \Leftrightarrow f(s_1) = f(s_2)$ for $s_1$ and $s_2$
+in $\mathcal{L}(R_1)$.
 
 These components form a coherent quotient language when the canonization
 function $f$ is surjective and idempotent (intuitively, $f$ picks out a unique
@@ -733,32 +746,38 @@ language be a subset of the whole language, which enables QRE composition.
 These considerations lead to the following well-formedness rule.
 
 \begin{prooftree}
-\AxiomC{$\mathcal{L}(S) \subseteq \mathcal{L}(R)$}
-\AxiomC{$f : \mathcal{L}(R) \longrightarrow \mathcal{L}(S)$}
+\AxiomC{$\mathcal{L}(R_2) \subseteq \mathcal{L}(R_1)$}
+\AxiomC{$f : \mathcal{L}(R_1) \longrightarrow \mathcal{L}(R_2)$}
 \AxiomC{$f$ is surjective}
 \AxiomC{$f = f^2$}
 \RightLabel{(Normalize)}
-\QuaternaryInfC{$\wf{\normalize{R}{R'}{f}}$}
+\QuaternaryInfC{$\wf{\normalize{R_1}{R_2}{f}}$}
 \end{prooftree}
 
 Semantically, the \kw{normalize} QRE is universal---each of the other
 combinators $Q$ is equivalent to $\normalize{W(Q)}{K(Q)}{f}$ for some
-surjective, idempotent function
-$f : \mathcal{L}(W(Q)) \longrightarrow \mathcal{L}(K(Q))$.   However,
-although \kw{normalize} is powerful, verifying that a canonization function $f$
-is surjective and idempotent is in general undecidable.  This means that a
-programmer wishing to use \kw{normalize} must discharge strong proof
-obligations, which is cumbersome in practice.\footnote{In our implementation we allow a programmer to use \kw{normalize} at their
-own risk without checking these side conditions as an ``escape hatch'' for the
-case when other QRE combinators are insufficient.\bcp{Do we use this in any
-  of the programs we've written?}}
+surjective, idempotent function 
+$f : \mathcal{L}(W(Q)) \longrightarrow \mathcal{L}(K(Q))$.  
+However,
+verifying that a canonization
+function $f$ is surjective and idempotent is in general undecidable.
+Consequently, a programmer wishing to use \kw{normalize} must
+discharge strong proof obligations, which is cumbersome in
+practice.\footnote{In our implementation we allow a programmer to
+use \kw{normalize} at their own risk without checking these side
+conditions as an ``escape hatch'' for the case when other QRE
+combinators are insufficient.\bcp{Do we use this in any of the
+programs we've written?}}
 
-The remaining QRE combinators provide simpler, more compositional ways of
-building canonizers.  Nevertheless, the \kw{normalize} combinator gives a
-sufficient condition for potential QREs to be well-behaved, particularly with
-respect to the strategy for synthesizing quotient lenses which we shall
-introduce in Section~\ref{synth}, so we use it to guide the design of our QRE
-combinators, as we see next.
+The remaining QRE combinators, which we discuss next, provide simpler,
+more compositional ways of building canonizers.  Nevertheless,
+the \kw{normalize} combinator provides a useful guide in the design of
+these combinators because it gives a sufficient condition for the
+well-formedness of any potential QREs.
+
+% particularly with respect to the strategy for synthesizing quotient
+% lenses (See Section~\ref{synth}), so we use it to guide the design of
+% our QRE remaining combinators, which we discuss next.
 
 % ; this is the second
 % property that distinguishes the \kw{normalize} combinator from the other QREs.
@@ -769,53 +788,59 @@ combinators, as we see next.
 \subsection{QRE Combinator Semantics}
 
 Figure~\ref{fig:wk} gives the inductive definitions of the whole and
-kernel languages $W(Q)$ and $K(Q)$ for all of the QRE forms.
+kernel languages $W(Q)$ and $K(Q)$ for all of the QRE combinators.
 \begin{figure}[t]
 \centering
 \[
-\begin{array}{l@{\quad}l@{\quad}l}
+\begin{array}{l@{\quad\quad}l@{\quad\quad}l}
 
 Q & W(Q) & K(Q) \\ \hline
 R & R & R \\
 \project{R}{s} & R & s \\
-\squash{Q}{Q_1}{f} & W(Q) \sep W(Q_1) & K(Q_1) \\
-\normalize{R}{R'}{f} & R & R' \\
+\squash{Q_1}{Q_2}{f} & W(Q_1) \sep W(Q_2) & K(Q_2) \\
+\normalize{R_1}{R_2}{f} & R_1 & R_2 \\
 Q_1 \; ; \; Q_2 & W(Q_1) & K(Q_2) \\
-Q_1 \cdot Q_2 & W(Q_1) \cdot W(Q_2) & K(Q_1) \cdot K(Q_2) \\
-Q_1 \sep Q_2 & W(Q_1) \sep W(Q_2) & K(Q_1) \sep K(Q_2) \\
+Q_1 \cdot\; Q_2 & W(Q_1) \cdot W(Q_2) & K(Q_1) \cdot K(Q_2) \\
+Q_1 \sep \; Q_2 & W(Q_1) \sep W(Q_2) & K(Q_1) \sep K(Q_2) \\
 Q^* & W(Q)^* & K(Q)^* \\
 \end{array}
 \]
 \[
 \begin{array}{r@{\quad}l}
 W( \perm{Q_1, \ldots, Q_n}{Q} ) = &
-\bigcup \limits_{\sigma \in S_n} W(c_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(Q) \cdot W(c_{\sigma(n)})\\
+\bigcup \limits_{\sigma \in S_n} W(Q_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q) \cdot W(Q_{\sigma(n)})\\
 K( \perm{Q_1, \ldots, Q_n}{Q} ) = & K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q)
 \cdot K(Q_n)
 \end{array}
 \]
-\caption{Whole and Kernel Regular Expressions}
+\caption{Whole and Kernel Regular Expressions for QRE combinators. 
+In describing regular expressions, we use the notations $\sep$ and $\bigcup$ for
+alternation, the notation $\cdot$ for concatenation, and the notation
+$*$ for Kleene closure.  
+We use the notation $S_n$ to denote the set of all permutations of the
+numbers $1$ to $n$.
+}
 \label{fig:wk}
 \end{figure}
 The \kw{squash} and \kw{permutation} combinators have the two most
 interesting definitions. If $Q = \squash{Q_1}{Q_2}{f}$, then the whole language
-of $Q$ is $W(Q_1) \sep W(Q_2)$. This is because the \kw{squash} combinator
-takes the whole language $W(Q_1)$ of $Q_1$, the whole language $W(Q_2)$ of $Q_2$
-and a function $f : \mathcal{L}(W(Q_1)) \longrightarrow \mathcal{L}(W(Q_2))$,
+of $Q$ is $W(Q_1) \sep W(Q_2)$ because the \kw{squash} combinator
+merges the whole language $W(Q_1)$ of $Q_1$ with the whole language $W(Q_2)$ of $Q_2$.
+The function $f : \mathcal{L}(W(Q_1)) \longrightarrow \mathcal{L}(W(Q_2))$,
 maps $\mathcal{L}(W(Q_1))$ into $\mathcal{L}(W(Q_2))$ using $f$ and then
 canonizes $W(Q_2)$ into $K(Q_2)$ using $\canonize(Q_2)$.
 
 For the $\perm{Q_1, \ldots, Q_n}{Q}$ combinator, the whole language is the
-union of languages of the form $W(c_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(Q) \cdot W(c_{\sigma(n)})$ for any permutation $\sigma$ in $S_n$, where
-$S_n$ is the set of all permutations of the numbers $1$ to $n$. This is because
+union of languages of the form $W(Q_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q) \cdot W(Q_{\sigma(n)})$ for any permutation $\sigma$ in $S_n$, where
+$S_n$ is the set of all permutations of the numbers $1$ to $n$. Intuitively,
 the \kw{permutation} combinator allows for the string to match any
-permutation the $Q_i$'s while also taking into account the separator $Q$ in
+permutation of the $Q_i$'s while preserving the separator $Q$ in
 between each of the $Q_i$'s. The kernel of the \kw{permutation} combinator
 is the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$,
 because the canonical permutation is the identity permuation, with each of the
-parts of the string that match $Q_i$ and $Q$ canonized into $K(Q_i)$ and $K(Q)$
+parts of the input that match $Q_i$ and $Q$ canonized into $K(Q_i)$ and $K(Q)$
 respectively.
 
 Figure~\ref{fig:canonizers} gives the inductive definitions of the
@@ -825,20 +850,20 @@ $\canonize{}$ function for each QRE.
 \[
 \begin{array}{l@\quad l @\quad l}
 \canonize(\id(R)) &=& id_{\mathcal{L}(R)} \\
-\canonize(\project{R}{s})(w) &=& s\\
+\canonize(\project{R}{s})(w) &=& s\\[1ex]
 \canonize(\squash{Q_1}{Q_2}{f})(w) &=&
 \begin{cases}
 \canonize(Q_1)(f(w)) & \text{if } w \in \mathcal{L}(W(Q_1))\\
 \canonize(Q_2)(w) & \text{otherwise}
-\end{cases}\\
-\canonize(\normalize{R}{R'}{f}) &=& f\\
+\end{cases}\\[3ex]
+\canonize(\normalize{R_1}{R_2}{f}) &=& f\\
 \canonize(Q_1 \; ; \; Q_2) &=& \canonize(Q_2) \circ \canonize(Q_1)\\
-\canonize(Q_1 \cdot Q_2) &=& \canonize(Q_1) \cdot \canonize(Q_2)\\
+\canonize(Q_1 \cdot Q_2) &=& \canonize(Q_1) \cdot \canonize(Q_2)\\[1ex]
 \canonize(Q_1 \sep Q_2)(w) &=&
 \begin{cases}
 \canonize(Q_1)(w) & \text{if } w \in \mathcal{L}(W(Q_1))\\
 \canonize(Q_2)(w) & \text{if } w \in \mathcal{L}(W(Q_2))\\
-\end{cases}\\
+\end{cases}\\[3ex]
 \canonize(Q^*) &=& \canonize(Q)^* \\
 \end{array}
 \]
@@ -847,35 +872,38 @@ $\canonize{}$ function for each QRE.
 &\canonize(\perm{Q_1, \ldots, Q_n}{Q})(r_{\sigma(1)}
 \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)})\\
 &= (\canonize(Q_1)(r_1)) \cdot (\canonize(Q)(s_1)) \cdot \ldots \cdot
+(\canonize(Q)(s_{n-1}))\cdot
 (\canonize(Q_n)(r_n))
 \end{align*}
-\caption{QRE canonizers}
+\caption{QRE canonizers. \ksf{Solomon: please define/explain the . and *
+operators on functions.}}
 \label{fig:canonizers}
 \end{figure}
-Again, the \kw{permutation} combinator gives the most interesting
-definition,
+The \kw{permutation} combinator gives rise to the most interesting
+definition:
 \begin{align*}\canonize(\perm{Q_1, \ldots, Q_n}{Q})(r_{\sigma(1)}
 \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \\
 = (\canonize(Q_1)(r_1)) \cdot (\canonize(Q)(s_1)) \cdot \ldots \cdot
+(\canonize(Q)(s_{n-1}))\cdot
 (\canonize(Q_n)(r_n))
 \end{align*}
-\noindent which, as we have explained, is defined so that the strings that match
-$Q_i, Q$ are placed in the canonical permutation which is the identity
-permutation before $\canonize(Q_i)$ and $\canonize(Q)$ are applied
-respectively.
+\noindent 
+which places the strings that match $Q_i$ and $Q$ according to the
+canonical permutation (i.e., the identity permutation) before applying
+the canonizers $\canonize(Q_i)$ and $\canonize(Q)$, respectively.
 
 Finally, Figure ~\ref{fig:relations} gives the inductive definition of the
-equivalence relation $\eqrel{Q}$. This is the set-theoretic semantics of QREs
-as an equivalence relation on a regular language.
+equivalence relation $\eqrel{Q}$, which is the set-theoretic semantics
+of a QRE $Q$ as an equivalence relation on the regular language $W(Q)$.
 
 \begin{figure}[t]
 \centering
 \[
 \begin{array}{l@{}l@{\ \ }l}
-w \; \equiv_{\normalize{R}{R'}{f}} \; w' &\iff&
+w \; \equiv_{\normalize{R_1}{R_2}{f}} \; w' &\iff&
 f(w)=f(w') \\
 w \; \equiv_{\id(R)} \; w' &\iff& w = w' \\
-w \; \equiv_{\project{R}{s}} \; w' && \text{for all }w, w'\\
+w \; \equiv_{\project{R}{s}} \; w' &\iff& True \\ % \text{for all }w, w'\\
 w \; \equiv_{\squash{Q_1}{Q_2}{f}} \; w' &\iff& f(w) \equiv_{Q_2} w'
 \text{ or } w \equiv_{Q_2} w' \\
 w \; \equiv_{Q_1 \; ; \; Q_2} \; w' &\iff& \exists k, k' \in
@@ -900,17 +928,16 @@ w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
 \caption{QRE Equivalence Relations}
 \label{fig:relations}
 \end{figure}
-\subsection{Ambiguity and Well Formed QREs}
+\subsection{Ambiguity and Well-Formed QREs}
 \label{subsec:well-formed-qres}
-An issue that we address before presenting the full set of inference
-rules for QREs is the issue of {\em ambiguity}, which appears in the
-premises of the inference rules for the regular combinators. If $Q_1$ and $Q_2$
-are QREs, then when applying the regular combinators to QREs, we require that
+
+To ensure that regular combinations of QREs are well-formed, we need
+to enforce a variety of {\em unambiguity} constraints.  
+Specifically, when applying regular combinators to QREs $Q_1$ and $Q_2$, we require that
 if a string $s$ matches any of the regular expressions $W(Q_1) \cdot W(Q_2)$,
 \quad $W(Q_1) \sep W(Q_2)$, \quad $W(Q_1)^*$, \quad $K(Q_1) \cdot K(Q_2)$,
 \quad $K(Q_1) \sep K(Q_2)$, \quad $K(Q_1)^*$, then $s$ matches that regular
 expression in only one way.
-
 Formally, we say that regular expressions $R$ and $S$ are
 \textit{unambiguosly concatenable}, written $R \cdot^! S$ if for all strings
 $r, r' \in \mathcal{L}(R)$ and $s, s' \in \mathcal{L}(S)$, if $r \cdot s = r'
@@ -926,14 +953,16 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 
 Strong unambiguity is necessary in the premises of the regular QRE combinators
 because it ensures that the canonizing function of a QRE is well-defined.
-For example consider the QRE \lstinline{"a"* . (project "a"* $\to$ "a")}. The
-behaviour of this QRE is not-well defined since the string
+For example, consider the QRE \lstinline{"a"* . (project "a"* $\to$ "a")}. The
+behaviour of this QRE is not well-defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"}
 depending on how \cd{"aaa"} is parsed. We also require that the regular
 combinators applied to the kernels of QREs be unambiguous since the underlying
 bijective string lens of a QRE lens operates on kernels, and bijective string lenses
 impose the same unambiguity restrictions so that they too are well defined as
 functions.
+
+\subsection{Well-formedness of QREs}
 
 Figure~\ref{fig:qrerules} gives the inference rules for deriving well-formed
 QREs.
@@ -954,9 +983,9 @@ QREs.
 \begin{prooftree}
 \AxiomC{$\wf{Q_i, Q}$}
 \RightLabel{(Perm)}
-\AxiomC{${\substack{\forall \sigma \neq \theta, \; W(c_{\sigma(1)}) \cdot W(Q)
-\cdot \ldots \cdot W(c_{\sigma(n)})\\ \cap W(c_{\theta(1)}) \cdot W(Q)
-\cdot \ldots \cdot W(c_{\theta(n)}) =\varnothing}}$}
+\AxiomC{${\substack{\forall \sigma \neq \theta, \; W(Q_{\sigma(1)}) \cdot W(Q)
+\cdot \ldots \cdot W(Q_{\sigma(n)})\\ \cap W(Q_{\theta(1)}) \cdot W(Q)
+\cdot \ldots \cdot W(Q_{\theta(n)}) =\varnothing}}$}
 \AxiomC{$K(Q_1) \cdot^! K(Q) \cdot^! \ldots \cdot^! K(Q) \cdot^! K(Q_n)$}
 \TrinaryInfC{$\wf{\perm{Q_1, \ldots, Q_n}{Q}}$}
 \end{prooftree}
@@ -1018,28 +1047,30 @@ QREs.
 \caption{Well-formed QREs}
 \label{fig:qrerules}
 \end{figure}
-As we already mentioned, the unambiguity conditions come into play when defining
-QREs using the regular combinators. For example, the (Concat) inference rule
-for concatenation says that the concatenation $Q_1 \cdot Q_2$ of QREs $Q_1$ and
-$Q_2$ is well formed only if the concatentions of $W(Q_1)$ and $W(Q_2)$, and
-$K(Q_1)$ and $K(Q_2)$ are unambiguous.
+The unambiguity conditions are pertinent when defining QREs using the
+regular combinators. For example, the (Concat) inference rule 
+says that the concatenation $Q_1 \cdot Q_2$ of QREs
+$Q_1$ and $Q_2$ is well formed only if the concatentions of $W(Q_1)$
+and $W(Q_2)$, and $K(Q_1)$ and $K(Q_2)$ are unambiguous.
 
 The most complicated inference rule is the (Perm) rule for the
 \kw{permutation} combinator. The second hypothesis for the
 Perm rule says that for any two different permutations $\sigma$
-and $\theta$, the languages $W(c_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(c_{\sigma(n)})$ and $W(c_{\theta(1)}) \cdot W(Q) \cdot \ldots \cdot
-W(c_{\theta(n)})$ must be disjoint. This is because any string that matches the
-\kw{permutation} combinator matches the language $W(c_{\theta(1)}) \cdot
-W(Q) \cdot \ldots \cdot W(c_{\theta(n)})$ for some permutation $\theta$, so we
-require that these regular expressions be disjoint.
+and $\theta$, the languages $W(Q_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q_{\sigma(n)})$ and $W(Q_{\theta(1)}) \cdot W(Q) \cdot \ldots \cdot
+W(Q_{\theta(n)})$ must be disjoint. This restriction is important
+because any string that matches the 
+\kw{permutation} combinator matches the language $W(Q_{\theta(1)}) \cdot
+W(Q) \cdot \ldots \cdot W(Q_{\theta(n)})$ for some permutation $\theta$, so we
+must require that these regular expressions be disjoint.
 %
 The third hypothesis says that the regular expression $K(Q_1) \cdot K(Q)
-\cdot \ldots \cdot K(Q) \cdot K(Q_n)$ must be unambiguous. This is because the
+\cdot \ldots \cdot K(Q) \cdot K(Q_n)$ must be unambiguous. This
+restriction arises because the
 underlying lens that maps to or from a \kw{permutation} QRE operates on
-the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$ which is
-the kernel of the \kw{permutation} QRE. As we mentioned, the underlying
-lens will require that the source and target regular expressions of the lens be
+the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$, 
+the kernel of the \kw{permutation} QRE. The underlying
+lens requires that the source and target regular expressions be
 unambiguous so that the lens can match strings uniquely.
 
 
@@ -1077,29 +1108,30 @@ well-defined, and similarly for the {\em put} function.
 
 Having identified QREs as a natural way of specifing equivalence relations on
 regular expressions, a natural next step in defining quotient lenses is to map
-between two QREs via a bijection between their; this is our
-approach in defining {\em QRE lenses}.
-
-More concretely, in order to define a language of QRE lenses, our approach is
-to (1) define a language of bijections (Section \ref{subsec:bijective-lenses}),
-and then (2) add quotients by allowing canonizers to be prepended or postpended
-to bijections and (3) allowing composition of such quotient lenses via the
+between two QREs via a bijection between their kernels; indeed, this approach
+is the one we adopt in defining {\em QRE lenses}.
+More concretely, to define a language of QRE lenses, we
+(1) define a language of bijections (Section \ref{subsec:bijective-lenses}),
+(2) add quotients by allowing canonizers to be prepended or postpended
+to bijections, and 
+(3) allow composition of such quotient lenses via the
 regular operators and functional composition
 (Sections \ref{subsec:qre-lenses-syntax} and \ref{subsec:qre-lenses-semantics}).
 
-However, we also have a secondary objective, which is to support synthesis of
-lenses: When provided with QREs describing the source and target languages, we
-would like to be able to generate quotient lenses automatically. One way to do
-that is to generate canonizers $\canonize(Q_1)$ and $\canonize(Q_2)$ from QREs
-$Q_1$ and $Q_2$ and then to synthesize bijective lenses between the kernel
-languages for $Q_1$ and $Q_2$.
-
-Unfortunately, the composition of two such quotient lenses does not have have
+However, we also have a secondary objective, which is to support lens
+synthesis. When provided with QREs describing the source and target
+languages, we would like to be able to generate quotient lenses
+automatically. One way to achieve that goal is to generate canonizers
+$\canonize(Q_1)$ and $\canonize(Q_2)$ from QREs $Q_1$ and $Q_2$ and
+then to synthesize bijective lenses between the kernel languages for
+$Q_1$ and $Q_2$.
+Unfortunately, the composition of two such quotient lenses does not have 
 the form of a bijective lens with canonizers at the edges. Hence, an important
 technical question is whether we give up expressiveness if we restrict
-ourselves to this form. Thankfully, this turns out not to be an issue if
-the bijections that we use to define QRE lenses are derived using a particular
-set of combinators that we describe in the next section.
+ourselves to this form. 
+Thankfully, we can show that there is no loss of expressiveness if
+the bijections used to define QRE lenses are derived with a particular
+set of combinators.  We describe these combinators next.
 
 \subsection{Bijective String Lenses}
 \label{subsec:bijective-lenses}
@@ -1695,6 +1727,8 @@ more flexible.
 \includegraphics{generated-graphs/asts.eps}
 \caption{AST node measurements for each of the three approaches
 on each of the 10 non-bijective benchmark problems.
+Benchmarks are sorted in order of increasing complexity as measured by
+the number of AST nodes in the source and target format descriptions. 
 QRE Synthesis requires far fewer AST nodes than the other
 two approaches.}
 %%\caption{Count of benchmark programs definable using a given AST count. We find
@@ -1786,7 +1820,8 @@ Boomerang.
   performance overhead incurred by using QREs. 
   In (b), we run \QOpt{} on the 10 Optician benchmarks
   previously edited to make them bijective, after removing those edits
-  (In other words, we restored them to their original state with QREs
+  and then extending the synthesis specification to include QREs.
+  (In other words, we restored them to their original state, added QREs,
   and then ran \QOpt{}). 
   We find that \QOpt{} is able to
   synthesize all quotient lenses in under 10 seconds, and typically finishes in
