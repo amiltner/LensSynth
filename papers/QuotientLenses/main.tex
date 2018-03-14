@@ -1839,9 +1839,9 @@ functions $q.\kw{canonize} : C \longrightarrow B$ and $q.\kw{choose} : B
 \longrightarrow C$ such that for every $b \in B$,
 $$q.\kw{canonize} \; (q.\kw{choose} \; b) \equiv_B \; b$$
 This definition gives allows much more latitude for defining canonizers than
-QREs. For example, if $\equiv_B = \kw{Tot}(B)$, the equivalence relation that
-relates every element in $B$ to every other element in $B$, then every function
-from $C$ to $B$ is a canonizer.
+QREs. For example, if $\equiv_B$ is equal to $\kw{Tot}(B)$, the equivalence
+relation that relates every element in $B$ to every other element in $B$, then
+every function from $C$ to $B$ is a canonizer.
 
 Because of this extra elbow-room, Boomerang is able to offer two primitive
 {\em duplication} quotient lenses, the first of which can be derived using
@@ -1891,106 +1891,158 @@ $R$; here a flat value of $R$ is a value of $R$ with all left/right tags,
 parantheses and list brackets removed. The bidirectional part of BiFluX involves
 transforming source regular expressions to view regular expressions so that
 data sequences described by the two types can be matched. This process can
-result in intermediate types that are unambiguous\BCP{???}, and this
-ambiguity can cause 
-unintended updates to be made the source, especially when information is
-discared in this process. The typechecking phase of a BiFluX program therefore
-includes a {\em type normalization} phase that tries to normalize a source types
-using automata reduction techniques, and derive a lens between ambiguous and
-unambiguous types. On the view side, this phase only tries to normalize view
-types into isomorphic types.
+result in intermediate types that are ambiguous\BCP{???}\sam{Before I had this
+as unambiguous. Was this the issue? Or does this need more explaining even if
+the word unambiguous was the issue}, and this ambiguity can cause unintended
+updates to be made the source, especially when information is discarded in this
+process.
+
+\iffalse
+For example, imagine that a book database has source type \\
+$S$ = \lstinline{books[book[title[string], author[string]+]*]}
+with view type $V$ = \lstinline{title[string]}. When the source type is
+transformed to the view type for matching, only titles are kept, the element
+labels are destroyed and all authors are replaced for the empty sequence, thus
+leaving the intermediate type $S'$ = \lstinline{(title[string],(),()*)*}. In
+BiFluX, $V$ is considered a subtype of $S'$ because the flat values of $V$ are
+also flat values of $S'$. Since the intermediate type is $S'$ ambiguous, a view
+sequence \lstinline{[title["mybook"]]} would be upcast into an intermediate
+value \lstinline{[(title["mybook"],((), [ ]))]} that would in turn lead to an
+updated source \lstinline{books[[book[(title["mybook"],(aut, [ ]))]]]}, which is
+clearly unsatisfactory as it would discard the entire book database except the
+first author \lstinline{aut} of the first book.
+\fi
+The typechecking phase of a BiFluX program therefore includes a {\em type
+normalization} phase that tries to normalize a source types using automata
+reduction techniques, and derive a lens between ambiguous and unambiguous
+types. On the view side, this phase only tries to normalize view types into
+isomorphic types. Pacheco et. al. do not claim that their normalization
+procedures are complete in the sense that they can disambiguate any ambiguous
+type, but they do show that when these procedures succed the normalized types
+are unambiguous.
 
 {\em Formlenses}~\cite{rajkumar2014lenses} are a variant of lenses that
 perform transformations up to equivalence. Formlenses are a bidirectional
-generalization of {\em formlets}~\cite{cooper2008essence}. \bcp{The rest of
-  this paragraph is hard to understand.  Can we be a little more
-  explicit?}Formlets are a high-level abstraction for building Web forms,
-and can be represented in Haskell as functions that take a source of
-names\bcp{It was puzzling to me, for a while, what an Int had to do with a
-  source of names: spell it out}---concretely, an \kw{Int}---as an argument
-and produce a triple consisting of an HTML document, a {\em collect}
-function, and a modified namesource:
+generalization of {\em formlets}~\cite{cooper2008essence}, which are a
+high-level abstraction for building Web forms. Formlets encapsulate several
+low-level details including selecting field names for elements and parsing data
+from client responses. In their work, Rajkumar et. al. represent formlets as
+functions that take a source of names---concretely, an integer $n$ that should
+be used as the next name---as an argument and produce a triple consisting of an
+HTML document, a {\em collect} function, and a modified namesource:
 \begin{center}
 \begin{lstlisting}
 type Formlet a = Int $\to$ (Html, Env $\to$ a, Int)
 \end{lstlisting}
 \end{center}
 The names of any generated form fields are drawn from the namesource, and the
-{\em collect} function looks up precisely these names.
-Rajkumar et. al. observe that formlets are a useful
-abstraction, but they only address one half of the problem---they make it easy
-to construct a function that {\em produces} a value of type \codefont{a}, but they do
-not provide a way to describe a function that {\em consumes} a value of type
-\codefont{a} and embeds it in a form. A different way to think about this problem is
-to observe that forms are often used to present an {\em updateable view} of the
-data source. Therefore, Rajkumar et. al. leverage the power of bidirectional
+{\em collect} function looks up precisely these names. For example the
+\kw{inputInt} combinator below builds a form that accepts an integer,
+\begin{center}
+\begin{lstlisting}
+inputInt :: Formlet Int
+inputInt i = let n = show i in
+             ($\kw{inputTag}$ {name = n, value = ""},$\lambda e \longrightarrow \kw{read}$ ($\kw{fromJust}$ ($\kw{lookup}$ n e)),i+1)
+\end{lstlisting}
+\end{center}
+where \kw{inputTag} constructs an input element, \kw{lookup}
+retrieves a value from an association list \kw{fromJust} extracts the
+encapsulated value from a \kw{Maybe} value, and \kw{read} parses an \kw{Int}
+from a \kw{String}.
+
+Rajkumar et. al. observe that formlets are a useful abstraction, but they only
+address one half of the problem---they make it easy to construct a function
+that {\em produces} a value of type \codefont{a}, but they do not provide a way
+to describe a function that {\em consumes} a value of type \codefont{a} and
+embeds it in a form. A different way to think about this problem is to observe
+that forms are often used to present an {\em updateable view} of the data
+source. Therefore, Rajkumar et. al. leverage the power of bidirectional
 transformations to define formlets that behave like updatable views, yielding
 the abstraction of formlenses.
 
-The \kw{Formless} type is given by,\bcp{I notice that several displays now
-  have commas before them.  If you imagine them typeset inline instead of
-  displayed, would this be good grammar?}
+The \kw{Formless} type is given by
 \begin{center}
 \begin{lstlisting}
 type Formlens a = Maybe a $\to$ [Int] $\to$ (Html,Env $\to$ Maybe a,[Int])
 \end{lstlisting}
 \end{center}
 with the differences between this definition and the standard definition for
-formlets being an extra \codefont{Maybe\; a} parameter that provides an optional initial
-value of the form, the namesource being changed to a list of integers, and the
-{\em collect} function being allowed to return an optional value.
+formlets being an extra \codefont{Maybe\; a} parameter that provides an
+optional initial value of the form, the namesource being changed to a list of
+integers, and the {\em collect} function being allowed to return an optional
+value.
 
 Rajkumar et. al. consider only formlenses that are well-formed in that a
 well-formed formlens should only draw names from the namesource provided as an
 argument, and the {\em collect} function should only look up corresponding
-names.
-Under this assumption, Rajkumar et. al. define what it means for a formlens to
-be well behaved by defining a version of the classical \textsc{GetPut} and \textsc{PutGet} laws
-for formlenses. These laws hold modulo an equivalence relation on environments,
-since a formlens may be invoked with two separate namespaces, but this should
-not affect the value stored in the information encapsulated in the type $a$.
-Consequently, the \textsc{GetPut} and \textsc{PutGet} laws defined for formlenses are in spirit
-analogous to the \textsc{GetPut} and \textsc{PutGet} laws for quotient lenses, since they hold up
-to renaming of environment variables.
+names. Under this assumption, Rajkumar et. al. define what it means for a
+formlens to be well behaved by defining a version of the classical
+\textsc{GetPut} and \textsc{PutGet} laws for formlenses. These laws hold modulo
+an equivalence relation on environments, since a formlens may be invoked with
+two separate namespaces, but this should not affect the value stored in the
+information encapsulated in the type $a$. Consequently, the \textsc{GetPut} and
+\textsc{PutGet} laws defined for formlenses are in spirit analogous to the
+\textsc{GetPut} and \textsc{PutGet} laws for quotient lenses, since they hold
+up to renaming of environment variables.
 
 \iffalse
 Well-behaved formlenses satisfy properties that are analogous to the classical
-\textsc{GetPut} and \textsc{PutGet} law. If {\em extract} is a function from \kw{Html} to \kw{Env} that
-extracts an environment containing the names and values of all the form fields
-from an HTML document, then a formlens $f$ satisfies the Acceptability law if
-for any $v$ of type $a$, $n$ of type \kw{Int} and environment $e$ of type
-\kw{Env} if $f$ applied to \kw{Just v} and $n$ yields an HTML file $h$ and a
-{\em collect} function $c$ where \kw{extract h} is contained in $e$, then
-collect $e$
+\textsc{GetPut} and \textsc{PutGet} law. If {\em extract} is a function from
+\kw{Html} to \kw{Env} that extracts an environment containing the names and
+values of all the form fields from an HTML document, then a formlens $f$
+satisfies the Acceptability law if for any $v$ of type $a$, $n$ of type
+\kw{Int} and environment $e$ of type \kw{Env} if $f$ applied to \kw{Just v} and
+$n$ yields an HTML file $h$ and a {\em collect} function $c$ where \kw{extract
+h} is contained in $e$, then collect $e$
 \fi
+Another recent line of work that exploits equivalence relations on data is by
+Hilken et. al. in \cite{hilken2016testing}. This work is concerned mainly with
+testing, and uses {\em Equivalence Partitioning}, a software testing technique
+that divides the input data of a software unit into partitions of equivalent
+data from which test cases can be derived. This approach has the advantage that
+it can greatly reduce the number of test cases and hence the amount of time
+spent testing since only one representative from each class is tested.
 
-Finally, Cunha~\cite{cunha2010relational} uses relational algebra to
-encompass many of the existing approaches to bidirectional programming. For
-example, using $\cdot$\saz{Why not use $\circ$ or ``;''} to express relational composition, the \textsc{GetPut} law states
-that $\get \cdot \lput \subseteq \equiv_V \cdot \pi_1$, where $\pi_1$ is the
+More concretely, their approach gives the developer an explicit option to
+formulat her understanding of two object models being different. The technical
+realization is as follows: The developer specifies ``classifying term'', a
+closed Object Constraint Language (OCL) query term that can be evaluated in an
+object model and returns a characteristic value. Two object models with the same
+characteristic value belong to the same equivalence class. For example under a
+configuration requiring at least 2 and at most 4 Person objects, the
+classifying term \lstinline{Person.allInstances()->size()} would yield three
+object models with 2,3 and 4 Person objects respectively.
+
+Classifying terms are therefore analogous to our QREs or to Boomerang canonizers
+in the sense that they define an equivalence relation on data. However, while
+QREs and canonizers aim at identifying or characterizing the elements that
+should be treated equally by a lens, the focus of the work by Hilken et. al. is
+on classes that represent specific patterns of particular relevance to the
+modeler who is interested in analyzing the behavior of a transformation.
+
+Finally, Cunha~\cite{cunha2010relational} uses relational algebra to encompass
+many of the existing approaches to bidirectional programming. For example,
+using $\circ$ to express relational composition, the \textsc{GetPut} law states
+that $\get \circ \lput \subseteq \equiv_V \circ \pi_1$, where $\pi_1$ is the
 projection onto the first factor. In addition to its generality, this
 ``point-free'' approach to defining bidirectional transformations has the
 advantage of creating equational proofs of lens laws that proceed by folding
 and unfolding combinator laws.
 
 Next we turn to related work in program synthesis. Much of the research in
-synthesis 
-assumes that the synthesizer is provided with a collection of examples.
-Optician and Optician$_Q$  differ
-in that they require the programmer to supply both examples {\em and}
-format descriptions in the form of regular expressions or QREs, though we are
-far from the only ones to consider type-based synthesis.
-There is a trade-off here.  On the one hand, a user must have some programming
-expertise to write regular expression (or QRE) specifications, and it requires
-some work. On the other hand, such specifications provide a great deal of
-information to the synthesis system, which decreases the number of examples
-needed (often to zero), makes the system scale well, and allows it to handle
-large, complex formats.  By providing these format specifications, the 
-synthesis engine does not have to both infer the format of the data as well as
-the transformations on it, obviating the need to infer tricky formats like
-those involving nested iterations. Furthermore, by focusing on bidirectional
-transformations, we limit the space of synthesized functions to bijective ones,
-reducing the search space, and the expressiveness of the search space.
+synthesis assumes that the synthesizer is provided with a collection of examples.
+Optician and Optician$_Q$ differ in that they require the programmer to supply
+both examples {\em and} format descriptions in the form of regular expressions
+or QREs, though these two systems are far from the only ones to consider
+type-based synthesis. There is a trade-off here.  On the one hand, a user must
+have some programming expertise to write regular expression (or QRE)
+specifications, and it requires some work. On the other hand, such
+specifications provide a great deal of information to the synthesis system,
+which decreases the number of examples needed (often to zero), makes the system
+scale well, and allows it to handle large, complex formats.  By providing these
+format specifications, the synthesis engine does not have to both infer the
+format of the data as well as the transformations on it, obviating the need to
+infer tricky formats like those involving nested iterations. 
 
 There are many other recent results showing how to synthesize functions from
 type-based
@@ -1998,39 +2050,34 @@ specifications~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,scherer-icfp-
 These systems enumerate programs of their target language, orienting their
 search procedures to process only terms that are well-typed.
 Optician is distinctive in that it synthesizes terms in a language with many
-type equivalences.
-Perhaps the system most similar to Optician is InSynth~\cite{gvero-pldi-2013}, a
-system for synthesizing terms in the simply-typed lambda calculus that addresses
-equivalences on types. Instead of trying to directly synthesize terms of the
-simply-typed lambda calculus, InSynth synthesizes a well-typed term
-in the succinct calculus, a language with types
-that are equivalent ``modulo isomorphisms of products and
-currying''~\cite{gvero-pldi-2013}. The type structure that we used in Optician
+type equivalences. Perhaps the system most similar to Optician is
+InSynth~\cite{gvero-pldi-2013}, a system for synthesizing terms in the
+simply-typed lambda calculus that addresses equivalences on types. Instead of
+trying to directly synthesize terms of the simply-typed lambda calculus,
+InSynth synthesizes a well-typed term in the succinct calculus, a language with
+types that are equivalent ``modulo isomorphisms of products and
+currying''~\cite{gvero-pldi-2013}. The type structure used in Optician
 is significantly more complex.  In particular, because Optician types do not
-have full canonical forms, we used a pseudo-canonical form, which captures part
-of the equivalence relation over types. To preserve completeness, we pushed
-some of the remaining parts of the type equivalence relation into a set of
-rewriting rules and other parts into the synthesis algorithm itself.
+have full canonical forms, Anders et. al. used a pseudo-canonical form that
+captures part of the equivalence relation over types were used. To preserve
+completeness, they pushed some of the remaining parts of the type equivalence
+relation into a set of rewriting rules and other parts into the synthesis
+algorithm itself.
 
 Morpheus~\cite{morpheus} is another synthesis system that uses two
 communicating synthesizers to generate programs.  In both Morpheus and
-Optician, one synthesizer provides an
-outline for the program, and the other fills in that outline with program
-details that satisfy the user's specifications.
-This approach works well in large search spaces that require some enumerative
-search.
-One important way that Optician differs from Morpheus is that in
-Morpheus, an outline is a sketch---an
-\emph{expression}
-containing holes---whereas
-an outline in Optician is a pair of regular
-expressions, i.e., a
-\emph{type}.  Moreover, in order to implement an efficient
-search procedure, we had to create both a new type language and a new
-term language for lenses.  Once we did so, we proved our new, more
-constrained language
-designed for synthesis was just as expressive as the original, more
-flexible and compositional language designed for human programmers.
+Optician, one synthesizer provides an outline for the program, and the other
+fills in that outline with program details that satisfy the user's
+specifications. This approach works well in large search spaces that require
+some enumerative search. One important way that Optician differs from Morpheus
+is that in Morpheus, an outline is a sketch---an \emph{expression}
+containing holes---whereas an outline in Optician is a pair of regular
+expressions, i.e., a \emph{type}.  Moreover, in order to implement an efficient
+search procedure, Anders et. al had to create both a new type language and a new
+term language for lenses.  Once they did so, they proved their new, more
+constrained language designed for synthesis was just as expressive as the
+original, more flexible and compositional language designed for human
+programmers.
 
 \section{Conclusion}
 \bcp{And future work!}  \saz{I'm lukewarm about including a description of
