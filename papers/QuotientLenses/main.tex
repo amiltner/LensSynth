@@ -647,11 +647,6 @@ A Quotient Regular Expression (or QRE) is a regular expression $R$ augmented
 with syntax that expresses an equivalence relation on the language of $R$. This
 section formalizes the set of QRE combinators that we introduced informally
 in \cref{sec:example}.
-\iflastminute 
-\saz{Why does the ``cref'' macro not capitalize Section?}
-\bcp{Dunno.  Because SIGPLAN does not want it to??  But maybe we should be
-  using autoref instead anyway...}
-\fi
 
 \subsection{Syntax and Semantics of QREs}
 Formally, the language of Quotient Regular Expressions (QREs) is given by the
@@ -680,7 +675,7 @@ objects:
   $\canonize(Q)$ & 
   A ``canonizing'' function. Given any $w \in \mathcal{L}(W(Q))$,
   $\canonize(Q)(w)$ \\ & is the unique $k$ in $\mathcal{L}(K(Q))$ such
-  that $k$ is equivalent to $w$ mod $\eqrel{Q}$
+  that $k \eqrel{Q} w$.
 \end{tabular}
   % of type $\mathcal{L}(W(Q)) \longrightarrow \mathcal{L}(K(Q))$  which
 
@@ -735,7 +730,7 @@ practice.\footnote{In our implementation we allow a programmer to
 use \kw{normalize} at their own risk without checking these side
 conditions as an ``escape hatch'' for the case when other QRE
 combinators are insufficient.\bcp{Do we use this in any of the
-programs we've written?}}
+programs we've written?}\afm{Nope.}}
 
 The remaining QRE combinators, which we discuss next, provide simpler,
 more compositional ways of building canonizers.  Nevertheless,
@@ -826,13 +821,14 @@ $\canonize{}$ function for each QRE.
 \end{cases}\\[3ex]
 \canonize(\normalize{R_1}{R_2}{f}) &=& f\\
 \canonize(Q_1 \; ; \; Q_2) &=& \canonize(Q_2) \circ \canonize(Q_1)\\
-\canonize(Q_1 \cdot Q_2) &=& \canonize(Q_1) \cdot \canonize(Q_2)\\[1ex]
+\canonize(Q_1 \cdot Q_2)(w_1 \cdot w_2) &=& \canonize(Q_1)(w_1) \cdot \canonize(Q_2)(w_2)\\[1ex]
 \canonize(Q_1 \sep Q_2)(w) &=&
 \begin{cases}
 \canonize(Q_1)(w) & \text{if } w \in \mathcal{L}(W(Q_1))\\
 \canonize(Q_2)(w) & \text{if } w \in \mathcal{L}(W(Q_2))\\
 \end{cases}\\[3ex]
-\canonize(Q^*) &=& \canonize(Q)^* \\
+\canonize(Q^*)(\epsilon) &=& \epsilon \\
+\canonize(Q^*)(w_1 \cdot w_2) &=& \canonize(Q)(w_1)\cdot\canonize(Q^*)(w_2) \\
 \end{array}
 \]
 \end{center}
@@ -844,7 +840,8 @@ $\canonize{}$ function for each QRE.
 (\canonize(Q_n)(r_n))
 \end{align*}
 \caption{QRE canonizers. \ksf{Solomon: please define/explain the . and *
-operators on functions.}}
+operators on functions.}\afm{I tried rewriting with explicit arguments,
+thoughts?}}
 \label{fig:canonizers}
 \end{figure}
 The \kw{permutation} combinator gives rise to the most interesting
@@ -924,7 +921,7 @@ $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 
 Strong unambiguity is necessary in the premises of the regular QRE combinators
 because it ensures that the canonizing function of a QRE is well-defined.
-For example, consider the QRE \lstinline{"a"* . (collapse "a"* $\to$ "a")}. The
+For example, consider the QRE \lstinline{"a"* . (collapse "a"$^*$ $\to$ "a")}. The
 behaviour of this QRE is not well-defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"}
 depending on how \cd{"aaa"} is parsed. We also require that the regular
