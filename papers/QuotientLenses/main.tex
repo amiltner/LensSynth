@@ -40,10 +40,10 @@
 \usepackage[noend]{algpseudocode}
 
 \lstset{ language=Caml, basicstyle=\linespread{0.8}\upshape\sffamily,
-keywordstyle=\upshape\sffamily\color{dkblue}, keepspaces=true,
+keywordstyle=\upshape\sffamily\color{dkred}, keepspaces=true,
 framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
 commentstyle=\itshape\rmfamily,
-emph={synth,project,perm,squash,normalize,using,ins,del,lens,let},
+emph={synth,project,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot},
 emphstyle=\upshape\sffamily\color{dkred}, 
 columns=fullflexible,
 escapechar=\#,
@@ -90,7 +90,7 @@ xleftmargin=1.5em,
 % FOR Regular Expression names
 \newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
 \newcommand{\codefont}[1]{\ensuremath{\mathsf{#1}}}
-\newcommand{\kw}[1]{\codefont{#1}}
+\newcommand{\kw}[1]{\textcolor{dkred}{\ensuremath{\mathsf{#1}}}}
 \newcommand{\project}[2]{\ensuremath{\kw{project} \; #1 \mapsto #2}}
 \newcommand{\squash}[3]{\ensuremath{\kw{squash} \; #1 \rightarrow #2\; \kw{using} \; #3}}
 \newcommand{\perm}[2]{\ensuremath{\kw{perm}\; (#1)\; \kw{with}\; #2}}
@@ -146,7 +146,7 @@ aspects of data formats that are inessential and hence give a high-level
 specification of regular languages with an equivalence relation defined on
 them. Next, we introduce {\em QRE lenses}, i.e., lenses mapping between QREs.
 Our key technical result is a proof that every QRE lens can be transformed into
-one of the form $c_1 ; \ell ; c_2^{-1}$, where $c_1$ and $c_2^{-1}$ are {\em
+one of the form $c ; \ell ; d^{-1}$, where $c$ and $d^{-1}$ are {\em
 canonizers}, $\ell$ is a bijective transformation, and $;$ is
 composition\iflastminute\bcp{$c_2^{-1}$ is ugly, but I think we need the
 superscript for accuracy.  Perhaps calling them $c$ and $d$ instead of $c_1$
@@ -179,12 +179,13 @@ programs that simultaneously define pairs of functions for translating
 the data from the source format to the target formant (the \emph{get}
 direction) and back again (the \emph{put} direction). Lenses can be
 written in one of several domain-specific bidirectional languages that 
-guarantee various \emph{lens laws} constraining how the \emph{put} and
-\emph{get} functions must fit together. 
+guarantee various \emph{lens laws} constraining how the \kw{put} and
+\kw{get} functions must fit together. 
 
-In recent work~\cite{optician}, we developed a tool called {\em Optician} to synthesize the
+Recent work~\cite{optician}\saz{removed ``we'' here to maintain the double-blind
+  review standard.} developed a tool called Optician to synthesize the
 class of {\em bijective lenses} that can be derived in the lens programming
-language {\em Boomerang}\cite{boomerang}. Each lens $\ell : S \Leftrightarrow T$
+language {\em Boomerang}~\cite{boomerang}. Each lens $\ell : S \Leftrightarrow T$
 that Optician can synthesize specifies a bijection from the language of a
 source regular expression $S$ to a target language of a target regular
 expression $T$: \begin{equation}\label{bijectivelenslaws} \ell.\get \;
@@ -201,11 +202,11 @@ Quotient lenses are lenses in which the lens laws are
 loosened so that they hold modulo an equivalence relation on the source and
 target data respectively; in this paper we are concerned with {\em bijective
 quotient lenses} which are lenses for which Equation \ref{bijectivelenslaws}
-holds modulo equivalence relations $\sim_S$ and $\sim_T$ defined on the source
+holds modulo equivalence relations $\equiv_S$ and $\equiv_T$ defined on the source
 and target data respectively:
 \begin{equation}\label{quotientlenslaws}
-\ell.\get \; (\ell.\lput \; t) \sim_T t \text{, and } \ell.\lput \; (\ell.\get
-\; s) \sim_S s
+\ell.\get \; (\ell.\lput \; t) \equiv_T t \text{, and } \ell.\lput \; (\ell.\get
+\; s) \equiv_S s
 \end{equation}
 Quotient lenses are useful in situations where a programmer wishes for the
 transformation defined by a lens to have the same behavior on data that differ
@@ -218,14 +219,14 @@ Optician synthesizes bijective lenses from a pair $(S, T)$ of regular
 expressions
 specifying the source and target types and a set of example input-output pairs
 that guide the synthesis algorithm. This presents a challenge for synthesizing
-quotient lenses since a specification of the source and target formats for a
-quotient lens needs to account for the equivalence relations defined on the
+quotient lenses since a specification of its source and target formats
+needs to account for the equivalence relations defined on the
 respective formats. Our solution is to introduce {\em Quotient Regular
 Expressions} (QREs), which are regular expressions augmented with extra
 syntax that enables programmers to simultaneously specify a regular expression
-as well as an equivalence relation on the language of that regular expression.
+and an equivalence relation on the language of that regular expression.
 Further, given a QRE, we can automatically infer a \emph{canonizer}---a
-function that converts string in the language of regular expression
+function that converts strings in the language of the regular expression
 to a canonical form.
 
 For example, consider the following QRE for writing author names:
@@ -249,8 +250,8 @@ which are bijective quotient lenses that map between QREs via bijective lenses
 that map between the respective canonical formats defined by the source and
 target QREs. This idea is simple and natural, but begs the following question:
 do we give up expressiveness if we restrict ourselves to this form? Our main
-technical contribution to this question asserts that we do not; more
-specifically, we will prove a normal form theorem (Theorem~\ref{normal form})
+technical contribution to this question asserts that we do not---more
+specifically, we prove a normal form theorem (Theorem~\ref{normal form})
 that says that every QRE lens can be rewritten to be the composition of a
 source canonizer, a bijective lens, and a target canonizer. This normalization
 property will enable us to (1) synthesize QRE lenses by extending the synthesis
@@ -263,10 +264,10 @@ describe the source and target formats and a (possibly empty) suite of examples
 demonstrating the mapping.  For example, the following code
 
 \begin{lstlisting}
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
+let $\ell$ = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
 \end{lstlisting}
-binds \codefont{l} to a synthesized QRE lens mapping between names in the
-comma-separated form describd by the QRE \codefont{comma\_name} and the
+binds $\ell$ to a synthesized QRE lens mapping between names in the
+comma-separated form described by the QRE \codefont{comma\_name} and the
 space-separated form described by the QRE \codefont{space\_name}. 
 
 In summary, our main contributions are:
@@ -293,11 +294,6 @@ Sections~\ref{relwork} and~\ref{concl} present related and future work.
 
 \section{Background: Bijective String Languages}
 \label{sec:background}
-\iflastminute
-\ksf{We are inconsistent in how we typeset get/put.  Sometimes we use
-codefont, sometimes we use italics of various flavors, and sometimes
-we don't do anything distinctive.  It would be good to be consistent!}
-\fi
 Before describing QREs and QRE lenses, we briefly review bijective
 string lenses. Consider a bidirectional transformation that converts
 between \bibtex{} citation records such as
@@ -368,33 +364,32 @@ expressions (which are omitted for brevity).
 \label{fig:example-lens}
 \end{figure}
 
-Recent work described the {\em Optician}\bcp{Why is this sometimes
-  italicized and sometimes not?  (My preference would be not---we have too
-  much italics.)}
+Recent work described the Optician
 algorithm/tool~\cite{optician}, which can synthesize bijective lenses
 such as \cd{bib_to_end}, obviating the sometimes tedious tasks
 involved in writing such lenses by hand.  Given the directive
 \begin{lstlisting}
-synth S <=> T using exs
+synth S $\Leftrightarrow$ T using exs
 \end{lstlisting}
 \noindent
-{\em Optician} will synthesize a bijective lens between 
+Optician will synthesize a bijective lens between 
 source and target formats described by regular expressions
-\cd{S} and \cd{T}, respectively, and a set of input-output example pairs \cd{exs} specifying how
+\cd{S} and \cd{T}, respectively, and constrained by a set of input--output example pairs \cd{exs} specifying how
 the synthesized lens should behave on those examples.
 
 
 \section{QRE Lenses by Example}
 \label{sec:example}
 
-{\em Optician} greatly simplifies the task of programming bijective
+Optician greatly simplifies the task of programming bijective
 string lenses, but not all bidirectional transformations are
 bijective.  For instance, \bibtex{} users are not typically interested
 in preserving whitespace between words.  The order of author and title
 fields is also likely irrelevant, and there may be equivalent ways of
 writing the same name: ``Lovelace, Ada'' vs ``Ada Lovelace.''
 Consequently, the following two \bibtex{} citations represent the same
-logical object even though they differ in nonessential details.
+logical object even though they differ in nonessential details.\saz{should we
+  place such examples side-by-side?}
 \begin{verbatim}
    @Book {Lovelace,
    Author = "Ada Lovelace",
@@ -484,17 +479,18 @@ let name = squash comma_name $\to$ space_name using c_to_s
 One way to define the \codefont{c\_to\_s} function
 is simply to write it from scratch in some ordinary programming language.
 However, we can synthesize such functions automatically---here, \codefont{c\_to\_s} is the
-\codefont{get} direction of a lens that can be synthesized using the 
+get direction of a lens that can be synthesized using the 
 \kw{synth} combinator:
 %
 \begin{lstlisting}
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
-let c_to_s = get l
+let $\ell$ = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
+let c_to_s = $\ell$.get 
 \end{lstlisting}
-\noindent
+\noindent \saz{I changed \codefont{get} $\ell$ to $\ell$.\kw{get} to be
+  consistent with the earlier text.}
 The first line above synthesizes a lens between \codefont{comma\_name} and
 \codefont{space\_name} using the listed example transformation as a guide.  The
-second line extracts the \codefont{get} direction transformation from the lens,
+second line extracts the get direction transformation from the lens,
 which is what we need for \kw{squash}.
 
 The permutation QRE combinator, \kw{perm}, allows data to be unordered. For example,
@@ -553,8 +549,8 @@ let space_name = first_name . wsp_sp . last_name
 let comma_name = last_name . "," . wsp_sp . first_name
 
 (* synthesize a lens that maps comma representation to space representation *)
-let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
-let c_to_s = get l
+let $\ell$ = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "Ada Lovelace")}
+let c_to_s = $\ell$.get
 
 (* squash QRE maps comma_name to space_name *)
 let name = squash comma_name $\to$ space_name using c_to_s
@@ -570,7 +566,8 @@ let bib_fields = perm (label, bib_author, bib_title) with (project ("," . wsp) $
 let bibtex = "@book{" . bib_fields . "}"
 \end{lstlisting}
 \caption{QRE specification of \bibtex{} records.\ksf{In what sense is this a QRE
-spec vs a QRE lens spec?}}
+spec vs a QRE lens spec?}}\saz{This defines only one endpoint of the eventual
+\bibtex{}--EndNote lens.  Maybe we should say ``definition'' instead of ``specification''?}
 \label{fig:example-qre}
 \end{figure}
 
@@ -579,7 +576,7 @@ spec vs a QRE lens spec?}}
 \label{sec:examplesynth}
 At this point we have a tool for synthesizing bijective string lenses from a
 pair of regular expressions and a set of example input-output pairs
-({\em Optician}), 
+(Optician), 
 and we have a way of defining regular expressions with equivalence
 relations indicating the essential information (QREs).
 A tantalyzing possibility would be to use the bijective string lens
@@ -601,20 +598,22 @@ Figure~\ref{fig:attheedges} depicts the architecture of QRE lenses.
 \caption{QRE lens from source $P$ to target $Q$.  $P$ and $Q$ are QREs, each
   consisting of a ``whole'' set ($W(P)$ and $W(Q)$) and a ``kernel'' part
   ($K(P)$ and $K(Q)$) Between the two kernels is a plain bijective lens.
-  The {\emph get} function of the whole lens takes an argument from $W(P)$,
+  The \kw{get} function of the whole lens takes an argument from $W(P)$,
   applies the canonizer for $P$ to obtain a canonical representative in
-  $K(P)$, then applies the {\em get} of the plain lens, yielding an element
-  of $K(Q)$, which is a subset of $W(Q)$.  The {\em put} function does the
+  $K(P)$, then applies the \kw{get} of the plain lens, yielding an element
+  of $K(Q)$, which is a subset of $W(Q)$.  The \kw{put} function does the
   reverse, mapping from $W(Q)$ to $K(P)$ (hence $W(P)$.  This lens is in
   normal form, with canonizers (specified by QREs) at the outer edges and an
   ordinary bijective lens in the center. \BCP{Both the figure and the
-    caption are new---what do you think??}}
+    caption are new---what do you think??}}\saz{I think that this figure is a
+  big improvement.  One tiny possible tweak: color the \kw{get} and \kw{put}
+  keywords in the same dark red as in the text.}
 \label{fig:attheedges}
 \end{figure}
 Every QRE lens $q_1$ has a type $q_1: Q_1 \Leftrightarrow Q_2$ where $Q_1$ and $Q_2$
 are QREs. In the {\em get} direction, a QRE lens $q_1: Q_1 \Leftrightarrow Q_2$ uses the
 source QRE $Q_1$ to compute a canonical representative for the data modulo the
-equivalence relation defined by $Q_1$ and then applies the $\get$ function of a
+equivalence relation defined by $Q_1$ and then applies the \kw{get} function of a
 bijective string lens $\ell_1$ to this representative. In the {\em put} direction, $q_1$
 operates similarly, but using the QRE $Q_2$ and the $\lput$ function of
 $\ell_1$.
@@ -638,7 +637,7 @@ them,
 which can lead to substantial savings in program complexity.
 For instance, after defining the \bibtex{} and EndNote QREs and
 binding them to the variables \cd{bibtex} and \cd{endnote} respectively, then
-all the code in Figure~\ref{fig:example-lens} may be replaced by a single call
+all of the code in Figure~\ref{fig:example-lens} may be replaced by a single call
 to the synthesis prodedure:
 \begin{lstlisting}
 let bib_to_end : bibtex $\Leftrightarrow$ endnote =
@@ -861,13 +860,16 @@ operators on functions.}}
 \label{fig:canonizers}
 \end{figure}
 The \kw{permutation} combinator gives rise to the most interesting
-definition:\bcp{Why is this right-justified?}
-\begin{align*}\canonize(\perm{Q_1, \ldots, Q_n}{Q})(r_{\sigma(1)}
+definition:
+\[
+\begin{array}{cl}
+ & \canonize(\perm{Q_1, \ldots, Q_n}{Q})(r_{\sigma(1)}
 \cdot s_1 \cdot \ldots \cdot s_{n-1} \cdot r_{\sigma(n)}) \\
-= (\canonize(Q_1)(r_1)) \cdot (\canonize(Q)(s_1)) \cdot \ldots \cdot
+= & (\canonize(Q_1)(r_1)) \cdot (\canonize(Q)(s_1)) \cdot \ldots \cdot
 (\canonize(Q)(s_{n-1}))\cdot
 (\canonize(Q_n)(r_n))
-\end{align*}
+\end{array}
+\]
 \noindent 
 which places the strings that match $Q_i$ and $Q$ according to the
 canonical permutation (i.e., the identity permutation) before applying
@@ -884,7 +886,7 @@ of a QRE $Q$ as an equivalence relation on the regular language $W(Q)$.
 w \; \equiv_{\normalize{R_1}{R_2}{f}} \; w' &\iff&
 f(w)=f(w') \\
 w \; \equiv_{\id(R)} \; w' &\iff& w = w' \\
-w \; \equiv_{\project{R}{s}} \; w' &\iff& True \\ % \text{for all }w, w'\\
+w \; \equiv_{\project{R}{s}} \; w' &\iff& \mathit{True} \\ % \text{for all }w, w'\\
 w \; \equiv_{\squash{Q_1}{Q_2}{f}} \; w' &\iff& f(w) \equiv_{Q_2} w'
 \text{ or } w \equiv_{Q_2} w' \\
 w \; \equiv_{Q_1 \; ; \; Q_2} \; w' &\iff& \exists k, k' \in
@@ -906,11 +908,7 @@ w' = {r'}_{\theta(1)} \cdot s'_1 \cdot \ldots \cdot s'_{n-1}
 \equiv_{q_i} \; r'_i \text{ and } s_k \; \equiv_{Q} \; s'_{k}
 \end{array}
 \]
-\caption{QRE Equivalence Relations\bcp{The inter-letter spacing of ``True''
-    is wrong, and anybody who has worked with tex for a while will be
-    bothered by this rookie mistake.  A general rule in tex is that english
-    words in math mode {\em must always} be enclosed in {\tt
-      $\backslash$mathit}.}}
+\caption{QRE Equivalence Relations}
 \label{fig:relations}
 \end{figure}
 \subsection{Ambiguity and Well-Formed QREs}
@@ -955,7 +953,7 @@ QREs.
 \begin{center}
 \AxiomC{$R$ is strongly unambiguous}
 \RightLabel{(Id)}
-\UnaryInfC{$\wf{\mathit{id}(R)}$}
+\UnaryInfC{$\wf{\kw{id}(R)}$}
 \DisplayProof
 \hskip 1.5em
 \AxiomC{$s \in \mathcal{L}(R)$}
@@ -1039,22 +1037,22 @@ $Q_1$ and $Q_2$ is well formed only if the concatentions of $W(Q_1)$
 and $W(Q_2)$, and $K(Q_1)$ and $K(Q_2)$ are unambiguous.
 
 The most complicated inference rule is the (Perm) rule for the
-\kw{permutation} combinator. The second hypothesis for the
+permutation combinator. The second hypothesis for the
 Perm rule says that for any two different permutations $\sigma$
 and $\theta$, the languages $W(Q_{\sigma(1)}) \cdot W(Q) \cdot \ldots \cdot
 W(Q_{\sigma(n)})$ and $W(Q_{\theta(1)}) \cdot W(Q) \cdot \ldots \cdot
 W(Q_{\theta(n)})$ must be disjoint. This restriction is important
-because any string that matches the 
-\kw{permutation} combinator matches the language $W(Q_{\theta(1)}) \cdot
+because an input string could match any
+of the regular expressions $W(Q_{\theta(1)}) \cdot
 W(Q) \cdot \ldots \cdot W(Q_{\theta(n)})$ for some permutation $\theta$, so we
-must require that these regular expressions be disjoint.
+must require that all of them be disjoint.
 %
 The third hypothesis says that the regular expression $K(Q_1) \cdot K(Q)
 \cdot \ldots \cdot K(Q) \cdot K(Q_n)$ must be unambiguous. This
 restriction arises because the
-underlying lens that maps to or from a \kw{permutation} QRE operates on
+underlying lens that maps to or from a \kw{perm} QRE operates on
 the language $K(Q_1) \cdot K(Q) \cdot \ldots \cdot K(Q) \cdot K(Q_n)$, 
-the kernel of the \kw{permutation} QRE. The underlying
+the kernel of the \kw{perm} QRE. The underlying
 lens requires that the source and target regular expressions be
 unambiguous so that the lens can match strings uniquely.
 
@@ -1069,25 +1067,25 @@ a class of quotient lenses that map between data that is specified using QREs.
 First we give the formal definition of a {\em bijective quotient lens}; QRE
 lenses are a specific class of bijective quotient lenses that map between data
 that is specified by QREs. Given regular expressions $R, S$ and equivalence
-relations $\sim_R$ and $\sim_S$ defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$,
-we define a {\em bijective quotient lens} $q : R /{\sim_R} \Leftrightarrow
-S/{\sim_S}$ to be a pair of functions $q.\get :
+relations $\equiv_R$ and $\equiv_S$ defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$,
+we define a bijective quotient lens $q : R /{\equiv_R} \Leftrightarrow
+S/{\equiv_S}$ to be a pair of functions $q.\get :
 \mathcal{L}(R) \longrightarrow \mathcal{L}(S)$ and $q.\lput : \mathcal{L}(S)
 \longrightarrow \mathcal{L}(R)$ such that for all $r \in \mathcal{L}(R)$ and $s
-\in \mathcal{L}(S)$, we have $q.\lput(q_1.\get(r)) \sim_R r$ and
-$q.\get(q_1.\lput(s)) \sim_R s$. Moreover, if $r \sim_R r'$, then $q.\get(r) =
-q.\get(r')$, and if $s \sim_S s'$, then $q.\lput(s) = q.\lput(s')$.
+\in \mathcal{L}(S)$, we have $q.\lput(q_1.\get(r)) \equiv_R r$ and
+$q.\get(q_1.\lput(s)) \equiv_R s$. Moreover, if $r \equiv_R r'$, then $q.\get(r) =
+q.\get(r')$, and if $s \equiv_S s'$, then $q.\lput(s) = q.\lput(s')$.
 
-In words, a bijective quotient lens $q$ from $R$ to $S$ modulo $\sim_R$
-and $\sim_S$ is a pair of functions $q.\get$ and $q.\lput$ such that
-$q.\get$ respects $\sim_R$ and $q.\lput$ respects $\sim_S$, and such that
-the {\em get} and {\em put} functions lifted to $\mathcal{L}(R)/{\sim_R}$ and
-$\mathcal{L}(S)/{\sim_S}$ are mutual inverses.
+In words, a bijective quotient lens $q$ from $R$ to $S$ modulo $\equiv_R$
+and $\equiv_S$ is a pair of functions $q.\get$ and $q.\lput$ such that
+$q.\get$ respects $\equiv_R$ and $q.\lput$ respects $\equiv_S$, and such that
+the {\em get} and {\em put} functions lifted to $\mathcal{L}(R)/{\equiv_R}$ and
+$\mathcal{L}(S)/{\equiv_S}$ are mutual inverses.
 
 These laws are similar to the laws for bijective lenses
-\cref{bijectivelenslaws}, except that the  equality restrictions in the
+\cref{bijectivelenslaws}\saz{again, cref uses a silly format}, except that the  equality restrictions in the
 bijective lens laws are loosened to allow for equivalence relations. Also, the
-condition that $r \sim_R r'$ implies $q.\get(r) = q.\get(r')$ ensures that the
+condition that $r \equiv_R r'$ implies $q.\get(r) = q.\get(r')$ ensures that the
 {\em get} function induced on the equivalence classes if $\equiv_c$ is
 well-defined, and similarly for the {\em put} function. 
 
@@ -1123,14 +1121,14 @@ set of combinators.  We describe these combinators next.
 We define the set of \textit{bijective string lenses} to be the set of
 bijections between regular languages constructed using the following combinators.
 
-$$\ell := \id(R) \sep \const(s_1, s_2) \sep  \swap(\ell_1, \ell_2)
+$$\ell := \id(R) \sep \const(s, t) \sep  \swap(\ell_1, \ell_2)
 \sep \ell_1 \cdot \ell_2 \; |  \; (\ell_1 \sep \ell_2) \sep \ell^* \; | \;
 \ell_1 \; ; \;  \ell_2,$$ where $R$ ranges over regular expressions and $s$
 ranges over character strings.
 
 The $\mathit{\const}(s, t)$ lens replaces the string $s$ with $t$ in the source
 data in the forward direction, and $t$ with $s$ in the target data in the
-backward direction, while $\mathit{id}(R)$ applies the identity function to the
+backward direction, while $\kw{id}(R)$ applies the identity function to the
 source and target  in $\mathcal{L}(R)$ in both directions. The composition lens
 $\ell_1 \; ; \; \ell_2$ applies $\ell_1$ followed by then $\ell_2$ to the
 source in the forward direction, and applies $\ell_2$ followed by $\ell_1$ to
@@ -1140,18 +1138,18 @@ $s_1$ and $s_2$ to get $t_1$ and $t_2$ respectively, then concatenates $t_1$
 and $t_2$ and returns $t_1 \cdot t_2$ as the final result in the forward
 direction. $\ell_1 \cdot \ell_2$ operates similarly in the backward direction,
 but with $s, s_1$ and $s_2$ substituted for $t, t_1$ and $t_2$. The
-$\mathit{\swap} \; (\ell_1, \ell_2)$ lens operates like $\ell_1 \cdot \ell_2$,
+$\swap(\ell_1, \ell_2)$ lens operates like $\ell_1 \cdot \ell_2$,
 except that it swaps $t_1$ and $t_2$ before concatenating the two for a final
 result of $t_2 \cdot t_1$ in the forward direction. In the backward direction,
-$\mathit{\swap}(\ell_1, \ell_2)$ first undoes the \swap, then behaves like
+$\swap(\ell_1, \ell_2)$ first undoes the \swap, then behaves like
 the concatenation lens. The $\ell_1 \; | \; \ell_2$ lens chooses to apply
 $\ell_1$ or $\ell_2$ depending on whether the source (resp. target) data is
 matched by $\ell_1$ or $\ell_2$ in the forward (resp. backward direction). The
 $\ell^*$ lens splits the string $s$ into strings $s_1, \ldots, s_n$, applies
-$\ell_1$ to each $s_i$ to get $t_i$, and then concatenates each of the $t_i$'s
+$\ell_1$ to each $s_i$ to obtain $t_i$, and then concatenates each of the $t_i$'s
 for a final result of $t_1 \cdot \ldots \cdot t_n$ in the forward direction.
 The iteration lens $\ell^*$ operates similarly in the backward direction, but
-with $s, s_i$ substituted for $t, t_i$.
+with $s$ and $s_i$ substituted for $t$ and $t_i$.
 
 The denotation of a lens $\ell_1$ is $\llbracket \ell_1 \rrbracket \subseteq
 \mathit{String} \times \mathit{String}$. If $(s_1, s_2) \in \llbracket \ell_1
@@ -1207,7 +1205,7 @@ from its type.
 \DisplayProof
 \hskip 1.5em
 \AxiomC{$R$ is strongly unambiguous}
-\UnaryInfC{$\mathit{id} \; (R): R \Leftrightarrow R$}
+\UnaryInfC{$\kw{id}(R): R \Leftrightarrow R$}
 \DisplayProof
 \end{center}
 
@@ -1854,12 +1852,12 @@ at least as expressive as our language of QRE lenses.
 Boomerang's canonizers allow one to canonize a regular language $R$ to by
 mapping it to another regular language $S$ which may not be contained in $S$.
 Formally, given sets $C$ and $B$ and an equivalence relation on $B$, Foster et
-al defined a {\em canonizer} $q$ from $C$ to $B/{\sim_B}$ to be a pair of
+al defined a {\em canonizer} $q$ from $C$ to $B/{\equiv_B}$ to be a pair of
 functions $q.\kw{canonize} : C \longrightarrow B$ and $q.\kw{choose} : B
 \longrightarrow C$ such that for every $b \in B$,
-$$q.\kw{canonize} \; (q.\kw{choose} \; b) \sim_B \; b$$
+$$q.\kw{canonize} \; (q.\kw{choose} \; b) \equiv_B \; b$$
 This definition gives allows much more latitude for defining canonizers than
-QREs. For example, if $\sim_B = \kw{Tot}(B)$, the equivalence relation that
+QREs. For example, if $\equiv_B = \kw{Tot}(B)$, the equivalence relation that
 relates every element in $B$ to every other element in $B$, then every function
 from $C$ to $B$ is a canonizer.
 
@@ -1867,12 +1865,12 @@ Because of this extra elbow-room, Boomerang is able to offer two primitive
 {\em duplication} quotient lenses, the first of which can be derived using
 the following inference rule,
 \begin{prooftree}
-\AxiomC{$\ell : C/{\sim_C} \Leftrightarrow A_1/{\sim_{A_1}}$}
+\AxiomC{$\ell : C/{\equiv_C} \Leftrightarrow A_1/{\equiv_{A_1}}$}
 \AxiomC{$f : C \longrightarrow A_2$}
 \AxiomC{$A_1 \cdot^! A_2$}
-\AxiomC{$\sim_A = \sim_{A_1} \cdot \kw{Tot}(A_2)$}
-\QuaternaryInfC{$\kw{dup}_1 \ell \; f \; : \; C/{\sim_C} \Longrightarrow A_1
-\cdot A_2/{\sim_A}$}
+\AxiomC{$\equiv_A = \equiv_{A_1} \cdot \kw{Tot}(A_2)$}
+\QuaternaryInfC{$\kw{dup}_1 \ell \; f \; : \; C/{\equiv_C} \Longrightarrow A_1
+\cdot A_2/{\equiv_A}$}
 \end{prooftree}
 \begin{align*}
 (\kw{dup}_1 \; \ell \; f).\get \; c &= (\ell.\get \; c) \cdot (f \; c)\\
@@ -1929,19 +1927,19 @@ and can be represented in Haskell as functions that take a source of
 names\bcp{It was puzzling to me, for a while, what an Int had to do with a
   source of names: spell it out}---concretely, an \kw{Int}---as an argument
 and produce a triple consisting of an HTML document, a {\em collect}
-function, and a modified namesource:\bcp{typesetting of arrows is funny}
+function, and a modified namesource:
 \begin{center}
 \begin{lstlisting}
-type Formlet a = Int -> (Html, Env -> a, Int)
+type Formlet a = Int $\to$ (Html, Env $\to$ a, Int)
 \end{lstlisting}
 \end{center}
 The names of any generated form fields are drawn from the namesource, and the
 {\em collect} function looks up precisely these names.
 Rajkumar et. al. observe that formlets are a useful
 abstraction, but they only address one half of the problem---they make it easy
-to construct a function that {\em produces} a value of type \kw{a}, but they do
+to construct a function that {\em produces} a value of type \codefont{a}, but they do
 not provide a way to describe a function that {\em consumes} a value of type
-\kw{a} and embeds it in a form. A different way to think about this problem is
+\codefont{a} and embeds it in a form. A different way to think about this problem is
 to observe that forms are often used to present an {\em updateable view} of the
 data source. Therefore, Rajkumar et. al. leverage the power of bidirectional
 transformations to define formlets that behave like updatable views, yielding
@@ -1952,11 +1950,11 @@ The \kw{Formless} type is given by,\bcp{I notice that several displays now
   displayed, would this be good grammar?}
 \begin{center}
 \begin{lstlisting}
-type Formlens a = Maybe a -> [Int] -> (Html,Env -> Maybe a,[Int])
+type Formlens a = Maybe a $\to$ [Int] $\to$ (Html,Env $\to$ Maybe a,[Int])
 \end{lstlisting}
 \end{center}
 with the differences between this definition and the standard definition for
-formlets being an extra \kw{Maybe a} parameter that provides an optional initial
+formlets being an extra \codefont{Maybe\; a} parameter that provides an optional initial
 value of the form, the namesource being changed to a list of integers, and the
 {\em collect} function being allowed to return an optional value.
 
@@ -1965,18 +1963,17 @@ well-formed formlens should only draw names from the namesource provided as an
 argument, and the {\em collect} function should only look up corresponding
 names.
 Under this assumption, Rajkumar et. al. define what it means for a formlens to
-be well behaved by defining a version of the classical \bcp{typeset in
-  small caps}GETPUT and PUTGET laws
+be well behaved by defining a version of the classical \textsc{GetPut} and \textsc{PutGet} laws
 for formlenses. These laws hold modulo an equivalence relation on environments,
 since a formlens may be invoked with two separate namespaces, but this should
 not affect the value stored in the information encapsulated in the type $a$.
-Consequently, the GETPUT and PUTGET laws defined for formlenses are in spirit
-analogous to the GETPUT and PUTGET laws for quotient lenses, since they hold up
+Consequently, the \textsc{GetPut} and \textsc{PutGet} laws defined for formlenses are in spirit
+analogous to the \textsc{GetPut} and \textsc{PutGet} laws for quotient lenses, since they hold up
 to renaming of environment variables.
 
 \iffalse
 Well-behaved formlenses satisfy properties that are analogous to the classical
-GETPUT and PUTGET law. If {\em extract} is a function from \kw{Html} to \kw{Env} that
+\textsc{GetPut} and \textsc{PutGet} law. If {\em extract} is a function from \kw{Html} to \kw{Env} that
 extracts an environment containing the names and values of all the form fields
 from an HTML document, then a formlens $f$ satisfies the Acceptability law if
 for any $v$ of type $a$, $n$ of type \kw{Int} and environment $e$ of type
@@ -1987,8 +1984,8 @@ collect $e$
 
 Finally, Cunha~\cite{cunha2010relational} uses relational algebra to
 encompass many of the existing approaches to bidirectional programming. For
-example, using $\cdot$ to express relational composition, the GETPUT law states
-that $\get \cdot \lput \subseteq \sim_V \cdot \pi_1$, where $\pi_1$ is the
+example, using $\cdot$\saz{Why not use $\circ$ or ``;''} to express relational composition, the \textsc{GetPut} law states
+that $\get \cdot \lput \subseteq \equiv_V \cdot \pi_1$, where $\pi_1$ is the
 projection onto the first factor. In addition to its generality, this
 ``point-free'' approach to defining bidirectional transformations has the
 advantage of creating equational proofs of lens laws that proceed by folding
