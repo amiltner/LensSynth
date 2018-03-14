@@ -114,7 +114,7 @@ xleftmargin=1.5em,
 \newcommand{\LensAndSpecSize}{\textbf{NS}}
 
 %\newcommand{\QOpt}{Optician_Q}
-\newcommand{\QOpt}{Optician\textsubscript{Q}}
+\newcommand{\QOpt}{QRE-enhanced Optician}
 \newcommand{\OpticianRuntime}{\textbf{Optician}}
 \newcommand{\QREOptician}{\textbf{Optician\textsubscript{Q}}}
 \newcommand{\SystemOnOptician}{\textbf{QO}}
@@ -186,66 +186,51 @@ written in one of several domain-specific bidirectional languages that
 guarantee various \emph{lens laws} constraining how the \emph{put} and
 \emph{get} functions must fit together. 
 
-\emph{Bijective lenses} are amongst the most restrictive. 
-A bijective lens $\ell : S \Leftrightarrow T$ specifies a bijection from
-a source set $S$ to a target set $T$:
-\begin{equation}\label{bijectivelenslaws}
-\ell.\get \; (\ell.\lput \; t) = t \text{, and } \ell.\lput \; (\ell.\get \; s)
-= s
+In ~\cite{optician}, we developed a tool called {\em Optician} to synthesize the
+class of {\em bijective lenses} that can be derived in the lens programming
+language {\em Boomerang}\cite{boomerang}. Each lens $\ell : S \Leftrightarrow T$
+that Optician can synthesized specifies a bijection from the language of a
+source regular expression $S$ to a target language of a target regular
+expression $T$: \begin{equation}\label{bijectivelenslaws} \ell.\get \;
+(\ell.\lput \; t) = t \text{, and } \ell.\lput \; (\ell.\get \; s) = s
 \end{equation}
-Since the \emph{get} and \emph{put} functions form a bijection, 
-no information is lost during translation from one data format to another. 
-While this very strong guarantee can sometimes be useful, it is more common for 
-some of the details in one or both of the data formats to be
-superfluous. For instance, the number of white space characters
-between data items, the capitalization of various strings, the
-sequence of fields in a record, or the order of items in a list are
-often irrelevant.  Also, many
-data formats introduce their own ad hoc conventions about formatting details
-that are taken to be inessential. In \bibtex{}, for example,
-an author can be specified either as 
-``\cd{lastname, firstname}'' or as ``\cd{firstname lastname}''.
+Optician makes programming bijective lenses faster and easier, and though
+many useful lenses are not bijective in nature, they do have a bijective core
+surrounded by structured transformations, hence Optician can be used as a
+drop-in component for synthesizing more complex lenses.
 
-{\em Quotient lenses}~\cite{quotientlenses} loosen the strong restrictions of
-bijective string lenses by including equivalence
-relations on the source and target formats and requiring that the
-round-tripping lens laws 
-hold  modulo these equivalences, rather than ``on the nose.'' Quotient lenses 
-make it possible to synchronize many more data formats than is possible with
-plain bijective lenses\bcp{Do we justify this claim later?}. 
-%
-The bidirectional programming language {\em
-Boomerang}~\cite{boomerang} 
-implements a general class of quotient lenses.  Unfortunately, these
-lenses to have two main drawbacks.  \bcp{This wording may raise a question
-  in the reader's mind about whether this paper is really about quotient
-  lenses in general or whether it is specifically a proposal to tweak
-  Boomerang.  I.e., ``if I am not a Boomerang user, do I want to bother
-  reading this paper?''  My answer would be yes, because quotient
-  lenses and QREs are interesting in themselves.  But I don't think we've
-  made this point very convincingly in the way we've framed the paper.}
+This paper applies this idea to synthesize {\em quotient lenses}
+~\cite{quotientlenses}. Quotient lenses are lenses in which the lens laws are
+loosened so that they hold modulo an equivalence relation on the source and
+target data respectively; in this paper we are concerned with {\em bijective
+quotient lenses} which are lenses for which Equation \ref{bijectivelenslaws}
+holds modulo equivalence relations $\sim_S$ and $\sim_T$ defined on the source
+and target data respectively:
+\begin{equation}\label{quotientlenslaws}
+\ell.\get \; (\ell.\lput \; t) \sim_T t \text{, and } \ell.\lput \; (\ell.\get
+\; s) \sim_S s
+\end{equation}
+Quotient lenses are useful in situations where a programmer wishes for the
+transformation defined by a lens to have the same behavior on data that differ
+only in inessential details. For instance, a programmer may wish to ``quotient
+away'' the number of white space characters between data items, the
+capitalization of various strings, the sequence of fields in a record, or the
+order of items in a list.
 
-The first shortcoming is that defining an equivalence
-relation in Boomerang requires explicitly providing a {\em canonizer}, 
-a pair of functions $(f,g)$ where $f$
-normalizes data from the
-external format by choosing canonical representations
-and $g$ provides an
-inverse by specifying the external form of each canonical
-representation. 
-The disadvantage of this approach is that writing
-a quotient lens in Boomerang requires separately defining four
-different data formats: two ``external'' formats which specify the data to
-be transformed by the lens, and two ``internal'' formats which specify the
-canonical representations for the source and target data\bcp{Plus writing
-  two canonizers!}.
+Optician synthesizes bijective lenses from a pair $(S, T)$ of regular expression
+specifying the source and target types and a set of example input-output pairs
+that guide the synthesis algorithm. This presents a challenge for synthesizing
+quotient lenses since a specification of the source and target formats for a
+quotient lens needs to account for the equivalence relations defined on the
+respective formats. Our solution is to introduce {\em Quotient Regular
+Expressions} (QREs), which are regular expressions augmented with extra
+syntax that enables programmers to simultaneously specify a regular expression
+as well as an equivalence relation on the language of that regular expression.
+Further, given a QRE, we can automatically infer a set of canonical
+representatives the equivalence relation defined by the QRE as well as a
+canonizing function to the canonical set of representatives.
 
-Our solution to this shortcoming is to introduce {\em Quotient Regular
-Expressions} (QREs), which enable programmers to simultaneously specify a
-regular expression and a set of canonical representatives for matching
-strings.  Given an QRE, we can automatically infer the corresponding
-canonization functions.  As an example, consider the following QRE for writing
-author names:
+For example, consider the following QRE for writing author names:
 %
 \begin{lstlisting}
 let wsp_sp = project wsp $\to$ " "
@@ -261,29 +246,22 @@ This is then used to build up \lstinline{comma_name}, a QRE with an
 underlying language of two names, separated by a command and whitespace, where
 the names with a single space between them are canonical.
 
-The second drawback with writing quotient lenses in Boomerang is that even
-after specifying the four required data formats, the programmer must still
-define a lens for converting between the canonical representations.
-Experience shows that writing such lenses can be tedious (e.g., consider
-having to rearrange the order of data items by recursively using operators
-to \kw{swap} adjacent fields) and that satisfying the type checker can be
-difficult because the most obvious way to express a lens runs afoul of one
-or more ``ambiguity checks'' that the type checker performs in order to make
-sure that the lens laws hold~\cite{optician}.
+Our second main contribution in this paper is to introduce {\em QRE lenses},
+which are bijective quotient lenses that map between QREs via bijective lenses
+that map between the respective canonical formats defined by the source and
+target QREs. This idea is simple and natural, but begs the following question:
+do we give up expressiveness if we restrict ourselves to this form? Our main
+technical contribution to this question asserts that we do not; more
+specifically, we will prove a normal form theorem (Theorem~\ref{normal form})
+that says that every QRE lens can be rewritten to be the composition of a
+source canonizer, a bijective lens, and a target canonizer. This normalization
+property will enable us to (1) synthesize QRE lenses by extending the synthesis
+algorithm used by Optician, and (2) prove that if there is a QRE lens that
+satisfies the input specification, then this extended algorithm will return
+such a lens.
 
-Our solution to this problem is to introduce {\em QRE lenses}, which
-are a new class of quotient lens that can be automatically
-synthesized, obviating the need to write lenses by hand.  A QRE lens
-is like a normal lens except it maps between formats described by
-QREs. We prove a normal form theorem (Theorem~\ref{normal form}) that says that
-every composition of QRE lenses can be rewritten 
-to be the composition of a source canonizer, a bijective lens, and a
-target canonizer. This normalization property means we can synthesize
-QRE lenses by extending an existing algorithm for synthesizing
-bijective lenses~\cite{optician}.  
-
-Given this framework, generating a QRE lens requires only a pair of QREs to describe the
-source and target formats and a (possibly empty) suite of examples
+Given this framework, generating a QRE lens requires only a pair of QREs to
+describe the source and target formats and a (possibly empty) suite of examples
 demonstrating the mapping.  For example, the following code
 
 \begin{lstlisting}
@@ -291,14 +269,7 @@ let l = synth comma_name $\Leftrightarrow$ space_name using {("Lovelace, Ada", "
 \end{lstlisting}
 binds \codefont{l} to a synthesized QRE lens mapping between names in the
 comma-separated form describd by the QRE \codefont{comma\_name} and the
-space-separated form described by the QRE \codefont{space\_name}.  The
-lenses generated by our synthesis algorithm are guaranteed to translate data
-back and forth between source and target QREs and to satisfy the provided
-examples.  Our synthesized quotient lenses have a relatively restricted
-form, where the sequential composition operator is not used and all
-canonization occurs at the very edges (which greatly speeds up synthesis),
-but the normalization theorem means this restriction does not compromise
-expressiveness.
+space-separated form described by the QRE \codefont{space\_name}. 
 
 In summary, our main contributions are:
 \begin{enumerate}
