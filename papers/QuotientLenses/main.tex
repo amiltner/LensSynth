@@ -142,37 +142,21 @@ considered the same, allowing a single, simple program to handle them both.
 %
 Building on a recently published algorithm for synthesizing plain bijective
 lenses from high-level specifications, we show how to synthesize bijective
-{\em quotient} lenses in three steps.  First, we introduce {\em quotient regular
+quotient lenses in three steps. First, we introduce {\em quotient regular
   expressions} (QREs), annotated regular expressions that conveniently mark
-inessential aspects of string data formatsl; each QRE specifies,
+inessential aspects of string data formats; each QRE specifies,
 simulteneously, a regular language and an equivalence relation on it.
 Second, we introduce {\em QRE lenses}, i.e., lenses mapping between QREs.
-Our key technical result is a proof that every QRE lens can be transformed into
-one of the form $c ; \ell ; d^{-1}$, where $c$ and $d$ are {\em
-canonizers}, $\ell$ is a bijective transformation, and $;$ is
-composition\bcp{This seems not quite accurate.  It makes it look like
-  canonizers are bidirectional things, but they aren't---at least, we
-don't talk about them in that way (I suppose we could define the ``other
-direction'' to be the identity, but we do not).  What we really mean are
-left quotient and right quotient (and then we don't need the $^{-1}$).
-Similarly, the meaning of 
-``;'' here is not sequential composition of either lenses or QREs, which are
-the only two meanings we give to this symbol in the paper.}.  
-% Intuitively,
-% these canonizers normalize data by 
-% picking a canonical representative from the relevant equivalence
-% relations. 
-% BCP: Don't think this adds much, and it gets between the theorem and its use.
-This theorem means we can push all normalization to the outer edges of a
-composite quotient lens, leaving in the middle a pure bijective
-transformation. Third, we leverage this normalization theorem to {\em
-synthesize} QRE lenses from a pair of QREs and example input-output pairs,
-reusing earlier work on synthesizing plain bijective lenses. We have
-implemented QREs and QRE lens synthesis as an extension to the bidirectional programming
-language Boomerang. We evaluate the effectiveness of our approach by 
-synthesizing QRE lenses between various real-world data formats in the
-Optician benchmark suite.
-
+Our key technical result is a proof that every QRE lens can be transformed
+into a functionally equivalent lens that canonizes source and target data only
+once at the ``edges'' then uses a bijective lens to map between the respective
+canonical elements; no internal canonization occurs in a lens in this normal
+form. Third, we leverage this normalization theorem to {\em synthesize} QRE
+lenses from a pair of QREs and example input-output pairs, reusing earlier work
+on synthesizing plain bijective lenses. We have implemented QREs and QRE lens
+synthesis as an extension to the bidirectional programming language Boomerang.
+We evaluate the effectiveness of our approach by synthesizing QRE lenses
+between various real-world data formats in the Optician benchmark suite.
 \end{abstract}
 
 \keywords{quotient regular expressions, QRE lens, synthesis}
@@ -271,19 +255,38 @@ It is used as a component of \lstinline{comma_name}, a QRE with an
 underlying language of two names, separated by a command and whitespace, where
 the names with a single space between them are canonical.
 
+% Our end goal is to synthesize bijective quotient lenses that map between QREs
+% via a bijective lens between the respective canonical formats of the QREs. This
+% idea is simple and natural, but begs the following question: do we give up
+% expressiveness if we restrict ourselves to this form? We will show that this
+% is not the case by doing the following. First, we will introduce {\em QRE
+% lenses}, which are bijective quotient lenses formed by ``lifting'' bijective
+% lenses to a bijective quotient lens type, then freely quotienting these lenses
+% by QREs or applying familiar regular and composition operators to them. Then,
+% we will prove a normal form theorem (Theorem~\ref{normal form})
+% that says that every QRE lens can be transformed into a functionally equivalent
+% lens that canonizes source and target data only once at the ``edges'' then uses
+% a bijective lens to map between the respective canonical elements; no internal
+% canonization occurs in a lens in this normal form. This normalization
+% property will enable us to (1) synthesize QRE lenses by extending the synthesis
+% algorithm used by Optician, and (2) prove that if there is a QRE lens that
+% satisfies the input specification, then this extended algorithm will return
+% such a lens.
+
 Our second main contribution in this paper is to introduce {\em QRE lenses},
-which are bijective quotient lenses that map between QREs via bijective lenses
-that map between the respective canonical formats defined by the source and
-target QREs. This idea is simple and natural, but begs the following question:
-do we give up expressiveness if we restrict ourselves to this form? Our main
-technical contribution to this question asserts that we do not---more
-specifically, we prove a normal form theorem (Theorem~\ref{normal form})
-that says that every QRE lens can be rewritten to be the composition of a
-source canonizer, a bijective lens, and a target canonizer. This normalization
-property will enable us to (1) synthesize QRE lenses by extending the synthesis
-algorithm used by Optician, and (2) prove that if there is a QRE lens that
-satisfies the input specification, then this extended algorithm will return
-such a lens.
+with the end goal of synthesizing QRE lenses that map between QREs via a
+synthesized bijective lens between the respective canonical formats. This idea
+is simple and natural but begs the following question: do we give up
+expressiveness if we restrict ourselves to this form? Our main technical
+contribution to this question asserts that we do not---more specifically, we
+prove a normal form theorem (Theorem~\ref{normal form}) that says that every
+QRE lens formed by freely composing QRE lenses, applying regular
+operators to them, and quotenting them with QREs can be rewritten to be the
+composition of a source canonizer, a bijective lens, and a target canonizer.
+This normalization property will enable us to (1) synthesize QRE lenses by
+extending the synthesis algorithm used by Optician, and (2) prove that if there
+is a QRE lens that satisfies the input specification, then this extended
+algorithm will return such a lens.
 
 Given this framework, generating a QRE lens requires only a pair of QREs to
 describe the source and target formats and a (possibly empty) suite of examples
@@ -308,8 +311,8 @@ In summary, our main contributions are:
   that QRE lenses defined using these combinators can be put into a
   restricted normal form (Section~\ref{QRE-lenses}).  This is
   the main technical contribution of this paper.
-  \item We leverage this result to reduce the problem of {\em synthesizing} QRE
-  lenses to the problem of synthesizing bijective string lenses, which was
+  \item We leverage this result to reduce the problem of {\em synthesizing}
+  QRE lenses to the problem of synthesizing bijective string lenses, which was
   previously studied in past work~\cite{optician} (Section~\ref{synth}).
   \item We extend Boomerang with QREs and QRE lens synthesis and demonstrate
   the utility and practicality of our approach by synthesizing QRE lenses
@@ -598,8 +601,8 @@ and then invoke the bijective string lens synthesis procedure on the canonical d
 formats and the canonical examples.
 
 Indeed this idea is what motivates our definition of {\em QRE lenses}.
-Intuitively, our QRE lenses are bijective lenses with ``canonizers at the edges,''
-just like Boomerang's quotient lenses. 
+Intuitively, our QRE lenses are bijective lenses with ``canonizers at the
+edges''.
 Figure~\ref{fig:attheedges} depicts the architecture of QRE lenses.
 \begin{figure}[t]
 \centering
@@ -621,16 +624,16 @@ Figure~\ref{fig:attheedges} depicts the architecture of QRE lenses.
 \label{fig:attheedges}
 \end{figure}
 Every QRE lens $q$ has a type $P \Leftrightarrow Q$ where $P$ and $Q$
-are QREs. In the {\em get} direction, a QRE lens $q: P \Leftrightarrow Q$ uses the
-source QRE $P$ to compute a canonical representative for the data modulo the
-equivalence relation defined by $P$ and then applies the \kw{get} function of a
-bijective string lens $\ell$ to this representative. In the {\em put} direction, $q$
-operates similarly, but using the QRE $Q$ and the $\lput$ function of
-$\ell$.
+are QREs. In the {\em get} direction, a QRE lens $q: P \Leftrightarrow Q$ uses
+the source QRE $P$ to compute a canonical representative for the data modulo
+the equivalence relation defined by $P$ and then applies the \kw{get} function
+of a bijective string lens $\ell$ to this representative. In the {\em put}
+direction, $q$ operates similarly, but using the QRE $Q$ and the $\lput$
+function of $\ell$.
 
 Because the QREs $P$ and $Q$ determine the internal formats for data after
-canonization, and because the algorithm for synthesizing bijective string lenses is
-directed by these formats, $P$ and $Q$ are all that is required to
+canonization, and because the algorithm for synthesizing bijective string
+lenses is directed by these formats, $P$ and $Q$ are all that is required to
 synthesize QRE lenses end-to-end. 
 
 However, our requirement that canonizers appear only at the edges
@@ -1986,8 +1989,7 @@ source. Therefore, Rajkumar et. al. leverage the power of bidirectional
 transformations to define formlets that behave like updatable views, yielding
 the abstraction of formlenses.
 
-The \kw{Formless}\saz{Is this ``Formless'' ``Formlens'' or ``Formlet''? The code
-  below says ``Formlens'' but the earlier parts of the paragraph say ``Formlet''}type is given by
+The Formlens type is given by
 \begin{center}
 \begin{lstlisting}
 type Formlens a = Maybe a $\to$ [Int] $\to$ (Html,Env $\to$ Maybe a,[Int])
@@ -2124,8 +2126,6 @@ significant effort compared to both Optician and basic Boomerang, and that
 QRE-enhanced Optician maintains competitive performance over both of these
 systems.
 
-\BCP{Wrote the rest---comments?}\saz{I swapped the last two paragraphs to end on
-  a more exciting note.}
 Looking ahead, we are experimenting with larger examples of
 quotiented bijective lenses.  So far, the three ``specialized'' QRE
 combinators (\kw{squash}, \kw{perm}, and \kw{collapse}) have proved
@@ -2134,13 +2134,12 @@ to consider adding further combinators to supplement these.
 
 Along a different dimension, we would like to investigate whether the techniques
 proposed here can be applied to synthesizing quotiented variants of richer
-classes of lenses, such as ``classic'' asymmetric lenses~\cite{FosterLenses} or
-symmetric lenses~\cite{symmetriclenses}.  The main technical issues are
+classes of lenses, such as ``classic'' asymmetric lenses~\cite{Lenses} or
+symmetric lenses~\cite{hofmann2011symmetric}.  The main technical issues are
 developing synthesis procedures for the unquotientied variants of a given
 class---we are currently attacking the case of symmetric lenses---and showing
 that quotiented lenses in this class can be normalized along the lines of
 Theorem~\ref{normal form}.
-
 
 \bibliographystyle{plain}
 \bibliography{local}
