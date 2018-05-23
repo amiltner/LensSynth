@@ -153,38 +153,39 @@
 \title{Simple Symmetric Lenses - Foundations and Synthesis}
 
 \begin{abstract}
-  Lenses are bidirectional transformers that are often used for synchronizing
-  data in different formats. A generalization of lenses, symmetric lenses,
-  enable synchronizations between formats where each format contains information
-  the other lacks. The theory of symmetric lenses relies heavily on complements
-  for maintaining synchronization. Despite the increased expressivity of
-  symmetric lenses, no major bidirectional languages or tools have adopted
-  symmetric lenses. While the use of complements allows for a clean and general
-  formulation of symmetric lenses, it also requires maintaining internal state
-  -- in addition to maintaining synchronized files, the complement must also be
-  maintained. We simplify the formulation of symmetric lenses to \emph{simple
-    symmetric lenses}. These lenses require no complement, instead using
-  familiar $create$ and $put$ functions to maintain synchronization.
-  Furthermore, we demonstrate the relationship between simple symmetric lenses,
-  by carving out a subset of symmetric lenses which are equivalent to simple
-  symmetric lenses. We integrate symmetric lenses into a modern bidirectional
-  language, Boomerang, while maintaining full backward compatibility.
-  
-  Additionally, to enable easy use of symmetric lens combinators, we extend the
-  Optician algorithm to synthesize simple symmetric lenses from type and example
-  specifications. Unlike the bijective lenses Optician originally addresses,
-  there are many symmetric lenses between two data formats. Hypothesizing that
-  typically users want the lens that synchronizes the most data, we use an
-  information-theoretic measure based on stochastic regular expressions, to
-  quantify how much data is left non-synchronized, and develop an algorithm that
-  attempts to minimize this measure. Furthermore, as our synthesis algorithm
-  requires rewrites to our regular expressions, we prove that these the
-  probability distribution of strings within our stochastic regular expressions
-  are stable with respect to these rewrites. We experimentally demonstrate that
-  despite addressing a much harder problem, our extension to Optician still
-  maintains synthesis times competitive to Optician on Optician's bijective
-  benchmark suite, and generalizes to benchmarks synchronizing data not in
-  bijective correspondence.
+  Similar data is oftentimes represented and stored in different formats. Users
+  commonly need to synchronize the data shared between formats, where edits to
+  the data in one format gets propagated to the data in the other format.
+  Manually writing these data synchronizers is tedious and error prone. To
+  alleviate these difficulties, tools have been developed that automatically
+  generate these synchronization functions by generating bidirectional lens
+  programs from data format descriptors~\cite{optician,quotient-optician}.
+  However, these tools only work when the two formats describe exactly the same
+  data; it assumes that all important information present in one format is
+  present in the other. This is often not the case.
+
+  In this work, we automatically synthesize conversion functions between formats
+  that each may contain information the other lacks. We define \emph{simple
+    symmetric lenses}, a class of bidirectional programs for expressing these
+  types of conversion functions, and we specify a language that expresses simple
+  symmetric lenses that operate on string formats. We develop a type-directed
+  synthesis algorithm for generating lenses in this language from regular
+  expressions describing the data formats. A significant technical challenge in
+  this work arises from the fact that our target language permits
+  synchronization between formats that don't have exactly the same data -- data
+  in one format need not be present in the other format. This gives the
+  synthesis algorithm much more freedom, as data can be completely
+  unsynchronized (edits in one format are never propagated), completely
+  synchronized (the formats are in bijective correspondence), or anywhere in
+  between. Under the assumption that users typically want to synchronize as much
+  data as possible, we provide an information theoretic metric for how much data
+  is left unsynchronized based on the theory of \emph{stochastic regular
+    expressions}. Furthermore, we use this metric to develop a greedy synthesis
+  algorithm that tries to minimize unsynchronized data. We experimentally
+  demonstrate that despite addressing a much harder problem, our extension to
+  Optician still maintains synthesis times competitive to Optician on Optician's
+  bijective benchmark suite, while generalizing to benchmarks synchronizing data
+  not in bijective correspondence.
 \end{abstract}
 
 \begin{CCSXML}
@@ -270,388 +271,137 @@ Type Systems}
 % begin introduction
 \section{Introduction}
 % state of the world
-Lenses, groups of three functions that satisfy invertibility laws, are useful
-formulations for synchronization. Given data in one format, you can view it is a
-different data format using \emph{get} function. Given data in another format,
-you can turn it into data in the first format using a \emph{create} function.
-Given edits on the second format, you can propagate those updates to the first
-format using a \emph{put} function. However, writing these three functions is
-tedious and error prone. Much better would be to write a single program that
-expresses all three of the functions while also guaranteeing invertibility
-properties about them.  This is the approach used in many bidirectional
-languages: users write code in a bidirectional DSL, and all three functions are
-maintained.  These bidirectional languages are often used for data
-synchronization tasks - keeping data in different forms synchronized.
+Similar data can come in varieties of formats: bibliography information can be
+stored in the BibTeX, EndNote, or ACM reference formats; web service resources
+can be provided to clients in legacy or modern formats; calendar events can be
+stored in CSV files or ICS files. Oftentimes, we want to synchronize files
+across formats: when my collaborator edits her bibliography stored in the ACM
+reference format, I want these edits reflected in my EndNote file; when I update
+data through a legacy API, I want those changes to be reflected when I retrieve
+it through a modern API; when I create a new calendar event in my ICS file, I
+want my CSV calendar files to be updated to reflect this change.
 
-While lenses are used to synchronize data formats, but they remain incapable of
-synchronizing formats where each format maintains information the other lacks.
-To address this, lenses have been generalized to symmetric lenses.  Symmetric
-lenses address these synchronization tasks by maintaining an explicit complement
-to keep track of projected data.  However, despite the benefits of symmetric
-lenses, they have not been adopted into bidirectional languages, remaining instead
-as a rarely used Haskell package.
+Unfortunately, writing such synchronizers is tedious and error prone.
+Bidirectional languages ease the difficulty of writing such synchronizers, as a
+single, well-typed program expresses multiple conversion functions, and
+guarantee these functions satisfy round-tripping laws. However, bidirectional
+languages are difficult to program in as well -- often requiring users to
+permute data in fiddly ways while satisfying the type system's complex
+unambiguity constraints.
 
-We believe this is largely due to complements. While complements provide a
-simple, theoretical framework to express symmetric lenses, they become tricky
-when used for synchronization tasks.  Critically, instead of maintaining two
-pieces of data (one for each synchronized data format), the lens must now
-maintain three (one for each synchronized data format, and one for the
-complement).  This can then be difficult when migrating data - I can no longer
-copy my formats to a new computer and tell a bidirectional language to keep them
-synchronized, I instead must copy my formats and the complement to the new
-computer.
+A better approach is to synthesize such conversion functions. Recent research
+has gone into automatically synthesizing such conversion functions from
+input-output examples and formal descriptions of the data
+formats~\cite{optician,quotient-optician}. However, this work assumes that all
+data fields present in one format are present in the other, but this is not
+always true. Oftentimes, fields present in one format are not present in the
+other: updated APIs can expose new information, or omit legacy information; the
+ACM reference format includes article number information, whereas EndNote
+includes page number information; ICS files contain a URL field that Google
+Calendar CSV files do not expose. We aim to synthesize transformations where the
+data fields are not necessarily in bijective correspondence, where each data
+format can contain important information not present in the other format.
 
-We propose an alternative method. Instead of using complements, we can instead
-use familiar \emph{create} and \emph{put} methods to synchronize the data
-formats. In this paper, we present \emph{simple symmetric lenses}, a
-reformulation of symmetric lenses consisting of 4 functions: 2 create functions
-and 2 put functions. While these are less expressive than symmetric lenses,
-simple symmetric lenses are able to express all synchronization tasks tackled by
-asymmetric lenses - all asymmetric lenses are simple symmetric lenses.
-Furthermore, we find a predicate over symmetric lenses, where symmetric lenses
-satisfy the predicate if, and only if, they can be written as a simple symmetric lens.
+We follow a similar approach to existing work on synthesizing conversion
+functions; instead of synthesizing these functions individually, we synthesize
+bidirectional programs. To this end, we develop a new formulation of
+bidirectional programs, \emph{simple symmetric lenses}, which permit
+synchronizations between formats not in bijective correspondence. We develop a
+language for expressing simple symmetric lenses that operate on string data.
+Terms in this language are typed between regular expressions, where the regular
+expressions describe the synchronized data formats.
 
-As part of our work, we extend Optician to handle symmetric lens combinators,
-while maintaining full backwards compatibility. This means simple symmetric
-lenses compose simply with both the matching lens and quotient lens combinators
-Boomerang provides. Furthermore, despite providing additional capabilities, our
-implementation of Boomerang uses fewer lines of code in the core lens library
-than were originally present - the symmetry of our lenses enable more code
-reuse than the asymmetric versions permitted.
+Our synthesis algorithm takes as input a suite of input-output examples and two
+regular expressions describing the data formats. Our synthesis algorithm uses
+type-directed synthesis on the two regular expressions to synthesize a lens that
+is well-typed between the provided regular expressions and satisfies the
+provided input-output examples.
 
-Furthermore, we enable easy use of these combinators by developing a synthesis
-algorithm for symmetric lenses within Boomerang. We do this by extending
-Optician, a tool for synthesizing bijective lenses, with capabilities for
-synthesizing symmetric lenses as well. However, this is not trivial. Bijective
-lenses permit relatively few well-typed terms: finding a bijective lens between
-two data formats is not easy. However, finding a symmetric lens between two data
-formats is relatively easy, as the data synchronization function can be a
-``disconnect'' synchronizer -- changing the data in one format doesn't impact
-the data in the other. Therefore, we need a means to find the intended symmetric
-lens, not merely a symmetric lens. While input-output examples can help, we wish
-to make our tool able to synthesize many functions without requiring users to
-specify their intent with large example suites.
+A primary novel difficulty is that, unlike previous work where there are
+relatively few well-typed lenses, there are a relatively many well-typed simple
+symmetric lenses. As symmetric lenses permit data to be present in only one
+format, for any data component there is now a choice: is this data only relevant
+to this format and as such should be left unsynchronized, or is this data
+present in both formats and as such should be synchronized.
 
-Instead, we assume that users want to synchronize as much data as possible. To
-these ends, we develop an information thereoretic metric measuring the entropy
-of how much data is left non-synchronized, utilizing \emph{stochastic regular
-  expressions}. We syntactically find the entropy of stochastic regular
-expressions for unambiguous stochastic regular expresions. Furthermore, just as
-Optician applies rewrites to regular expressions to find well-aligned ones, our
-enhancement to Optician applies rewrites to stochastic regular expressions to
-find well-aligned ones. We prove these rewrites maintain both the language of
-the stochastic regular expressions and the probability distributions over them.
+We operate under the assumption that users wish to synchronize as much data as
+possible, and try to synchronize as much data as the types and examples allow.
+This task gets harder when there are more complex decisions involved. For
+example, if I have two fields in one format, and one in the other, which field
+on the left should be synchronized to the one of the right? Or would it be
+better for the field on the right to be synchronized to a mish-mash of
+subcomponents from each field? To answer these questions, we develop a cost
+metric for reasoning about which lens synchronizes the most information.
 
-Lastly, we demonstrate the effectiveness of our algorithm by synthesizing all
-the bijective transformations present in Optician's benchmark suite with the
-new, symmetric algorithm.  Furthermore, we synthesize an additional
-\NumBenchmarks new, non-bijective benchmarks.
+As we wish to synchronize as much data as we can, our cost model gives higher
+cost to those with more data is left unsynchronized. In particular, the cost of
+a lens is the expected number of bits required to recover a string in one format
+when a synchronized string in the other format is provided. In this model,
+bijective lenses have zero cost, and as more information is left unsychronized,
+the cost is increased.
 
-In summary, our contributions are as follows:
+Our model for this is based on \emph{stochastic regular expressions}~\cite{?}.
+We represent a probability distribution for strings by a stochastic regular
+expression, and find a way to syntactically infer the expected information
+content (or \emph{entropy}) of an unambiguous regular expression. We use this
+entropy to calculate the expected information content to recover a string, when
+we are given a string it is synchronized to.
+
+We develop an algorithm that synthesizes a low-cost lens. Our algorithm consists
+of two communicating synthesizers, one that proposes candidate stochastic
+regular expression pairs that it thinks will align well, and one that greedily
+searches for a lens between those two regular expressions that minimizes cost
+and involves no rewrites.
+
+Our first algorithm, \TypeProp, proposes candidate stochastic regular
+expressions. These candidate stochastic regular expressions are generated by
+traversing \emph{star semiring} equivalences on stochastic regular expressions.
+These proposed stochastic regular expression pairs have equivalent languages and
+probability distributions as the original ones: we prove the star-semiring
+rewrites this synthesizer applies are sound rewrites on stochastic regular
+expression.
+
+Our second algorithm, \GreedySynth, utilizes alternative languages for
+stochastic regular expressions and lenses, \emph{stochastic DNF regular
+  expressions} and \emph{symmetric DNF lenses}. While these languages are hard
+to read and understand, they permit an efficient type-directed synthesis
+algorithm. We develop our cost metric on DNF lenses, and provide a greedy
+algorithm that tries to find a symmetric DNF lens of minimal cost.
+
+We evaluate our algorithm on a benchmark suite consisting of the original
+Optician benchmarks, as well as additional benchmarks consisting of
+synchronization tasks where the data is not in bijective correspondence.
+
+In summary, our contributions are:
 \begin{enumerate}
-\item We define simple symmetric lenses and show their relationship with
-  symmetric and asymmetric lenses (\S\ref{sec:ssl} and \S\ref{sec:ssl-rels}).
-\item We introduce simple symmetric lens combinators that can be used for
-  synchronizing string data formats (\S\ref{sec:ssl-string}).
-\item We define stochastic regular expressions, demonstrate how to find their
-  entropy, and show how certain rewrites on them maintain language and
-  probability distribution (\S\ref{sec:stoch-regexp}).
-\item We define symmetric DNF lenses, and stochastic DNF regular expressions.
-  We show the conversion of regular expression to DNF regular expression
-  maintains language and probability distribution.  We show how to infer the
-  entropy of a DNF regular expression (\S\ref{sec:dnf-regex-lens}).
-\item We describe a synthesis algorithm that attempts to minimize unsynchronized
-  information (\S\ref{sec:synthesis}).
-\item We provide a fully backwards compatible implementation of symmetric lenses
-  in Boomerang, and an implementation of our synthesis algorithm into Optician
-  (\S\ref{sec:implementation}).
-\item We evaluate our synthesis algorithm on a variety of benchmarks, and find
-  that we lose very little synthesis time, while gaining a large amount of
-  expressivity (\S\ref{sec:evaluation}).
+\item We develop \emph{simple symmetric lenses} a new formulation for
+  bidirectional programs that can project data from both sides~(\S\ref{sec:ssl}),
+  and describe a language that expresses such lenses on string
+  data~(\S\ref{sec:ssl-string}).
+\item We develop a means to traverse stochastic regular expression equivalences,
+  while preserving probability distributions and
+  languages~(\S\ref{sec:preliminaries}).
+\item We develop stochastic DNF regular expressions and DNF lenses. We develop a
+  sound algorithm for converting stochastic regular expressions to stochastic
+  DNF regular expressions~(\S\ref{sec:dnf-regex-lens}), and a
+  information-theoretic cost metric on DNF
+  lenses~(\S\ref{sec:symmetric-dnf-lenses}).
+\item We extended Boomerang with our simple symmetric lens combinators. We
+  updated the Optician synthesis system to synthesize symmetric lenses with our
+  new algorithm.
+\item We evaluate our synthesis algorithm on Opticians benchmark suite as well
+  as new, symmetric benchmarks, and find that we lose very little synthesis
+  time, while gaining a large amount of expressivity (\S\ref{sec:evaluation}).
 \end{enumerate}
-
 % end introduction
 
 % begin preliminaries
 \section{Preliminaries}
 \label{sec:preliminaries}
-A \emph{symmetric lens} between $X$ and $Y$ is an element of the type
-$\exists C.\{ \mathit{missing} :
-C,\,get : X \times C \to Y \times C,\,put : Y \times C \to X \times C\}$
-satisfying the following laws:
-\begin{equation}
-  \tag{\PutRL}
-  \frac{\PutR(x,c) = (y,c')}{\PutL(y,c') = (x,c')}
-\end{equation}
-\begin{equation}
-  \tag{\PutLR}
-  \frac{\PutL(y,c) = (x,c')}{\PutR(x,c') = (y,c')}
-\end{equation}
-
-Given a lens $l \in X \leftrightarrow Y$, a \emph{put object} for $l$ is a
-member of $X + Y$. Consider the function $apply$, which, given a lens and an
-element of that lens's complement, is a function from sequences of put objects
-to sequences of put objects. If $apply(\Lens,c,es) = es'$, then that means, starting
-with complement $c$, after edit $es_i$, the lens $\Lens$ synchronizes the other
-data to $es'_i$.
-\[
-  \inferrule
-  {
-  }
-  {
-    apply(\Lens,c,[]) = []
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.putr(x,c) = (y,c')\\
-    apply(\Lens,c',es) = es'
-  }
-  {
-    apply(\Lens,c,(\InLOf{x})::es) = (\InROf{y})::es'
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.putl(y,c) = (x,c')\\
-    apply(\Lens,c',es) = es'
-  }
-  {
-    apply(\Lens,c,(\InROf{y})::es) = (\InLOf{x})::es'
-  }
-\]
-
-Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
-$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
-sequences $es$.
-% end preliminaries
-
-\section{Simple Symmetric Lenses}
-\label{sec:ssl}
-Classically, asymmetric lenses comprised three functions, \Put{}, \Get{}, and
-\Create{}.  We extend this style of lens to symmetric lenses with
-\emph{simple symmetric lenses}.  Like the classical formulation of asymmetric
-lenses, simple symmetric lenses have no complement.  Simple symmetric
-lenses comprise 4 functions, \CreateR, \CreateL, \PutR, and \PutL.
-These functions satisfy the following round-tripping laws:
-\begin{equation}
-  \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x
-\end{equation}
-\begin{equation}
-  \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y
-\end{equation}
-\begin{equation}
-  \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x
-\end{equation}
-\begin{equation}
-  \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
-\end{equation}
-
-Two simple symmetric lenses are equivalent if the four functions they comprise
-are equivalent as functions. However, to formalize how these lenses work as
-synchronization tools, we define an $apply$ function on them, much like we
-define an $apply$ on symmetric lenses.
-
-The function $apply$, given a symmetric lens and an optional pair of elements of
-the source and target, is a function from sequences of put objects to sequences
-of put objects.  If $apply(\Lens,\None,es,es')$, then that means, starting with
-no prior data, after edit $es_i$, the lens \Lens synchronizes the other data to
-$es_i'$.  If $apply(\Lens,\SomeOf{(x,y)},es,es')$, then that means, starting with
-data $x$ and $y$ on the left and right, respectively, after edit $es_i$, the
-lens \Lens synchronizes the other data to $es_i'$.
-
-\[
-  \inferrule
-  {
-  }
-  {
-    apply(\Lens,xyo,[]) = []
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.\CreateROf{x} = y\\
-    apply(\Lens,\SomeOf{(x,y)},es) = es'
-  }
-  {
-    apply(l,\None,\InLOf{x}::es) = \InROf{y}::es'
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.\CreateLOf{y} = x\\
-    apply(\Lens,\SomeOf{(x,y)},es) = es'
-  }
-  {
-    apply(l,\None,\InROf{y}::es) = \InLOf{x}::es'
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.\PutROf{x'}{y}  = y'\\
-    apply(\Lens,\SomeOf{(x',y')},es) = es'
-  }
-  {
-    apply(l,\SomeOf{(x,y)},\InLOf{x'}::es) = \InROf{y'}::es'
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.\PutLOf{y'}{x}  = x'\\
-    apply(\Lens,\SomeOf{(x',y')},es) = es'
-  }
-  {
-    apply(l,\SomeOf{(x,y)},\InROf{y'}::es) = \InLOf{x'}::es'
-  }
-\]
-
-Furthermore, equivalence of the $apply$ function corresponds exactly with
-equivalence of lenses.
-
-\begin{theorem}
-  $\Lens_1 \equiv \Lens_2$ if, and only if, for all sequences $es$,
-  $apply(\Lens_1,\None,es) = apply(\Lens_2,\None,es)$.
-\end{theorem}
-
-% begin relationship
-\section{Relationships Between Simple Symmetric Lenses and Other Lenses}
-\label{sec:ssl-rels}
-
-We've reformulated symmetric lenses in a style similar to existing asymmetric
-lens formulations. However, some symmetric lenses certainly are inexpressible in
-the stateless symmetric lens formulation. We formalize which are expressible
-with a restriction on symmetric lenses. We define \emph{forgetful symmetric
-  lenses} to be symmetric lenses which satisfy the following additional laws:
-\begin{equation}
-  \tag{\ForgetfulRL}
-  \begin{mathprooftree}
-    \AxiomC{$\Lens.putr(x,c_1) = (\_,c_1')$}
-    \def\extraVskip{.5pt}
-    \noLine 
-    \UnaryInfC{$\Lens.putr(x,c_2) = (\_,c_2')$}
-    \AxiomC{$\Lens.putl(y,c_1') = (\_,c_1'')$}
-    \def\extraVskip{.5pt}
-    \noLine 
-    \UnaryInfC{$\Lens.putl(y,c_2') = (\_,c_2'')$}
-    \def\extraVskip{2pt}
-    \singleLine
-    \BinaryInfC{$c_1'' = c_2''$}
-  \end{mathprooftree}
-\end{equation}
-\begin{equation}
-  \tag{\ForgetfulLR}
-  \begin{mathprooftree}
-    \AxiomC{$\Lens.putl(y,c_1) = (\_,c_1')$}
-    \def\extraVskip{.5pt}
-    \noLine 
-    \UnaryInfC{$\Lens.putl(y,c_2) = (\_,c_2')$}
-    \AxiomC{$putr(x,c_1') = (\_,c_1'')$}
-    \def\extraVskip{.5pt}
-    \noLine 
-    \UnaryInfC{$\Lens.putr(x,c_2') = (\_,c_2'')$}
-    \def\extraVskip{2pt}
-    \singleLine
-    \BinaryInfC{$c_1'' = c_2''$}
-  \end{mathprooftree}
-\end{equation}
-
-Intuitively, this says that the complements are uniquely determined by the most
-recently input $x$ and $y$. This corresponds closely with simple symmetric
-lenses, where all state is maintained by the current state of the $x$ and $y$
-data. Forgetful symmetric lenses express exactly the same $apply$ function as
-stateless symmetric lenses.
-
-\begin{theorem}
-  Let $\Lens$ be a symmetric lens. The lens $\Lens$ is equivalent to a forgetful
-  lens if, and only if, there exists a simple symmetric lens $\Lens'$ where
-  $apply(\Lens,\Lens.init,es) = apply(\Lens',\None,es)$, for all put sequences $es$.
-\end{theorem}
-
-Despite being less expressive than symmetric lenses, simple symmetric lenses are
-strictly more expressive than classical asymmetric lenses.
-
-\begin{theorem}
-  Let $\Lens$ be an asymmetric lens. $\Lens$ is also a simple symmetric lens,
-  where
-  \begin{enumerate}
-  \item $\Lens.creater \App x = \Lens.get \App x$
-  \item $\Lens.createl \App y = \Lens.create \App y$
-  \item $\Lens.putr \App x \App y = \Lens.get \App x$
-  \item $\Lens.putl \App y \App x = \Lens.put \App y \App x$
-  \end{enumerate}
-\end{theorem}
-% end relationship
-
-% begin simple symmetric string lenses
-\section{Simple Symmetric String Lenses}
-\label{sec:ssl-string}
-While we have a theory for simple symmetric lenses, to integrate with Boomerang,
-we need combinators to express these lenses. While Boomerang has additional,
-complex combinators, we focus on the core ones, which are also those we
-eventually wish to synthesize.
-
-\subsection{Identity}
-The identity lens operates on a single regular expression.  It fully
-synchronizes the data within that regular expression: if data gets changed in
-the left, that change gets reflected in the right.
-
-\subsection{Disconnect}
-The disconnect lens performs the opposite function as the identity lens.  It
-leave the two data formats provided separate.  If data gets changed on the left,
-the right is left unaffected.  When the data is being newly added, default
-behavior comes from one side or the other.
-
-\subsection{Concat}
-The concat lens combines two existing lenses, working on their concatenated
-regular expressions.  It performs the left lens on the left portion of the
-string, and the right lens on the right portion.  It requires unambiguity
-constraints to break up the left and right portions.
-
-\subsection{Swap}
-The swap lens operates like the concat lens, but when going from one side to the
-other, it swaps the order of the lenses.
-
-\subsection{Compose}
-The swap lens operates like the concat lens, but when going from one side to the
-other, it swaps the order of the lenses.
-
-\subsection{Iterate}
-The iterate lens breaks the provided strings into chunks, and performs the
-provided lens on those chunks, then concatenates them together.
-
-\subsection{Or}
-The or lens performs one lens or another, depending on the inputs to the lens.
-
-\subsection{MergeL}
-The mergel lens is used when the same piece of data on the left is synchronized
-to data in potentially many different forms on the right. The first provided
-lens is the one defaulted to on creates.
-
-\subsection{MergeR}
-The merger lens is symmetric to the mergel lens.
-
-\subsection{Compose}
-The compose lens applies one lens to go to an intermediary format, then applies
-the other to go to the final format.
-% end simple symmetric string lenses
-
-% begin stochastic regular expressions
-\section{Stochastic Regular Expressions}
-\label{sec:stoch-regexp}
 To define the entropy for data recovery, we must first develop a probability
 model for our languages. We do this by enhancing regular expressions into
 \emph{stochastic regular expressions}. With this, we can jointly
-express both a language, and a probability distribution over that language.
+express both a language and a probability distribution over that language.
 
 \begin{center}
   \begin{tabular}{rcl}
@@ -723,7 +473,83 @@ equivalences to stochastic regular expressions.
 \end{theorem}
 
 
-% end stochastic regular expressions
+% end preliminaries
+
+\section{Simple Symmetric Lenses}
+\label{sec:ssl}
+Classically, asymmetric lenses comprised three functions, \Put{}, \Get{}, and
+\Create{}.  We extend this style of lens to symmetric lenses with
+\emph{simple symmetric lenses}.  Like the classical formulation of asymmetric
+lenses, simple symmetric lenses have no complement.  Simple symmetric
+lenses comprise 4 functions, \CreateR, \CreateL, \PutR, and \PutL.
+These functions satisfy the following round-tripping laws:
+\begin{equation}
+  \tag{\CreatePutRL}
+  \PutLOf{(\CreateROf{x})}{x} = x
+\end{equation}
+\begin{equation}
+  \tag{\CreatePutLR}
+  \PutROf{(\CreateLOf{y})}{y} = y
+\end{equation}
+\begin{equation}
+  \tag{\PutRL}
+  \PutLOf{(\PutROf{x}{y})}{x} = x
+\end{equation}
+\begin{equation}
+  \tag{\PutLR}
+  \PutROf{(\PutLOf{y}{x})}{y} = y
+\end{equation}
+
+% begin simple symmetric string lenses
+\section{Simple Symmetric String Lenses}
+\label{sec:ssl-string}
+While we have a theory for simple symmetric lenses, to integrate with Boomerang,
+we need combinators to express these lenses.
+
+\subsection{Identity}
+The identity lens operates on a single regular expression.  It fully
+synchronizes the data within that regular expression: if data gets changed in
+the left, that change gets reflected in the right.
+
+\subsection{Disconnect}
+The disconnect lens performs the opposite function as the identity lens.  It
+leave the two data formats provided separate.  If data gets changed on the left,
+the right is left unaffected.  When the data is being newly added, default
+behavior comes from one side or the other.
+
+\subsection{Concat}
+The concat lens combines two existing lenses, working on their concatenated
+regular expressions.  It performs the left lens on the left portion of the
+string, and the right lens on the right portion.  It requires unambiguity
+constraints to break up the left and right portions.
+
+\subsection{Swap}
+The swap lens operates like the concat lens, but when going from one side to the
+other, it swaps the order of the lenses.
+
+\subsection{Compose}
+The swap lens operates like the concat lens, but when going from one side to the
+other, it swaps the order of the lenses.
+
+\subsection{Iterate}
+The iterate lens breaks the provided strings into chunks, and performs the
+provided lens on those chunks, then concatenates them together.
+
+\subsection{Or}
+The or lens performs one lens or another, depending on the inputs to the lens.
+
+\subsection{MergeL}
+The mergel lens is used when the same piece of data on the left is synchronized
+to data in potentially many different forms on the right. The first provided
+lens is the one defaulted to on creates.
+
+\subsection{MergeR}
+The merger lens is symmetric to the mergel lens.
+
+\subsection{Compose}
+The compose lens applies one lens to go to an intermediary format, then applies
+the other to go to the final format.
+% end simple symmetric string lenses
 
 % begin DNF regular expressions and lenses
 \section{Stochastic DNF Regular Expressions}
@@ -807,7 +633,7 @@ regular expressions.
 The conversion algorithm itself, written $\ToDNFRegexOf{\Regex}$, is defined below.
 \[
   \begin{array}{rcl}
-    \ToDNFRegexOf{\String} & = & \DNFOf{\SequenceOf{\String}}\\
+    \ToDNFRegexOf{\String} & = & \DNFOf{(\SequenceOf{\String},1)}\\
     \ToDNFRegexOf{\emptyset} & = & \DNFOf{}\\
     \ToDNFRegexOf{(\PRegexStar{\Regex}{\Probability})} & = & \AtomToDNFOf{\PRegexStar{(\ToDNFRegexOf{\Regex})}{\Probability}}\\
     \ToDNFRegexOf{(\RegexConcat{\Regex_1}{\Regex_2})} & = & \ToDNFRegexOf{\Regex_1} \ConcatDNF \ToDNFRegexOf{\Regex_2}\\
@@ -847,11 +673,14 @@ regular expression.
   $\EntropyOf{\DNFRegex}$ is the entropy of $P_{\DNFRegex}$.
 \end{theorem}
 
+This means we also have an algorithm for finding the entropy of an unambiguous
+stochastic regular expression, as we can merely convert the regular expression
+into DNF form, and find the entropy of it.
 % end DNF regular expressions and lenses
 
 % begin symmetric dnf lenses
 \section{Symmetric DNF Lenses}
-\label{symmetric-dnf-lenses}
+\label{sec:symmetric-dnf-lenses}
 \subsection{Syntax}
 Symmetric DNF Lenses are what we synthesize, and we then turn them into
 Symmetric Lenses. The nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all
@@ -940,7 +769,7 @@ the same for sequences on the right, with \CreateL{} and \PutL{}.
       (i_p,j_p,\SSQLens_p)}
     ,\ListOf{c_1;\ldots;c_q}
     ,\ListOf{d_1;\ldots;d_r})
-    \OfType\\
+    \OfType\\\\
     \DNFOf{(\Sequence_1,\Probability_1) \DNFSep \ldots \DNFSep (\Sequence_q,\Probability_q)}
     \Leftrightarrow
     \DNFOf{(\SequenceAlt_1,\ProbabilityAlt_1) \DNFSep \ldots \DNFSep (\SequenceAlt_r,\ProbabilityAlt_q)}
@@ -1224,6 +1053,192 @@ sure if we will find a better lens than the one we found.
 % begin related-work
 \section{Related Work}
 \label{sec:related}
+A \emph{symmetric lens} between $X$ and $Y$ is an element of the type
+$\exists C.\{ \mathit{missing} :
+C,\,get : X \times C \to Y \times C,\,put : Y \times C \to X \times C\}$
+satisfying the following laws:
+\begin{equation}
+  \tag{\PutRL}
+  \frac{\PutR(x,c) = (y,c')}{\PutL(y,c') = (x,c')}
+\end{equation}
+\begin{equation}
+  \tag{\PutLR}
+  \frac{\PutL(y,c) = (x,c')}{\PutR(x,c') = (y,c')}
+\end{equation}
+
+Given a lens $l \in X \leftrightarrow Y$, a \emph{put object} for $l$ is a
+member of $X + Y$. Consider the function $apply$, which, given a lens and an
+element of that lens's complement, is a function from sequences of put objects
+to sequences of put objects. If $apply(\Lens,c,es) = es'$, then that means, starting
+with complement $c$, after edit $es_i$, the lens $\Lens$ synchronizes the other
+data to $es'_i$.
+\[
+  \inferrule
+  {
+  }
+  {
+    apply(\Lens,c,[]) = []
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.putr(x,c) = (y,c')\\
+    apply(\Lens,c',es) = es'
+  }
+  {
+    apply(\Lens,c,(\InLOf{x})::es) = (\InROf{y})::es'
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.putl(y,c) = (x,c')\\
+    apply(\Lens,c',es) = es'
+  }
+  {
+    apply(\Lens,c,(\InROf{y})::es) = (\InLOf{x})::es'
+  }
+\]
+
+Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
+$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
+sequences $es$.
+
+Two simple symmetric lenses are equivalent if the four functions they comprise
+are equivalent as functions. However, to formalize how these lenses work as
+synchronization tools, we define an $apply$ function on them, much like we
+define an $apply$ on symmetric lenses.
+
+The function $apply$, given a symmetric lens and an optional pair of elements of
+the source and target, is a function from sequences of put objects to sequences
+of put objects.  If $apply(\Lens,\None,es,es')$, then that means, starting with
+no prior data, after edit $es_i$, the lens \Lens synchronizes the other data to
+$es_i'$.  If $apply(\Lens,\SomeOf{(x,y)},es,es')$, then that means, starting with
+data $x$ and $y$ on the left and right, respectively, after edit $es_i$, the
+lens \Lens synchronizes the other data to $es_i'$.
+
+\[
+  \inferrule
+  {
+  }
+  {
+    apply(\Lens,xyo,[]) = []
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.\CreateROf{x} = y\\
+    apply(\Lens,\SomeOf{(x,y)},es) = es'
+  }
+  {
+    apply(l,\None,\InLOf{x}::es) = \InROf{y}::es'
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.\CreateLOf{y} = x\\
+    apply(\Lens,\SomeOf{(x,y)},es) = es'
+  }
+  {
+    apply(l,\None,\InROf{y}::es) = \InLOf{x}::es'
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.\PutROf{x'}{y}  = y'\\
+    apply(\Lens,\SomeOf{(x',y')},es) = es'
+  }
+  {
+    apply(l,\SomeOf{(x,y)},\InLOf{x'}::es) = \InROf{y'}::es'
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.\PutLOf{y'}{x}  = x'\\
+    apply(\Lens,\SomeOf{(x',y')},es) = es'
+  }
+  {
+    apply(l,\SomeOf{(x,y)},\InROf{y'}::es) = \InLOf{x'}::es'
+  }
+\]
+
+Furthermore, equivalence of the $apply$ function corresponds exactly with
+equivalence of lenses.
+
+\begin{theorem}
+  $\Lens_1 \equiv \Lens_2$ if, and only if, for all sequences $es$,
+  $apply(\Lens_1,\None,es) = apply(\Lens_2,\None,es)$.
+\end{theorem}
+
+We've reformulated symmetric lenses in a style similar to existing asymmetric
+lens formulations. However, some symmetric lenses certainly are inexpressible in
+the stateless symmetric lens formulation. We formalize which are expressible
+with a restriction on symmetric lenses. We define \emph{forgetful symmetric
+  lenses} to be symmetric lenses which satisfy the following additional laws:
+\begin{equation}
+  \tag{\ForgetfulRL}
+  \begin{mathprooftree}
+    \AxiomC{$\Lens.putr(x,c_1) = (\_,c_1')$}
+    \def\extraVskip{.5pt}
+    \noLine 
+    \UnaryInfC{$\Lens.putr(x,c_2) = (\_,c_2')$}
+    \AxiomC{$\Lens.putl(y,c_1') = (\_,c_1'')$}
+    \def\extraVskip{.5pt}
+    \noLine 
+    \UnaryInfC{$\Lens.putl(y,c_2') = (\_,c_2'')$}
+    \def\extraVskip{2pt}
+    \singleLine
+    \BinaryInfC{$c_1'' = c_2''$}
+  \end{mathprooftree}
+\end{equation}
+\begin{equation}
+  \tag{\ForgetfulLR}
+  \begin{mathprooftree}
+    \AxiomC{$\Lens.putl(y,c_1) = (\_,c_1')$}
+    \def\extraVskip{.5pt}
+    \noLine 
+    \UnaryInfC{$\Lens.putl(y,c_2) = (\_,c_2')$}
+    \AxiomC{$putr(x,c_1') = (\_,c_1'')$}
+    \def\extraVskip{.5pt}
+    \noLine 
+    \UnaryInfC{$\Lens.putr(x,c_2') = (\_,c_2'')$}
+    \def\extraVskip{2pt}
+    \singleLine
+    \BinaryInfC{$c_1'' = c_2''$}
+  \end{mathprooftree}
+\end{equation}
+
+Intuitively, this says that the complements are uniquely determined by the most
+recently input $x$ and $y$. This corresponds closely with simple symmetric
+lenses, where all state is maintained by the current state of the $x$ and $y$
+data. Forgetful symmetric lenses express exactly the same $apply$ function as
+stateless symmetric lenses.
+
+\begin{theorem}
+  Let $\Lens$ be a symmetric lens. The lens $\Lens$ is equivalent to a forgetful
+  lens if, and only if, there exists a simple symmetric lens $\Lens'$ where
+  $apply(\Lens,\Lens.init,es) = apply(\Lens',\None,es)$, for all put sequences $es$.
+\end{theorem}
+
+Despite being less expressive than symmetric lenses, simple symmetric lenses are
+strictly more expressive than classical asymmetric lenses.
+
+\begin{theorem}
+  Let $\Lens$ be an asymmetric lens. $\Lens$ is also a simple symmetric lens,
+  where
+  \begin{enumerate}
+  \item $\Lens.creater \App x = \Lens.get \App x$
+  \item $\Lens.createl \App y = \Lens.create \App y$
+  \item $\Lens.putr \App x \App y = \Lens.get \App x$
+  \item $\Lens.putl \App y \App x = \Lens.put \App y \App x$
+  \end{enumerate}
+\end{theorem}
+
 % end related-work
 
 % begin conclusion
