@@ -271,15 +271,15 @@ Type Systems}
 % begin introduction
 \section{Introduction}
 % state of the world
-Similar data can come in varieties of formats: bibliography information can be
-stored in the BibTeX, EndNote, or ACM reference formats; web service resources
-can be provided to clients in legacy or modern formats; calendar events can be
+Similar data can come in varieties of formats: scheduled jobs can be stored as
+cron jobs for Linux or as Scheduled Tasks for Windows; web service resources can
+be provided to clients in legacy or modern formats; calendar events can be
 stored in CSV files or ICS files. Oftentimes, we want to synchronize files
-across formats: when my collaborator edits her bibliography stored in the ACM
-reference format, I want these edits reflected in my EndNote file; when I update
-data through a legacy API, I want those changes to be reflected when I retrieve
-it through a modern API; when I create a new calendar event in my ICS file, I
-want my CSV calendar files to be updated to reflect this change.
+across formats: when I edit a task to run more often on my Linux machine, I want
+this task to run more often on my Windows machine; when I update data through a
+legacy API, I want those changes to be reflected when I retrieve it through a
+modern API; when I create a new calendar event in my ICS file, I want my CSV
+calendar files to be updated to reflect this change.
 
 Unfortunately, writing such synchronizers is tedious and error prone.
 Bidirectional languages ease the difficulty of writing such synchronizers, as a
@@ -295,12 +295,13 @@ input-output examples and formal descriptions of the data
 formats~\cite{optician,quotient-optician}. However, this work assumes that all
 data fields present in one format are present in the other, but this is not
 always true. Oftentimes, fields present in one format are not present in the
-other: updated APIs can expose new information, or omit legacy information; the
-ACM reference format includes article number information, whereas EndNote
-includes page number information; ICS files contain a URL field that Google
-Calendar CSV files do not expose. We aim to synthesize transformations where the
-data fields are not necessarily in bijective correspondence, where each data
-format can contain important information not present in the other format.
+other: the commands scheduled to run on Linux machines are typically different
+than the commands scheduled to run on Windows machines; updated APIs can expose
+new information, or omit legacy information; ICS files contain a URL field that
+Google Calendar CSV files do not expose. We aim to synthesize transformations
+where the data fields are not necessarily in bijective correspondence, where
+each data format can contain important information not present in the other
+format.
 
 We follow a similar approach to existing work on synthesizing conversion
 functions; instead of synthesizing these functions individually, we synthesize
@@ -380,7 +381,7 @@ In summary, our contributions are:
   data~(\S\ref{sec:ssl-string}).
 \item We develop a means to traverse stochastic regular expression equivalences,
   while preserving probability distributions and
-  languages~(\S\ref{sec:preliminaries}).
+  languages~(\S\ref{sec:stoch-rx}).
 \item We develop stochastic DNF regular expressions and DNF lenses. We develop a
   sound algorithm for converting stochastic regular expressions to stochastic
   DNF regular expressions~(\S\ref{sec:dnf-regex-lens}), and a
@@ -395,13 +396,21 @@ In summary, our contributions are:
 \end{enumerate}
 % end introduction
 
-% begin preliminaries
-\section{Preliminaries}
-\label{sec:preliminaries}
-To define the entropy for data recovery, we must first develop a probability
-model for our languages. We do this by enhancing regular expressions into
-\emph{stochastic regular expressions}. With this, we can jointly
-express both a language and a probability distribution over that language.
+% begin extended example
+\section{Extended Example}
+We motivate our problem with an extended example.  Consider the previously
+described scenario of keeping Linux and Windows scheduled jobs synchronized.
+% end extended example
+
+% begin stoch-rx
+\section{Stochastic Regular Expressions}
+\label{sec:stoch-rx}
+Important to our algorithm is finding the expected number of bits needed to
+recover a string in one data source from a synchronized string in the other data
+source. To do this, we must first develop a probability model for our language.
+We do this with \emph{stochastic regular expressions}, regular expressions
+annotated with probability information. With this, we can jointly express a
+language and a probability distribution over that language.
 
 \begin{center}
   \begin{tabular}{rcl}
@@ -471,18 +480,17 @@ equivalences to stochastic regular expressions.
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
-
-
-% end preliminaries
+% end stoch-rx
 
 \section{Simple Symmetric Lenses}
 \label{sec:ssl}
-Classically, asymmetric lenses comprised three functions, \Put{}, \Get{}, and
-\Create{}.  We extend this style of lens to symmetric lenses with
-\emph{simple symmetric lenses}.  Like the classical formulation of asymmetric
-lenses, simple symmetric lenses have no complement.  Simple symmetric
-lenses comprise 4 functions, \CreateR, \CreateL, \PutR, and \PutL.
-These functions satisfy the following round-tripping laws:
+Classically, asymmetric lenses comprise three functions, \Put{}, \Get{}, and
+\Create{}. These lenses only allow information to be lost on one side. We
+enhance this style of lens to symmetric lenses with \emph{simple
+  symmetric lenses}. Like the classical formulation of asymmetric lenses, simple
+symmetric lenses have no complement. Simple symmetric lenses comprise 4
+functions, \CreateR, \CreateL, \PutR, and \PutL. These functions satisfy the
+following round-tripping laws:
 \begin{equation}
   \tag{\CreatePutRL}
   \PutLOf{(\CreateROf{x})}{x} = x
