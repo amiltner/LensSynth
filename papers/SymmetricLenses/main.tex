@@ -295,12 +295,12 @@ Type Systems}
 Similar data can come in varieties of formats: scheduled jobs can be stored as
 cron jobs for Linux or as Scheduled Tasks for Windows; web service resources can
 be provided to clients in legacy or modern formats; calendar events can be
-stored in CSV files or ICS files. Oftentimes, we want to synchronize files
-across formats: when I edit a task to run more often on my Linux machine, I want
-this task to run more often on my Windows machine; when I update data through a
-legacy API, I want those changes to be reflected when I retrieve it through a
-modern API; when I create a new calendar event in my ICS file, I want my CSV
-calendar files to be updated to reflect this change.
+stored in CSV files or ICS files. Oftentimes, files should be synchronized
+across these formats: when I edit a task to run more often on my Linux machine,
+I want this task to run more often on my Windows machine; when I update data
+through a legacy API, I want those changes to be reflected when I retrieve it
+through a modern API; when I create a new calendar event in my ICS file, I want
+my CSV calendar files to be updated to reflect this change.
 
 Unfortunately, writing such synchronizers is tedious and error prone.
 Bidirectional languages ease the difficulty of writing such synchronizers, as a
@@ -310,22 +310,20 @@ languages are difficult to program in as well, often requiring users to permute
 data in fiddly ways while satisfying the type system's complex unambiguity
 constraints.
 
-A better approach is to synthesize such conversion functions. Recent research
-has gone into Optician, a tool for automatically synthesizing such conversion
-functions from input-output examples and formal descriptions of the data
-formats~\cite{optician,quotient-optician}. However, this work assumes that all
-data fields present in one format are present in the other, but this is not
-always true. Oftentimes, fields present in one format are not present in the
-other: the commands scheduled to run on Linux machines are typically different
-than the commands scheduled to run on Windows machines; updated APIs can expose
-new information, or omit legacy information; ICS files contain a URL field that
-Google Calendar CSV files do not expose.
+A better approach is to synthesize such conversion functions. Prior work on
+synthesizing these functions assumes that all data fields present in one format
+are present in the other, but this is not always true. Oftentimes, fields
+present in one format are not present in the other: the commands scheduled to
+run on Linux machines are typically different than the commands scheduled to run
+on Windows machines; updated APIs can expose new information, or omit legacy
+information; ICS files contain a URL field that Google Calendar CSV files do not
+expose.
 
 \emph{Symmetric lenses} formalize such conversion functions. However, these
 symmetric lenses use external state for synchronization, in the form of a
 \emph{complement}. This makes them difficult to use in real-world
-synchronization tasks, as we must maintain the files we synchronize as well as
-maintaining the complements. The complement further complicates synthesis, as
+synchronization tasks, as users must maintain the synchronized files synchronize
+as well as the complements. The complement further complicates synthesis, as
 input-output examples are no longer sufficient, instead edit sequences must be
 provided.
 
@@ -340,12 +338,12 @@ strings. In Boomerang, and our extension to it, lens expressions are typed
 between regular expressions, where the regular expressions describe the
 synchronized data formats.
 
-We enhance Optician with simple symmetric lens synthesis capabilities. This
-extension synthesizes symmetric lenses from a suite of input-output examples and
-a pair of regular expressions describing the data formats. The synthesis
-algorithm uses type-directed synthesis on the two regular expressions to
-synthesize a lens that is well-typed between the provided regular expressions
-and satisfies the provided input-output examples.
+We provide a tool for synthesizing simple symmetric lenses. This tool
+synthesizes symmetric lenses from a suite of input-output examples and a pair of
+regular expressions describing the data formats. The synthesis algorithm uses
+type-directed synthesis on the two regular expressions to synthesize a lens that
+is well-typed between the provided regular expressions and satisfies the
+provided input-output examples.
 
 A primary difficulty is that there are a relatively many well-typed simple
 symmetric lenses. As symmetric lenses permit data to be present in only one
@@ -353,12 +351,12 @@ format, for any data component there is now a choice: is this data only relevant
 to this format and as such should be left unsynchronized, or is this data
 present in both formats and as such should be synchronized.
 
-We operate under the assumption that users wish to synchronize as much data as
-possible, and try to synchronize as much data as the types and examples allow.
-This task gets harder when there are more complex decisions involved. For
-example, if I have two fields in one format, and one in the other, which field
-on the left should be synchronized to the one of the right? Or would it be
-better for the field on the right to be synchronized to a mish-mash of
+Operate under the assumption that users wish to synchronize as much data as
+possible, our algorithm try to synchronize as much data as the types and
+examples allow. This task gets harder when there are more complex decisions
+involved. For example, if I have two fields in one format, and one in the other,
+which field on the left should be synchronized to the one of the right? Or would
+it be better for the field on the right to be synchronized to a mish-mash of
 subcomponents from each field? To answer these questions, we develop a cost
 metric for reasoning about which lens synchronizes the most information.
 
@@ -406,7 +404,9 @@ stochastic regular expressions and lenses, \emph{stochastic DNF regular
   expressions} and \emph{symmetric DNF lenses}. While these languages are hard
 to read and understand, they permit an efficient type-directed synthesis
 algorithm. We develop our cost metric on DNF lenses, and provide a greedy
-algorithm that tries to find a symmetric DNF lens of minimal cost.
+algorithm that tries to find a symmetric DNF lens of minimal cost. The
+synthesized symmetric DNF lens is then converted to a lens in the original
+simple symmetric lens language.
 
 We evaluate our algorithm on a benchmark suite consisting of the original
 Optician benchmarks, as well as additional benchmarks consisting of
@@ -415,9 +415,9 @@ synchronization tasks where the data is not in bijective correspondence.
 In summary, our contributions are:
 \begin{enumerate}
 \item We develop \emph{simple symmetric lenses} a new formulation for
-  bidirectional programs that can project data from both sides~(\S\ref{sec:ssl}),
+  bidirectional programs that can project data from both sides~(\S\ref{sec:overview}),
   and describe a language that expresses such lenses on string
-  data~(\S\ref{sec:ssl-string}).
+  data~(\S\ref{sec:ssl}).
 \item We develop a means to traverse stochastic regular expression equivalences,
   while preserving probability distributions and
   languages~(\S\ref{sec:stoch-rx}).
@@ -542,7 +542,7 @@ run themselves.
 
 To synchronize these files, a few functions are needed. Two \emph{creates} are
 needed; if a crontab is initialized, a synchronized Scheduled Tasks file is also
-created, and vice versa. Furthermore, we require \emph{puts}, functions that
+created, and vice versa. Furthermore, \emph{puts} are needed, functions that
 take an updated crontab and an old Scheduled Tasks file, and output a new
 Scheduled Tasks file with the information synchronized to the updated crontab.
 To have a simple symmetric lens is to have these required synchronization
@@ -761,9 +761,16 @@ Prior work on lens synthesis works with two communicating synthesizers, one that
 proposes regular expressions, semantically but not syntactically equivalent to
 each other, and another that finds lenses between them, if there are any lenses
 between them that don't use a type equivalence rule involving star equivalences.
-We utilize this same framework, except instead of having the second synthesizer
-find \emph{any} lens between the types, \GreedySynth instead uses a greedy
-algorithm to try finding the \emph{best} lens between the types.
+We utilize this same framework, with two modifications. (1) The first
+synthesizer does not propose regular expressions, but stochastic regular
+expressions, equivalent to the originals. We prove that these proposed
+stochastic regular expressions don't merely have the same languages as the
+originals, but also the same probability distributions. (2) Instead of having
+the second synthesizer find \emph{any} lens between the types, \GreedySynth
+instead uses a greedy algorithm to try finding the \emph{best} lens between the
+types. Furthermore, the first synthesizer proposes stochastic regular
+expressions with equivalent languages and probability distributions, instead of
+just equivalent languages.
 
 This poses a new problem: unless we find a lens with no cost, further search may
 find a better lens. While we may have found a great lens between two regular
@@ -1726,7 +1733,7 @@ sure if we will find a better lens than the one we found.
 \label{sec:related}
 
 \section{Simple Symmetric Lenses}
-\label{sec:ssl}
+\label{sec:ssl2}
 Intuitively, simple symmetric lenses are much like symmetric lenses, but they
 avoid complements by keeping all information required to stitch edits to a data
 source in the data source itself. Instead of having puts operate on a
