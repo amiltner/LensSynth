@@ -1876,59 +1876,17 @@ We have extended Optician with our symmetric synthesis algorithm.
 \section{Related Work}
 \label{sec:related}
 There is related work in a number of directions.  There is related work in
-synthesizing synchronization functions, related work on symmetric lenses,
+symmetric lenses, related work on synthesizing synchronization functions,
 related work on string transformation synthesis, and related work on
 type-directed synthesis.
 
 \subsection{Symmetric Lenses}
-We have reformulated the problem addressed by symmetric lenses with simple
-symmetric lenses.
-
-\section{Simple Symmetric Lenses}
-\label{sec:ssl2}
-Intuitively, simple symmetric lenses are much like symmetric lenses, but they
-avoid complements by keeping all information required to stitch edits to a data
-source in the data source itself. Instead of having puts operate on a
-complement, they operate on both data sources, where the alterations of the
-first argument update the second. Furthermore, on initial creations of the
-files, instead of using an $init$ complement, two additional functions,
-$\CreateR$ and $\CreateL$ are used.
-
-More formally, a simple symmetric lens between $X$ and $Y$ comprise the
-following four functions:
-\begin{enumerate}
-\item $\CreateR \OfType X \rightarrow Y$
-\item $\CreateL \OfType Y \rightarrow X$
-\item $\PutR \OfType X \rightarrow Y \rightarrow Y$
-\item $\PutL \OfType Y \rightarrow X \rightarrow X$
-\end{enumerate}
-These functions are guaranteed to satisfy the following ``round-tripping'' laws.
-\begin{gather}
-  \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x\\
-  \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y\\
-  \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x\\
-  \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
-\end{gather}
-
-For synchronization, when the original crontab or Scheduled Tasks file is
-created, a synchronized file of the other form is created from it with
-$\CreateR$ or $\CreateL$ (depending on which file was initially created). On
-future edits, changes are made with the puts, a \PutR would propagate the shared
-information from the crontab, and knit it together with the information specific
-to the Scheduled Tasks file.
-
-
-\section{Symmetric Lenses}
-\label{sec:symmetric-lenses}
-
-Classically, these types of synchronization tasks are represented as symmetric
-lenses. A symmetric lens $\Lens$ between $X$ and $Y$ consists of 4 components: a
-complement $C$, a designated element $init \in C$, and two functions for
-propagating changes in each format to the other:
+\paragraph*{Formalization} We have reformulated the problem addressed by
+symmetric lenses with simple symmetric lenses. Classically, these types of
+synchronization tasks are represented as symmetric lenses. A symmetric lens
+$\Lens$ between $X$ and $Y$ consists of 4 components: a complement $C$, a
+designated element $init \in C$, and two functions for propagating changes in
+each format to the other:
 \begin{enumerate}
 \item $\PutRSym \OfType X \times C \rightarrow Y \times C$
 \item $\PutLSym \OfType Y \times C \rightarrow X \times C$
@@ -1947,11 +1905,11 @@ round-tripping laws.  This guarantees that if an identity edit is propagated, no
 data gets changed.
 \begin{equation}
   \tag{\PutRL}
-  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c''''')} = (x,c')}
+  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c')} = (x,c')}
 \end{equation}
 \begin{equation}
   \tag{\PutLR}
-  \frac{\PutLSymOf{(y,c)} = (x,c''')}{\PutRSymOf{(x,c')} = (y,c')}
+  \frac{\PutLSymOf{(y,c)} = (x,c')}{\PutRSymOf{(x,c')} = (y,c')}
 \end{equation}
 
 Furthermore, two symmetric lenses are equivalent if they always output the same
@@ -1994,27 +1952,26 @@ Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
 $apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
 sequences $es$.
 
-\subsection{Difficulties Posed}
-
 By describing our lenses in this complement style, we can express an incredibly
 wide class of lenses, as these complements permit storing any amount of
 information in them.  However, they pose problems when implementing them in
 real-world systems and in synthesizing them.
 
-Using symmetric lenses for synchronization forces us to maintain not just two
-files that we aim to sycnrhonize, but three.  This is unintuitive, and creates
-many problems in practice.  For example, consider the situation where I am
-synchronizing a crontab and job manager file.  I am synchronizing across
-computers, so I must either maintain a copy of the complement on each computer,
-and keep them synchronized, or figure out a computer to hold the complement, and
-make sure all edits go through that complement.  Furthermore, if I want to
-change the synchronization to a different computer, I don't need to merely make
-sure that my files are moved to the computer, I also have to make sure that I
-correctly move the complement, and hook up that complement to be used for that
-synchronization task.  This is a huge divergence from other synchronization
-utilities, where all that needs to be done is maintain the files.  Using those
-for synchronization, edits can be sent over the wire, and the appropriate
-function can stitch together those edits, no additional state needed.
+\paragraph*{Issues with Symmetric Lenses} Using symmetric lenses for
+synchronization forces us to maintain not just two files that we aim to
+sycnrhonize, but three. This is unintuitive, and creates many problems in
+practice. For example, consider the situation where I am synchronizing a crontab
+and job manager file. I am synchronizing across computers, so I must either
+maintain a copy of the complement on each computer, and keep them synchronized,
+or figure out a computer to hold the complement, and make sure all edits go
+through that complement. Furthermore, if I want to change the synchronization to
+a different computer, I don't need to merely make sure that my files are moved
+to the computer, I also have to make sure that I correctly move the complement,
+and hook up that complement to be used for that synchronization task. This is a
+huge divergence from other synchronization utilities, where all that needs to be
+done is maintain the files. Using those for synchronization, edits can be sent
+over the wire, and the appropriate function can stitch together those edits, no
+additional state needed.
 
 For synthesis, because each lens has a custom complement, we can no longer
 specify the put functions though mere input/output examples.  Instead, we have
@@ -2029,71 +1986,14 @@ non-identity edits performed unless there are explicit fields in the data
 formats keeping track of them.  While we are reducing the expressivity of our
 lenses with this restriction, we feel the benefits outweigh the costs.
 
-
-
-
-A \emph{symmetric lens} between $X$ and $Y$ is an element of the type
-$\exists C.\{ \mathit{missing} :
-C,\,get : X \times C \to Y \times C,\,put : Y \times C \to X \times C\}$
-satisfying the following laws:
-\begin{equation}
-  \tag{\PutRL}
-  \frac{\PutR(x,c) = (y,c')}{\PutL(y,c') = (x,c')}
-\end{equation}
-\begin{equation}
-  \tag{\PutLR}
-  \frac{\PutL(y,c) = (x,c')}{\PutR(x,c') = (y,c')}
-\end{equation}
-
-Given a lens $l \in X \leftrightarrow Y$, a \emph{put object} for $l$ is a
-member of $X + Y$. Consider the function $apply$, which, given a lens and an
-element of that lens's complement, is a function from sequences of put objects
-to sequences of put objects. If $apply(\Lens,c,es) = es'$, then that means, starting
-with complement $c$, after edit $es_i$, the lens $\Lens$ synchronizes the other
-data to $es'_i$.
-\[
-  \inferrule
-  {
-  }
-  {
-    apply(\Lens,c,[]) = []
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.putr(x,c) = (y,c')\\
-    apply(\Lens,c',es) = es'
-  }
-  {
-    apply(\Lens,c,(\InLOf{x})::es) = (\InROf{y})::es'
-  }
-\]
-\[
-  \inferrule
-  {
-    \Lens.putl(y,c) = (x,c')\\
-    apply(\Lens,c',es) = es'
-  }
-  {
-    apply(\Lens,c,(\InROf{y})::es) = (\InLOf{x})::es'
-  }
-\]
-
-Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
-$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
-sequences $es$.
-
-Two simple symmetric lenses are equivalent if the four functions they comprise
-are equivalent as functions. However, to formalize how these lenses work as
-synchronization tools, we define an $apply$ function on them, much like we
-define an $apply$ on symmetric lenses.
-
-The function $apply$, given a symmetric lens and an optional pair of elements of
-the source and target, is a function from sequences of put objects to sequences
-of put objects.  If $apply(\Lens,\None,es,es')$, then that means, starting with
-no prior data, after edit $es_i$, the lens \Lens synchronizes the other data to
-$es_i'$.  If $apply(\Lens,\SomeOf{(x,y)},es,es')$, then that means, starting with
+\paragraph*{Relation with Simple Symmetric Lenses} To formalize how simple
+symmetric lenses lenses work as synchronization tools, we define an $apply$
+function on them, much like we define an $apply$ on symmetric lenses. The
+function $apply$, given a symmetric lens and an optional pair of elements of the
+source and target, is a function from sequences of put objects to sequences of
+put objects. If $apply(\Lens,\None,es,es')$, then that means, starting with no
+prior data, after edit $es_i$, the lens \Lens synchronizes the other data to
+$es_i'$. If $apply(\Lens,\SomeOf{(x,y)},es,es')$, then that means, starting with
 data $x$ and $y$ on the left and right, respectively, after edit $es_i$, the
 lens \Lens synchronizes the other data to $es_i'$.
 
@@ -2145,14 +2045,6 @@ lens \Lens synchronizes the other data to $es_i'$.
     apply(l,\SomeOf{(x,y)},\InROf{y'}::es) = \InLOf{x'}::es'
   }
 \]
-
-Furthermore, equivalence of the $apply$ function corresponds exactly with
-equivalence of lenses.
-
-\begin{theorem}
-  $\Lens_1 \equiv \Lens_2$ if, and only if, for all sequences $es$,
-  $apply(\Lens_1,\None,es) = apply(\Lens_2,\None,es)$.
-\end{theorem}
 
 We've reformulated symmetric lenses in a style similar to existing asymmetric
 lens formulations. However, some symmetric lenses certainly are inexpressible in
@@ -2210,13 +2102,21 @@ strictly more expressive than classical asymmetric lenses.
 \begin{theorem}
   Let $\Lens$ be an asymmetric lens. $\Lens$ is also a simple symmetric lens,
   where
-  \begin{enumerate}
-  \item $\Lens.creater \App x = \Lens.get \App x$
-  \item $\Lens.createl \App y = \Lens.create \App y$
-  \item $\Lens.putr \App x \App y = \Lens.get \App x$
-  \item $\Lens.putl \App y \App x = \Lens.put \App y \App x$
-  \end{enumerate}
+  \begin{center}
+    \begin{tabular}{rcl}
+      $\Lens.\CreateROf{x}$ & $=$ & $\Lens.get \App x$\\
+      $\Lens.\CreateLOf{y}$ & $=$ & $\Lens.create \App y$\\
+      $\Lens.\PutROf{x}{y}$ & $=$ & $\Lens.get \App x$\\
+      $\Lens.\PutLOf{y}{x}$ & $=$ & $\Lens.put \App y \App x$
+    \end{tabular}
+  \end{center}
 \end{theorem}
+
+\subsection{Synthesizing Synchronization Functions}
+
+\subsection{String Transformation Synthesis}
+
+\subsection{Type-Directed Synthesis}
 
 % end related-work
 
