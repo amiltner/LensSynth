@@ -1147,11 +1147,52 @@ two formats, information from one format doesn't impact the other.
 \end{center}
 % end ssl
 
-\section{Synthesis Algorithm}
+% begin synthesis
+\section{Synthesis}
+In this work, we aim to quickly find a good lens between two regular expressions
+that satisfies the input-output examples. To this end, we develop an information
+theoretic metric for how much data is synchronized. Information theoretic
+metrics require a notion of probability distributions \emph{how are probability
+  distributions being used, are certain things weighted more etc, assign weights
+  to different subcomponents and parts of the data}. We annotate
+the regular expressions with a reasonable probability distribution, making them
+\emph{stochastic regular expressions}. Armed with probability distributions over
+the languages, we have the capabilities to define information theoretic metrics
+over these probability distributions.
 
-% begin stoch-rx
-\section{Stochastic Regular Expressions}
-\label{sec:stoch-rx}
+Our overall synthesis algorithm utilizes two synthesizers shown in
+Figure~\ref{fig:high-level-algorithm}. There are an infinite number of possible
+lenses between two regular expressions that can be searched through. Instead of
+searching through all possible lenses, the lenses are grouped into classes of
+lenses based on the syntax of the regular expressions they synchronize. Two
+lenses are in the same class if they can be typed by the same regular
+expressions, using no star equivalences. This works well for synthesis, as
+finding a good lens within these classes permits an efficient synthesis
+procedure.
+
+However, proposing these classes is complicated by stochastic regular
+expressions. While the equivalences on regular expressions are well studied, the
+equivalences on stochastic regular expressions are not. We want to propose
+equivalent stochastic regular expressions, but both the languages and
+probability distributions must be maintained. If the probability distributions
+are not maintained, then the metric by which we compare our lenses changes for
+each class of lenses, we can't compare lenses between classes. To alleviate
+this, we describe the \emph{star-semiring} equivalences on stochastic regular
+expressions, and prove they are sound with respect to language and probability
+distributions. Our \RXSearch proposes stochastic regular expressions by
+traversing a subset of these equivalences, so \RXSearch only proposes regular
+expression pairs equivalent to the originals.
+
+The second algorithm, \GreedySynth, searches within a class for the lowest cost
+lens.  It is a greedy algorithm, and not guaranteed to find the lowest cost
+lens.  However, we haven't found any instances in which \GreedySynth doesn't find
+the optimal lens, due to the partial backtracking we implemented. \GreedySynth
+works by searching, not through symmetric lenses, but through an alternative
+language of Symmetric DNF lenses. After finding such a symmetric DNF lens, that
+symmetric DNF lens is converted into a simple symmetric lens.
+
+\subsection{Stochastic Regular Expressions}
+\label{subsec:stoch-rx}
 Important to our algorithm is finding the expected number of bits needed to
 recover a string in one data source from a synchronized string in the other data
 source. To do this, we must first develop a probability model for our language.
@@ -1227,10 +1268,50 @@ equivalences to stochastic regular expressions.
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
-% end stoch-rx
 
-% begin DNF regular expressions and lenses
-\section{Stochastic DNF Regular Expressions}
+\subsection{\RXSearch}
+The first synthesizer is one that searches through regular expression pairs.
+This synthesizer, \RXSearch, proposes regular expressions, semantically but not
+syntactically equivalent to the originals.  In particular, this synthesizer
+performs the following rewrites:
+\begin{center}
+  \begin{tabular}{rcl}
+    $\PRegexStar{\Regex}{\Probability}$
+    & \Rewrite
+    & \PRegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\PRegexStar{\Regex{}}{\Probability}})}{\Probability}\\
+
+    $\PRegexStar{\Regex}{\Probability}$
+    & \Rewrite
+    & \PRegexOr{\EmptyString{}}{(\RegexConcat{\PRegexStar{\Regex{}}{\Probability}}{\Regex{}})}{\Probability}
+  \end{tabular}
+\end{center}
+As well as the congruence rules that allow these rewrites to be applied on
+subexpressions.
+
+\RXSearch proposes rewrites incrementally, where it proposes regular expression
+pairs with the smallest number of rewrites first, and when there are no more
+proposed regular expressions of that size, \RXSearch proposes regular
+expressions of larger size.
+
+\RXSearch terminates when the number of regular expressions of the smallest
+unproposed size exceeds the cost of the current best lens. At this point,
+\RXSearch stops proposing regular expression pairs, and instead returns to the
+user the best lens found thus far.  Note, if \RXSearch finds a bijective lens (a
+lens of cost 0), it will immediately return, as would be expected.
+
+\afm{dont forget to add in description of termination}
+%
+
+\subsection{\GreedySynth}
+The second synthesizer, \GreedySynth, actually generates the lenses. It does
+this by first converting the regular expressions into \emph{stochastic DNF
+  regular expressions}, intuitively stochastic regular expressions with all
+disjunctions distributed over all concatenations. Next, a good DNF lens is
+greedily found between these stochastic DNF regular expressions, using the
+probability annotations on the DNF regular expressions to find the cost.
+Finally, this DNF lens is converted into a simple symmetric lens.
+
+\paragraph*{Stochastic DNF Regular Expressions}
 \label{sec:dnf-regex-lens}
 We extend stochastic regular expressions to stochastic DNF regular expressions.
 \begin{center}
@@ -1354,12 +1435,9 @@ regular expression.
 This means we also have an algorithm for finding the entropy of an unambiguous
 stochastic regular expression, as we can merely convert the regular expression
 into DNF form, and find the entropy of it.
-% end DNF regular expressions and lenses
 
-% begin symmetric dnf lenses
-\section{Symmetric DNF Lenses}
+\paragraph*{Symmetric DNF, Sequence, and Atom Lenses}
 \label{sec:symmetric-dnf-lenses}
-\subsection{Syntax}
 Symmetric DNF Lenses are what we synthesize, and we then turn them into
 Symmetric Lenses. The nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all
 represent natural numbers. The nonterminals $\String$ and $\StringAlt$ represent
@@ -1368,7 +1446,7 @@ strings.
 \begin{center}
   \begin{tabular}{@{}r@{\ }c@{}l@{}}
     % REGEX
-    \SAtomLens{} & \GEq{} & $\IterateLensOf{\SDNFLens}$ \\
+    \SAtomLens{} & \GEq{} & $\StarOf{\SDNFLens}$ \\
     \SSQLens{} & \GEq{} & $(\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
                           \ldots\SeqLSep
                           (i_p,j_p,\SAtomLens_p)}
@@ -1410,13 +1488,11 @@ $\Atom_i$.
 
 An atom lens \AtomLens{} is merely the iteration of a symmetric DNF Lens.
 
-
-\subsection{Typing and Semantics}
 Because these lenses only encode functions on well-typed programs, we introduce
 the semantics alongside the typing rules.  The semantics are over typing
 derivations, instead of over individual lenses.
 
-\subsection{DNF Lenses}
+\paragraph*{Symmetric DNF Lenses, Typing and Semantics}
 The typing judgment is a 3-ary relation over a single DNF lens, and two DNF
 regular expressions. If $\SDNFLens \OfType \DNFRegex \Leftrightarrow
 \DNFRegexAlt$, then the $\SDNFLens.\CreateR$, $\SDNFLens.\CreateL$,
@@ -1482,7 +1558,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
                                \end{cases*}$
 \end{tabular}
 
-\paragraph*{Sequence Lenses}
+\paragraph*{Sequence Lenses, Typing and Semantics}
 The typing judgment is a 3-ary relation over a single Sequence lens, and two
 sequences. If $\SSQLens \OfType \Sequence \Leftrightarrow \SequenceAlt$, then
 the $\SSQLens.\CreateR$, $\SSQLens.\CreateL$, $\SSQLens.\PutR$, and
@@ -1578,7 +1654,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
       \end{cases*}$\\
 \end{tabular}
 
-\paragraph*{Atom Lenses}
+\paragraph*{Atom Lenses, Typing and Semantics}
 The typing judgment is a 3-ary relation over a single atom lens, and two
 atoms. If $\SAtomLens \OfType \Atom \Leftrightarrow \AtomAlt$, then
 the $\SAtomLens.\CreateR$, $\SAtomLens.\CreateL$, $\SAtomLens.\PutR$, and
@@ -1593,7 +1669,7 @@ sequence lens is also well typed.
     \SDNFLens \OfType \DNFRegex \Leftrightarrow \DNFRegexAlt
   }
   {
-    \IterateLensOf{\SDNFLens}
+    \StarOf{\SDNFLens}
     \OfType \PRegexStar{\DNFRegex}{\Probability}
     \Leftrightarrow \PRegexStar{\DNFRegexAlt}{\ProbabilityAlt}
   }
@@ -1642,6 +1718,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
     \end{cases*}$\\
 \end{tabular}
 
+\paragraph*{Information-Theoretic Cost Metric}
 Now that we've developed symmetric DNF lenses, it's important to develop a means
 to guage how bijective the lens is.
 
@@ -1703,24 +1780,91 @@ between $\DNFRegex$ and $\DNFRegexAlt$ is $\ArgminOver{\SetOf{\SDNFLens \SuchTha
   \]
 \end{centering}
 
-% end symmetric dnf lenses
+\paragraph*{Greedy Algorithm}
+The greedy algorithm is actually two greedy algorithms, one that greedily finds
+symmetric DNF lenses and one that greedily finds symmetric sequence lenses.
 
+The algorithm for symmetric DNF lenses is relatively straightforward.  First,
+using examples, we identify which atoms in one format \emph{must} be
+synchronized to certain atoms in the other.  After that, we iteratively find the
+pairs of atoms with lowest cost, where at least one of the atoms is not mapped
+to another atom.  The cost of these pairs is not merely the cost of the lens,
+but also the cost incurred by adding that lens, if one of the atoms is already
+involved in a map, the lens has additional cost to account for the merge cost.
+This continues until there are no more atoms that aren't mapped to another atom.
+At this point, the creates for each lens is determined.  If a examples dictate
+one lens must create to another, that is the create behavior, otherwise atoms
+create along the lens of least cost.
 
-% begin synthesis
-\section{Synthesis}
-\label{sec:synthesis}
-While examples can be used to tighten the
-specification, a large number of well-constructed examples are required to
-sufficiently constrain the search space.
+The algorithm for symmetric sequence lenses is less straightforward.  Unlike
+symmetric DNF lenses, where multiple subcomponents can map to the same
+subcomponent, each atom can map to at most one other subcomponent.  This is
+complicated by the fact that examples sometimes dictate one atom must map to
+another.
 
-Unfortunately, trying to find the best symmetric lens is a daunting task!
-Unless we find a bijective lens (in which case the sum is zero), we can never be
-sure if we will find a better lens than the one we found.
+To address this, we introduce the \emph{profit} of a adding a mapping between
+two subcomponents. The profit is the cost of the lens, minus the information
+content of the subcomponents it maps between, plus how much profit would be lost
+by freeing those subcomponents to make the subcomponents available. Then, lenses
+are only added if they have positive profit, or if one of the atoms requires a
+mapping. After there are no more lenses with positive profit or with
+subomponents requiring a mapping, the sequence lens is returned.
+
+\subsection{Optimizations}
+
+We included a number of optimizations in our algorithm. We added ``open'' and
+``closed'' annotations to regular expressions, an expansion inference algorithm,
+hash-consing and memoization, and compositional synthesis to our algorithm.
+
+\paragraph*{Open and Closed Regular Expressions} While GreedySynth acts
+relatively efficiently, it suffers from an exponential blowup when converting
+regular expressions to DNF form. This can be minimized by not converting
+\emph{all} of the regular expression into DNF form, but only converting
+\emph{some} of it to DNF form. We add in an additional atom, where an atom can
+be an either an iteration of a DNF regular expression or it can be a regular
+expression. When converted into a DNF regular expression, if $\Regex$ is a
+stochastic regular expression, annotated as closed, then $\ToDNFRegexOf{\Regex}
+= \AtomToDNFOf{\Regex}$.
+
+At the start of synthesis, we annotate our regular expressions as closed. Now,
+we enhance our rewrites by changing an annotation to from closed to open. This
+forces changes to \RXSearch and \GreedySynth.  \RXSearch is changed in that now
+it can perform new rewrites.  \GreedySynth is changed in that now there is an
+additional type of atom that can be mapped between.  Two regular expressions can
+map to each other only through the identity lens: two regular expressions can
+map to each other by the identity lens, if they are the same and all the
+examples say they are the same, otherwise each regular expression is left
+disconnected.
+
+\paragraph*{Expansion Inference} The prior optimization helped \GreedySynth, but
+it made \RXSearch have a much harder job.  To alleviate this difficulty, we
+added in expansion inference.  Expansion inference identifies when a regular
+expression does not have a chance to map through any means other than
+disconnected.  Expansion inference opens those regular expressions.
+
+\paragraph*{Hash-consing and Memoization} We further help \GreedySynth by
+memoizing its results.  However, our stochastic DNF regular expressions are
+quite large and so hashing them is computationally intensive.  We use less
+memory and allow for quick comparisons and hashing of these DNF regular
+expressions by hash-consing them.
+
+\paragraph*{Compositional Synthesis} Compositional synthesis allows us to use
+previously defined lenses - whether they are previously defined by users or by
+synthesis. We alter \GreedySynth such that two regular expression atoms can be
+mapped to each other either if they are the same regular expression and have
+examples agreeing with the examples, or if there is a lens which is a
+composition of predefined lenses between them, where the lens alters the
+examples in a desired way.
 % end synthesis
 
 % begin implementation
 \section{Implementation}
-\label{sec:implementation}
+We have implemented our symmetric DNF lenses and the synthesis of them as an
+extension to Boomerang. We added symmetric lens combinators to Boomerang, and
+implemented Boomerang's previous asymmetric lens combinators within the
+symmetric lens combinators.
+
+We have extended Optician with our symmetric synthesis algorithm.
 % end implementation
 
 % begin evaluation
@@ -1731,6 +1875,14 @@ sure if we will find a better lens than the one we found.
 % begin related-work
 \section{Related Work}
 \label{sec:related}
+There is related work in a number of directions.  There is related work in
+synthesizing synchronization functions, related work on symmetric lenses,
+related work on string transformation synthesis, and related work on
+type-directed synthesis.
+
+\subsection{Symmetric Lenses}
+We have reformulated the problem addressed by symmetric lenses with simple
+symmetric lenses.
 
 \section{Simple Symmetric Lenses}
 \label{sec:ssl2}
@@ -1795,11 +1947,11 @@ round-tripping laws.  This guarantees that if an identity edit is propagated, no
 data gets changed.
 \begin{equation}
   \tag{\PutRL}
-  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c'')} = (x,c')}
+  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c''''')} = (x,c')}
 \end{equation}
 \begin{equation}
   \tag{\PutLR}
-  \frac{\PutLSymOf{(y,c)} = (x,c')}{\PutRSymOf{(x,c')} = (y,c')}
+  \frac{\PutLSymOf{(y,c)} = (x,c''')}{\PutRSymOf{(x,c')} = (y,c')}
 \end{equation}
 
 Furthermore, two symmetric lenses are equivalent if they always output the same
