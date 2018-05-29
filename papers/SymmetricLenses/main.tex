@@ -53,6 +53,23 @@
 \usepackage{tabulary}
 \usepackage{xspace}
 
+\lstset{ language=Caml, basicstyle=\upshape\sffamily,
+keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
+framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
+commentstyle=\itshape\rmfamily,
+emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disc,merge_left,merge_right,const},
+emphstyle=\upshape\sffamily\color{dkpurple}, 
+columns=fullflexible,
+mathescape, 
+xleftmargin=1.5em,
+% BCP: I find this distracting:
+stringstyle=\sffamily\color{dkblue},
+}
+\makeatletter
+     \let\lst@oldvisiblespace\lst@visiblespace
+     \def\lst@visiblespace{\,\lst@oldvisiblespace\,}
+\makeatother
+
 \setlength{\belowdisplayskip}{0pt} \setlength{\belowdisplayshortskip}{0pt}
 \setlength{\abovedisplayskip}{0pt} \setlength{\abovedisplayshortskip}{0pt}
 
@@ -88,16 +105,6 @@
 %\setlength{\textfloatsep}{15pt}
 
 % Creates a display mode for code in sans serif font
-\lstnewenvironment{sflisting}[1][]
-  {\lstset{%
-    mathescape,
-    basicstyle=\small\sffamily,
-    aboveskip=5pt,
-    belowskip=5pt,
-    columns=flexible,
-    frame=,
-    xleftmargin=1em,#1}\sansmath}
-  {}
 % end
 
 % Macros
@@ -157,27 +164,35 @@
 \title{Synthesizing Symmetric Lenses}
 
 \begin{abstract}
-  Similar data is oftentimes represented and stored in different formats. Users
-  commonly need to synchronize the data shared between formats, where edits to
-  the data in one format gets propagated to the data in the other format.
-  Manually writing these data synchronizers is tedious and error prone. To
-  alleviate these difficulties, tools have been developed that automatically
-  generate these synchronization functions by generating bidirectional lens
-  programs from data format descriptors~\cite{optician,quotient-optician}.
-  However, these tools only work when the two formats describe exactly the same
-  data; it assumes that all important information present in one format is
-  present in the other. This is often not the case.
+  Users commonly need to synchronize the data shared between formats, so edits
+  to the data in one format gets propagated to the data in the other format.
+  Manually writing the functions for these data synchronizers is tedious and
+  error prone. Instead of manually writing these synchronizers, bidirectional
+  languages can be used to express \emph{lenses}, groups of synchronization
+  functions with guarantees about round-trip behavior. While these bidirectional
+  languages help make programming these synthesizers less error-prone, they
+  remain difficult to program in. Synthesizing bidirectional languages allows
+  users to use lenses without manually programming them. Current
+  synthesizers work only on the simplest types of lenses, when the two formats
+  describe exactly the same data; this is often not the case.
 
-  In this work, we automatically synthesize conversion functions between formats
-  that each may contain information the other lacks. We define \emph{simple
-    symmetric lenses}, a class of bidirectional programs for expressing these
-  types of conversion functions, and we specify a language that expresses simple
-  symmetric lenses that operate on string formats. We develop a type-directed
-  synthesis algorithm for generating lenses in this language from regular
-  expressions describing the data formats. A significant technical challenge in
-  this work arises from the fact that our target language permits
-  synchronization between formats that don't have exactly the same data -- data
-  in one format need not be present in the other format. This gives the
+  Oftentimes, each format may contain information the other lacks. Such
+  synchronization tasks are described by one of the richest classes of lenses,
+  symmetric lenses. However, symmetric lenses in their current formulation
+  require external state in the form of a \emph{complement}. This statefulness
+  makes symmetric lenses both difficult to use and difficult to synthesize.
+
+  In this work, we reformulate symmetric lenses as \emph{simple symmetric
+    lenses}. While this formulation is less expressive than symmetric lenses, it
+  expresses many symmetric lenses while requiring \emph{no external state}. We
+  provide combinators for simple symmetric lenses on string data, and integrate
+  these combinators into Boomerang while providing full backwards compatibility.
+
+  We develop a type-directed synthesis algorithm for generating lenses in this
+  language from regular expressions describing the data formats. A significant
+  technical challenge in this work arises from the fact that our target language
+  permits synchronization between formats that don't have exactly the same data
+  -- data in one format need not be present in the other format. This gives the
   synthesis algorithm much more freedom, as data can be completely
   unsynchronized (edits in one format are never propagated), completely
   synchronized (the formats are in bijective correspondence), or anywhere in
@@ -186,10 +201,12 @@
   is left unsynchronized based on the theory of \emph{stochastic regular
     expressions}. Furthermore, we use this metric to develop a greedy synthesis
   algorithm that tries to minimize unsynchronized data. We experimentally
-  demonstrate that despite addressing a much harder problem, our extension to
-  Optician still maintains synthesis times competitive to Optician on Optician's
-  bijective benchmark suite, while generalizing to benchmarks synchronizing data
-  not in bijective correspondence.
+  demonstrate that our algorithm can efficiently synthesize simple symmetric
+  lenses on a variety of benchmark suites consisting of synchronizing file
+  formats from configuration files, application-specific data storage files, and
+  data cleaning tasks.
+
+
 \end{abstract}
 
 \begin{CCSXML}
@@ -287,43 +304,50 @@ calendar files to be updated to reflect this change.
 
 Unfortunately, writing such synchronizers is tedious and error prone.
 Bidirectional languages ease the difficulty of writing such synchronizers, as a
-single, well-typed program expresses multiple conversion functions, and
-guarantee these functions satisfy round-tripping laws. However, bidirectional
-languages are difficult to program in as well -- often requiring users to
-permute data in fiddly ways while satisfying the type system's complex
-unambiguity constraints.
+single, well-typed program expresses a \emph{lens}, a group of conversion
+functions guaranteed to satisfy round-tripping laws. However, bidirectional
+languages are difficult to program in as well, often requiring users to permute
+data in fiddly ways while satisfying the type system's complex unambiguity
+constraints.
 
 A better approach is to synthesize such conversion functions. Recent research
-has gone into automatically synthesizing such conversion functions from
-input-output examples and formal descriptions of the data
+has gone into Optician, a tool for automatically synthesizing such conversion
+functions from input-output examples and formal descriptions of the data
 formats~\cite{optician,quotient-optician}. However, this work assumes that all
 data fields present in one format are present in the other, but this is not
 always true. Oftentimes, fields present in one format are not present in the
 other: the commands scheduled to run on Linux machines are typically different
 than the commands scheduled to run on Windows machines; updated APIs can expose
 new information, or omit legacy information; ICS files contain a URL field that
-Google Calendar CSV files do not expose. We aim to synthesize transformations
-where the data fields are not necessarily in bijective correspondence, where
-each data format can contain important information not present in the other
-format.
+Google Calendar CSV files do not expose.
 
-We follow a similar approach to existing work on synthesizing conversion
-functions; instead of synthesizing these functions individually, we synthesize
-bidirectional programs. To this end, we develop a new formulation of
-bidirectional programs, \emph{simple symmetric lenses}, which permit
-synchronizations between formats not in bijective correspondence. We develop a
-language for expressing simple symmetric lenses that operate on string data.
-Terms in this language are typed between regular expressions, where the regular
-expressions describe the synchronized data formats.
+\emph{Symmetric lenses} formalize such conversion functions. However, these
+symmetric lenses use external state for synchronization, in the form of a
+\emph{complement}. This makes them difficult to use in real-world
+synchronization tasks, as we must maintain the files we synchronize as well as
+maintaining the complements. The complement further complicates synthesis, as
+input-output examples are no longer sufficient, instead edit sequences must be
+provided.
 
-Our synthesis algorithm takes as input a suite of input-output examples and two
-regular expressions describing the data formats. Our synthesis algorithm uses
-type-directed synthesis on the two regular expressions to synthesize a lens that
-is well-typed between the provided regular expressions and satisfies the
-provided input-output examples.
+To get around this, we reformulate symmetric lenses as \emph{simple symmetric
+  lenses}. This reformulation does not use a complement, and only uses the files
+that we aim to synchronize as state. We identify a property,
+\emph{forgetfulness}, where if a symmetric lens can be written as a forgetful
+symmetric lens, it can also be written a simple symmetric lens. We provide
+combinators for building simple symmetric lenses on string data, and integrate
+these combinators with Boomerang, a language for bidirectional programming on
+strings. In Boomerang, and our extension to it, lens expressions are typed
+between regular expressions, where the regular expressions describe the
+synchronized data formats.
 
-A primary novel difficulty is that, unlike previous work where there are
-relatively few well-typed lenses, there are a relatively many well-typed simple
+We enhance Optician with simple symmetric lens synthesis capabilities. This
+extension synthesizes symmetric lenses from a suite of input-output examples and
+a pair of regular expressions describing the data formats. The synthesis
+algorithm uses type-directed synthesis on the two regular expressions to
+synthesize a lens that is well-typed between the provided regular expressions
+and satisfies the provided input-output examples.
+
+A primary difficulty is that there are a relatively many well-typed simple
 symmetric lenses. As symmetric lenses permit data to be present in only one
 format, for any data component there is now a choice: is this data only relevant
 to this format and as such should be left unsynchronized, or is this data
@@ -338,19 +362,17 @@ better for the field on the right to be synchronized to a mish-mash of
 subcomponents from each field? To answer these questions, we develop a cost
 metric for reasoning about which lens synchronizes the most information.
 
-As we wish to synchronize as much data as we can, our cost model gives higher
-cost to those with more data is left unsynchronized. In particular, the cost of
-a lens is the expected number of bits required to recover a string in one format
-when a synchronized string in the other format is provided. In this model,
-bijective lenses have zero cost, and as more information is left unsychronized,
-the cost is increased.
+In particular, the cost of a lens is the expected number of bits required to
+recover a string in one format when a synchronized string in the other format is
+provided. In this model, bijective lenses have zero cost, and as more
+information is left unsychronized, the cost is increased.
 
-Our model for this is based on \emph{stochastic regular expressions}~\cite{?}.
-We represent a probability distribution for strings by a stochastic regular
-expression, and find a way to syntactically infer the expected information
-content (or \emph{entropy}) of an unambiguous regular expression. We use this
-entropy to calculate the expected information content to recover a string, when
-we are given a string it is synchronized to.
+Our model for this is based on \emph{stochastic regular expressions}~\cite{?}. A
+probability distribution for strings is represented by a stochastic regular
+expression, and we develop a way to syntactically infer the expected information
+content (or \emph{entropy}) of an unambiguous regular expression. This entropy
+is used to calculate the expected information content to recover a string, when
+given a string it is synchronized to.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -364,7 +386,7 @@ we are given a string it is synchronized to.
 \end{figure}
 
 We develop an algorithm that synthesizes a low-cost lens, shown in
-Figure~\ref{fig:high-level-algorithm}. Our algorithm consists of two
+Figure~\ref{fig:high-level-algorithm}. This algorithm consists of two
 communicating synthesizers, one that proposes candidate stochastic regular
 expression pairs that it thinks will align well, and one that greedily searches
 for a lens between those two regular expressions that minimizes cost and
@@ -409,21 +431,20 @@ In summary, our contributions are:
   new algorithm.
 \item We evaluate our synthesis algorithm on Opticians benchmark suite as well
   as new, symmetric benchmarks, and find that we lose very little synthesis
-  time, while gaining a large amount of expressivity (\S\ref{sec:evaluation}).
+  time, while being significantly more expressive (\S\ref{sec:evaluation}).
 \end{enumerate}
 % end introduction
 
-% begin extended example
-\section{Extended Example}
-
+% begin overview
+\section{Overview}
+\label{sec:overview}
 
 \begin{figure}
   % https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
   \setbox0=\hbox{%
-    \begin{minipage}{3in}
+    \begin{minipage}{3.5in}
 \begin{lstlisting}[
-tabsize=1,
-language={xml},
+stringstyle=\upshape\sffamily
 ]
 0,20,40 cp -r /Library/ "$\$$(date)"
 
@@ -434,82 +455,109 @@ language={xml},
   \savestack{\listingA}{\box0}
 
   \setbox0=\hbox{%
-    \begin{minipage}{3in}
+    \begin{minipage}{3.5in}
 \begin{lstlisting}[
-tabsize=1,
+stringstyle=\upshape\sffamily
 ]
 <Tasks>
  <Task>
   <Command>c</Command>
-  <Time>0</Time><Time>20</Time><Time>40</Time>
+  <Time>0</Time><Time>20</Time> <Time>40</Time>
  </Task>
  <Task>
   <Command>c</Command>
   <AllTimes/>
  </Task>
 <Tasks>
-  
-{
-  Title: Return 400 on
-    bad PUT request,
-  Type: Bug,
-  AssignedTo: J Smith,
-}
 \end{lstlisting}
     \end{minipage}
   }
   \savestack{\listingB}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}
+let minute_list = minute . ("," . minute)$^*$ in
+let times = "*" | minute_list in
+let line = times . " " . command in
+let crontab = "" | line . ("\n\n" line)*
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingC}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}
+let minute_xml = "<Time>" . minute . "</Time>" in
+let minutes_xml = minute_xml . minute_xml$^*$ in
+let xml_time = "<AllTimes/>" | minutes_xml in
+let command_xml = 
+  "<Command>" . command . "</Command>"
+in
+let xml_task = command_xml . xml_time in
+let scheduled_job = "<Tasks>" . xml_task$^*$ . "</Tasks>"
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingD}{\box0}
+  
   \centering
   \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
       \hline
-      Legacy Work Item Representation & Modern Work Item Representation \\
+      crontab & scheduled.job \\
       \hline
       \listingA & \listingB \\
       \hline
+      \listingC & \listingD \\
+      \hline
     \end{tabular}
   }
-  \caption{Hello there this is the thing}
+  \caption{An example crontab and Scheduled Tasks file, and regular expressions
+    describing the formats. For simplicity, these are modified versions of the
+    real formats.}
   \label{fig:minimized-representations}
 \end{figure}
 
-We motivate our problem with an extended example.  Consider the previously
-described example of keeping Linux and Windows scheduled jobs synchronized.
-In this example, we describe keeping synchronized an minified version of
-crontab and the task scheduler.  These are each formats specifying when to run
-recurring tasks.  For simplicity, we are using an minified version of these
-configuration files where we can schedule tasks to occur at fixed intervals,
-hourly, daily, or weekly.  Each task consists of a command to be run.
+We motivate our problem with an extended example. Consider the previously
+described example of keeping Linux and Windows scheduled jobs synchronized. In
+this example, we describe keeping synchronized a crontab (the file containing
+cron jobs) and a Scheduled Tasks file, scheduled.job. These are each formats
+specifying when to run recurring tasks. For simplicity of description, we use a
+minified version of each of these, with examples and regular expressions shown
+in Figure~\ref{fig:minimized-representations}.
+
+For task is set in these files at specific times each hour. In both these
+formats, users can specify specific minutes they want to run the program during,
+or they can specify they want to run the program at every minute.
 
 In this example, we wish for the jobs to be synchronized across our windows and
 linux devices. However, the commands that need to be run are typically different
-for each device. Paths are different in windows and Linux, and while there is
+for each device. Paths are different in Windows and Linux, and while there is
 typically a Windows equvialent for Linux commands, that equivalent command is
-not always named the same thing.
+not always named the same thing.  So, while we want to be able to add commands
+and edit how often they are run, we don't want to synchronize which commands are
+run themselves.
 
-To synchronize these files, we wish to synchronize how often the commands are
-run, but not synchronize the names of the commands. We consider 4 functions to
-be necessary to synchronize these two files: a function that makes a new cron
-file from a newly created task scheduler, a function that makes a new task
-scheduler file from a new cron file, a function that merges edits to the cron
-file to the synchronized task scheduler file, and a function that merges edits
-on the task scheduler file to the cron file. These are the only four functions
-we need to synchronize these two files, so these four functions comprise a
-simple symmetric lens between cron files and task scheduler files.  More
-formally, a simple symmetric lens between $X$ and $Y$ comprise the following
-four functions:
+To synchronize these files, a few functions are needed. Two \emph{creates} are
+needed; if a crontab is initialized, a synchronized Scheduled Tasks file is also
+created, and vice versa. Furthermore, we require \emph{puts}, functions that
+take an updated crontab and an old Scheduled Tasks file, and output a new
+Scheduled Tasks file with the information synchronized to the updated crontab.
+To have a simple symmetric lens is to have these required synchronization
+functions. Formally, a simple symmetric lens between $X$ and $Y$ comprises 4
+functions:
 \begin{enumerate}
 \item $\CreateR \OfType X \rightarrow Y$
 \item $\CreateL \OfType Y \rightarrow X$
 \item $\PutR \OfType X \rightarrow Y \rightarrow Y$
 \item $\PutL \OfType Y \rightarrow X \rightarrow X$
 \end{enumerate}
-
-Furthermore, we expect these functions to satisfy certain properties.  For
-example, if two files are synchronized by one of these functions, using another
-function to resynchronize it will not change the result.  These are viewed as
-the ``round-tripping'' laws:
-\vspace*{-1em}
+Furthermore, if a file is not edited, but is then resynchronized using a put
+function, no data should be changed. To be a lens, one must satisfy the
+following ``round-tripping'' laws that guarantee identity edits won't change the
+file data.
 \begin{gather}
   \tag{\CreatePutRL}
   \PutLOf{(\CreateROf{x})}{x} = x\\
@@ -521,9 +569,578 @@ the ``round-tripping'' laws:
   \PutROf{(\PutLOf{y}{x})}{y} = y
 \end{gather}
 
-\vspace*{-1em}
-We wish 
-% end extended example
+For synchronization, when the original crontab or Scheduled Tasks file is
+created, a synchronized file of the other form is created from it with
+$\CreateR$ or $\CreateL$ (depending on which file was initially created). On
+future edits, changes are made with the puts, a \PutR would propagate the shared
+information from the crontab, and knit it together with the information specific
+to the Scheduled Tasks file.
+
+\subsection{Programming Symmetric Lenses} We now build up a symmetric lens by
+example. Our symmetric lens expressions are typed between regular expression
+pairs, if \lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$}, then $\Lens$
+encodes a lens between $\LanguageOf{\Regex}$ and $\LanguageOf{\RegexAlt}$. At
+the end, we want our symmetric lenses to by typed between \lstinline{crontab}
+and \lstinline{scheduled_job}.
+
+The identity lens takes, as argument, a regular expression, and performs the
+identity function on strings in that regular expression. The identity lens fully
+synchronizes the data formats: when one data format is updated, the other format
+gets the exact same value. In our example, when a job is told to run at a
+specific time in crontab, it is also expected to run at that same time in the
+Scheduled Jobs list, so the identity lens would propagate that information well.
+%
+\begin{lstlisting}
+id(minute) : minute $\Leftrightarrow$ minute
+\end{lstlisting}
+%
+
+Where the identity lens synchronizes data, the disconnect lens does the
+opposite: it leaves data unsynchronized. The disconnect lens takes 4 arguments:
+two regular expressions and two strings. On creates, because there is no
+association between data in the first format and data in the second format,
+designated default strings $\String$ and $\StringAlt$ are put into the other
+format. In our extended example, the Linux commands should not by synchronized
+with the Windows commands, so a disconnect lens would be used. We want our
+default behavior to be failures, under the assumption this failure will raise a
+warning, in case somebody forgets to find the analogous command of the other
+operating system.
+%
+\begin{lstlisting}
+disc(command,command_xml,"false","<Command>SET ERRORLEVEL=1</Command>") 
+  : command $\Leftrightarrow$ command_xml
+\end{lstlisting}
+%
+When building a disconnect lens between two strings, one of which is merely the
+empty string, the lenses \lstinline{ins} and \lstinline{del} can instead be
+used, where \lstinline{ins($t$) = disc("",$t$,"",$t$)} and
+\lstinline{del($s$) = disc($s$,"",$s$,"")}.
+
+Finally, there are a number of lenses that compositionally build up new lenses
+from old ones. For example, data can appear in one form or another, a program
+can run during a specific set of minutes, or that program can run the every
+minute. If \lstinline{minutes_map} and \lstinline{alltimes_map} are lenses that
+synchronize those settings in each format, then those lenses can be composed
+with an \OrLens lens.
+%
+\begin{lstlisting}
+or(minutes_map,alltimes_map) : times $\Leftrightarrow$ xml_time
+\end{lstlisting}
+
+Data can also be concatenated, and so lens mappings can be concatenated.
+However, data concatenations can only happen in a number of ways, as data can
+appear in the same order, and data can be reordered. For example, in the
+crontab, time data appears before command data, whereas in the Scheduled Jobs
+file, command data comes before time data. If \lstinline{command_map} provides a
+lens between commands in each format, and \lstinline{time_map} provides a lens
+between time data in each format, those lenses can be composed with a \SwapLens
+lens.
+%
+\begin{lstlisting}
+swap(command_map,time_map) : line $\Leftrightarrow$ xml_task
+\end{lstlisting}
+%
+Two lenses, $\Lens_1$ and $\Lens_2$, can be concatenated as
+\lstinline{concat($\Lens_1$,$\Lens_2$)} or as the infix style
+\lstinline{$\Lens_1$ . $\Lens_2$} for data that is not reordered.
+
+Lastly, the \IterateLens lens synchronizes repeated data, synchronizing each
+element of the iteration, and synchronizing the number of iterations. For
+example, if \lstinline{full_task_map} synchronizes crontab lines prepended by
+two newlines and xml for a single task, iterating that lens builds a lens that
+synchronizes a list of tasks.
+%
+\begin{lstlisting}
+iterate(full_task_map) : ("\n\n" . line)$^*$ $\Leftrightarrow$ xml_task$^*$
+\end{lstlisting}
+%
+
+\begin{figure}
+\begin{lstlisting}
+let full_minute_map = ins("<Time>") . id(minute) . ins("</Time>") in
+let comma_minute_map = del(",") . full_minute_map in
+let minutes_map = full_minute_map . iterate(comma_minute_map) in
+let alltimes_map = del("*") . ins("<AllTimes/>") in
+let times_map = or(minutes_map,alltimes_map) in
+
+let command_core = 
+  disc(command,command_xml,"false","<Command>SET ERRORLEVEL=1</Command>")
+in
+let command_map = 
+  ins("<Command>") . command_core . ins("</Command>")) . del(" ") 
+in
+
+let task_map = swap(command_map,time_map) in
+let full_task_map = 
+  ins("<Task>") . del("\n\n") . task_map . ins("</Task>") 
+in
+let repeated_task_map = iterate(full_task_map)
+let nonempty_task_map = ins("<Tasks>") . repeated_task_map . ins("</Tasks>")
+
+or(ins("<Tasks></Tasks>"),nonempty_task_map) : crontab $\Leftrightarrow$ scheduled_job
+\end{lstlisting}
+  \caption{A lens, written in our language for building simple symmetric lenses
+    on string data, that synchronizes crontab files and Scheduled Task files.
+    Note that we can annotate our lenses with types, to confirm the lens
+    operates on the languages of the regular expressions.}
+  \label{fig:example_lens}
+\end{figure}
+
+Using these combinators, we can build up a lens that synchronizes crontabs and
+Scheduled Task files, shown in Figure~\ref{fig:example_lens}. This lens uses one
+typing rule not previously mentioned: type equivalence.  While
+\lstinline{scheduled_job} is a equivalent to a lens with an outermost
+disjunction, it is not syntactically equivalent to one.  Without type
+equivalence, the provided lens wouldn't actually be well-typed, but type
+equivalence states that if a lens is typed between a pair of regular
+expressions, it is also typed between an equivalent pair.
+
+Note that, while the programmed lens should be quite simple, it was relatively
+difficult to write. We had to provide a lot of scaffolding to map between the
+desired formats, even though the idea was quite simple: synchronize the times
+but leave the commands unsynchronized. Furthermore, this is inherent to manually
+writing these synchronization functions, as a programmer must describe which
+components are synchronized with which, and which components are scaffolding.
+
+\subsection{Synthesizing Symmetric Lenses}
+To alleviate these difficulties, we wish to synthesize symmetric lenses from
+types and examples. Given a pair of regular expressions and a set of
+input-output examples, we want to synthesize a symmetric lens expression that is
+typed between the regular expression pair, and satisfies the input/output
+examples. For example, we wish to synthesize a lens from \lstinline{crontab} and
+\lstinline{scheduled_job}, using the strings in
+Figure~\ref{fig:minimized-representations} as input-output example for \CreateR.
+
+However, our simple symmetric lens combinators permit many well-typed programs
+between two regular expressions. For example, one possible lens between
+\lstinline{crontab} and \lstinline{scheduled_job} is the one in
+Figure~\ref{fig:example_lens}, but the lens
+%
+\begin{lstlisting}
+disc(crontab,scheduled_job,rep(crontab),rep(scheduled_job))
+\end{lstlisting}
+%
+is also a valid lens (where \lstinline{rep($\Regex$)} is a string in the
+language of $\Regex$). Furthermore, adding the synchronized files from
+Figure~\ref{fig:minimized-representations} as an input-output example helps
+little, but the default strings given to \Disconnect merely need to be those
+strings and the lens still satisfies the examples. While the disconnect lens is
+prohibited by two examples, or by a carefully chosen input-output example on
+\PutR or \PutL, this problem continues presenting itself for the sublenses, and
+is highlighted even more on larger formats. While we could merely ask
+programmers to provide large, tight specifications for their synthesis tasks, we
+would prefer the algorithm to choose the right lens automatically. Instead of
+merely finding \emph{any} satisfying lens, we wish to synthesize the \emph{best}
+satisfying lens.
+
+But what is the best satisfying lens?  We think the best satisfying lens is the
+one that synchronizes as much data as is permitted by the type system and the
+examples.  More formally, we wish to minimize the expected number of bits
+required to recover data in one format from the other.  The expected number of
+bits is a well known concept in information theory, the expected number of bits
+of a data source is the \emph{entropy} of that data source.
+
+The entropy of a data source is based on the probability distribution of that
+data source. Given a set $S$, and a probability distribution over that set $P
+\OfType S \rightarrow \Reals$, the entropy of $(S,P)$ is $-\Sigma_{s\in
+  S}P(s)\Log_2P(s)$. While we have ways of expressing sets, we do not have
+probability distributions. In this work, we use \emph{stochastic regular
+  expressions}, regular expressions annotated with probabilities that express
+languages and probability distributions over those languages. In this work, we
+guess a reasonable probability distribution from the syntax, though if users
+manually provided stochastic regular expressions, or large suite of data in the
+formats through which we could learn the annotations, we could instead use that.
+
+With sets and probability distributions, we can find the entropy of the
+stochastic regular expression, given another stochastic regular expression, and
+a lens that shows which strings are synchronized with which. We aim to find the
+lens that minimizes that entropy.  Now that we have a notion of best, we need a
+way to search for that best lens.
+
+Prior work on lens synthesis works with two communicating synthesizers, one that
+proposes regular expressions, semantically but not syntactically equivalent to
+each other, and another that finds lenses between them, if there are any lenses
+between them that don't use a type equivalence rule involving star equivalences.
+We utilize this same framework, except instead of having the second synthesizer
+find \emph{any} lens between the types, \GreedySynth instead uses a greedy
+algorithm to try finding the \emph{best} lens between the types.
+
+This poses a new problem: unless we find a lens with no cost, further search may
+find a better lens. While we may have found a great lens between two regular
+expressions, a different regular expression pair may provide an even better
+lens. There may be a great lens between \lstinline{crontab} and
+\lstinline{scheduled_job} that uses no star equivalences, but the lens shown in
+Figure~\ref{fig:example_lens} does. However, there is a tension, we want to find
+a good lens, but we also want to give quick feedback to the user. After finding
+the lens in Figure~\ref{fig:example_lens}, the algorithm shouldn't spend much
+longer searching for better lenses.
+
+We address this by keeping running track of the best lens found thus far. Before
+proposing new types, the regular expression generator, \RXSearch, evaluates
+whether it should continue proposing regular expression pairs, or whether it is
+content with the current best. For a given regular expression pair, \RXSearch
+looks at the number of rewrite rules performed on the pair, and identifies how
+many pairs with involving the same number of rewrites may be proposed. If there
+are a large number of pairs that can be proposed with that many rewrites, or the
+current lens is very well synchronized, \RXSearch does not propose that pairs.
+In this way, \RXSearch will continue searching for better lenses, but does not
+tackle huge search spaces unless it needs to. In this way, the algorithm can
+provide lenses quickly to the users, which users can refine with additional
+examples.
+% end overview
+
+% begin ssl
+\section{Simple Symmetric String Lenses}
+\label{sec:ssl}
+We now give a formal description of all the combinators in our symmetric lens
+language. These lens terms are typed between pairs of regular expressions: the
+typing judgment $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$ means that
+$\Lens$ is a well typed lens between $\LanguageOf{\Regex}$ and
+$\LanguageOf{\RegexAlt}$.
+
+\begin{center}
+  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
+    % REGEX
+    \Lens{} & \GEq{} & & $\IdentityLensOf{\Regex}$\\
+            & & \GBar{} & $\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}$ \\
+            & & \GBar{} & $\IterateLensOf{\Lens}$ \\
+            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\ComposeLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\MergeROf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\MergeLOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\InvertOf{\Lens}$ \\
+  \end{tabular}
+\end{center}
+
+We have already described over a number of these lenses in \S\ref{sec:overview}.
+The compose lens $\Lens_1 ; \Lens_2$ composes two lenses sequentially, it
+transforms from one data format to the other by first transforming to an
+intermediate format, shared as the target of $\Lens_1$ and the source of
+$\Lens_2$. The \MergeR lens combines two sublenses which share the same target.
+Which lens gets used depends on what data is in the left-hand format, if it is
+in the domain of $\Lens_1$ then $\Lens_1$ gets used, and similarly for
+$\Lens_2$.  The \MergeL lens is symmetric to \MergeR, the two sublenses must
+share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
+becomes \CreateL and \PutR becomes \PutL, and vice-versa.
+
+We now provide the typing derivations and semantics for these lenses. For
+simplicity, we define the typing derivations and semantics only over unambiguous
+regular expressions, even though some lenses can be defined over ambiguous
+regular expressions (for example, the identity lens doesn't need any ambiguity
+constraints).
+
+\[
+  \centering
+  \inferrule*
+  {
+  }
+  {
+    \IdentityLensOf{\Regex} \OfType \Regex \Leftrightarrow \Regex
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App s$ & = & $s$\\
+    $\CreateL{} \App s$ & = & $s$\\
+    $\PutR{} \App s_1 \App s_2$ & = & $s_1$\\
+    $\PutL{} \App s_1 \App s_2$ & = & $s_1$
+  \end{tabular}
+\end{center}
+
+Note that the identity lens ignores the second argument in the put functions.
+Because the two formats are fully synchronized, no knowledge of the prior data
+is needed.
+
+\[
+  \centering
+  \inferrule*
+  {
+    \String \in \LanguageOf{\Regex}\\
+    \StringAlt \in \LanguageOf{\RegexAlt}
+  }
+  {
+    \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}
+    \OfType \Regex \Leftrightarrow \RegexAlt
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String'$ & = & $\StringAlt$\\
+    $\CreateL{} \App \StringAlt'$ & = & $\String$\\
+    $\PutR{} \App \String' \App \StringAlt'$ & = & $\StringAlt'$\\
+    $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
+  \end{tabular}
+\end{center}
+Just as the identity lens ignores the second argument in puts, disconnect lenses
+ignore the first in both puts and creates.  The data is unsynchronized in these
+two formats, information from one format doesn't impact the other.
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
+  }
+  {
+    \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Concat \Regex_2
+    \Leftrightarrow
+    \RegexAlt_1 \Concat \RegexAlt_2
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1 \String_2$ & = & $(\Lens_1.\CreateROf{\String_1})(\Lens_2.\CreateROf{\String_2})$\\
+    $\CreateL{} \App \StringAlt_1 \StringAlt_2$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
+    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_1\StringAlt_2)$ & = & $(\Lens_1.\PutROf{\String_1}{\StringAlt_1})(\Lens_2.\PutROf{\String_2}{\StringAlt_2})$\\
+    $\PutL{} \App (\StringAlt_1\StringAlt_2) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
+  \end{tabular}
+\end{center}
+
+\afm{there isn't much to say here, should I put these in a figure or something?}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
+  }
+  {
+    \SwapLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Concat \Regex_2
+    \Leftrightarrow
+    \RegexAlt_2 \Concat \RegexAlt_1
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1\String_2$ & = & $(\Lens_2.\CreateROf{\String_2})(\Lens_1.\CreateROf{\String_1})$\\
+    $\CreateL{} \App \StringAlt_2\StringAlt_1$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
+    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_2\StringAlt_1)$ & = & $(\Lens_2.\PutROf{\String_2}{\StringAlt_2})(\Lens_1.\PutROf{\String_1}{\StringAlt_1})$\\
+    $\PutL{} \App (\StringAlt_2\StringAlt_1) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
+  }
+  {
+    \OrLensOf{\Lens_1}{\Lens_2} \OfType
+    \RegexOr{\Regex_1}{\Regex_2}
+    \Leftrightarrow
+    \RegexOr{\RegexAlt_1}{\RegexAlt_2}
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_1}$\\
+      \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_2}$
+      \end{cases*}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_1}$\\
+      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_2}$
+      \end{cases*}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\Regex_1} \BooleanAnd \StringAlt\in\LanguageOf{\RegexAlt_1}$\\
+        \Lens_2.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\Regex_2} \BooleanAnd \StringAlt\in\LanguageOf{\RegexAlt_2}$\\
+        \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_1} \BooleanAnd \StringAlt\in\LanguageOf{\RegexAlt_2}$\\
+        \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_2} \BooleanAnd \StringAlt\in\LanguageOf{\RegexAlt_1}$
+      \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\RegexAlt_1} \BooleanAnd \String\in\LanguageOf{\Regex_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\RegexAlt_2} \BooleanAnd \String\in\LanguageOf{\Regex_2}$\\
+        \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_1} \BooleanAnd \String\in\LanguageOf{\Regex_2}$\\
+        \Lens_2.\CreateLOf{\String} & if $\StringAlt\in\LanguageOf{\RegexAlt_2} \BooleanAnd \String\in\LanguageOf{\Regex_1}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens \OfType \Regex \Leftrightarrow \RegexAlt
+  }
+  {
+    \IterateLensOf{\Lens} \OfType
+    \StarOf{\Regex}
+    \Leftrightarrow
+    \StarOf{\RegexAlt}
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1\ldots\String_n$
+    & =
+    & $(\Lens.\CreateROf{\String_1})\ldots(\Lens.\CreateROf{\String_n})$\\
+    
+    $\CreateL{} \App \StringAlt_1\ldots\StringAlt_n$
+    & =
+    & $(\Lens.\CreateLOf{\StringAlt_1})\ldots(\Lens.\CreateLOf{\StringAlt_n})$\\
+    
+    $\PutR{} \App (\String_1\ldots\String_n) \App (\StringAlt_1\ldots\StringAlt_m)$
+    & =
+    & $\StringAlt_1'\ldots\StringAlt_n'$ where $\StringAlt_i' =
+      \begin{cases*}
+        \Lens.\PutROf{\String_i}{\StringAlt_i} & if $i \leq m$\\
+        \Lens.\CreateROf{\String_i} & otherwise
+      \end{cases*}$\\
+    $\PutL{} \App (\StringAlt_1\ldots\StringAlt_m) \App (\String_1\ldots\String_n)$
+    & =
+    & $\String_1'\ldots\String_n'$ where $\String_i' =
+      \begin{cases*}
+        \Lens.\PutROf{\StringAlt_i}{\String_i} & if $i \leq n$\\
+        \Lens.\CreateROf{\StringAlt_i} & otherwise
+      \end{cases*}$
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt
+  }
+  {
+    \MergeROf{\Lens_1}{\Lens_2} \OfType
+    \RegexOr{\Regex_1}{\Regex_2}
+    \Leftrightarrow
+    \RegexAlt
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_1}$\\
+      \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\Regex_2}$
+      \end{cases*}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\Lens_1.\CreateLOf{\StringAlt}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\Regex_1}$\\
+      \Lens_2.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\Regex_2}$
+    \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\String\in\LanguageOf{\Regex_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\String\in\LanguageOf{\Regex_2}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex \Leftrightarrow \RegexAlt_1\\
+    \Lens_2 \OfType \Regex \Leftrightarrow \RegexAlt_2
+  }
+  {
+    \MergeLOf{\Lens_1}{\Lens_2} \OfType
+    \Regex
+    \Leftrightarrow
+    \RegexOr{\RegexAlt_1}{\RegexAlt_2}
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\Lens_1.\CreateROf{\String}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_1}$\\
+      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_2}$
+      \end{cases*}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_1}$\\
+      \Lens_2.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\RegexAlt_2}$
+    \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\RegexAlt_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\RegexAlt_2}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \Regex \Leftrightarrow \RegexAlt\\
+    \Lens_2 \OfType \RegexAlt \Leftrightarrow \RegexAltAlt\\
+  }
+  {
+    \ComposeLensOf{\Lens_1}{\Lens_2} \OfType
+    \Regex \Leftrightarrow \RegexAltAlt
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$ & = & $\Lens_2.\CreateROf{(\Lens_1.\CreateROf{\String})}$\\
+    $\CreateL{} \App \StringAlt$ & = & $\Lens_1.\CreateLOf{(\Lens_2.\CreateLOf{\StringAlt})}$\\
+    $\PutR{} \App \String \App \StringAltAlt$ & = & $\Lens_2.\PutROf{(\Lens_1.\PutROf{\String}{(\Lens_2.\CreateLOf{\StringAltAlt})})}{\StringAltAlt}$\\
+    $\PutL{} \App \StringAltAlt \App \String$ & = & $\Lens_1.\PutLOf{(\Lens_2.\PutLOf{\StringAltAlt}{(\Lens_2.\CreateROf{\String})})}{\String}$
+  \end{tabular}
+\end{center}
+
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens \OfType \Regex \Leftrightarrow \RegexAlt
+  }
+  {
+    \InvertOf{\Lens} \OfType \RegexAlt \Leftrightarrow \Regex
+  }
+\]
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \StringAlt$ & = & $\Lens.\CreateLOf{\StringAlt}$\\
+    $\CreateL{} \App \String$ & = & $\Lens.\CreateROf{\String}$\\
+    $\PutR{} \App \StringAlt \App \String$ & = & $\Lens.\PutLOf{\StringAlt}{\String}$\\
+    $\PutL{} \App \String \App \StringAlt$ & = & $\Lens.\PutROf{\String}{\StringAlt}$
+  \end{tabular}
+\end{center}
+% end ssl
+
+\section{Synthesis Algorithm}
 
 % begin stoch-rx
 \section{Stochastic Regular Expressions}
@@ -553,7 +1170,7 @@ annotations would be.  The probabilities are defined as follows:
   \begin{tabular}{rcl}
     $\ProbabilityOf{\String}{\String''}$
     & =
-    & $\begin{cases*}1 & if $\String = \String'$\\ 0 & otherwise\end{cases*}$ \\
+    & $\begin{cases*}1 & if $\String = \String''$\\ 0 & otherwise\end{cases*}$ \\
     
     $\ProbabilityOf{\emptyset}{\String}$
     & =
@@ -604,83 +1221,6 @@ equivalences to stochastic regular expressions.
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
 % end stoch-rx
-
-\section{Simple Symmetric Lenses}
-\label{sec:ssl}
-Classically, asymmetric lenses comprise three functions, \Put{}, \Get{}, and
-\Create{}. These lenses only allow information to be lost on one side. We
-enhance this style of lens to symmetric lenses with \emph{simple
-  symmetric lenses}. Like the classical formulation of asymmetric lenses, simple
-symmetric lenses have no complement. Simple symmetric lenses comprise 4
-functions, \CreateR, \CreateL, \PutR, and \PutL. These functions satisfy the
-following round-tripping laws:
-\begin{equation}
-  \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x
-\end{equation}
-\begin{equation}
-  \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y
-\end{equation}
-\begin{equation}
-  \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x
-\end{equation}
-\begin{equation}
-  \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
-\end{equation}
-
-% begin simple symmetric string lenses
-\section{Simple Symmetric String Lenses}
-\label{sec:ssl-string}
-While we have a theory for simple symmetric lenses, to integrate with Boomerang,
-we need combinators to express these lenses.
-
-\subsection{Identity}
-The identity lens operates on a single regular expression.  It fully
-synchronizes the data within that regular expression: if data gets changed in
-the left, that change gets reflected in the right.
-
-\subsection{Disconnect}
-The disconnect lens performs the opposite function as the identity lens.  It
-leave the two data formats provided separate.  If data gets changed on the left,
-the right is left unaffected.  When the data is being newly added, default
-behavior comes from one side or the other.
-
-\subsection{Concat}
-The concat lens combines two existing lenses, working on their concatenated
-regular expressions.  It performs the left lens on the left portion of the
-string, and the right lens on the right portion.  It requires unambiguity
-constraints to break up the left and right portions.
-
-\subsection{Swap}
-The swap lens operates like the concat lens, but when going from one side to the
-other, it swaps the order of the lenses.
-
-\subsection{Compose}
-The swap lens operates like the concat lens, but when going from one side to the
-other, it swaps the order of the lenses.
-
-\subsection{Iterate}
-The iterate lens breaks the provided strings into chunks, and performs the
-provided lens on those chunks, then concatenates them together.
-
-\subsection{Or}
-The or lens performs one lens or another, depending on the inputs to the lens.
-
-\subsection{MergeL}
-The mergel lens is used when the same piece of data on the left is synchronized
-to data in potentially many different forms on the right. The first provided
-lens is the one defaulted to on creates.
-
-\subsection{MergeR}
-The merger lens is symmetric to the mergel lens.
-
-\subsection{Compose}
-The compose lens applies one lens to go to an intermediary format, then applies
-the other to go to the final format.
-% end simple symmetric string lenses
 
 % begin DNF regular expressions and lenses
 \section{Stochastic DNF Regular Expressions}
@@ -869,7 +1409,7 @@ Because these lenses only encode functions on well-typed programs, we introduce
 the semantics alongside the typing rules.  The semantics are over typing
 derivations, instead of over individual lenses.
 
-\paragraph*{DNF Lenses}
+\subsection{DNF Lenses}
 The typing judgment is a 3-ary relation over a single DNF lens, and two DNF
 regular expressions. If $\SDNFLens \OfType \DNFRegex \Leftrightarrow
 \DNFRegexAlt$, then the $\SDNFLens.\CreateR$, $\SDNFLens.\CreateL$,
@@ -998,7 +1538,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
     \StringAlt_r'' \Concat \StringAlt_r'$\\
   & & where $\StringAlt_y'' =
     \begin{cases*}
-      \SAtomLens_k.\PutRight \App \String_{i_k}'' \App \StringAlt_y & if $j_k = y$\\
+      \SAtomLens_k.\PutROf{\String_{i_k}''}{\StringAlt_y} & if $j_k = y$\\
       \StringAlt_y & if $\nexists k. j_k = y$\\
     \end{cases*}$\\
   $\CreateL{} \App \StringAlt_0'\Concat \StringAlt_1'' \Concat \ldots \Concat \StringAlt_q''
@@ -1008,7 +1548,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
     \String_r'' \Concat \String_r'$\\
   & & where $\String_x'' =
     \begin{cases*}
-      \SAtomLens_k.\PutRight \App \StringAlt_{j_k}'' \App \String_x & if $i_k = x$\\
+      \SAtomLens_k.\PutROf{\StringAlt_{j_k}''}{\String_x} & if $i_k = x$\\
       \String_x & if $\nexists k. i_k = x$\\
     \end{cases*}$\\
   $\PutR{} \App \String_0'\Concat \String_1'' \Concat \ldots \Concat \String_q'' \Concat \String_q' \App \StringAlt_0'\Concat \StringAlt_1'' \Concat \ldots \Concat \StringAlt_q'' \Concat \StringAlt_q'$
@@ -1017,7 +1557,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
   & & where
       $t_y''' =
       \begin{cases*}
-        \SAtomLens_k.\PutRight \App \String_{i_k}'' \App \StringAlt_{y}'' & if $j_k = y$\\
+        \SAtomLens_k.\PutROf{\String_{i_k}''}{\StringAlt_{y}''} & if $j_k = y$\\
         \StringAlt_y'' & if $\nexists k. j_k = y$\\
       \end{cases*}$\\
   $\PutL{} \App \StringAlt_0'\Concat \StringAlt_1'' \Concat \ldots \Concat \StringAlt_q'' \Concat \StringAlt_q' \App \String_0'\Concat \String_1'' \Concat \ldots \Concat \String_q'' \Concat \String_q'$
@@ -1026,7 +1566,7 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
   & & where
       $s_x''' =
       \begin{cases*}
-        \SAtomLens_k.\PutLeft \App \StringAlt_{j_k}'' \App \String_{x}'' & if $i_k = x$\\
+        \SAtomLens_k.\PutLOf{\StringAlt_{j_k}''}{\String_{x}''} & if $i_k = x$\\
         \String_x'' & if $\nexists k. i_k = x$\\
       \end{cases*}$\\
 \end{tabular}
@@ -1184,6 +1724,155 @@ sure if we will find a better lens than the one we found.
 % begin related-work
 \section{Related Work}
 \label{sec:related}
+
+\section{Simple Symmetric Lenses}
+\label{sec:ssl}
+Intuitively, simple symmetric lenses are much like symmetric lenses, but they
+avoid complements by keeping all information required to stitch edits to a data
+source in the data source itself. Instead of having puts operate on a
+complement, they operate on both data sources, where the alterations of the
+first argument update the second. Furthermore, on initial creations of the
+files, instead of using an $init$ complement, two additional functions,
+$\CreateR$ and $\CreateL$ are used.
+
+More formally, a simple symmetric lens between $X$ and $Y$ comprise the
+following four functions:
+\begin{enumerate}
+\item $\CreateR \OfType X \rightarrow Y$
+\item $\CreateL \OfType Y \rightarrow X$
+\item $\PutR \OfType X \rightarrow Y \rightarrow Y$
+\item $\PutL \OfType Y \rightarrow X \rightarrow X$
+\end{enumerate}
+These functions are guaranteed to satisfy the following ``round-tripping'' laws.
+\begin{gather}
+  \tag{\CreatePutRL}
+  \PutLOf{(\CreateROf{x})}{x} = x\\
+  \tag{\CreatePutLR}
+  \PutROf{(\CreateLOf{y})}{y} = y\\
+  \tag{\PutRL}
+  \PutLOf{(\PutROf{x}{y})}{x} = x\\
+  \tag{\PutLR}
+  \PutROf{(\PutLOf{y}{x})}{y} = y
+\end{gather}
+
+For synchronization, when the original crontab or Scheduled Tasks file is
+created, a synchronized file of the other form is created from it with
+$\CreateR$ or $\CreateL$ (depending on which file was initially created). On
+future edits, changes are made with the puts, a \PutR would propagate the shared
+information from the crontab, and knit it together with the information specific
+to the Scheduled Tasks file.
+
+
+\section{Symmetric Lenses}
+\label{sec:symmetric-lenses}
+
+Classically, these types of synchronization tasks are represented as symmetric
+lenses. A symmetric lens $\Lens$ between $X$ and $Y$ consists of 4 components: a
+complement $C$, a designated element $init \in C$, and two functions for
+propagating changes in each format to the other:
+\begin{enumerate}
+\item $\PutRSym \OfType X \times C \rightarrow Y \times C$
+\item $\PutLSym \OfType Y \times C \rightarrow X \times C$
+\end{enumerate}
+In this formulation, the components of each format that aren't shared with the
+other format are stored in the complement. When one format is edited, the \PutR
+or \PutL function stitches together that edited data with the data for the other
+side, stored in the complement.  The designated element, $init$, is used as the
+initial value of $C$, and specifies default behavior when there isn't existing
+data to stitch with.  In our example, the complement would consist of two lists
+of commands, where one list contains the Linux commands and one list contains
+the Windows commands.
+
+These components only make sense for synchronization when they satisfy
+round-tripping laws.  This guarantees that if an identity edit is propagated, no
+data gets changed.
+\begin{equation}
+  \tag{\PutRL}
+  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c'')} = (x,c')}
+\end{equation}
+\begin{equation}
+  \tag{\PutLR}
+  \frac{\PutLSymOf{(y,c)} = (x,c')}{\PutRSymOf{(x,c')} = (y,c')}
+\end{equation}
+
+Furthermore, two symmetric lenses are equivalent if they always output the same
+formats on any sequence of edits. Formally, given a lens $\Lens \in X
+\leftrightarrow Y$, an \emph{edit} for $\Lens$ is a member of $X + Y$. Consider
+the function $apply$, which, given a lens and an element of that lens's
+complement, is a function from sequences of edits to sequences of edits. If
+$apply(\Lens,c,es) = es'$, then that means, starting with complement $c$, after
+edit $es_i$, the lens $\Lens$ synchronizes the other data to $es'_i$.
+\[
+  \inferrule
+  {
+  }
+  {
+    apply(\Lens,c,[]) = []
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.putr(x,c) = (y,c')\\
+    apply(\Lens,c',es) = es'
+  }
+  {
+    apply(\Lens,c,(\InLOf{x})::es) = (\InROf{y})::es'
+  }
+\]
+\[
+  \inferrule
+  {
+    \Lens.putl(y,c) = (x,c')\\
+    apply(\Lens,c',es) = es'
+  }
+  {
+    apply(\Lens,c,(\InROf{y})::es) = (\InLOf{x})::es'
+  }
+\]
+
+Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
+$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
+sequences $es$.
+
+\subsection{Difficulties Posed}
+
+By describing our lenses in this complement style, we can express an incredibly
+wide class of lenses, as these complements permit storing any amount of
+information in them.  However, they pose problems when implementing them in
+real-world systems and in synthesizing them.
+
+Using symmetric lenses for synchronization forces us to maintain not just two
+files that we aim to sycnrhonize, but three.  This is unintuitive, and creates
+many problems in practice.  For example, consider the situation where I am
+synchronizing a crontab and job manager file.  I am synchronizing across
+computers, so I must either maintain a copy of the complement on each computer,
+and keep them synchronized, or figure out a computer to hold the complement, and
+make sure all edits go through that complement.  Furthermore, if I want to
+change the synchronization to a different computer, I don't need to merely make
+sure that my files are moved to the computer, I also have to make sure that I
+correctly move the complement, and hook up that complement to be used for that
+synchronization task.  This is a huge divergence from other synchronization
+utilities, where all that needs to be done is maintain the files.  Using those
+for synchronization, edits can be sent over the wire, and the appropriate
+function can stitch together those edits, no additional state needed.
+
+For synthesis, because each lens has a custom complement, we can no longer
+specify the put functions though mere input/output examples.  Instead, we have
+to specify the behavior through the observable behavior of edit sequences.
+Furthermore, there are lenses that require arbitrarily long edit sequences to
+differentiate between: consider the lens that keeps two formats equal for the
+first $k$ non-identity edits, then keeps them completely unsynchronized for all
+future edits.  This requires an edit sequence of $k$ edits to differentiate
+between this lens and the identity lens.  Simple symmetric lenses avoid this
+problem by not allowing such lenses: we can't keep track of the number of
+non-identity edits performed unless there are explicit fields in the data
+formats keeping track of them.  While we are reducing the expressivity of our
+lenses with this restriction, we feel the benefits outweigh the costs.
+
+
+
+
 A \emph{symmetric lens} between $X$ and $Y$ is an element of the type
 $\exists C.\{ \mathit{missing} :
 C,\,get : X \times C \to Y \times C,\,put : Y \times C \to X \times C\}$
@@ -1308,7 +1997,7 @@ equivalence of lenses.
 
 We've reformulated symmetric lenses in a style similar to existing asymmetric
 lens formulations. However, some symmetric lenses certainly are inexpressible in
-the stateless symmetric lens formulation. We formalize which are expressible
+the simple symmetric lens formulation. We formalize which are expressible
 with a restriction on symmetric lenses. We define \emph{forgetful symmetric
   lenses} to be symmetric lenses which satisfy the following additional laws:
 \begin{equation}
@@ -1348,7 +2037,7 @@ Intuitively, this says that the complements are uniquely determined by the most
 recently input $x$ and $y$. This corresponds closely with simple symmetric
 lenses, where all state is maintained by the current state of the $x$ and $y$
 data. Forgetful symmetric lenses express exactly the same $apply$ function as
-stateless symmetric lenses.
+simple symmetric lenses.
 
 \begin{theorem}
   Let $\Lens$ be a symmetric lens. The lens $\Lens$ is equivalent to a forgetful
@@ -1534,13 +2223,13 @@ strictly more expressive than classical asymmetric lenses.
   \begin{tabular}{@{}r@{\ }c@{\ }l@{\ }l}
     $\SingleApp_{\Lens}(\InLOf{x},c)$
     & =
-    & $\LetIn{(y,c')}{\Lens.\PutRight \App (x,c)}$\\
+    & $\LetIn{(y,c')}{\Lens.\PutRSymOf{(x,c)}}$\\
     &
     & $(\InROf{y},c')$\\
     
     $\SingleApp_{\Lens}(\InROf{y},c)$
     & =
-    & $\LetIn{(x,c')}{\Lens.\PutLeft \App (y,c)}$\\
+    & $\LetIn{(x,c')}{\Lens.\PutLSymOf{(y,c)}}$\\
     &
     & $(\InLOf{x},\SomeOf{(x,y)})$
   \end{tabular}
@@ -1585,8 +2274,8 @@ strictly more expressive than classical asymmetric lenses.
   \begin{enumerate}
   \item $R_\Lens(c,None) \BooleanImplies c = \Lens.init$
   \item $R_\Lens(c,Some (x,y)) \BooleanImplies
-    \Lens.\PutRight \App (x,c) = (y,c) \BooleanAnd
-    \Lens.\PutLeft  \App (y,c) = (x,c)$
+    \Lens.\PutRSymOf{(x,c)} = (y,c) \BooleanAnd
+    \Lens.\PutLSymOf{(y,c)} = (x,c)$
   \end{enumerate}
 \end{definition}
 
@@ -1611,11 +2300,10 @@ strictly more expressive than classical asymmetric lenses.
     (\InROf{y'})::es''$ where $\Lens.putr(x,c) = (y',c')$ and $apply(\Lens,c',es)
     = es'$.
 
-    So, by definition, $S(\Lens).\CreateROf{x} = \Fst \App (\Lens.\PutRight \App
-    (x,\Lens.init))$, so $y = y'$.
+    So, by definition, $S(\Lens).\CreateROf{x} = \Fst \App (\Lens.\PutRSymOf{(x,\Lens.init)})$, so $y = y'$.
 
-    Furthermore, by \PutRL, $\Lens.\PutLeft \App (y,c') = (x,c')$, and by another
-    application of \PutLR, $\Lens.\PutRight \App (x,c') = (y,c')$.  This means
+    Furthermore, by \PutRL, $\Lens.\PutLSymOf{(y,c')} = (x,c')$, and by another
+    application of \PutLR, $\Lens.\PutRSymOf{(x,c')} = (y,c')$.  This means
     that $R_{\Lens}(c',Some (x,y))$.
 
     So, by induction assumption, $apply(\Lens,c',es) = apply(S(\Lens),xyo,es)$, so
@@ -1631,17 +2319,16 @@ strictly more expressive than classical asymmetric lenses.
     $S(\Lens).\PutROf{x}{y} = y'$ and $apply(S(\Lens),\SomeOf{(x',y')},es) = es'$.
 
     Performing $apply$ on $c$, we get $apply(\Lens,c,(\InLOf{x'})::es) =
-    (\InROf{y'})::es''$ where $\Lens.\PutRight \App (x',c) = (y',c')$ and
+    (\InROf{y'})::es''$ where $\Lens.\PutRSymOf{(x',c)} = (y',c')$ and
     $apply(\Lens,c',es) = es''$.
 
-    So, by definition, $S(\Lens).\PutROf{x}{y} = \Fst \App (\Lens.\PutRight \App
-    (x,c''))$, where $c'' = \Snd \App (\Lens.\PutLeft \App (y,\Lens.init))$.
+    So, by definition, $S(\Lens).\PutROf{x}{y} = \Fst \App (\Lens.\PutRSymOf{(x,c'')})$, where $c'' = \Snd \App (\Lens.\PutLSymOf{(y,\Lens.init)})$.
 
-    By assumption, $R_{\Lens}(c,\SomeOf{(x,y)})$, so $\Lens.\PutLeft \App (y,c)
+    By assumption, $R_{\Lens}(c,\SomeOf{(x,y)})$, so $\Lens.\PutLSymOf{(y,c)}
     = (x,c)$.  So, by Property~\ref{prop:forget-lr}, we know $y' = y''$.
 
-    Furthermore, by \PutRL, $\Lens.\PutLeft \App (y',c') = (x',c')$, and by another
-    application of \PutLR, $\Lens.\PutRight \App (x',c') = (y',c')$.  This means
+    Furthermore, by \PutRL, $\Lens.\PutLSymOf{(y',c')} = (x',c')$, and by another
+    application of \PutLR, $\Lens.\PutRSymOf{(x',c')} = (y',c')$.  This means
     that $R_{\Lens}(c',Some (x',y'))$.
 
     So, by induction assumption, $apply(\Lens,c',es) = apply(S(\Lens),xyo,es)$, so
@@ -1658,7 +2345,7 @@ strictly more expressive than classical asymmetric lenses.
   Let $\Lens$ be a simple symmetric lens between $X$ and $Y$.
 
   Consider the following set $C$, distinguished element of that set, $init$, and
-  pair of functions $\PutRight$ and $\PutLeft$, that we wish to satisfy the
+  pair of functions $\PutRSym$ and $\PutLSym$, that we wish to satisfy the
   symmetric lens laws, and that we also wish to be forgetful.
 
   \begin{centering}
@@ -1671,14 +2358,14 @@ strictly more expressive than classical asymmetric lenses.
       & =
       & $\None$\\
       
-      $\PutRight \App (x,c)$
+      $\PutRSymOf{(x,c)}$
       & =
       & $(y,\SomeOf{(x,y)})$ where $y = \begin{cases*}
         \Lens.\CreateROf{x} & if $c = \None$\\
         \Lens.\PutROf{x}{y'} & if $c = \SomeOf{(x',y')}$\\
         \end{cases*}$\\
       
-      $\PutLeft \App (y,c)$
+      $\PutLSymOf{(y,c)}$
       & =
       & $(x,\SomeOf{(x,y)})$ where $x = \begin{cases*}
         \Lens.\CreateLOf{y} & if $c = \None$\\
@@ -1696,23 +2383,23 @@ strictly more expressive than classical asymmetric lenses.
   \PutRL: There are two cases, $c = \None$, and $c = \SomeOf{(x,y)}$.
 
   \begin{case}[c = \None]
-    Let $(y',c') = F(\Lens).\PutRight \App (x',\None)$. This means that $y' =
+    Let $(y',c') = F(\Lens).\PutRSymOf{(x',\None)}$. This means that $y' =
     \Lens.\CreateROf{x'}$, and $c' = \SomeOf{(x',y')}$.
     
-    Now, consider $(x'',c'') = F(\Lens).\PutLeft \App (y',\SomeOf{(x',y')})$. By
+    Now, consider $(x'',c'') = F(\Lens).\PutLSymOf{(y',\SomeOf{(x',y')})}$. By
     unfolding definitions, $x'' = \Lens.\PutLOf{y'}{x'}$. By \CreatePutRL, $x''
     = x'$, meaning $c'' = \SomeOf{(x',y')}$. This means $(x',c') =
-    F(\Lens).\PutLeft \App (y',\SomeOf{(x',y')})$, as desired.
+    F(\Lens).\PutLSymOf{(y',\SomeOf{(x',y')})}$, as desired.
   \end{case}
 
   \begin{case}[c = \SomeOf{(x,y)}]
-    Let $(y',c') = F(\Lens).\PutRight \App (x',\SomeOf{(x,y)})$. This means that $y' =
+    Let $(y',c') = F(\Lens).\PutRSymOf{(x',\SomeOf{(x,y)})}$. This means that $y' =
     \Lens.\PutROf{x'}{y}$, and $c' = \SomeOf{(x',y')}$.
     
-    Now, consider $(x'',c'') = F(\Lens).\PutLeft \App (y',\SomeOf{(x',y')})$. By
+    Now, consider $(x'',c'') = F(\Lens).\PutLSymOf{(y',\SomeOf{(x',y')})}$. By
     unfolding definitions, $x'' = \Lens.\PutLOf{y'}{x'}$. By \PutRL, $x''
     = x'$, meaning $c'' = \SomeOf{(x',y')}$. This means $(x',c') =
-    F(\Lens).\PutLeft \App (y',\SomeOf{(x',y')})$, as desired.
+    F(\Lens).\PutLSymOf{(y',\SomeOf{(x',y')})}$, as desired.
   \end{case}
 
   The second requirement, \PutLR, is symmetric.
@@ -1730,17 +2417,17 @@ strictly more expressive than classical asymmetric lenses.
   Let $c_1$ and $c_2$ be two arbitrary complements, and $x$ and $y$ two
   arbitrary values of $X$ and $Y$, respectively.
   
-  We know that $c_1' = \Snd \App (F(\Lens).\PutRight \App (x,c_1))$ and $c_2' =
-  \Snd \App (F(\Lens).\PutRight \App (x,c_2))$.  Now, by inversion on
-  $F(\Lens).\PutRight$, we know that both $c_1' = Some(x,y_1')$ and $c_2' =
+  We know that $c_1' = \Snd \App (F(\Lens).\PutRSymOf{(x,c_1)})$ and $c_2' =
+  \Snd \App (F(\Lens).\PutRSymOf{(x,c_2)})$.  Now, by inversion on
+  $F(\Lens).\PutRSym$, we know that both $c_1' = Some(x,y_1')$ and $c_2' =
   Some(x,y_2')$ for some values of $y_1$ and $y_2$ (though we don't actually
   care about the values of $y_1$ and $y_2$).
 
-  Now by unfolding definitions we know, $\Snd \App (F(\Lens).\PutLeft \App
-  (y,\SomeOf{(x,y_1')})) = \SomeOf(\Lens.\PutLeftOf{x}{y},y) = c_1''$.  Similarly, we
-  know $\Snd \App (F(\Lens).\PutLeft \App
-  (y,\SomeOf{(x,y_2')})) = \SomeOf(\Lens.\PutLeftOf{x}{y},y) = c_2''$, so $c_1''
-  = c_2''$, as intended.
+  Now by unfolding definitions we know, $\Snd \App
+  (F(\Lens).\PutLSymOf{(y,\SomeOf{(x,y_1')})}) =
+  \SomeOf(\Lens.\PutLOf{x}{y},y) = c_1''$. Similarly, we know $\Snd \App
+  (F(\Lens).\PutLSymOf{(y,\SomeOf{(x,y_2')})}) =
+  \SomeOf(\Lens.\PutLOf{x}{y},y) = c_2''$, so $c_1'' = c_2''$, as intended.
 \end{proof}
 
 \begin{mylemma}
@@ -1784,10 +2471,10 @@ strictly more expressive than classical asymmetric lenses.
 
     Performing $apply$ on $F(\Lens)$, we get
     $apply(F(\Lens),\SomeOf{(x,y)},(\InLOf{x'})::es) = (\InROf{y'})::es''$ where
-    $F(\Lens).\PutRight \App (x',\SomeOf{(x,y)}) = (y'',\SomeOf{(x',y'')})$ and
+    $F(\Lens).\PutRSymOf{(x',\SomeOf{(x,y)})} = (y'',\SomeOf{(x',y'')})$ and
     $apply(\Lens,c',es) = es''$.
     
-    So, by definition, $\Fst \App (F(\Lens).\PutRight \App (x',\SomeOf{(x,y)}))
+    So, by definition, $\Fst \App (F(\Lens).\PutRSymOf{(x',\SomeOf{(x,y)})})
     = \Lens.PutROf{x'}{y'}$, so also by definition, $c' = \SomeOf{(x',y')}$.
 
     So, by induction assumption, $apply(\Lens,\SomeOf{(x',y')},es) =
