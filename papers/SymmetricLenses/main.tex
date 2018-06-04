@@ -2007,10 +2007,10 @@ are not, \PCF{GreedyState.ToDNFLens} instead returns \None.
     \Call{GreedySeqState.PopBest}{\GreedyState}$
     \If{$\Call{GreedySeqState.UsefulAdd}{\GreedyState,\SAtomLens}
       \BooleanOr \Call{NecessaryAdd}{\Examples,\SAtomLens}$}
-    \State $\GreedyState \gets \Call{GreedyState.AddAtom}{\GreedyState,\SAtomLens}$
+    \State $\GreedyState \gets \Call{GreedySeqState.AddAtom}{\GreedyState,\SAtomLens}$
     \EndIf
     \EndWhile
-    \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
+    \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -2025,22 +2025,25 @@ between the given sequences regular expressions that is consistent with the
 examples. If there is not, \GreedySeqSynth returns \None early. After this,
 \GreedySeqSynth finds the best lenses between each atom pair of the left and
 right sequences. An internal state for the algorithm is initialized from these.
-This state consists of two things: an intermediate partial sequence lens and a
-priority queue consisting of potential sequence lenses.  On initialization,
-\GreedySeqSynth throws all the atom lenses into the priority queue.
+This state consists of two things: an intermediate sequence lens and a priority
+queue consisting of potential sequence lenses. On initialization,
+\GreedySeqSynth throws all the atom lenses into the priority queue, and the
+intermediate sequence lens is one that projects all the atoms.
 
 \GreedySeqSynth then loops until there are no more atom lenses in the priority
 queue. Within this loop, atom lenses are popped. The atom lens is then added if
 it is either necessary, or useful. Within a sequence lens, each atom can either
-be projected or be synchronized with exactly one atom in the other sequence.
-Certain atoms need to be mapped, for example if a put changes the data of that
-field. In such situations, an atom lens is necessary. A useful atom lens is
-where adding that lens reduces the overall cost of the partial lens. If adding
-that lens requires removing another lens, where the added cost by removing that
-other lens is more than is removed by adding the proposed lens. Finally, after
-all atoms have been popped, the partial sequence lens is converted into a
-symmetric DNF lens. This is only possible if all atoms that need to be mapped,
-are: if they are not, \PCF{GreedyState.ToDNFLens} instead returns \None.
+be projected or be synchronized with exactly one atom in the other sequence, and
+examples can show that certain atoms \emph{need} to be mapped. In such
+situations, that atom lens is necessary. A useful atom lens is where adding that
+lens reduces the overall cost of the partial lens. If both atoms are not
+involved in an atom lens, the lens will always be useful, but sometimes adding
+that lens requires removing another lens. If the cost added by removing that
+other lens is more than is removed by adding the proposed lens, then this atom
+lens is not included in the sequence lens. Finally, after all atoms have been
+popped, the sequence lens is validated and returned. The sequence lens is
+validated if all atoms that need to be mapped, are: if they are not,
+\PCF{GreedySeqState.ToDNFLens} instead returns \None.
 
 \subsection{Optimizations}
 
