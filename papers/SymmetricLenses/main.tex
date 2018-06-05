@@ -164,6 +164,8 @@ stringstyle=\sffamily\color{dkblue},
 \title{Synthesizing Symmetric Lenses}
 
 \begin{abstract}
+\saz{This abstract too long and doesn't get to the point quickly enough. We
+  should tighten it up considerably.}
   Users commonly need to synchronize the data shared between formats, so edits
   to the data in one format gets propagated to the data in the other format.
   Manually writing the functions for these data synchronizers is tedious and
@@ -301,49 +303,52 @@ through a legacy API, I want those changes to be reflected when I retrieve it
 through a modern API; when I create a new calendar event in my ICS file, I want
 my CSV calendar files to be updated to reflect this change.
 
-Unfortunately, writing such synchronizers is tedious and error prone.
-Bidirectional languages ease the difficulty of writing such synchronizers, as a
-single, well-typed program expresses a \emph{lens}, a group of conversion
+Unfortunately, writing such synchronizers is tedious and error
+prone.\saz{``tedious and error prone'' is such a PL clich\'{e}, can we do better?}
+Bidirectional languages ease the difficulty of writing such synchronizers, because a
+single, well-typed program expresses a \emph{lens}---a group of conversion
 functions guaranteed to satisfy round-tripping laws. However, bidirectional
-languages are difficult to program in as well, often requiring users to permute
+languages are themselves difficult to program in, often requiring users to permute
 data in fiddly ways while satisfying the type system's complex unambiguity
 constraints.
 
-A better approach is to synthesize such conversion functions. Prior work on
-synthesizing these functions assumes that all data fields present in one format
-are present in the other, but this is not always true. Oftentimes, fields
-present in one format are not present in the other: the commands scheduled to
-run on Linux machines are typically different than the commands scheduled to run
-on Windows machines; updated APIs can expose new information, or omit legacy
-information; ICS files contain a URL field that Google Calendar CSV files do not
-expose.
+A better approach is to \emph{synthesize} such conversion functions. However,
+prior work on synthesizing lenses assumes a bijection between the source and
+target, which is a severe limitation in practice. Oftentimes, fields present in
+one format are not present in the other: the commands scheduled to run on Linux
+machines are typically different than the commands scheduled to run on Windows
+machines; updated APIs can expose new information, or omit legacy information;
+ICS files contain a URL field that Google Calendar CSV files do not expose.
 
-\emph{Symmetric lenses} formalize such conversion functions. However, these
-symmetric lenses use external state for synchronization, in the form of a
-\emph{complement}. These complements makes symmetric lenses difficult to use in
-real-world synchronization tasks, as users must maintain the synchronized files
-as well as the complements. The complement further complicates synthesis, as
-input-output examples are no longer sufficient, instead edit sequences must be
-provided.
+\emph{Symmetric lenses} \saz{citations?} formalize this richer class of
+non-bijective conversion functions by using additional state, called the
+\emph{complement}, to help with synchronization. While increasing
+expressiveness, the existence of the complement makes symmetric lenses difficult
+to use in real-world synchronization tasks, because users\saz{lens developers?
+  lens programs?}  must maintain the synchronized files as well as the
+complements. The complement further complicates synthesis, because input-output
+examples no longer suffice; instead edit sequences must be provided.
 
-To get around this, we reformulate symmetric lenses as \emph{simple symmetric
-  lenses}. This reformulation does not use a complement, and only uses the files
-that we aim to synchronize as state. We identify a property,
-\emph{forgetfulness}, where if a symmetric lens can be written as a forgetful
-symmetric lens, it can also be written a simple symmetric lens. We provide
+In this paper, we reformulate \saz{this sounds like they may be of the same
+  expressiveness, but perhaps we mean to ``constrain'' symmetric lenses?}
+symmetric lenses as \emph{simple symmetric lenses}. This reformulation does not
+use a complement, and only uses the files that we aim to synchronize as
+state. We identify a property, \emph{forgetfulness}, that identifies the subset
+of symmetric lenses that can be written as simple symmetric lenses. We provide
 combinators for building simple symmetric lenses on string data, and integrate
 these combinators with Boomerang, a language for bidirectional programming on
 strings. In Boomerang, and our extension to it, lens expressions are typed
 between regular expressions, where the regular expressions describe the
 synchronized data formats.
 
-We provide a tool for synthesizing simple symmetric lenses. This tool
-synthesizes symmetric lenses from a suite of input-output examples and a pair of
-regular expressions describing the data formats. The synthesis algorithm uses
-type-directed synthesis on the two regular expressions to synthesize a lens that
-is well-typed between the provided regular expressions and satisfies the
-provided input-output examples.
+We provide a tool for synthesizing simple symmetric lenses when given a suite of
+input-output examples and a pair of regular expressions describing the data
+formats. The synthesis algorithm uses type-directed synthesis on the two regular
+expressions to synthesize a lens that is well-typed between the provided regular
+expressions and satisfies the provided input-output examples.
 
+\saz{This paragraph is hard to follow --- maybe introduce $\ell : S
+  \Leftrightarrow T$ and use the names $S$ and $T$?}
 A primary difficulty is that there are a relatively many well-typed simple
 symmetric lenses. As symmetric lenses permit data to be present in only one
 format, for any data component there is now a choice: is this data only relevant
@@ -355,23 +360,23 @@ other format).
 Operating under the assumption that users wish to align as much data as
 possible, our algorithm tries to align as much data as the types and examples
 allow. This task gets harder when there are more complex decisions involved. For
-example, if I have two fields in one format, and one in the other, which field
+example, if there are two fields in one format, and one in the other, which field
 in the first format should be aligned to the sole field of the second format? Or
 would it be better for the field on the right to be aligneded to a mish-mash
 of subcomponents from each field? To answer these questions, we develop a cost
 metric for reasoning about which lens aligns the most information.
 
-In particular, the cost of a lens is the expected number of bits required to
+In particular, the \emph{cost} of a lens is the expected number of bits required to
 recover a string in one format when a synchronized string in the other format is
 provided. In this model, bijective lenses have zero cost, and as more
 information is left unsychronized, the cost is increased.
 
-Our model for this is based on \emph{stochastic regular expressions}~\cite{?}.
-Both a language and a probability distribution over that language is represented
-by a stochastic regular expression, and we develop a way to syntactically infer
-the expected information content (or \emph{entropy}) of an unambiguous regular
+Our model is based on \emph{stochastic regular expressions}~\cite{?}, which
+represent both a language and a probability distribution over that language
+simultaneously.  We develop a way to syntactically infer the expected
+information content (or \emph{entropy}) of an unambiguous regular
 expression. This entropy is used to calculate the expected information content
-to recover a string, when given a string it is synchronized to.
+to recover a string, when given a string it is synchronized with.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -396,7 +401,7 @@ Our first algorithm, \RXSearch, proposes candidate stochastic regular
 expressions. These candidate stochastic regular expressions are generated by
 traversing \emph{star semiring} equivalences on stochastic regular expressions.
 These proposed stochastic regular expression pairs have equivalent languages and
-probability distributions as the original ones: we prove the star-semiring
+probability distributions as the original ones: we prove that the star-semiring
 rewrites this synthesizer applies are sound rewrites on stochastic regular
 expressions.
 
@@ -412,8 +417,8 @@ original simple symmetric lens language.
 
 We evaluate our algorithm on a benchmark suite consisting of synchronizing file
 formats from configuration files, application-specific data storage files, and
-data cleaning tasks. We find that our algorithm is able to synthesize all these
-lenses in under 20 seconds.
+data cleaning tasks. We find that our algorithm is able to synthesize all
+\saz{or each?}  of these lenses in under 20 seconds.
 
 In summary, our contributions are:
 \begin{enumerate}
@@ -524,25 +529,27 @@ let scheduled_job = "<Tasks>" . xml_task$^*$ . "</Tasks>"
 \end{figure}
 
 We motivate our problem with an extended example. Consider the previously
-described example of keeping Linux and Windows scheduled jobs synchronized. In
-this example, we describe keeping the file containing cron jobs (crontab) and a
-Scheduled Tasks file (scheduled.job) synchronized. These are each formats
-specifying when to run recurring tasks. For simplicity of description, we use a
-minified version of each of these, with examples and regular expressions shown
-in Figure~\ref{fig:minimized-representations}. Each file contains a list of
-tasks set to run at specific times every hour. In both these formats, users can
-either provide specific minutes they want to run the program during or they can
-specify they want to run the program at every minute.
+described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
+(scheduled.job) synchronized. These are each formats specifying when to run
+recurring tasks. For the sake of exposition, we use simplified versions crontab
+and scheduled.job formats, with examples and corresponding regular expressions
+shown in Figure~\ref{fig:minimized-representations}. Each file contains a list
+of tasks set to run at specific times every hour. In both formats, users
+can either provide specific minutes at which they want the program to run, or they
+can specify that the program should run at every minute.
 
 We wish for the jobs to be synchronized across our Windows and Linux devices.
 However, the commands that need to be run are typically different for each
-device. Paths are different in Windows and Linux, and while there is typically a
-Windows equvialent for Linux commands, that equivalent command is not always
-named the same thing. So while we want to be able to have the same number of
+device. Paths are different in Windows and Linux, and, while there is typically a
+Windows equvialent for a Linux command, that equivalent command is not always
+named the same thing. So, while we want to be able to have the same number of
 commands, with the commands running at the same times, we don't want to
 align the actual commands that are run.
 
-To synchronize these files, a few functions are needed. Two \emph{creates} are
+\saz{Perhaps we should explicitly say here that we are trying to define a lens,
+  or describing the functions that a lens provides.}
+To synchronize these files, a few functions are needed. Two \emph{creates}
+\saz{we haven't introduced ``create'' as a noun yet.} are
 needed; if a crontab is initialized, a synchronized Scheduled Tasks file should
 also be created, and vice versa. Furthermore, \emph{puts} are needed; if a
 crontab is updated, we should be able to combine it with a non-updated Scheduled
@@ -684,7 +691,8 @@ or(ins("<Tasks></Tasks>"),nonempty_task_map) : crontab $\Leftrightarrow$ schedul
   \caption{A lens, written in our language for building simple symmetric lenses
     on string data, that synchronizes crontab files and Scheduled Task files.
     Note that we can annotate our lenses with types, to confirm the lens
-    operates on the languages of the regular expressions.}
+    operates on the languages of the regular expressions.\saz{Say something
+      about the possibility of synthesizing this lens?}}
   \label{fig:example_lens}
 \end{figure}
 
@@ -705,14 +713,14 @@ these synchronization functions as a programmer must describe which components
 of the strings are aligned with which, and which components are scaffolding.
 
 \subsection{Synthesizing Symmetric Lenses}
-To alleviate these difficulties, we wish to synthesize symmetric lenses from
-types and examples. Given a pair of regular expressions and a set of
-input-output examples, we want to synthesize a symmetric lens expression that is
-typed between the regular expression pair, and satisfies the input/output
-examples. In this example, we wish to synthesize a lens from \lstinline{crontab}
-and \lstinline{scheduled_job}, using the strings in
-Figure~\ref{fig:minimized-representations} as an input-output example for
-\CreateR.
+
+To alleviate these difficulties, we wish to synthesize symmetric lenses---given
+a pair of regular expressions and a set of input-output examples, we want to
+find a symmetric lens expression that is typed between the regular expression
+pair, and satisfies the input/output examples. In this example, we wish to
+synthesize a lens from \lstinline{crontab} and \lstinline{scheduled_job}, using
+the strings in Figure~\ref{fig:minimized-representations} as an input-output
+example for \CreateR.
 
 However, our simple symmetric lens combinators permit many well-typed programs
 between two regular expressions. For example, one possible lens between
@@ -736,24 +744,23 @@ synthesis tasks, we would prefer the algorithm to choose the right lens
 automatically. Instead of merely finding \emph{any} satisfying lens, we wish to
 synthesize the \emph{best} satisfying lens.
 
-But what is the best satisfying lens? We think the best satisfying lens is the
+But what is the best satisfying lens? Here, we take the view that the best satisfying lens is the
 one that aligns as much data as is permitted by the type system and the
 examples. More formally, we wish to minimize the expected number of bits
 required to recover data in one format from a synchronized string in the other.
 The expected number of bits is a well known concept in information theory: the
-expected number of bits of a data source is the \emph{entropy} of that data
-source.
+\emph{entropy} of that data source.
 
 The entropy of a data source is based on the probability distribution of that
 data source. Given a set $S$, and a probability distribution over that set $P
 \OfType S \rightarrow \Reals$, the entropy of the $(S,P)$ pair is $-\Sigma_{s\in
   S}P(s)\Log_2P(s)$. While we have ways of expressing sets of strings (with
-regular expressions), we do not have probability distributions. In this work, we
+regular expressions), we do not have probability distributions. Here, we
 express these probability distributions jointly with the language through
 \emph{stochastic regular expressions}, regular expressions annotated with
-probabilities. In this work, we guess a reasonable probability distribution from
+probabilities. Our algorithm guesses a reasonable probability distribution from
 the syntax, though if users manually provided stochastic regular expressions, or
-large suite of data in the formats through which we could learn the annotations,
+a large suite of data in the formats through which we could learn the annotations,
 we could instead use that.
 
 With sets and probability distributions, we can find the expected number of bits
@@ -762,9 +769,10 @@ is the conditional entropy of the stochastic regular expression ($\Regex$) given
 another stochastic regular expression ($\RegexAlt$), and a lens that shows which
 strings are synchronized with which ($\Lens$). We aim to find the lens that
 minimizes the sum of that entropy with the conditional entropy of $\RegexAlt$
-given $\Regex$ and $\Lens$. Now that we have a notion of best, we need a way to
-search for that best lens.
+given $\Regex$ and $\Lens$. 
 
+Now that we have a notion of best, we need a way to
+search for that best lens.
 Our overall approach involves two communicating synthesizers: one (\RXSearch)
 that proposes regular expression pairs, semantically but not syntactically
 equivalent to the originals; one (\GreedySynth) that tries to find the best lens
@@ -793,32 +801,32 @@ version of a simple symmetric lens, a \emph{symmetric DNF lens}. Finally, this
 symmetric DNF lens is converted into a simple symmetric lens. DNF Lenses include
 neither a composition operator nor a type equivalence rule. Unlike simple
 symmetric lenses, for which a single lens term is typed between many possible
-regular expression pairs, each DNF lens is only typed between a single regular
+regular expression pairs, each DNF lens is typed only between a single regular
 expression pair. The relationship between DNF lens syntax and DNF regular
-expression syntax is incredibly tight, permitting an incredibly efficient
+expression syntax is very tight, permitting an efficient
 synthesis algorithm for DNF lenses from DNF regular expressions.
 
 Our strategy involving communicating synthesizers permits both a way of
 enumerating classes and efficiently searching through them, but it poses a
-problem: unless we find a lens with no cost, other lens classes may contain
-better lenses. While we may have found a great lens between two regular
+problem: when do we stop? While we may have found a great lens between two regular
 expressions, a different regular expression pair may provide an even better
-lens. There may be a great lens in the class characterized by
-\lstinline{crontab} and \lstinline{scheduled_job}, but it is not the the
-intended lens shown in Figure~\ref{fig:example_lens}. However, there is a
-tension, we want to find a good lens, but we also want to give quick feedback to
+lens. Moreover, we may find a great lens characterized by
+\lstinline{crontab} and \lstinline{scheduled_job} that is not the
+desired lens shown in Figure~\ref{fig:example_lens}.  The
+tension is that we want to find a good lens, but we also want to give quick feedback to
 the user. After finding the lens in Figure~\ref{fig:example_lens}, we dont want
 the algorithm to spend much longer searching for better lenses.
 
-We address this by keeping running track of the best lens found thus far, and
+\saz{The following is hard to follow}
+We address this issue by keeping track of the best lens found thus far, and
 eventually cutting the proposal-synthesis loop short. Before proposing new
 types, the regular expression generator, \RXSearch, evaluates whether it should
 continue proposing regular expression pairs, or whether it is content with the
 current best. For a given regular expression pair, \RXSearch looks at the number
-of rewrite rules performed on the pair, and identifies how many pairs with
+of rewrite rules performed on the pair, and identifies how many pairs
 involving the same number of rewrites may be proposed. If there are a large
 number of pairs that can be proposed with that many rewrites, or the current
-lens is very well synchronized, \RXSearch does not propose that pairs. In this
+lens is very well synchronized, \RXSearch stops. In this
 way, \RXSearch will continue searching for better lenses, but does not tackle
 huge search spaces unless it needs to. In this way, the algorithm can provide
 lenses quickly to the users, which users can refine with additional examples.
