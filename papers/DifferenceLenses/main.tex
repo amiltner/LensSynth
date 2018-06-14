@@ -1,0 +1,3638 @@
+\newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifplentyoftime\plentyoftimefalse  % :-)
+
+% % For double-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For double-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
+% % For single-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For single-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true} % For
+% final camera-ready submission, w/ required CCS and ACM Reference
+% \documentclass[acmsmall]{acmart}\settopmatter{}
+
+
+% % Journal information % Supplied to authors by publisher for camera-ready
+% submission; % use defaults for review submission.
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{POPL} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+% % Copyright information % Supplied to authors (based on authors' rights
+% management selection; % see authors.acm.org) by publisher for camera-ready
+% submission; % use 'none' for review submission.
+\setcopyright{none}
+% \setcopyright{acmcopyright} \setcopyright{acmlicensed}
+% \setcopyright{rightsretained} \ccopyrightyear{2018}           %% If different
+% from \acmYear
+
+% % Bibliography style %\bibliographystyle{ACM-Reference-Format} % Citation
+% style % Note: author/year citations are required for papers published as an %
+% issue of PACMPL.
+% %\citestyle{acmauthoryear}   %% For author/year citations
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % Note:
+% Authors migrating a paper from PACMPL format to traditional % SIGPLAN
+% proceedings format must update the '\documentclass' and % topmatter commands
+% above; see 'acmart-sigplanproc-template.tex'.
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{amsmath, amssymb, amsthm, enumerate, array, extarrows, mathrsfs,
+mathtools, stmaryrd, listings, xspace, bussproofs}
+\theoremstyle{definition}
+\usepackage[capitalize]{cleveref}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+\newtheorem{fact}{Fact}
+\newtheorem{claim}{Claim}
+\newtheorem{remark}{Remark}
+
+% Macros Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.7,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 179}
+\definecolor{lightgreen}{RGB}{170, 255, 220}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
+
+
+\newcommand{\FINISH}[3]{\ifdraft\textcolor{#1}{[#2: #3]}\fi}
+\newcommand{\bcp}[1]{\FINISH{dkred}{B}{#1}}
+\newcommand{\BCP}[1]{\FINISH{dkred}{B}{\bf #1}}
+\newcommand{\afm}[1]{\FINISH{dkgreen}{A}{#1}}
+\newcommand{\dpw}[1]{\FINISH{dkblue}{D}{#1}} % Toronto Maple Leafs Blue :-)
+\newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
+\newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
+\newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
+
+
+\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}\xspace}
+\newcommand{\get}{\ensuremath{\kw{get}}\xspace}
+\newcommand{\pput}{\ensuremath{\kw{put}}\xspace}
+\newcommand{\create}{\ensuremath{\kw{create}}\xspace}
+\newcommand{\res}{\ensuremath{\kw{res}}\xspace}
+\newcommand{\ccopy}{\ensuremath{\kw{copy}}\xspace}
+\newcommand{\const}{\ensuremath{\kw{const}}\xspace}
+\newcommand{\default}{\ensuremath{\kw{default}}\xspace}
+\newcommand{\length}{\ensuremath{\kw{length}}\xspace}
+\newcommand{\match}{\ensuremath{\kw{match}}\xspace}
+
+\DeclareMathOperator*{\argmin}{arg\,min} % thin space, limits underneath in
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in
+
+
+\lstset{ basicstyle=\ttfamily, escapeinside=|| }
+\begin{document}
+
+% % Title information
+\title{Lenses with a Difference}         %% [Short Title] is optional;
+% % when present, will be used in % header instead of Full Title.
+% %\titlenote{with title note}             %% \titlenote is optional; % can be
+% repeated if necessary; % contents suppressed with 'anonymous'
+% %\subtitle{Subtitle}                     %% \subtitle is optional
+% %\subtitlenote{with subtitle note}       %% \subtitlenote is optional; % can
+% be repeated if necessary; % contents suppressed with 'anonymous'
+
+
+% % Author information % Contents and number of authors suppressed with
+% 'anonymous'.
+% % Each author should be introduced by \author, followed by % \authornote
+% (optional), \orcid (optional), \affiliation, and % \email.
+% % An author may have multiple affiliations and/or emails; repeat the %
+% appropriate command.
+% % Many elements are not rendered, but should be provided for metadata %
+% extraction tools.
+
+% % Author with single affiliation.
+% \author{First1 Last1} \authornote{with author1 note}          %% \authornote
+% is optional; % can be repeated if necessary \orcid{nnnn-nnnn-nnnn-nnnn} %%
+% \orcid is optional \affiliation{ \positition{Position1}
+% \department{Department1} %% \department is recommended
+% \institution{Institution1} %% \institution is required \streetaddress{Street1
+% Address1} \city{City1} \state{State1} \posittcode{Post-Code1}
+% \country{Country1}                    %% \country is recommended }
+% \email{first1.last1@inst1.edu}          %% \email is recommended
+
+\author{Solomon Maina}
+\position{PhD Student}
+\department{Computer Science}              %% \department is recommended
+\institution{University of Pennsylvania}            %% \institution is required
+\country{USA}                    %% \country is recommended }
+\email{smaina@seas.upenn.edu}          %% \email is recommended
+
+% % Abstract % Note: \begin{abstract}...\end{abstract} environment must come %
+% before \maketitle command
+\begin{abstract}
+Many of the bidirectional (bx) programming languages that exist today focus on
+restoring consistency between source and target data. Consequently, these languages often provide two guarantees: (1) that a transformation restores consistency when an
+update is made to source or target data, and (2) that trivial updates to a the source result to trivial updates to the target and vice versa. Unfortunately, in situations
+where there are many different ways of restoring consistency, these languages
+do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results. In this paper we present a formalization of bx transformations that enables a programmer to express non-trivial guarantees on update propagation. We will then use this formalization of bx transformations to describe a compositional language of {\em difference lenses}: each difference lens gives non-trivial guarantees on how it propagates non-trivial updates. We will then embed various lens programming languages into the language of difference lenses, and describe non-trivial guarantees that these languages provide beyond consistency restoration.
+\end{abstract}
+
+%% Keywords
+%% comma separated list
+\keywords{bidirectional programming, lenses}  %% \keywords
+% are mandatory in final camera-ready submission
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\section{Introduction}
+Many of the bidirectional (bx) programming languages that exist today focus on
+restoring consistency between source and target data. Consequently, these languages often provide two guarantees: (1) a {\em correctness} guarantee that requires that a transformation restores consistency when an update is made to source or target data, and (2) a {\em hippocraticness} guarantee that requires that trivial updates to source data result is trivial updates to target data and vice versa. Unfortunately, in situations
+where there are many different ways of restoring consistency, these languages
+do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results.
+
+For example, assume that a source consists of a list of pairs of names, and that the target consists of a list of single names. Assume that $\ell$ is a bx which in the forward direction (i.e. the \get direction) simply discards the first of the two names:
+$$\ell.\get \; [``Ada \; Lovelace", \; ``Alan \; Turing"] = [``Lovelace", \; ``Turing"]$$
+If the order of the names in the target is reversed then a user might expect that in the backward direction (i.e. the \pput direction), the lens would simply restore the original names:
+$$\ell.\pput \; [``Ada \; Lovelace", \; ``Alan \; Turing"] \; [``Turing", \; ``Lovelace"] = [``Ada \; Lovelace", \; ``Alan \; Turing"]$$
+However, $\ell$ may not perform this alignment so that instead, the following result occurs:
+$$\ell.\pput \; [``Ada \; Lovelace", \; ``Alan \; Turing"] \; [``Turing", \; ``Lovelace"] = [``Ada \; Turing", \; ``Alan \; Lovelace"]$$
+Consider another example where a source consists of a list of names and a number while the target consists of a list of names. Assume that $\ell$ is a bx which in the \get direction simply discards the number:
+$$\ell.\get \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2)  = [``Lovelace", \; ``Turing"]$$
+A user might expect that $\ell$ should always restore the number in the \pput direction so that the following result occurs:
+$$\ell.\pput \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2) \; [``Lovelace"] = ([``Ada \; Lovelace"], \; 2)$$
+However, perhaps the intended semantics of the source is that the number which is the second component of a source denotes the length of the list in the first component of the source so that an application of \pput leads to the following result:
+$$\ell.\pput \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2) \; [``Lovelace"] = ([``Ada \; Lovelace"], \; 1)$$
+In both of these examples, there are multiple ways to restore consistency; that is, there are multiple ways to define $\ell.\pput \; s \; v$ in such a way that $\ell.\get \; (\ell.\pput \; s \; v) = v$. Moreover, the source that results from a \pput application may be vastly different from what a user expects, or may break an invariant that is not explicitly maintained by the source.
+
+Various solutions have been proposed to address the issue of propagating updates in a ``minimal'' way, for example {\em matching lenses} that deal with the issue of alignment \cite{barbosa2010matching}, {\em edit lenses} \cite{hofmann2012edit} and {\em delta lenses} \cite{diskin2011asymmetric,diskin2011state,pacheco2012delta}
+that explicitly propagate edits through the lens, and {\em least change
+lenses} \cite{macedo2013composing} that require that the source value resulting from a \pput application is not only acceptable, but also one of closest to the original $s$ among the sources that share the same view $v$.
+
+We take the approach that a bx should not have to explicitly propagate updates when going from the source to the target and vice versa. Instead, the programmer should be able provide guarantees on how a bx propagates updates. For instance, in the second example, let $\delta_S$ be a function which takes two source elements $(\ell_1, n_1)$ and $(\ell_2, n_2)$ and returns the number $n_1 - n_2$, and let $\delta_T$ be a function which takes two target lists $\ell_1$ and $\ell_2$ and returns the number $length(\ell_1) - \length(\ell_2)$. Then the programmer should be able to express the fact that the bx restores the length of the list in the backward direction, which is expressed using the following equation:
+$$\delta_S((\ell_1, n_1), \ell.\pput \; (\ell_1, n_1) \; \ell_2) = \delta_V(\ell.\get \; (\ell_1, n_1), \ell_2) $$
+In this paper, we introduce a formalization of bx transformations that enables a programmer to express guarantees such as the one above and show how our formalism can be used to characterize update propagation behaviour of bidirectional transformations.
+
+The major technical contributions that we will make in this paper are the following:
+\begin{enumerate}
+  \item
+  We present a formalization of bx transformations that enables a programmer to express non-trivial update propagation behaviour.
+  \item
+  We use our formalization to develop a compositional language of {\em difference lenses} based on the {\em basic lenses} implemented in the lens programming language Boomerang \cite{foster2009bidirectional}, and describe non-trivial update propagation guarantees that these lenses provide.
+  \item
+  We show how to represent matching lenses and  relational lenses \cite{bohannon2006relational} as difference lenses, and hence describe non-trivial guarantees that these lens languages provide as well.
+\end{enumerate}
+\iffalse
+ we describe a compositional language of lenses called {\em difference lenses}, where each difference $\ell$ satisfies the following equation,
+\begin{equation}\label{difflenslaw}
+\delta_S(s, \ell.\pput \; s \; v) = \delta_V(\ell.\get \; s, v)
+\end{equation}
+for appropriate real-valued $\delta_S : S \times S \longrightarrow \mathbb{R}^{\geq 0}$ and $\delta_S : S \times S \longrightarrow \mathbb{R}^{\geq 0}$.
+
+\cref{difflenslaw}, which already appears in Gibbons et. al. \cite{gibbons2017principles} as the principle of {\em Weak Least Surprise}, is simple and intuitive but presents a challenge when trying to develop a compositional lens langauge that satisfies it. For example, assume that a source consists of a name-and-date pairs while a view consists of a name. Assume that a lens $\ell$ simply discards dates in the \get direction:
+\begin{lstlisting}[mathescape=true]
+$\ell.\get$ "Ada Lovelace, 12-10-1815" = "Ada Lovelace"
+\end{lstlisting}
+Consider the iteration lens $\ell^*$, where the source is now a list of name-and-date pairs while a view consists of a list of names. Whenever the length of a view list is larger than the length of a source list, then a \pput application of $\ell^*$ must initialize a source from a view from scratch:
+\begin{lstlisting}[mathescape=true]
+$\ell.\pput$ [] ["Ada Lovelace"] = ["Ada Lovelace, 00-00-0000"]
+\end{lstlisting}
+Now if we are to define $\delta_S^*$ and $\delta_V^*$ inductively on source and view lists respectively in such a way that \cref{difflenslaw} holds of $\ell^*$, then the following equation would have to hold:
+\begin{lstlisting}[mathescape=true]
+$\delta_S^*$(["Ada Lovelace, 00-00-0000"], []) = $\delta_V^*$(["Ada Lovelace"], [])
+\end{lstlisting}
+In a case such as this when a source is {\em created} from a view as opposed to arising from a view being \pput into an existing source, the source delta will be defined so as to defer to the view delta by mapping the created source back into the view; in particular, for the lens $\ell^*$ in the example, then we have
+\begin{lstlisting}[mathescape=true]
+$\delta_S^*$(["Ada Lovelace, 00-00-0000"], [])
+= $\delta_V^*$([$\ell.\get$ "Ada Lovelace, 00-00-0000"], [])
+= $\delta_V^*$(["Ada Lovelace"], [])
+\end{lstlisting}
+
+By now there exist many programming languages that enable one to define {\em
+bidirectional transformations}, programs that can be run in two
+directions. Each of these languages provides guarantees on how the two
+transformations interact e.g. that they are bijective, that a round-trip on
+one or both directions does not cause non-trivial updates etc. Many of these
+guarantees have to do with restoring or preserving consistency. To formalize
+this statement, we describe a widely used formulation of bidirectional
+transformations due to Stevens \cite{stevens2010bidirectional} but originally
+articulated in a more general form by Meertens \cite{meertens1998designing}:
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx $R : M \Leftrightarrow N$ is {\em correct} if the consistency restorers do
+restore consistency: that is, for all $m \in M, n \in N$, we have $R(m,
+\overrightarrow{R}(m, n))$, and dually. $R$ is {\em hippocratic} if the
+consistency restorers make no change to an already-consistent pair of models:
+that is, for all $m \in M$, $n \in N$, if $R(m, n)$ then $\overrightarrow{R}(m,
+n) = n$ and dually. $R$ is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+
+Many bidirectional programming languages thus enable one to define
+well behaved bx's: consistency restoration is guaranteed by correctness of the
+bx while consistency preservation is guaranteed by the hippocraticness of the
+bx. This paper is primarily concerned with well behaved bx's where
+$\overrightarrow{R}$, the \get function of the bx, ignores it's $N$-argument and
+where the consistency relation $R$ is defined by $R(m, \overrightarrow{R}(m))$
+for all $m \in M$--- these transformations are the well known and widely
+understood {\em lenses} of Foster et al \cite{foster2007combinators}--- though
+the ideas we develop could be used in other bidirectional settings as well. 
+
+When the consistency relation of a bx $R$ is very fine, i.e. when each $m \in M$
+is consistent with only a few $n \in N$ and vice versa, then a well behaved lens
+gives fairly strong guarantees on $\overleftarrow{R}$ and $\overrightarrow{R}$.
+However, there are many cases that arise in practice where there are many
+different ways to restore consistency; when this happens, well-behavedness may
+be too weak to rule out ``bad'' behaviour or to clarify the behaviour of a bx in
+subtle cases. Various solutions have been proposed to address this issue, for
+example {\em matching lenses} that deal with the issue of alignment
+\cite{barbosa2010matching}, {\em edit lenses} \cite{hofmann2012edit} and {\em
+delta lenses} \cite{diskin2011asymmetric,diskin2011state,pacheco2012delta}
+that explicitly propagate edits through the lens, and {\em least change
+lenses} that require that the source value resulting from a \pput application
+is not only acceptable, but also one of closest to the original $s$ among the
+sources that share the same view $v$ \cite{macedo2013composing}.
+
+This paper takes a different approach to specifying update propagation by
+identifying a condition called {\em $\partial D$ preservation} which we describe
+below:
+\begin{definition}
+Let $R : M \Leftrightarrow N$ be a bidirectional transformation and $\partial D
+\subseteq (M \times M) \times (N \times N)$. Then $R$ {\em preserves $\partial
+D$} if for all $m \in M$, $n, n' \in N$ , if $R(m, n)$ then $\partial D((m,
+\overleftarrow{R}(m, n')), (\overrightarrow{R}(m, n), n'))$. $R$ {\em
+strongly preserves $\partial D$} if the dual condition also holds.
+\end{definition}
+\noindent The idea behind $\partial D$ preservation is that if $m$ and $n$ are
+already consistent and $\overrightarrow{R}(m,n)$ is updated to produce $n'$,
+then the difference between $\overrightarrow{R}(m,n)$ and $n'$ is related
+to the difference between $m$ and $\overleftarrow{R}(m,n')$. $R$
+strongly preserves $\partial D$ if it preserves $\partial D$ in both directions.
+
+For lenses, $\partial D$ preservation says that difference between $\ell.\get \;
+s$ and $v$ is related to the difference between $s$ and $\ell.\pput \; s \;
+v$. One way to formalize this idea is to model the difference between two sources $s, s'
+\in S$ and two views $v, v' \in V$ as functions $\delta_S : S \times S
+\longrightarrow \partial S$ and $\delta_V : V \times V \longrightarrow \partial
+V$ for some sets $\partial S$ and $\partial V$, and to capture the
+relationship between $\delta_S$ and $\delta_V$ by a lens. In
+particular, given a lens $\partial(S, V) : \partial S \Leftrightarrow \partial
+V$ we will ask if the following equation holds of $\ell$:
+\begin{equation}\label{difflenslaw}
+\partial(S, V).\get \; (\delta_S(s, \ell.\pput \; s \; v)) = \delta_V(\ell.\get
+\; s, v)
+\end{equation}
+If $\ell : S \Leftrightarrow V$ satisfies \cref{difflenslaw} we say that 
+$\ell$ is a {\em difference  lens} with respect to $(\delta_S, 
+\partial(S, V), \delta_V)$, which we denote with the typing relation 
+$\ell : S \xLeftrightarrow{\delta_S, \partial(S, V), \delta_V} V$.
+
+For example, consider two versions of an iteration lens $\ell_1 : S^*
+\Leftrightarrow V^*$ and $\ell_2 : S^* \Leftrightarrow V^*$ defined inductively
+from a lens $\ell : S \Leftrightarrow V$. Both of these lens have the same get
+behaviour: given a list $s_1, \ldots, s_n$ of sources, they both produce
+$\ell.\get \; s_1, \ldots, \ell.\get \; s_n$. The \pput behaviour of the two
+lenses is different though: $\ell_1$ simply aligns views to sources
+positionally, while $\ell_2$ computes the optimal alignment on the view side and
+uses this alignment to put views back into sources.
+
+Let \lstinline|name = [A-Z] . [a-z]*|, let the source $S$ equal 
+\lstinline|name . " " . name| and the view $V$ equal \lstinline|name|.
+Let $\ell : S \Leftrightarrow V$ be the lens
+\lstinline|del name . del " " . copy name| which given a pair of names produces
+the second name in the \get direction, and restores the first name in the \pput
+direction:
+$$\ell.\get \; ``Ada \; Turing" = ``Turing" \text{ and }\; \ell.\pput \; ``Ada
+\; Turing" \; ``Lovelace" = ``Ada \; Lovelace"$$
+Define the
+function $\delta_V : V \times V \longrightarrow \mathbb{N}^{\geq 0}$ by 
+$$\delta_V(n, n') = 
+\begin{cases}
+0 & \text{if }n=n'\\
+1 & \text{otherwise}
+\end{cases}$$
+Define $\delta_S : S \times S \longrightarrow \mathbb{N}^{\geq 0}$ by
+$$\delta_S(m \cdot `` \quad " \cdot n, m' \cdot `` \quad " \cdot n') =
+\begin{cases}
+0 & \text{if } m = m', n = n'\\
+1 & \text{if } m = m', n \neq n'\\
+1 & \text{if } m \neq m', n = n'\\
+2 & \text{if } m \neq m', n \neq n'
+\end{cases}$$
+Let the lens $\partial(S, V) : \mathbb{N}^{\geq 0} \Leftrightarrow
+\mathbb{N}^{\geq 0}$ be given by $\partial(S, V) = \ccopy(\mathbb{N}^{\geq
+0})$. Then $\ell : S \xLeftrightarrow{\delta_S, \partial(S, V), \delta_V} V$.
+
+Now let $xs, ys$ be two lists of single names, with $length(xs) \geq length(ys)$
+Define $\delta_V^* : V^* \times V^* \longrightarrow \mathbb{Z}^* \times V^*$ on $xs$ and
+$ys$ by aligning elements of $xs$ maximally with elements of $ys$ and then using $\delta_V$
+on these pairs to produce a list $ds$ of numbers. In this process, some elements of
+$ys$ will not be aligned if $length(xs) < length(ys)$, in which case we simply collect
+these in another list of elements of $V$. For instance,
+$$\delta_V^*([``Lovelace", ``Kleene", ``Turing"], [``Turing", ``Lovelace"]) = ([0,0], [``Kleene"])$$
+since we align \lstinline|"Lovelace"| to \lstinline|"Lovelace"| and 
+\lstinline|"Turing"| to \lstinline|"Turing"| for a difference of 0 in each case, which leaves
+\lstinline|"Kleene"| unaligned.
+
+On the source side, let $ss, ts$ be two lists of two names with $length(ss) \geq length(ts)$.
+Define $\delta_{S, \ell}^* : S^* \times S^* \longrightarrow \mathbb{Z}^* \times S^*$ by taking the 
+alignment used to compute $\delta_V^*(\ell^*.\get \; ss, \ell^*.\get \; ts)$ and then using that
+alignment in the same manner that $\delta_V^*$ does. For instance
+\begin{align*}
+&\delta_{S, \ell}^*([``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"], 
+[``Alan \; Turing", ``Ada \; Lovelace"])\\
+&= ([0,0], [``Stephen \; Kleene"])
+\end{align*}
+Recall that the \pput behaviour of $\ell_1$ simply aligns views to sources
+positionally, while $\ell_2$ computes the optimal alignment on the view side and
+uses this alignment to put views back into sources. From this we can prove that
+$$\ell_2 : S^* \xLeftrightarrow{\delta_{S, \ell}^*, \partial(S, V)^* \times \ell^*, \delta_V^*} V^*$$
+On the other hand, the judgement $\ell_1 : S^* \xLeftrightarrow{\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*} V^*$ does not holds since $\ell_1$ does not satisfy \cref{difflenslaw} :
+$$(\partial(S, V)^* \times \ell^*).\get \; (\delta_{S, \ell}^*(s, \ell.\pput \; s \; v)) = \delta_V^*(\ell.\get
+\; s, v)
+$$
+This is witnessed by the fact that if $s = [``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"]$ and \\
+$v = [``Kleene", ``Turing", ``Lovelace"]$, then 
+\begin{align*}
+&\ell_1.\pput \; [``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"] \; [``Kleene", ``Turing", ``Lovelace"]\\
+&= [``Ada \; Kleene", ``Stephen \; Turing", ``Alan \; Lovelace"]
+\end{align*}
+Also, $\delta_{S, \ell}^*(s, \ell.\pput \; s \; v) = ([1,1,1], [])$, $\delta_V^*(\ell.\get
+\; s, v) = ([0,0,0], [])$, but
+\begin{align*}
+(\partial(S, V)^* \times \ell^*).\get \; (\delta_{S, \ell}^*(s, \ell.\pput \; s \; v)) &=
+(\partial(S, V)^* \times \ell^*).\get \; ([1,1,1], [])\\
+&= ([1,1,1], [])\\
+&\neq ([0,0,0], [])\\
+&= \delta_V^*(\ell.\get \; s, v)
+\end{align*}
+Here the positional lens $\ell_1$ is not a difference lens with respect to $(\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*)$ since it does not align sources to views in the same way that
+$\delta_V^*$ does. On the other hand, $\ell_2$ does, hence is a difference lens with respect to $(\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*)$. 
+
+In the rest of this paper, we give concrete examples of how to use $\partial D$ preservation to characterize 
+the guarantees on update propagation provided by various lens programming languages. In particular,
+the major technical contributions that we will make in this paper are the following:
+\begin{enumerate}
+  \item
+  We formalize a condition called $\partial D$ preservation which provides a way
+  of constraining the updates that can be made by a bidirectional
+  transformation. We give examples of relations $\partial D$ as well as
+  examples and counterexamples of lenses that are $\partial D$ preserving.
+  \item
+  We describe an instance of $\partial D$ preservation that is satisfied by {\em difference lenses}. We give a set of combinators for {\em difference lenses} and describe the update propagation guarantees that the lenses derived using these combinators give.
+  \item
+  Finally, we show how to represent matching lenses and relational lenses
+  \cite{bohannon2006relational} as difference lenses, and hence
+  describe non-trivial guarantees beyond correctness and hippocraticness that
+  these lens languages provide as well.
+\end{enumerate}
+\fi
+\section{Laying Down BX Laws}
+\begin{definition}
+A bidirectional transformation (bx) $R : M \Leftrightarrow N$ comprises of 
+\begin{enumerate}
+\item
+a consistency relation $R \subseteq M \times N$,
+\item
+a relation $S \subseteq (M \times M) \times (N \times N)$ such that for all $m, m' \in M$, $n, n' \in N$,
+\begin{enumerate}
+\item
+if $(m, m') \stackrel{S}{\sim} (n, n)$ then $m = m'$,
+\item
+if $(m, m) \stackrel{S}{\sim} (n, n')$ then $n = n'$, and
+\end{enumerate}
+\item
+restorers $\overrightarrow{R} : M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{enumerate}
+\end{definition}
+Intuitively, the relation $S$ relates differences on the $M$ side to differences on the $N$ side. For instance, $S$ could be the relation $(m, m') \stackrel{S}{\sim} (n,n')$ if and only if $\delta_M(m,m') = \delta_N(n,n')$ for some metrics $\delta_M$ and $\delta_N$ on $M$ and $N$ respectively. The relation is required to send only trivial deltas to trivial deltas.
+\begin{definition}
+A bx $R : M \Leftrightarrow N$ is {\em $S$-preserving} for all $m \in M$, $n, n' \in N$, then if $R(m, n)$ then $(m, \overleftarrow{R}(m,n')) \stackrel{S}{\sim} (n, n')$
+\end{definition}
+Intuitively $S$-preservation says that if we start in a situation where $m$ is consistent with $n$, update $n$ to get $n'$, then map $n'$ back into $m$ via $\overleftarrow{R}(m,n')$, then the difference between $n$ and $n'$ is related to the difference between $m$ and $\overleftarrow{R}(m,n')$.
+\begin{definition}
+A bx $R : M \Leftrightarrow N$ is hippocratic if for all $m \in M$, $n \in N$, if $R(m, n)$ then $\overrightarrow{R}(m, n) = n$ and $\overleftarrow{R}(m,n) = m$.
+\end{definition}
+\begin{fact}
+For any $R : N \Leftrightarrow N$ and any $S \subseteq (M \times M) \times (N \times N)$, if $R$ is $S$-preserving, then $R$ is hippocratic.
+\end{fact}
+\begin{definition}
+A bx $R : M \Leftrightarrow N$ is {\em correct} if the consistency restorers do
+restore consistency: that is, for all $m \in M, n \in N$, we have $R(m,
+\overrightarrow{R}(m, n))$, and dually.
+\end{definition}
+\iffalse
+A {\em lens} is a program that can be run in two directions. In the
+forward direction, the \get component of a lens produces a {\em view}
+from a {\em source}, while in the backward direction, the \pput component folds
+an updated view back into the original source. Formally, Foster
+\cite{foster2007combinators} defined a lens $\ell : S
+\Leftrightarrow V$ from a source $S$ to a view $V$ to be a pair of functions
+$\ell.\get : S \longrightarrow V$ and $\ell.\pput : S \longrightarrow V
+\longrightarrow S$ satisfying the
+following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
+\ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
+\end{align*}
+The PUTGET law ensures that updates to the view are translated
+``exactly''---i.e. that, given a view, the \pput function produces a source
+that \get maps back to the very same view, while the GETPUT law ensures a
+``stability'' property for the source---i.e. it requires that the \pput
+function returns the original source unmodified whenever the update to the view
+is a no-op.
+
+Unfortunately, while these laws give some guarantees on how the \get and \pput
+components of a lens interact, they do not specify the behaviour of the \pput
+component when the update to the view is non-trivial. Consequently, a
+non-trivial update to a view could lead to an unexpected update to the source.
+Various solutions have been proposed to address this issue, for example {\em
+matching lenses} to deal with the issue of alignment \cite{barbosa2010matching},
+{\em edit lenses} \cite{hofmann2012edit} and {\em delta lenses}
+\cite{diskin2011asymmetric,diskin2011state,pacheco2012delta} which explicitly
+propagate edits through the lens, and {\em least change lenses} which
+add a new LEASTPUTGET law which requires that the source value resulting from a
+\pput application is not only acceptable, but also one of closest to the
+original $s$ among the sources that share the same view $v$
+\cite{macedo2013composing}.
+
+This paper describes a general method for specifying what updates are allowable
+for a given lens without requiring that the lens explicitly propagate updates.
+Our approach is guided by the simple idea the idea that if one starts with a
+source $s$, calls the \get function on $s$ to acquire the view $\ell.\get \;
+s$, updates $\ell.\get \; s$ to get a new view $v$, then the ``difference''
+between $v$ and $\ell.\get \; s$ and $v$ should be related to the difference
+between $\ell.\pput \; s \; v$ and $v$.
+
+To formalize this idea, we first recall a widely used definition of
+bidirectional transformations
+\cite{meertens1998designing,stevens2010bidirectional} definition of a
+bidirectional transformations:
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx $R : M \leftrightarrow N$ is {\em correct} if the consistency restorers do
+restore consistency: that is, for all $m \in M, n \in N$, we have $R(m,
+\overrightarrow{R}(m, n))$, and dually. $R$ is {\em hippocratic} if the
+consistency restores make no change to and already-consistent pair of models:
+that is, for all $m \in M$, $n \in N$, if $R(m, n)$ then $\overrightarrow{R}(m,
+n) = n$ and dually. $R$ is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+
+Observe that $\ell : S \Leftrightarrow V$ is a lens, let $R$ be the
+consistency relation given by $R(s, \ell.\get \; s)$ for all $s \in
+S$, $\overrightarrow{\ell}(s, v) = \ell.\get \; s$, and $\overleftarrow{\ell} =
+\ell.\pput$. By the PUTGET law, $\ell.\get \; (\ell.\pput \; s \; v) = v$,
+hence $\ell$ is correct, and by the GETPUT laws, $\ell.\pput \; s \; (\ell.\get
+\; s) = s$ and $\ell.\get \; (\ell.\create \; v) = v$, hence $\ell$ is
+hippocractic. Therefore $\ell$ is a well-behaved bx.
+
+If $R$ is a well-behaved bx then $R$ restores consistency when a source or view
+is updated (correctness) and preserves consistency when the source and view are
+already consistent (hippocraticness). In order to express
+
+We will then apply this method to define a typing judgement for lenses which
+constrains how a lens propagates updates. We will describe a compositional
+language of {\em difference lenses} which satisfy this new typing judgement,
+and give examples of ordinary lenses that are not difference lenses. Finally,
+we will show how to represent matching lenses and relational lenses
+\cite{bohannon2006relational} as difference lenses, and hence describe the
+guarantees that these lens languages provide.
+
+
+For example suppose that the source is an XML document representing the
+names, dates and nationalities of a collection of classical music
+composers such as,
+
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1956</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin Briten</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+
+while the view is a list if ASCII text representing the names and dates of each
+composer:
+\begin{lstlisting}
+Jean Sibelius, 1865-1956
+Aaron Copland, 1910-1990
+Benjamin Briten, 1913-1976
+\end{lstlisting}
+
+After computing the initial view, we might want to edit it in some way---e.g.,
+correcting the error in Sibelius's death date and the misspelling in Britten's
+name
+\begin{lstlisting}
+Jean Sibelius, 1865-|\colorbox{orange}{1957}|
+Aaron Copland, 1910-1990
+Benjamin |\colorbox{orange}{Britten}|, 1913-1976
+\end{lstlisting}
+and push the changes back into the original XML format:
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-|\colorbox{orange}{1957}|</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin |\colorbox{orange}{Britten}|</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+
+Lenses are designed to perform these kinds of bidirectional transformations. If
+$\ell$ is a suitably defined lens for the transformation that we
+have just described, then the \get component of the lens performs the
+XML to ASCII transformation that produces an ASCII view from an XML source,
+while the \pput component of the lens performs the ASCII to XML transformation
+that folds back an updated ASCII view back into the original XML source.
+
+
+For example, suppose that a source $S$ consists of a pair consisting of a
+boolean value and an integer, and that the view $V$ for $S$ consists of a
+single integer. Further, suppose that we wish to define a \pput function for a
+lens $\ell$ whose \get component is the function which given a pair $(b, n)$
+simply produces the boolean value $b$. Let $f : \mathbb{B} \times \mathbb{Z}
+\longrightarrow \mathbb{Z}$ be any function from $\mathbb{B} \times \mathbb{Z}
+\longrightarrow \mathbb{Z}$. Then the lens $\ell_{f}$ defined by
+\begin{align*}
+\ell_{f}.\get \; (b, n) &= b\\
+\ell_{f}.\pput \; (b, n) \; b' &= \begin{cases}
+(b', n) & \text{if }b = b'\\
+(b', f(b', n)) & \text{otherwise}\\
+\end{cases}\\
+\ell.\create \; b &= (b,f(b, 0))
+\end{align*}
+is a valid lens.
+
+A user who applies a lens $\ell$ of type $\ell : S \Leftrightarrow V$ may expect
+that $\ell.\pput \; (true, 1) \; false = (false, 0)$, reasoning that the
+integer produced by the \pput function should be the number representation of
+the boolean value $false$. Or perhaps she might expect that $\ell.\pput \;
+(true, 1) \; false = (false, 1)$, reasoning that the two pieces of data in a
+pair are independent and that the reasonable \pput behaviour in this case is to
+restore the orginial integer. In either case, the user may be shocked to find
+that in fact $\ell.\pput (true, 0) \; false = (false, 48)$! Given the \get
+behaviour which just produces the boolean value from a pair, since $\ell_f$ is a
+valid lens for any $f$, then the \pput function of a valid lens of type
+$\mathbb{B} \times \mathbb{Z} \Leftrightarrow \mathbb{Z}$ can restore the
+integer in a pair in any way so long as the old boolean value and the updated
+boolean value are different.
+
+
+In order to give a more constrained specification for the desired
+lens we define the difference $\delta_S((a, b), (c, d))$ between $(a, b)$ and
+$(c, d)$ by $$\delta_S((a, b), (c,
+d)) = \begin{cases}
+0 & \text{if }a = c, b = d\\
+1 & \text{if }a=c, b \neq d\\
+1 & \text{if }a \neq c, b = d\\
+2 & \text{if }a \neq c, b \neq d
+\end{cases}$$
+On the view side, we define the difference $\delta_V(a, b)$
+between $a$ and $b$ by, $$\delta_V(a, b) = \begin{cases}
+0 & \text{if } a = b\\
+1 & \text{if } a \neq b
+\end{cases}$$
+
+Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
+which describes how differences should be propagated. For this example, we
+define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
+$\partial V$, keeping in mind that $\partial S = \partial V = \mathbb{Z}$.
+\cref{difflenslaw} enables us to rule out $\ell_{bad}$, since
+\begin{align*}
+(\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
+(\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
+&= (\partial (S, V)).\get \; 2\\
+&= 2\\
+&\neq 1\\
+&= \delta_V(3, 2)\\
+&= \delta_V(3, \ell_{bad}.\get \; (1, 2))
+\end{align*}
+Consequently $\ell_{bad}$ is not a valid delta lens. On the
+other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
+\begin{align*}
+\ell_{good}.\get \; (a, b) &= b\\
+\ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
+\ell_{good}.\create \; b &= (0, b)
+\end{align*}
+is indeed a valid delta lens since the its \pput component always restores the
+first factor.
+
+\section{Strengthening Lens Laws}
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx is {\em correct} if the consistency restorers do restore consistency:
+that is, for all $m \in M, n \in N$, we have $R(m, \overrightarrow{R}(m, n))$,
+and dually.
+\end{definition}
+\begin{definition}
+A bx is {\em hippocratic} if the consistency restores make no change
+to and already-consistent pair of models: that is, for all $m \in M$, $n \in N$,
+if $R(m, n)$ then $\overrightarrow{R}(m, n) = n$ and dually.
+\end{definition}
+\begin{definition}
+A bx is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+For lenses, if $\ell : S \Leftrightarrow V$ is a lens, we take the
+consistency relation $R$ to be given by $R(s, \ell.\get \; s)$ for all $s \in
+S$, $\overrightarrow{\ell}(s, v) = \ell.\get \; s$, and $\overleftarrow{\ell} =
+\ell.\pput$. By the PUTGET law, $\ell.\get \; (\ell.\pput \; s \; v) = v$,
+hence $\ell$ is correct, and by the GETPUT laws, $\ell.\pput \; s \; (\ell.\get
+\; s) = s$ and $\ell.\get \; (\ell.\create \; v) = v$, hence $\ell$ is
+hippocractic. Therefore $\ell$ is a well-behaved bx.
+
+Using the notation of Stevens \cite{stevens2010bidirectional},
+
+
+
+The major shortcoming of this model of bx transformations is that it does not
+take into account how changes should be propagated by transformation; a
+well-behaved bx need only restore consistency when models go out of sync or
+maintain consisteny if models are already in sync. This becomes an issue when
+there are many different ways of restoring consistency
+
+\section{Motivation and Related Work}
+Foster et. al. \cite{foster2007combinators,foster2009bidirectional}
+defined a lens $\ell : S \Leftrightarrow V$ from a source $S$ to a view $V$ to
+be a triple of functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : S
+\longrightarrow S \longrightarrow V$ and $\ell.\create : V \longrightarrow S$
+satisfying the following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
+\ell.\get \; (\ell.\create \; v) &= v \tag{CREATEGET}\\
+\ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
+\end{align*}
+While these two laws give some guarantees on how the \get, \pput and \create
+components of a lens interact, they do not specify the behaviour of the \pput
+component when the update to the view is non-trivial, because the GETPUT law
+only says that the \pput component must return the original source unmodified
+whenever the update to the view is a no-op. Consequently, a non-trivial update
+to a view could lead to an undesired update to the source.
+
+Therefore, several lens formalism have been proposed that explicitly have a
+notion of an {\em update}. The first of these was Barbosa et. al.'s {\em
+matching lenses}\cite{barbosa2010matching}. Matching lenses specifically deal
+with the issue of {\em alignment}, since Foster et. al.'s original iteration
+lens updates records positionally:
+\begin{align*}
+\ell^* .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= t_1 \cdot
+\ldots \cdot t_n\\
+\text{ where } t_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\end{align*}
+In their work, Barbosa et. al. enrich the types of lenses with ``chunks''
+identifying reorderable pieces of the source and view that should be re-aligned
+after an update, and formulate behavioral laws that capture essential
+constraints on the handling of chunks. They develop a core language
+of matching lenses for strings, together with a set of ``alignment
+combinators'' that implement a variety of alignment strategies. The obvious
+shortcoming of matching lenses is that they only deal with alignment; they do
+not solve the general issue of update propagation.
+
+The next line of work is Diskin et. al.'s {\em delta
+lenses}\cite{diskin2011asymmetric,diskin2011state}. Diskin et. al.'s delta
+lenses work as follows: let $\ell : S \Leftrightarrow V$ be a lens from
+$S$ to $V$. Assume that $s$ is a source, and that $v = \ell.\get s$. A user
+performs an edits $d$ on $v$ to get $v'$: $v \xrightarrow{d} v'$. The \pput
+function now takes the view edit $d$ and the original source $s$ and produces a
+new source $s'$: $s \xrightarrow{\pput(d, s)} s'$. One thing that Diskin et. al.
+do not do is that they do not give any concrete examples of delta lenses,
+no composition, no notion of equivalence, and no combinators for constructing
+delta lenses.
+
+The next line of work is Hofmann et. al.'s {\em edit
+lenses}\cite{hofmann2012edit}. Edit lenses are similar to delta lenses, but edit
+lenses are more explicit. Specifically, the source and view edits are
+represented as elements of a {\em monoid}, and the lens acts on sources and
+views via monoid actions. That is if $v$ is a view and $d_v$ is an edit that
+can be made on $v$ to produce $v'$, then $d_v \cdot v = v'$. The intended usage
+of an edit lens is as follows. There are two users, one holding an element of
+$S$ the other one an element of $V$ both referred to as {\em replicas}.
+Initially, they hold $init_S \in S$ and $init_V \in V$ respectively. The users
+then perform actions and propagate them across the lens. An action consists of
+producing an edit $d_s$ (or $d_v$), applying it to one's current replica $s$
+(resp. $v$), putting the edit through the lens to obtain an edit $d_v$ (resp.
+$d_s$), and asking the user on the other side to apply $d_v$ (resp. $d_s$) to
+their replica. One thing that Hofmann et. al. do that Diskin et. al. do not do
+is that they do give concrete examples of edit lenses, define a suitable notion
+of composition on them, and define combinators for constructing edit lenses.
+
+The final line of work in this area is Pacheco et. al.'s
+version of delta lenses\cite{pacheco2012delta}. Pacheco et. al. are the
+first to give concrete examples of delta lenses, define a suitable notion
+of composition on them, and define combinators for constructing delta
+lenses. Pacheco et al. define a delta lens $\ell$ (d-lens for short), denote by
+$\ell: S \trianglerighteq_{\blacktriangle} V$ to be a bidirectional
+transformations that comprises four total functions:
+\begin{align*}
+\get &: S \longrightarrow V\\
+\pput &: \forall(v, s) : V \times S. (v \triangle \get \;s) \longrightarrow
+SA\\
+\get_{\blacktriangle} &: \forall\{s':S, s:S\}. (s' \triangle s)
+\longrightarrow (\get \; s')\triangle (\get \; s)\\
+\pput_{\blacktriangle} &:\forall\{(v, s):V \times S\},d:(v \triangle \get
+\;s).(\pput \; (v, s) \; d) \triangle s
+\end{align*}
+that satisfy the following propertes:
+\begin{align*}
+\get \; (\pput \; (v, s) \; d) = v \tag{PUTGET}\\
+\pput \; (\get \; s, s) \; id = s \tag{GETPUT}\\
+\get_{\blacktriangle} \; (\pput_{\blacktriangle} \; d) = d
+\tag{$\text{PUTGET}_{\blacktriangle}$}\\
+\pput_{\blacktriangle} \; id = id \tag{$\text{PUTGET}_{\blacktriangle}$}
+\end{align*}
+The \get function is a just like a \get function in Foster's et. al.'s original
+work. The \pput function is different though. Let $s \in S$ and $v \in V$, and
+let $d$ be an update from $v$ to $\ell.\get \; s$; for example, $d$ is a
+sequence of insertions and deletions that transforms $v$ to $\ell.\get \; s$.
+Then \pput takes in $s$ and $v$ as input, and in addition receives $d$ to
+compute $\pput \; (v, s) \; d$.
+
+The $\get_{\blacktriangle}$ and $\pput_{\blacktriangle}$ functions are functions
+that transform deltas to deltas. The last two axioms for delta lenses say that
+if $d$ is a delta from $v$ to $\ell.\get \; s$ and $\Delta$ is a delta from
+$\pput \; (v, s) \; d$ to $s$, then $\get_{\blacktriangle} \; \Delta = d$, and
+that if $d$ is the identity delta, then $\Delta$ is also the identity delta.
+
+In addition to describing a delta lens language, Pacheco et. al. also
+address the following shortcoming with edit lenses: edit lenses include
+combinators for constructing lenses over {\em container types}.
+In the simplest case, container types can be thought of as algebraic datatypes
+such as lists and trees; each value of a container type has a certain {\em
+shape}, and each shape has a set of {\em positions} associated with it. For
+instance, the shape of a list of size $n$ is just $n$, while the positions of
+such a list are the numbers $0, 1, \ldots, n-1$.
+
+The shortcoming of the container edit lenses addressed by Pacheco et. al.
+elements is that these lenses always preserve the number of positions; for
+instance if $\ell$ is a container lens that maps lists to trees, and if $xs$ is
+a list of size $n$, then the number of positions of $\ell.\get \; xs$ is also
+$n$. Pacheco et. al. define a new set of combinators for container lenses that
+can say map a list of size $5$ to a tree with 4 nodes.
+
+In this article we show that it is not necessary for the \pput component of a lens
+to explicitly propagate updates: instead, we can specify what the put function should
+evaluate to, by imposing a more precise type judgement on lenses.
+
+The idea of the stronger typing judgement is that we embed sources and views inside
+of {\em difference structures} and then we define a lens that describes how the
+differences behave as they cross in-between the source and the view. A
+lens that is validly typed is then a lens that preserves this overall structure.
+
+Here are the actual definitions:
+\begin{definition}
+A weighted set is a pair $(X, |\cdot|)$ where $X$ is a set and $|\cdot| : X
+\longrightarrow \mathbb{R}^{\geq 0}$ is a map from $X$ to the non-negative
+reals.
+\end{definition}
+\begin{definition}
+A difference structure is a triple $(S, \partial S, \delta_S)$ where $S$ and
+$\partial S$ are weighted sets, and $\delta_S:
+S \times S \longrightarrow \partial S$ is a function satisfying
+\begin{align*}
+\delta(s, s') &= \delta(s', s)\tag{A1}\\
+|\delta(s, s)| &= 0\tag{A2}\\
+|\delta(s, s')| &\leq |s| + |s'|\tag{A3}
+\end{align*}
+\end{definition}
+\begin{definition}
+Let $(S, \partial S, \delta_S)$ and $(V, \partial V, \delta_V)$ be
+difference structures. Let $\partial(S, V) : \partial S \Leftrightarrow \partial
+V$ be a lens from $\partial S$ to $\partial V$. Then a lens $\ell : S
+\Leftrightarrow V$ also has type $\ell : (S, \partial S,
+\delta_S) \xLeftrightarrow{\partial(S, V)} (V, \partial V, \delta_V)$ if for
+all $s \in S, v \in V$,
+\begin{equation}\label{difflenslaw}
+(\partial (S, V)).\get\; (\delta_S(\ell.\pput \; s \; v, s)) = \delta_V(v,
+\ell.\get \; s)
+\end{equation}
+\end{definition}
+The extra difference structure on the sources and the views, as well as the lens
+$\partial(S, V)$ force the lens $\ell$ to satisfy \cref{difflenslaw}; this law is
+therefore a specification that constrains what $\ell$ can do.
+
+For example, suppose that a source $S$ consists of a pair of integers, and that the
+view $V$ for $S$ consists of a single integer. Further, suppose that we wish
+for the \get component of any lens from $S$ to $V$ to simply project away the
+first factor:that is for any $\ell : \mathbb{Z} \times \mathbb{Z}
+\Leftrightarrow \mathbb{Z}$, $\ell.\get \; (a, b) = b$ for all integers $a, b$.
+Suppose further that we wish to force the \pput function of any lens $\ell$
+defined on the data to restore the factor projected away by the \get function:
+that is, we wish to enforce that for all integers $a, b, c$, $\pi_1(\ell.\pput
+\; (a, b) \; c) = a$, where $\pi_1$ is the projection on the first factor.
+
+Now consider the lens $\ell_{bad}$ defined by
+\begin{align*}
+\ell_{bad}.\get \; (a, b) &= b\\
+\ell_{bad}.\pput \; (a, b) \; c &= \begin{cases}
+(a, c) & \text{if }b = c\\
+(0, c) & \text{otherwise}\\
+\end{cases}\\
+\ell.\create \; b &= (0,b)
+\end{align*}
+Then $\ell_{bad}$ is a valid lens even though $\ell_{bad}$ does not
+always restore the first factor. For example, observe that $\ell.\pput (1, 2) \;
+3 = (0,3)$. In order to give a more constrained specification for the desired
+lens we define the difference $\delta_S((a, b), (c, d))$ between $(a, b)$ and
+$(c, d)$ by $$\delta_S((a, b), (c,
+d)) = \begin{cases}
+0 & \text{if }a = c, b = d\\
+1 & \text{if }a=c, b \neq d\\
+1 & \text{if }a \neq c, b = d\\
+2 & \text{if }a \neq c, b \neq d
+\end{cases}$$
+On the view side, we define the difference $\delta_V(a, b)$
+between $a$ and $b$ by, $$\delta_V(a, b) = \begin{cases}
+0 & \text{if } a = b\\
+1 & \text{if } a \neq b
+\end{cases}$$
+
+Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
+which describes how differences should be propagated. For this example, we
+define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
+$\partial V$, keeping in mind that $\partial S = \partial V = \mathbb{Z}$.
+\cref{difflenslaw} enables us to rule out $\ell_{bad}$, since
+\begin{align*}
+(\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
+(\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
+&= (\partial (S, V)).\get \; 2\\
+&= 2\\
+&\neq 1\\
+&= \delta_V(3, 2)\\
+&= \delta_V(3, \ell_{bad}.\get \; (1, 2))
+\end{align*}
+Consequently $\ell_{bad}$ is not a valid delta lens. On the
+other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
+\begin{align*}
+\ell_{good}.\get \; (a, b) &= b\\
+\ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
+\ell_{good}.\create \; b &= (0, b)
+\end{align*}
+is indeed a valid delta lens since the its \pput component always restores the
+first factor.
+
+For a more realistic example using a difference lens combinator, let $S
+= name \cdot dates$ and $V = name$. Let $\ell :
+S \Leftrightarrow V = (copy \; name) \cdot (del \; dates)$, and suppose that we
+wish to define a lens of type $S^* \Leftrightarrow V^*$, where the difference
+function used on the view side is the min-edit distance difference function.
+Assuming that we inductively use the difference function
+$$ \delta(d_1, d_2) =
+\begin{cases}
+0 & \text{if }d_1 = d_2 \\
+1 & \text{otherwise}
+\end{cases}
+$$
+for both the name and date fields, then with the min-edit distance difference
+function, the difference between the string $v$ given by
+\begin{lstlisting}
+John Doe
+Jane Smith
+\end{lstlisting}
+and the string $v'$ given by
+\begin{lstlisting}
+Jane Smith
+John Doe
+\end{lstlisting}
+is the empty list. Let $s$ =
+\begin{lstlisting}
+John Doe,1900-2000
+Jane Smith,1901-2001
+\end{lstlisting}Then $\ell.\get \; s = v$. Now assume that $v$ is edited to $v'$
+given by
+\begin{lstlisting}
+Mark Moe
+John Doe
+Jane Smith
+\end{lstlisting}
+where a new record \lstinline|Mark Moe| has been added to $v$.
+With the min-edit distance on the view side, $\delta(v', \ell.\get \; s)$ is
+the singleton list [``Mark Moe''].
+
+On the source side, the min-edit distance matching lens $\ell^*_{MIN-EDIT}$,
+$\ell^*_{MIN-EDIT}.\pput \; s \; v'$ is the string
+\begin{lstlisting}
+Mark Moe,0000-0000
+John Doe,1900-2000
+Jane Smith,1901-2001
+\end{lstlisting}
+while with the positional lens $\ell^*$, then $\ell^*.\pput \; s \; v'$ is the
+string
+\begin{lstlisting}
+Mark Moe,1900-2000
+John Doe,1901-2001
+Jane Smith,0000-0000
+\end{lstlisting}
+With the min-edit distance difference function,
+$\delta(\ell^*_{MIN-EDIT}.\pput \; s \; v', s)$ is the singleton list
+$[\text{``Mark Moe, 0000-0000''}]$, while with the
+positional lens, $\delta(\ell^*.\pput \; s \; v', s)$ is the list
+given by
+\begin{lstlisting}
+Mark Moe,1900-2000
+(0,1)
+(0,1)
+\end{lstlisting}
+The min-edit distance satisfies \cref{difflenslaw} since
+\begin{align*}
+(\partial (S, V))^*.\get\; (\delta_S(\ell^*_{MIN-EDIT}.\pput \; s \; v', s)) &=
+(\partial (S, V))^*.\get\; ([\text{``Mark Moe, 1900-2000''}])\\
+&= [\text{``Mark Moe''}]\\
+&=
+\delta_V(v', \ell.\get \; s)
+\end{align*}
+On the other hand, the positional lens does not satisfy \cref{difflenslaw} since
+\begin{align*}
+(\partial (S, V))^*.\get\; (\delta_S(\ell^*.\pput \; s \; v', s)) &=
+(\partial (S, V))^*.\get\; ([\text{``Mark Moe, 1900-2000''}, (0,1), (0,1)])\\
+&=[\text{``Mark Moe''}, (0,*), (0,*)]\\
+& \neq \delta_V(v', \ell.\get \; s)
+\end{align*}
+Let $\mathcal{M}_V$ be the set of min-edit distance alignments on the view side,
+and $\mathcal{M}_S$ the corresponding alignments on the source side.
+Then, the typing judgement
+$$\ell^*_{MIN-EDIT}:(S, (\partial S \sqcup S)^*, \match(\mathcal{M}_S, \delta_s))
+\xLeftrightarrow{\partial(S, V)^*} (V, (\partial V \sqcup V)^*, \match(\mathcal{M}_V, \delta_v))$$
+is valid, whereas the typing judgement
+$$\ell^*:(S, (\partial S \sqcup S)^*, \match(\mathcal{M}_S, \delta_s))
+\xLeftrightarrow{\partial(S, V)^*} (V, (\partial V \sqcup V)^*, \match(\mathcal{M}_V, \delta_v))$$
+is not.
+\iffalse
+For example, if $\ell : S \Leftrightarrow V$ is a lens, Foster's initial
+definition of the iteration lens $\ell^* : S^* \Leftrightarrow V^*$ was
+\begin{align*}
+\ell^* .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot \ldots
+\cdot (\ell.\get \; s_n)\\
+\ell^* .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= t_1 \cdot
+\ldots \cdot t_n\\
+\text{ where } t_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\ell^*.\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot \ldots
+\cdot (\ell.\create \; v_n)
+\end{align*}
+This lens always propagates updates positionally, which is unintended behaviour
+in many cases. For example suppose that $\ell$ is a lens that transforms
+source data in the form of an XML document representing the names, dates and
+nationalities of a collection of classical music composers such as,
+
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1957</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin Britten</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+into view data stoored in ASCII text representing the names and dates of each
+composer:
+\begin{lstlisting}
+Jean Sibelius, 1865-1957
+Aaron Copland, 1910-1990
+Benjamin Britten, 1913-1976
+\end{lstlisting}
+Now suppose that the elements in the view are reordered:
+\begin{lstlisting}
+Aaron Copland, 1910-1990
+Benjamin Britten, 1913-1976
+Jean Sibelius, 1865-1957
+\end{lstlisting}
+Then with the positional iteration lens, the updated source is
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Aaron Copeland</name>
+<dates>1910-1990</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Benjamin Britten</name>
+<dates>1913-1976</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1957</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+so each of the composers now has the wrong nationality in the source.
+
+\section{Difference functions}
+\begin{definition}
+A weighted set is a pair $(X, |\cdot|)$ where $X$ is a set and $|\cdot| : X
+\longrightarrow \mathbb{R}^{\geq 0}$ is a map from $X$ to the non-negative
+reals.
+\end{definition}
+\begin{definition}
+A difference structure is a triple $(S, \partial S, \delta_S)$ where $S$ and
+$\partial S$ are weighted sets, and $\delta_S:
+S \times S \longrightarrow \partial S$ is a function satisfying
+\begin{align*}
+\delta(s, s') &= \delta(s', s)\tag{A1}\\
+|\delta(s, s)| &= 0\tag{A2}\\
+|\delta(s, s')| &\leq |s| + |s'|\tag{A3}
+\end{align*}
+We refer to the function $\delta$ as the difference function of the structure.
+\end{definition}
+\iffalse
+
+\begin{example}
+Let $X$ be any set. Define $x \leq y$ if and only if $x=y$, and define $|X|=1$
+for all $x \in X$. Let $Q = \{0,1\}$, and define
+$$\delta(a, b) = \begin{cases} 1 & \text{if } a \neq b\\
+0 & \text{otherwise}
+\end{cases}$$
+Then $\delta$ is a difference function.
+\end{example}
+
+Various different edit distances on strings give a way of defining delta
+functions on sets of strings:
+\begin{example}
+The {\em Levenshtein distance} between two words is the minimum number of
+single-character edits (insertions, deletions or substitutions) required to
+change one word into the other. For example, the Levenshtein distance between
+"kitten" and "sitting" is 3, since the following three edits change one into
+the other, and there is no way to do it with fewer than three edits:
+
+\begin{enumerate}
+  \item
+  kitten -> sitten (substitution of "s" for "k")
+  \item
+  sitten -> sittin (substitution of "i" for "e")
+  \item
+  sittin -> sitting (insertion of "g" at the end).
+\end{enumerate}
+\end{example}
+\begin{example}
+In contrast, the Longest Common Subsequence(LCS) distance only allows for
+insertions and deletions:
+\begin{enumerate}
+  \item
+  delete k at 0
+  \item
+  insert s at 0
+  \item
+  delete e at 4
+  \item
+  insert i at 4
+  \item
+  insert g at 6
+\end{enumerate}
+for a total cost/distance of 5 operations.
+\end{example}
+Both Levenshtein and LCS distances are integer-valued distance functions since
+they are metrics.
+\begin{example}
+If all the strings in a set are of the same length, then the {\em Hamming
+distance} is a difference function since the Hamming distance is also a metric.
+\end{example}
+\begin{example}
+Alignment algorithms also give us a way of defining integer-valued distance
+functions on sets of strings by taking the difference of two strings to be the
+total number of characters that are not equal according to the alignment.
+
+When deciding which alignment to choose between two strings, we often wish to
+choose an alignment that is optimal for alignment strategy. With
+the positional alignment strategy, given two strings $s$ and $t$, then $s_1$ is
+matched to $t_1$, $s_2$ is matched to $t_2$ and so on.
+Also, $\mathcal{M}_{POS}$ is an optimal set of alignments for a positional
+alignment strategy.
+
+For example, using the positional alignment strategy on the strings "kitten" and
+"sitting", then "k" is matched to "s", "i" to "i" and so on. The characters
+which are included in the delta from "kitten" are "k", "e" while the
+in the characters included from "sitting" are "s", "i" and "g", hence the delta
+is equal to 5.
+
+For the non-crossing strategy, we choose among alignments which are increasing
+rather than positional, while for the min-edit distance strategy, we consider
+all possible alignments.
+\end{example}
+
+\begin{example}\label{naturalnumbers}
+Let $P$ be the set of non-negative integers with weight function $|a| = a$. Then
+$\delta$ is a difference function.
+Define $\delta(a, b) = |a-b|$. Then $\delta$ is a difference function.
+\end{example}
+\begin{example}
+Let $X$ be a normed vector space and define $\delta(x, y) = |x-y|$. Then
+$\delta$ is a difference function (in fact, $\delta$ is also a metric).
+\end{example}
+\begin{example}\label{divisibility}
+Let $P$ be the set of positive integers with weight function $|\cdot|$ defined
+by $|p_1^{a_1} \cdot \ldots \cdot p_n^{a_n}| = a_1 + \ldots + a_n$. Define
+$\delta(a, b) = ab/(gcd(a, b))^2$.
+Then $\delta$ is a difference function.
+\end{example}
+\begin{example}\label{boolean}
+Let $X$ be a set and $P$ the set of finite subsets of $X$ with weight function
+given by the size of the set. Define $\delta(A, B) = (A \setminus B) \cup (B
+\setminus A)$. Then $\delta$ is a difference function.
+\end{example}
+\begin{example}\label{general}
+Generalizing \cref{divisibility} and
+\cref{boolean}, let $P$ be a graded complete semi-modular lattice satisfying
+$|\bigwedge P|=0$. Define $\delta(a, b) = \bigwedge \{x \; | \; (a \wedge b)
+\vee x = a\} \vee \bigwedge \{x \; | \; (a \wedge b) \vee x = b\}$. Then
+$\delta$ is a difference function.
+\end{example}
+\begin{proof}
+Let $a, b \in P$. Let $X = \{x \; | \; (a \wedge b) \vee x = a\}$ and $Y = \{y
+\; | \; (a \wedge b) \vee y = b\}$
+\begin{enumerate}
+  \item[(A1)]
+  Certainly $\delta(a, b) = \delta(b, a)$.
+  \item[(A2)]
+  Observe that $\bigwedge X = \bigwedge Y = \bot$, hence $\delta(a,
+  a) = \bot$, and $|\delta(a, a)| = |\bot| = 0$.
+  \item[(A3)]
+  Since $P$ is semi-modular, then $|x \wedge y| + |x \vee y| \leq |x| + |y|$
+  for all $x, y \in P$, from which it follows that $$|\delta(a, b)| =
+  \left|\bigwedge X \vee \bigwedge Y\right| \leq \left|\bigwedge X \vee
+  \bigwedge Y\right| + \left|\bigwedge X \wedge \bigwedge Y\right| \leq
+  \left|\bigwedge X\right| + \left|\bigwedge Y\right|$$
+\end{enumerate}
+\end{proof}
+\fi
+
+\subsection{Constructions on difference functions}
+\subsubsection{Products}
+Given difference functions $\delta_i: P_i \times P_i \longrightarrow Q_i$ for
+$i \in \{1,2\}$, define $\delta_1 \times \delta_2 :(P_1 \times P_2) \times
+(P_1 \times P_2) \longrightarrow (Q_1 \times Q_2)$ by
+$$(\delta_1 \times \delta_2)((x, y), (x', y')) = (\delta_1(x, x'), \delta_2(y,
+y'))$$
+\begin{claim}
+$\delta_1 \times \delta_2$ is a difference function.
+\end{claim}
+\begin{proof}
+Let $x, x' \in P_1$ and $y, y' \in P_2$.
+\begin{enumerate}
+  \item[(A1)]
+  Observe that
+  \begin{align*}
+(\delta_1 \times \delta_2)((x, y), (x', y')) &= (\delta_1(x, x'),
+\delta_2(y, y'))\\
+&= (\delta_1(x', x), \delta_2(y', y))\\
+&= (\delta_1 \times \delta_2)((x', y'), (x, y))
+\end{align*}
+\item[(A2)] Observe that
+$$|(\delta_1 \times \delta_2)((x, y), (x, y))| = |(\delta_1(x, x),
+\delta_2(y, y))| = |\delta_1(x, x)| + |\delta_2(y,y)| = 0 + 0 = 0$$
+\item[(A3)]
+Observe that
+\begin{align*}
+|(\delta_1 \times \delta_2)((x, y), (x', y'))| &= |(\delta_1(x, x'),
+\delta_2(y, y'))|\\
+&= |(\delta_1(x, x')| + |(\delta_2(y, y')|\\
+&\leq (|x| + |x'|) + (|y| + |y'|)\\
+&= (|x| + |y|) + (|x'| + |y'|)\\
+&= |(x, y)| + |(x', y')|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\subsubsection{Coproducts}
+Given difference functions $\delta_i: P_i \times P_i \longrightarrow Q_i$ for
+$i \in \{1,2\}$, define $\delta_1 \sqcup \delta_2 :P_1 \sqcup P_2
+\longrightarrow Q_1 \sqcup Q_2 \sqcup (P_1 \times P_2)$ by
+$$(\delta_1 \sqcup \delta_2)(x, y) =
+\begin{cases}
+\delta_1(x, y) & \text{if }x, y \in P_1\\
+\delta_2(x, y) & \text{if }x, y \in P_2\\
+(x, y) & \text{if }x \in P_1, y \in P_2\\
+(y, x) & \text{if }x \in P_2, y \in P_1
+\end{cases}$$
+\begin{claim}
+$\delta_1 \sqcup \delta_2$ is a difference function
+\end{claim}
+\begin{proof}
+Let $x, x' \in P_1$ and $y, y' \in P_2$.
+\begin{enumerate}
+  \item[(A1)]
+  If $x, y \in P_i$, then $(\delta_1 \sqcup \delta_2)(x, y) = \delta_i(x, y) =
+  \delta_i(y, x)$. If $x \in P_1$ and $y \in P_2$, then $(\delta_1 \sqcup
+  \delta_2)(x, y) = (x, y) = (\delta_1 \sqcup \delta_2)(y, x)$, and similarly
+  if $x \in P_2$ and $y \in P_1$, then $(\delta_1 \sqcup \delta_2)(x, y) =
+  (y,x) = (\delta_1 \sqcup \delta_2)(y, x)$
+  \item[(A2)] If $x \in P_i$, then $|(\delta_1 \sqcup \delta_2)(x, x)| =
+  |\delta_i(x, x)| = 0$
+  \item[(A3)]
+  If $x, y \in P_i$, then $|(\delta_1 \sqcup \delta_2)(x, y)| = |\delta_i(x, y)|
+  \leq |x| + |y|$. If $x \in P_1$ and $y \in P_2$, then $|(\delta_1 \sqcup
+  \delta_2)(x, y)| = |(x, y)| = |x| + |y|$, and if $x \in P_2$ and $y \in
+  P_1$, then $|(\delta_1 \sqcup \delta_2)(x, y)| = (|(y, x)|) = |y| + |x|$.
+\end{enumerate}
+\end{proof}
+\subsubsection{List difference functions}
+Let $P$ be a weighted set. Let $x=(x_1, \ldots, x_m), y=(y_1, \ldots, y_n)$ be
+in $P^*$. Given a difference function $\delta: P \times P \longrightarrow Q$, we
+define the list difference function $\delta^*:P^* \longrightarrow (Q \sqcup
+P)^*$ on $x$ and $y$ to be the list given by $\delta(x_i, y_i)$ for $1 \leq i
+\leq m$, except that we omit $\delta(x_i, y_i)$ in position $i$ if $x_i = y_i$.
+For $m < i \leq n$ we add $y_i$ at position $i$. Finally we collapse the list
+to get rid of the empty spaces left after the omissions.
+
+For instance suppose that $S$ is the set of all letters in the alphabet and
+$\partial S = \{\epsilon\} \sqcup \{\{x, y\} \; | \; x, y \in S, x \neq y\}$
+with $$\delta(x, y) =
+\begin{cases}
+\epsilon & \text{if } x = y\\
+\{x,y\} & \text{if } x \neq y
+\end{cases}$$
+Then $\delta_S^*((a, c, b, d), (a, b, c, d, e)) = (\{b, c\}, \{b, c\},
+e)$ where we match and remove the first $a$ and the fourth $d$ in. Since $b \neq
+c$ we have $\{b,c\}$ in the second and third positions, and since $e$ is
+unmatched, we include $e$ in the fifth position. Finally we collapse the list to
+get rid of the two empty spaces created.
+
+\begin{claim}
+$\delta^*$ is a difference function
+\end{claim}
+\begin{proof}
+Let $x = (x_1, \ldots, x_m), y = (y_1, \ldots, y_n) \in P^*$.
+\begin{enumerate}
+  \item[(A1)]
+  By construction $\delta^*(x, y) = \delta^*(y, x)$.
+  \item[(A2)] Observe that $|\delta^*(x, x)| = \sum_{i=1}^m|\delta(x_i,
+  x_i)| =  \sum_{i=1}^m 0 = 0$.
+  \item[(A3)]
+  Assume WLOG that $m \leq n$. Then
+  \begin{align*}
+|\delta^*(x, y)| &=
+\sum_{i=1}^m|\delta(x_i, y_i)| + \sum_{i=m+1}^n |y_i|\\
+&\leq \sum_{i=1}^m|x_i| + |y_i| + \sum_{i=m+1}^n |y_i|\\
+&= \sum_{i=1}^m|x_i| + \sum_{i=1}^n |y_i|\\
+&= |x| + |y|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\subsubsection{Matching difference functions}
+Now let $\mathcal{M} = \{\varphi_{(x_1, \ldots, x_m), (y_1, \ldots, y_n)} \; |
+\; x_i, y_j \in P, m \leq n\}$ be a set of injective functions $\varphi_{(x_1,
+\ldots, x_m), (y_1, \ldots, y_n)} : [m] \longrightarrow [n]$. Given a difference
+function $\delta:
+P \times P \longrightarrow Q$, we define the difference function
+$\match(\mathcal{M}, \delta):P^* \longrightarrow (Q \sqcup P)^*$ on $x$
+and $y$ to be the list given by $\delta(x_i, y_{\varphi(i)})$ in position
+$\varphi(i)$ for $1 \leq i \leq m$, except that we omit $\delta(x_i,
+y_{\varphi(i)})$ in position $\varphi(i)$ if $x_i = y_{\varphi(i)}$. For $i \in
+[n] \setminus \varphi([m])$ we add $y_i$ at position $i$. Finally we collapse
+the list to get rid of the empty spaces left after the omissions.
+
+Going back to our previous example, let $x = \{a, c, b, d\}$ and $y = \{a, b, c,
+d, e\}$, and assume that $\varphi_{x, y} : [4] \longrightarrow [5]$ is given by
+$$\varphi(1) = 1, \; \varphi(2) = 3, \; \varphi(3) = 2, \text{ and } \varphi(4)
+= 4$$ Then $\match(\mathcal{M}, \delta)((a, c, b, d), (a, b, c, d, e)) =
+(e)$.
+\begin{claim}
+$\match(\mathcal{M}, \delta)$ is a difference function.
+\end{claim}
+\begin{proof}
+Let $x = \{x_1, \ldots, x_m\}, y = \{y_1, \ldots, y_n\} \in \match(P)$.
+\begin{enumerate}
+  \item[(A1)]
+  By construction $\match(\mathcal{M}, \delta)(x, y) =
+  \match(\mathcal{M}, \delta)(y, x)$.
+  \item[(A2)] Observe that $|(\match(\mathcal{M}, \delta))(x, x)| =
+  \sum_{i=1}^m|\delta(x_i, x_{\varphi(i)}| = |\delta(x_i, x_i)| =   \sum_{i=1}^m
+  0 = 0$.
+  \item[(A3)]
+  Assume WLOG that $m \leq n$. Then
+  \begin{align*}
+|\match(\mathcal{M}, \delta)(x, y)| &=
+\sum_{i=1}^m|\delta(x_i, y_{\varphi(i)})| + \sum_{i \in [n] \setminus
+\varphi([m])} |y_i|\\
+&\leq \sum_{i=1}^m|x_i| + |y_{\varphi(i)}| + \sum_{i \in [n] \setminus
+\varphi([m])} |y_i|\\
+&= \sum_{i=1}^m|x_i| + \sum_{i=1}^n |y_i|\\
+&= |x| + |y|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\fi
+\section{Lens Combinators}
+\subsection{Copy}
+Let $P$ be any set. Define the $\ccopy(P) : P \Leftrightarrow P$ by
+\begin{align}
+\ccopy(P).\get \; s &= s\\
+\ccopy(P).\pput \; s \; v &= v\\
+\ccopy(P).\create \; v &= v
+\end{align}
+Then $\ccopy(P)$ is a lens. Now let $\partial S$ be a set, $\delta :
+S \times S \longrightarrow \partial S$ a function.
+\begin{claim}
+$\ccopy(S) : S \xLeftrightarrow{\delta , \ccopy(\partial S), \delta} S$.
+\end{claim}
+\begin{proof}
+We need to show that $(\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput
+\; s \; v, s)) = \delta(v, \ccopy(S).\get \; s)$ which follows from the fact
+that $$ (\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput \; s
+\; v, s)) = \delta(\ccopy(S).\pput \; s \; v, s) = \delta(v, \ccopy(S).\get
+\; s) $$
+\end{proof}
+\subsection{Constant}
+Let $S$ be any set with $s'\in S$. Define the \const lens $\const(S) : S
+\Leftrightarrow \{\star\}$ by
+\begin{align*}
+\const.\get \; s &= \star\\
+\const.\pput \; s \; v &= s\\
+\const.\create \; v &= s'
+\end{align*}
+Then $\const(S)$ is a lens. 
+\begin{claim}
+Let $\partial S$ be any set, and $\delta : S \times S \longrightarrow \partial
+S$ any function satisfying $\delta(s, s) = \delta(s', s')$ for all $s, s' \in
+S$. Define $\beta : \{\star\} \times \{\star\} \longrightarrow \partial S$ by
+$\beta(\star, \star) = \delta(s, s)$ for any $s \in S$. Let $\ell : \partial S
+\Leftrightarrow \partial S$ be any lens satisfying $\ell.\get \; \delta(s, s) =
+\delta(s, s)$ for all $s \in S$. Then $\const(S): S \xLeftrightarrow{\delta,
+\ell, \beta} \{\star\}$.
+\end{claim}
+\begin{proof}
+We need to show that $\ell.\get \; (\delta(\const(S).\pput \; s \; \star, s)) =
+\beta (\star, \const(S).\get \; s)$
+which follows from the fact that
+$$ \ell.\get \; (\delta(\const(S).\pput \; s \; \star, s)) = \ell.\get
+\; \delta(s, s) = \delta(s, s) = \beta(\star, \star) = \beta(\star,
+\const(S).\get \; s)$$
+\end{proof}
+
+\subsection{Default}
+Let $\ell : S \Leftrightarrow V$ be a lens. Let $f :
+V \longrightarrow S$ be any function. Define the lens $\default(\ell, f) :
+S \Leftrightarrow V$ by
+\begin{align*}
+\default(\ell, f).\get \; s &= \ell.\get \; s\\
+\default(\ell, f).\pput \; s \; v &= \ell.\pput \; s \; v\\
+\default(\ell, f).\create \; v &= \ell.\pput \; (f \; v) \; v
+\end{align*}
+ 
+\begin{claim}
+If $\ell : S \xLeftrightarrow{\delta_S, \partial (S, V), \partial V}
+V$ and $f: S \longrightarrow V$, then $\default(\ell, f) : S
+\xLeftrightarrow{\delta_S, \partial (S, V), \partial V} V$.
+\end{claim}
+\begin{proof}
+Follows from the fact that $\ell : S \xLeftrightarrow{\delta_S, \partial (S, V),
+\partial V} V$.
+\end{proof}
+\subsection{Product}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens $\ell_1 \times \ell_2 : (S_1 \times S_2) \Leftrightarrow
+(V_1 \times V_2)$ by
+\begin{align*}
+(\ell_1 \times \ell_2).\get \; (s_1, s_2) &= (\ell_1.\get \; s_1, \ell_2.\get
+\; s_1)\\
+(\ell_1 \times \ell_2).\pput \; (s_1, s_2) \; (v_1, v_2) &= (\ell_1.\pput \; s_1
+\; v_1, \ell_2.\pput \; s_2 \; v_2)\\
+(\ell_1 \times \ell_2).\create \; (v_1, v_2) &= (\ell_1.\create \; v_1,
+\ell_2.\create \; v_2)
+\end{align*}
+\begin{claim}\label{productislens}
+If $\ell_1 :S_1 \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_1 \times \ell_2  : S_1 \times S_2 
+\xLeftrightarrow{\delta_{S_1} \times \delta_{S_2}, \partial (S_1, V_1) \times
+\partial (S_2, V_2), \delta_{V_1} \times \delta_{V_2}} V_1 \times V_2$.
+\end{claim}
+\begin{proof}
+We need to show that
+$$(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2))) = \delta((v_1, v_2),
+(\ell_1 \times \ell_2).\get \; (s_1, s_2))$$ which follows from the fact that
+\begin{align*}
+&(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2)))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(\delta((\ell_1.\pput \; s_1 \; v_1, \ell_2.\pput \; s_2 \; v_2), (s_1, s_2))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(\delta(\ell_1.\pput \; s_1 \; v_1, s_1), \delta(\ell_2.\pput \; s_2 \; v_2,
+s_2))\\
+&= ((\partial (S_1, V_1)).\get \; (\delta(\ell_1.\pput \;
+s_1 \; v_1, s_1)), (\partial (S_2, V_2)).\get \; (\delta(\ell_2.\pput \; s_2 \;
+v_2, s_2)))\\
+&= (\delta(v_1, \ell_1.\get \; s_1), \delta(v_2, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1.\get \; s_1, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1 \times \ell_2).\get \; (s_1, s_2))
+\end{align*}
+\end{proof}
+\subsection{Sum}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens
+$\ell_1 \sqcup \ell_2 :
+(S_1 \sqcup S_2) \Leftrightarrow (V_1 \sqcup V_2)$ by
+\begin{align*}
+(\ell_1 \sqcup \ell_2).\get \; s &=
+\begin{cases}
+\ell_1.\get \; s & \text{if } s \in S_1\\
+\ell_2.\get \; s & \text{if } s \in S_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\pput \; s \; v&=
+\begin{cases}
+\ell_1.\pput \; s \; v& \text{if } s \in S_1, \; v \in V_1\\
+\ell_2.\pput \; s \; v& \text{if } s \in S_2, \; v \in V_2\\
+\ell_1.\create \; v & \text{if } s \in S_2, \; v \in V_1\\
+\ell_2.\create \; v & \text{if } s \in S_1, \; v \in V_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\create \; v &=
+\begin{cases}
+\ell_1.\create \; v & \text{if } v \in V_1\\
+\ell_2.\create \; v & \text{if } v \in V_2\\
+\end{cases}
+\end{align*}
+
+\begin{claim}
+If $\ell_1 : S_1  \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_1 \sqcup \ell_2 : S_1 \sqcup S_2 \xLeftrightarrow{\delta_{S_1} \sqcup
+\delta_{S_2}, \partial (S_1, V_1) \sqcup \partial (S_2, V_2) \sqcup (\ell_1
+\times \ell_2), \delta_{V_1} \sqcup \delta_{V_2}} V_1 \sqcup V_2$
+\end{claim}
+\begin{proof}
+We need to show that
+$$(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) = \delta(v, (\ell_1 \sqcup
+\ell_2).\get \; s)$$
+
+The result holds inductively if $s \in S_1$ and $v \in V_1$ or $s \in S_2$ and
+$v \in V_2$. Otherwise, assume without loss of generality
+that $s \in S_1$ and $v \in V_2$. Then
+\begin{align*}
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) &=
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \; (\delta(\ell_2.\create
+\; v, s))\\
+&= (\ell_1 \times \ell_2).\get \; (s, \ell_2.\create \; v)\\
+&= (\ell_1.\get \; s, \ell_2.\get \; (\ell_2.\create \; v))\\
+&= (\ell_1.\get \; s, v)\\
+&= \delta(v, \ell_1.\get \; s)\\
+&= \delta(v, (\ell_1 \sqcup \ell_2).\get \; s)
+\end{align*}
+\end{proof}
+\subsection{Positional Iteration}
+Let $\ell : S \Leftrightarrow V$ be a lens and define the lens $\ell^*:
+S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\ell^* .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot \ldots
+\cdot (\ell.\get \; s_n)\\
+\ell^*.\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= s'_1 \cdot
+\ldots \cdot s'_n\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\ell^*.\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot \ldots
+\cdot (\ell.\create \; v_n)
+\end{align*}
+
+\begin{claim}\label{positionalisvalid}
+If $\ell: S \xLeftrightarrow{\delta_S, \partial (S, V), \delta_V}
+V$, then $\ell^*: S^* \xLeftrightarrow{\delta_{S}^*, (\partial (S, V) \sqcup
+\ell)^*, \delta_{V}^*} V^*$.
+\end{claim}
+\begin{proof}
+We need to show that
+\begin{multline}
+(\partial (S, V) \sqcup \ell)^*.\get \;
+(\delta_S^*(\ell^*.\pput \; (s_1, \ldots, s_n) \; (v_1, \ldots,
+v_m), (s_1, \ldots, s_n))) \\
+= \delta_V^*((v_1, \ldots, v_m), \ell^*.\get \; (s_1, \ldots,
+s_n))
+\end{multline}
+Let $1 \leq i \leq \min\{m, n\}$. Observe that $v_i = \ell.\get \; s_i$ if and
+only if $\ell.\pput \; s_i \; v_i = s_i$, so $\delta_V^*$ omits
+$\delta_V(v_i, \ell.\get \; s_i)$ in position $i$ if and only if
+$\delta_S^*$ also omits $\delta_S(\ell.\pput \; s_i \; v_i, s_i)$ in
+position $i$; if no omission occurs, then $\delta(S, V).\get \;
+(\delta(\ell.\pput \; s_i \; v_i, s_i)) = \delta(v_i, \ell.\get \; s_i)$ since
+$(\ell, \partial(S,V))$ is a delta lens. For $\min\{m,n\} < i \leq m$, then
+$\delta_V^*$ adds $v_i$ in position $i$, and $\delta_S^*$ adds
+$\ell.\create \; v_i$ in position $i$, which gives the desired result since
+$$(\partial (S, V) \sqcup \ell).\get \; (\ell.\create \; v_i) = \ell.\get \;
+(\ell.\create \; v_i)) = v_i$$
+\end{proof}
+\subsection{Matching Iteration}
+\iffalse
+When defining a $\match(\mathcal{M}, \delta)$ difference function, we often wish for
+$\mathcal{M}$ to be an optimal set of matchings for some alignment strategy.
+
+For instance, define the set of matchings $\mathcal{M}_{POS}$ by
+$$\mathcal{M}_{POS} = \{\varphi_{(a_1, \ldots, a_m), (b_1, \ldots, b_n)}:[m]
+\longrightarrow [n] \; | \; m \leq n, \varphi_{(a_1, \ldots, a_m), (b_1,
+\ldots, b_n)}(i) = i\}$$ Then $\mathcal{M}_{POS}$ is an optimal set of
+matchings for a positional alignment strategy.
+
+For the non-crossing strategy, we want to our matchings to be increasing rather
+than positional. That is, given a valid set of matchings $\mathcal{M}$, let
+$\mathcal{M}_{a, b} = \varphi_{a, b} \in \mathcal{M}$, and for $a, a' \in P$
+with $a=(a_1, \ldots, a_m)$ and $a'=(a'_1, \ldots, a'_n)$, define
+$\mathcal{M}^{NC}_{a, b}$ by
+$$\mathcal{M}^{NC}_{a, a'} = \argmin_{\substack{\mathcal{M}_{a, a'} \\
+\mathcal{M}_{a, a'} \text{ is increasing}}} |\match(\mathcal{M}_{a, a'},
+\delta)(a, a')|$$
+There may be multiple matchings which for which the size of the delta is
+minimal, in which case we pick the lexicographically smallest matching.
+Then $\mathcal{M}^{NC}$ is an optimal set of matchings for a non-crossing
+alignment strategy.
+
+Finally, for a min-edit distance strategy, we simply remove the condition that
+the matchings should be increasing. That is, define
+$\mathcal{M}^{MED}_{a, b}$ by
+$$\mathcal{M}^{MED}_{a, a'} = \argmin_{\mathcal{M}_{a, a'}}
+|\match(\mathcal{M}_{a, a'}, \delta)(a, a')|$$
+Then $\mathcal{M}_{MED}$ is an optimal set of matchings for a min-edit distance
+alignment strategy.
+\fi
+Assume that $\ell: S \Leftrightarrow V$. Let $\mathcal{M}_V = \{\varphi_{x, y}
+\; | \; x, y \in V^*\}$ be a set of alignments between $x$ and $y$ for each $x,
+y \in V^*$. For each $s, s' \in S^*$, let $\varphi_{s, s'} = \varphi_{\ell.\get
+\; s, \ell.\get \; s'}$. Define $\mathcal{M}_S$ by $\mathcal{M}_S =
+\{\varphi_{s, s'} \; | \; s, s' \in S^*\}$. Define the lens
+$\match(\mathcal{M}_V, \ell) : S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\match(\mathcal{M}_V, \ell) .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1)
+\cdot \ldots \cdot (\ell.\get \; s_n)\\
+\match(\mathcal{M}_V, \ell) .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n)
+&= (s'_1 , \ldots , s'_n)\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_{\psi(i)} \; v_i & \text{if } i \in Dom(\psi)\\
+\ell.\create \; v_i & \text{if } i \not \in Dom(\psi)
+\end{cases}\\
+\text{ and } \psi &= \varphi_{(v_1, \ldots, v_n), ((\ell.\get \; s_1), \ldots,
+(\ell.\get \; s_m))}\\
+\match(\mathcal{M}_V, \ell).\create \; (v_1, \ldots, v_n) &= (\ell.\create \;
+v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
+\end{align*}
+Assume that 
+\begin{claim}
+If $\ell: S \xLeftrightarrow{\delta_{S}, \partial (S, V), \delta_{V}}
+V$, then $\match(\mathcal{M}_V, \ell) : S^*
+\xLeftrightarrow{\match(\mathcal{M}_S, \delta_{S}), \partial (S, V)^*,
+\match(\mathcal{M}_V, \delta_V)} V^*$.
+\end{claim}
+\begin{proof}
+Observe that the matching used to compute the delta on the source side is
+the same as the matching used to compute the matching on the view side, hence we
+may take the update lens to be position and proceed with the rest of the proof
+as in \cref{positionalisvalid}.
+\end{proof}
+\subsection{Composition}
+Let $\ell_1 : S \Leftrightarrow U$ and $\ell_2 : U \Leftrightarrow V$ be lenses.
+Define the lens $\ell_2 \circ \ell_1 : S \Leftrightarrow V$ by
+\begin{align*}
+(\ell_2 \circ \ell_1).\get \; s &= \ell_2.\get \; (\ell_1.\get \; s)\\
+(\ell_2 \circ \ell_1).\pput \; s \; v &= \ell_1.\pput \; s \; (\ell_2.\pput \;
+(\ell_1.\get \; s) \; v) \\
+(\ell_2 \circ \ell_1).\create \; v &= \ell_1.\create \; (\ell_2.\create \; v)
+\end{align*}
+
+\begin{claim}
+If $\ell_1 : S_1  \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_2 \circ \ell_1 :  S \xLeftrightarrow{\delta_S, \partial
+(S_2, V_2) \circ \partial (S_1, V_1), \delta_V} V$.
+\end{claim}
+\begin{proof}
+We need to show that
+$$
+(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta(\ell_2 \circ
+\ell_1).\pput \; s \; v, s) = \delta(v, (\ell_2 \circ \ell_1).\get \; s)$$
+
+This follows from the fact that
+\begin{align*}
+&(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta_S((\ell_2 \circ
+\ell_1).\pput \; s \; v, s))\\
+&=(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta_S(\ell_1.\pput
+\; s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s))\\
+&= (\partial (S_2, V_2)).\get \; ((\partial (S_1, V_1)).\get \;
+(\delta_S(\ell_1.\pput \; s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s)))\\
+&= (\partial (S_2, V_2)).\get \; (\delta_U(\ell_2.\pput \; (\ell_1.\get \; s)
+\; v, \ell_1.\get \; s))\\
+&= \delta_V(v, \ell_2.\get \; (\ell_1.\get \; s))\\
+&= \delta_V(v, (\ell_2 \circ \ell_1).\get \; s)
+\end{align*}
+\end{proof}
+\iffalse
+\section{Symmetric Delta Lenses}
+Assume that $(X, \partial X, \delta_X)$ and $(Y, \partial Y, \delta_Y)$
+are difference structures. A symmetric delta lens is a pair $(\ell, \partial
+\ell)$ where $\ell : X \Leftrightarrow Y$ is a symmetric lens, and
+$\partial \ell : \partial X \Leftrightarrow \partial Y$ is a symmetric lens
+such that
+\begin{enumerate}
+  \item
+  if $\ell.putr(x, c) = (y, c)$ and $\ell.putl(y', c) = (x', c')$,
+  then $\partial \ell.putl \; (\delta(y, y'), \delta(c, c')) = (\delta(x,
+  x'), \delta(c, c'))$
+  \item
+  if $\ell.putl(y, c) = (x, c)$ and $\ell.putr(x', c) = (y', c')$, then
+  $\partial \ell.putr \; (\delta(x, x'), \delta(c, c')) = (\delta(y, y'),
+  \delta(c, c'))$
+\end{enumerate}
+\begin{fact}[Identity Lens]
+Given any symmetric lens $\partial X : X \Leftrightarrow X$, $(id_X, \partial
+X)$ is a symmetric delta lens
+\end{fact}
+\begin{fact}[Bijective Lenses]
+Assume that $f : X \longrightarrow Y$ and $g : \partial X \longrightarrow
+\partial Y$ are bijections. Assume that $g(\delta(x, x')) = \delta(f(x),
+f(x'))$. Then $(bij_f, bij_g)$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Lens Composition]
+If $(\ell_1, \partial \ell_1) : (X, \partial X, \delta_X) \Leftrightarrow (Y,
+\partial Y, \delta_Y)$ and $(\ell_2, \partial \ell_2): (Y, \partial Y,
+\delta_Y) \Leftrightarrow (Z, \partial Z, \delta_Z)$ are symmetric delta
+lenses, then $(\ell_1;\ell_2, \partial \ell_1;\partial \ell_2)$ is a symmetric
+delta lens.
+\end{fact}
+\begin{fact}[Dual of a Lens]
+If $(\ell, \partial \ell)$ is symmetric delta lens, then $(\ell^{op}, \partial
+\ell^{op})$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Terminal Lens]
+$(term_x, term_{\delta(x, x)})$ is a symmetric delta lens
+\end{fact}
+\begin{corollary}[Disconnect Lens]
+If $x \in X$ and $y \in Y$, then $(term_x;term_y^{op},
+term_{\delta(x, x)};term_{\delta(y, y)}^{op})$ is a symmetric delta lens.
+\end{corollary}
+\begin{fact}[Tensor Product Lens]
+If $(\ell_1, \partial \ell_1)$ and $(\ell_2, \partial \ell_2)$ are symmetric
+delta lenses, then $(\ell_1 \otimes \ell_2, \partial \ell_1 \otimes \partial
+\ell_2)$ is a symmetric delta lens.
+\end{fact}
+\begin{corollary}[Projection Lens]
+Projection lenses are symmetric delta lenses.
+\end{corollary}
+\begin{fact}[Forgetful Tensor Sum Lens]
+If $(\ell_1, \partial \ell_1)$ and $(\ell_2, \partial \ell_2)$ are symmetric
+delta lenses, then $(\ell_1 \oplus^f \ell_2, \partial \ell_1 \oplus^f \partial
+\ell_2 \oplus (\ell_1 \otimes \ell_2))$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Forgetful List Mapping Lens]
+If $(\ell, \partial \ell)$ is a symmetric delta lens, then $(map^f(\ell)
+\ell_2, map^f(\partial \ell))$ is a symmetric delta lens.
+\end{fact}
+\begin{remark}[Retentive Lenses]
+The retentive tensor sum and list mapping lenses are in general not symmetric
+delta lenses with the obvious definitions of difference functions.
+\end{remark}
+\fi
+\section{Relational Lenses}
+We define a {\em relation} $R$ of type $((T_1, \ldots, T_n), P, F)$ to be a
+multiset $R$ where $T_i, P$ are sets satisfying $R \subseteq P \subseteq T_1
+\times \ldots \times T_n$, $F \subseteq [n] \times [n]$, and if $i, j \in F$,
+then for all $r, r' \in R$, if $r_i = r'_i$ then $r_j = r'_j$. We interpret the
+$T_i$ to be a set of {\em attributes}, $R$ to be a set of {\em records} with
+$dom(r) = (T_1, \ldots, T_n)$ for all $r \in R$, $P$ to be a {\em predicate}
+such that the records in $R$ satisfy $P$, and $F$ to be a set of {\em
+functional dependencies} on the attributes of the records in $R$.
+
+Let $G(F)$ be the graph induced by $F$ on $T_1, \ldots, T_n$ i.e. there is an
+edge from $T_i$ to $T_j$ if and only if $(i, j) \in F$. We say that $F$ is
+in {\em tree form} if $G(F)$ is a DAG and every vertex has indegree at most 1;
+following \cite{bohannon2006relational},we will always assume that $F$ is in
+tree form from here on. Observe that every record $r$ is completely determined
+by nodes of indegree 0 in $G(F)$: if $Roots(G(F)) = \{T_{i_1}, \ldots,
+T_{i_k}\}$ is the set of nodes of indegree 0 and outdegree greater than 0 in
+$G(F)$ and $Isolated(G(F)) = \{T_{j_1}, \ldots, T_{j_\ell}\}$ is the set of
+nodes of indegree 0 and outdegree 0 in $G(F)$, then for any $r = (r_1, \ldots,
+r_n)\in R$, then the map $((r_{i_1}, \ldots, r_{i_k}), (r_{j_1}, \ldots,
+r_{j_\ell}))$ is a bijection since the $r_{i_1}, \ldots, r_{i_k}$ determine all
+nodes of indegree greater than 0, which leaves just the nodes $r_{j_1}, \ldots,
+r_{j_\ell}$.
+
+In order to define lenses in relations, we first need to describe data
+structures representing the relation; lenses will operate on the data
+structures rather than on relations. Let $Outputs(F) = G(F) \setminus
+(Roots(G(F)) \cup Isolated(G(F)))$. We choose to represent a relation with the
+following data:
+\begin{enumerate}
+  \item
+  A partial map $data : (T_{i_1} \times \ldots \times T_{i_k})
+  \longrightarrow 2^{(T_{j_1} \times \ldots \times T_{j_{\ell}})}$ such that
+  there exists a record $r \in R$ with $r[T_{i_1}, \ldots, T_{i_k}] =
+  (t_{i_1}, \ldots, t_{i_k})$ if and only if
+  $$data(t_{i_1}, \ldots, t_{i_k}) =  \{\{r[T_{j_1}, \ldots, T_{j_{\ell}}] \in
+  R \; | \; r_{i_m} = t_{i_m} \text{ for }1 \leq m \leq k\}\}$$
+  \item
+  A map $dependencies : outputs(F) \longrightarrow \cup_{i,j} 2^{T_i \times
+  T_j}$ such that $(p, q) \in dependencies(j)$ if and only if there exists a
+  record $r \in R$ such that $r[T_i, T_j] = (p, q)$, where $i$ is such that
+  $T_i \longrightarrow T_j \in F$ ($i$ is unique as $F$ is assumed to be in tree
+  form).
+\end{enumerate}
+\subsection{Select}
+We say that a predicate $P$ ignores a set of attributes $X$ if for all $r, r'
+\in R$, if $r[dom(R) \setminus X] = r'[dom(R) \setminus X]$ implies that $r
+\in P$ if and only if $r' \in P$.
+
+The {\em select} lens on $R$ evaluates to a relation which is the same as $R$
+but which satisfies a predicate $P$. The inferrence rule for deriving the select
+lens is the following:
+\begin{prooftree}
+\AxiomC{$R : ((T_1, \ldots, T_2), Q, F)$}
+\AxiomC{$S : ((T_1, \ldots, T_2), P \cap Q, F)$}
+\AxiomC{$F$ is in tree form}
+\AxiomC{$P$ ignores $Outputs(F)$}
+\QuaternaryInfC{$(select \; from \; R\; where \; P \; as \; S) : R
+\Leftrightarrow S$}
+\end{prooftree}
+In the get direction, the select lens simply restricts $R$ to $P$. Now consider
+$put \; s \; r$. The select lens proceeds as follows:
+\begin{enumerate}
+  \item
+  First, it computes $(data_s, dependencies_s)$ and $(data_r, dependencies_r)$.
+  \item
+  Next, it updates $dependencies_r$ using $dependencies_s$ to get
+  $dependencies_r'$.
+  \item
+  Next it filters $data_r$ to contain only records not in $P$ to get $data_r'$.
+  \item
+  Next, it computes $(data_r' \cup data_s, dependencies_r')$.
+  \item
+  Finally, it deletes the records from $data_r' \cup data_s$ that would cause
+  PUT-GET to fail.
+\end{enumerate}
+\section{Matching Lenses}
+\begin{definition}
+A {\em basic lens} $\ell : S \xLeftrightarrow{C} V$ is a 4-tuple of functions
+$\ell.\get : S \longrightarrow V$, $\ell.\res : S \longrightarrow C$,
+$\ell.\pput : V \longrightarrow C \longrightarrow S$ and $\ell.\create : V
+\longrightarrow S$ satisfying the following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; v \; c) &= v \tag{PUTGET}\\
+\ell.\pput \; (\ell.\get \; s) \; (\ell.\res \; s) &= s \tag{GETPUT}
+\end{align*}
+\end{definition}
+Idea: First remove matched parts to leave unmatched skeleton. Next remove
+unmatched parts to leave matched skeleton and then flatten.
+%% Acknowledgments
+\begin{acks}                            %% acks environment is optional
+%% contents suppressed with 'anonymous'
+%% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+%% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+%% acknowledge financial support and will be used by metadata
+%% extraction tools.
+This material is based upon work supported by the
+\grantsponsor{GS100000001}{National Science
+Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
+No.~\grantnum{GS100000001}{nnnnnnn} and Grant
+No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
+conclusions or recommendations expressed in this material are those
+of the author and do not necessarily reflect the views of the
+National Science Foundation.
+\end{acks}
+\fi
+\bibliographystyle{plain}
+\bibliography{local}
+%% Appendix
+%%\appendix
+%%\section{Appendix}
+
+\end{document}
+\newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifplentyoftime\plentyoftimefalse  % :-)
+
+% % For double-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For double-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
+% % For single-blind review submission, w/o CCS and ACM Reference (max
+% submission space)
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% % For single-blind review submission, w/ CCS and ACM Reference
+% \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true} % For
+% final camera-ready submission, w/ required CCS and ACM Reference
+% \documentclass[acmsmall]{acmart}\settopmatter{}
+
+
+% % Journal information % Supplied to authors by publisher for camera-ready
+% submission; % use defaults for review submission.
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{POPL} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+% % Copyright information % Supplied to authors (based on authors' rights
+% management selection; % see authors.acm.org) by publisher for camera-ready
+% submission; % use 'none' for review submission.
+\setcopyright{none}
+% \setcopyright{acmcopyright} \setcopyright{acmlicensed}
+% \setcopyright{rightsretained} \ccopyrightyear{2018}           %% If different
+% from \acmYear
+
+% % Bibliography style %\bibliographystyle{ACM-Reference-Format} % Citation
+% style % Note: author/year citations are required for papers published as an %
+% issue of PACMPL.
+% %\citestyle{acmauthoryear}   %% For author/year citations
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % Note:
+% Authors migrating a paper from PACMPL format to traditional % SIGPLAN
+% proceedings format must update the '\documentclass' and % topmatter commands
+% above; see 'acmart-sigplanproc-template.tex'.
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{amsmath, amssymb, amsthm, enumerate, array, extarrows, mathrsfs,
+mathtools, stmaryrd, listings, xspace, bussproofs}
+\theoremstyle{definition}
+\usepackage[capitalize]{cleveref}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+\newtheorem{fact}{Fact}
+\newtheorem{claim}{Claim}
+\newtheorem{remark}{Remark}
+
+% Macros Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.7,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 179}
+\definecolor{lightgreen}{RGB}{170, 255, 220}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
+
+
+\newcommand{\FINISH}[3]{\ifdraft\textcolor{#1}{[#2: #3]}\fi}
+\newcommand{\bcp}[1]{\FINISH{dkred}{B}{#1}}
+\newcommand{\BCP}[1]{\FINISH{dkred}{B}{\bf #1}}
+\newcommand{\afm}[1]{\FINISH{dkgreen}{A}{#1}}
+\newcommand{\dpw}[1]{\FINISH{dkblue}{D}{#1}} % Toronto Maple Leafs Blue :-)
+\newcommand{\saz}[1]{\FINISH{orange}{SZ}{#1}}
+\newcommand{\ksf}[1]{\FINISH{teal}{K}{#1}}
+\newcommand{\sam}[1]{\FINISH{dkpurple}{SM}{#1}}
+
+
+\newcommand{\kw}[1]{\ensuremath{\mathsf{#1}}\xspace}
+\newcommand{\get}{\ensuremath{\kw{get}}\xspace}
+\newcommand{\pput}{\ensuremath{\kw{put}}\xspace}
+\newcommand{\create}{\ensuremath{\kw{create}}\xspace}
+\newcommand{\res}{\ensuremath{\kw{res}}\xspace}
+\newcommand{\ccopy}{\ensuremath{\kw{copy}}\xspace}
+\newcommand{\const}{\ensuremath{\kw{const}}\xspace}
+\newcommand{\default}{\ensuremath{\kw{default}}\xspace}
+\newcommand{\length}{\ensuremath{\kw{length}}\xspace}
+\newcommand{\match}{\ensuremath{\kw{match}}\xspace}
+
+\DeclareMathOperator*{\argmin}{arg\,min} % thin space, limits underneath in
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in
+
+
+\lstset{ basicstyle=\ttfamily, escapeinside=|| }
+\begin{document}
+
+% % Title information
+\title{Lenses with a Difference}         %% [Short Title] is optional;
+% % when present, will be used in % header instead of Full Title.
+% %\titlenote{with title note}             %% \titlenote is optional; % can be
+% repeated if necessary; % contents suppressed with 'anonymous'
+% %\subtitle{Subtitle}                     %% \subtitle is optional
+% %\subtitlenote{with subtitle note}       %% \subtitlenote is optional; % can
+% be repeated if necessary; % contents suppressed with 'anonymous'
+
+
+% % Author information % Contents and number of authors suppressed with
+% 'anonymous'.
+% % Each author should be introduced by \author, followed by % \authornote
+% (optional), \orcid (optional), \affiliation, and % \email.
+% % An author may have multiple affiliations and/or emails; repeat the %
+% appropriate command.
+% % Many elements are not rendered, but should be provided for metadata %
+% extraction tools.
+
+% % Author with single affiliation.
+% \author{First1 Last1} \authornote{with author1 note}          %% \authornote
+% is optional; % can be repeated if necessary \orcid{nnnn-nnnn-nnnn-nnnn} %%
+% \orcid is optional \affiliation{ \positition{Position1}
+% \department{Department1} %% \department is recommended
+% \institution{Institution1} %% \institution is required \streetaddress{Street1
+% Address1} \city{City1} \state{State1} \posittcode{Post-Code1}
+% \country{Country1}                    %% \country is recommended }
+% \email{first1.last1@inst1.edu}          %% \email is recommended
+
+\author{Solomon Maina}
+\position{PhD Student}
+\department{Computer Science}              %% \department is recommended
+\institution{University of Pennsylvania}            %% \institution is required
+\country{USA}                    %% \country is recommended }
+\email{smaina@seas.upenn.edu}          %% \email is recommended
+
+% % Abstract % Note: \begin{abstract}...\end{abstract} environment must come %
+% before \maketitle command
+\begin{abstract}
+Many of the bidirectional (bx) programming languages that exist today focus on
+restoring consistency of models. Consequently, these languages often provide two
+guarantees: (1) that a transformation restores consistency when an
+update is made to one of the models, and (2) that models that are already
+consistent are not updated by the transformation. Unfortunately, in situations
+where there are many different ways of restoring consistency, these languages
+do not constrain how a lens chooses to do so. As a result, the bx
+transformations derived using these languages can lead to unexpected results. In
+this paper we formalize a condition called {\em $\partial D$ preservation} that
+describes whether a bx transformation propagates updates correctly with respect
+to the relation $\partial D$, and then use this condition to characterize the
+guarantees that various lens programming languages make with regard to update
+propagation.
+\end{abstract}
+
+%% Keywords
+%% comma separated list
+\keywords{bidirectional programming, lenses}  %% \keywords
+% are mandatory in final camera-ready submission
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\section{Introduction}
+By now there exist many programming languages that enable one to define {\em
+bidirectional transformations}, programs that can be run in two
+directions. Each of these languages provides guarantees on how the two
+transformations interact e.g. that they are bijective, that a round-trip on
+one or both directions does not cause non-trivial updates etc. Many of these
+guarantees have to do with restoring or preserving consistency. To formalize
+this statement, we describe a widely used formulation of bidirectional
+transformations due to Stevens \cite{stevens2010bidirectional} but originally
+articulated in a more general form by Meertens \cite{meertens1998designing}:
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx $R : M \Leftrightarrow N$ is {\em correct} if the consistency restorers do
+restore consistency: that is, for all $m \in M, n \in N$, we have $R(m,
+\overrightarrow{R}(m, n))$, and dually. $R$ is {\em hippocratic} if the
+consistency restorers make no change to an already-consistent pair of models:
+that is, for all $m \in M$, $n \in N$, if $R(m, n)$ then $\overrightarrow{R}(m,
+n) = n$ and dually. $R$ is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+
+Many bidirectional programming languages thus enable one to define
+well behaved bx's: consistency restoration is guaranteed by correctness of the
+bx while consistency preservation is guaranteed by the hippocraticness of the
+bx. This paper is primarily concerned with well behaved bx's where
+$\overrightarrow{R}$, the \get function of the bx, ignores it's $N$-argument and
+where the consistency relation $R$ is defined by $R(m, \overrightarrow{R}(m))$
+for all $m \in M$--- these transformations are the well known and widely
+understood {\em lenses} of Foster et al \cite{foster2007combinators}--- though
+the ideas we develop could be used in other bidirectional settings as well. 
+
+When the consistency relation of a bx $R$ is very fine, i.e. when each $m \in M$
+is consistent with only a few $n \in N$ and vice versa, then a well behaved lens
+gives fairly strong guarantees on $\overleftarrow{R}$ and $\overrightarrow{R}$.
+However, there are many cases that arise in practice where there are many
+different ways to restore consistency; when this happens, well-behavedness may
+be too weak to rule out ``bad'' behaviour or to clarify the behaviour of a bx in
+subtle cases. Various solutions have been proposed to address this issue, for
+example {\em matching lenses} that deal with the issue of alignment
+\cite{barbosa2010matching}, {\em edit lenses} \cite{hofmann2012edit} and {\em
+delta lenses} \cite{diskin2011asymmetric,diskin2011state,pacheco2012delta}
+that explicitly propagate edits through the lens, and {\em least change
+lenses} that require that the source value resulting from a \pput application
+is not only acceptable, but also one of closest to the original $s$ among the
+sources that share the same view $v$ \cite{macedo2013composing}.
+
+This paper takes a different approach to specifying update propagation by
+identifying a condition called {\em $\partial D$ preservation} which we describe
+below:
+\begin{definition}
+Let $R : M \Leftrightarrow N$ be a bidirectional transformation and $\partial D
+\subseteq (M \times M) \times (N \times N)$. Then $R$ {\em preserves $\partial
+D$} if for all $m \in M$, $n, n' \in N$ , if $R(m, n)$ then $\partial D((m,
+\overleftarrow{R}(m, n')), (\overrightarrow{R}(m, n), n'))$. $R$ {\em
+strongly preserves $\partial D$} if the dual condition also holds.
+\end{definition}
+\noindent The idea behind $\partial D$ preservation is that if $m$ and $n$ are
+already consistent and $\overrightarrow{R}(m,n)$ is updated to produce $n'$,
+then the difference between $\overrightarrow{R}(m,n)$ and $n'$ is related
+to the difference between $m$ and $\overleftarrow{R}(m,n')$. $R$
+strongly preserves $\partial D$ if it preserves $\partial D$ in both directions.
+
+For lenses, $\partial D$ preservation says that difference between $\ell.\get \;
+s$ and $v$ is related to the difference between $s$ and $\ell.\pput \; s \;
+v$. One way to formalize this idea is to model the difference between two sources $s, s'
+\in S$ and two views $v, v' \in V$ as functions $\delta_S : S \times S
+\longrightarrow \partial S$ and $\delta_V : V \times V \longrightarrow \partial
+V$ for some sets $\partial S$ and $\partial V$, and to capture the
+relationship between $\delta_S$ and $\delta_V$ by a lens. In
+particular, given a lens $\partial(S, V) : \partial S \Leftrightarrow \partial
+V$ we will ask if the following equation holds of $\ell$:
+\begin{equation}\label{difflenslaw}
+\partial(S, V).\get \; (\delta_S(s, \ell.\pput \; s \; v)) = \delta_V(\ell.\get
+\; s, v)
+\end{equation}
+If $\ell : S \Leftrightarrow V$ satisfies \cref{difflenslaw} we say that 
+$\ell$ is a {\em difference  lens} with respect to $(\delta_S, 
+\partial(S, V), \delta_V)$, which we denote with the typing relation 
+$\ell : S \xLeftrightarrow{\delta_S, \partial(S, V), \delta_V} V$.
+
+For example, consider two versions of an iteration lens $\ell_1 : S^*
+\Leftrightarrow V^*$ and $\ell_2 : S^* \Leftrightarrow V^*$ defined inductively
+from a lens $\ell : S \Leftrightarrow V$. Both of these lens have the same get
+behaviour: given a list $s_1, \ldots, s_n$ of sources, they both produce
+$\ell.\get \; s_1, \ldots, \ell.\get \; s_n$. The \pput behaviour of the two
+lenses is different though: $\ell_1$ simply aligns views to sources
+positionally, while $\ell_2$ computes the optimal alignment on the view side and
+uses this alignment to put views back into sources.
+
+Let \lstinline|name = [A-Z] . [a-z]*|, let the source $S$ equal 
+\lstinline|name . " " . name| and the view $V$ equal \lstinline|name|.
+Let $\ell : S \Leftrightarrow V$ be the lens
+\lstinline|del name . del " " . copy name| which given a pair of names produces
+the second name in the \get direction, and restores the first name in the \pput
+direction:
+$$\ell.\get \; ``Ada \; Turing" = ``Turing" \text{ and }\; \ell.\pput \; ``Ada
+\; Turing" \; ``Lovelace" = ``Ada \; Lovelace"$$
+Define the
+function $\delta_V : V \times V \longrightarrow \mathbb{N}^{\geq 0}$ by 
+$$\delta_V(n, n') = 
+\begin{cases}
+0 & \text{if }n=n'\\
+1 & \text{otherwise}
+\end{cases}$$
+Define $\delta_S : S \times S \longrightarrow \mathbb{N}^{\geq 0}$ by
+$$\delta_S(m \cdot `` \quad " \cdot n, m' \cdot `` \quad " \cdot n') =
+\begin{cases}
+0 & \text{if } m = m', n = n'\\
+1 & \text{if } m = m', n \neq n'\\
+1 & \text{if } m \neq m', n = n'\\
+2 & \text{if } m \neq m', n \neq n'
+\end{cases}$$
+Let the lens $\partial(S, V) : \mathbb{N}^{\geq 0} \Leftrightarrow
+\mathbb{N}^{\geq 0}$ be given by $\partial(S, V) = \ccopy(\mathbb{N}^{\geq
+0})$. Then $\ell : S \xLeftrightarrow{\delta_S, \partial(S, V), \delta_V} V$.
+
+Now let $xs, ys$ be two lists of single names, with $length(xs) \geq length(ys)$
+Define $\delta_V^* : V^* \times V^* \longrightarrow \mathbb{Z}^* \times V^*$ on $xs$ and
+$ys$ by aligning elements of $xs$ maximally with elements of $ys$ and then using $\delta_V$
+on these pairs to produce a list $ds$ of numbers. In this process, some elements of
+$ys$ will not be aligned if $length(xs) < length(ys)$, in which case we simply collect
+these in another list of elements of $V$. For instance,
+$$\delta_V^*([``Lovelace", ``Kleene", ``Turing"], [``Turing", ``Lovelace"]) = ([0,0], [``Kleene"])$$
+since we align \lstinline|"Lovelace"| to \lstinline|"Lovelace"| and 
+\lstinline|"Turing"| to \lstinline|"Turing"| for a difference of 0 in each case, which leaves
+\lstinline|"Kleene"| unaligned.
+
+On the source side, let $ss, ts$ be two lists of two names with $length(ss) \geq length(ts)$.
+Define $\delta_{S, \ell}^* : S^* \times S^* \longrightarrow \mathbb{Z}^* \times S^*$ by taking the 
+alignment used to compute $\delta_V^*(\ell^*.\get \; ss, \ell^*.\get \; ts)$ and then using that
+alignment in the same manner that $\delta_V^*$ does. For instance
+\begin{align*}
+&\delta_{S, \ell}^*([``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"], 
+[``Alan \; Turing", ``Ada \; Lovelace"])\\
+&= ([0,0], [``Stephen \; Kleene"])
+\end{align*}
+Recall that the \pput behaviour of $\ell_1$ simply aligns views to sources
+positionally, while $\ell_2$ computes the optimal alignment on the view side and
+uses this alignment to put views back into sources. From this we can prove that
+$$\ell_2 : S^* \xLeftrightarrow{\delta_{S, \ell}^*, \partial(S, V)^* \times \ell^*, \delta_V^*} V^*$$
+On the other hand, the judgement $\ell_1 : S^* \xLeftrightarrow{\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*} V^*$ does not holds since $\ell_1$ does not satisfy \cref{difflenslaw} :
+$$(\partial(S, V)^* \times \ell^*).\get \; (\delta_{S, \ell}^*(s, \ell.\pput \; s \; v)) = \delta_V^*(\ell.\get
+\; s, v)
+$$
+This is witnessed by the fact that if $s = [``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"]$ and \\
+$v = [``Kleene", ``Turing", ``Lovelace"]$, then 
+\begin{align*}
+&\ell_1.\pput \; [``Ada \; Lovelace", ``Stephen \; Kleene", ``Alan \; Turing"] \; [``Kleene", ``Turing", ``Lovelace"]\\
+&= [``Ada \; Kleene", ``Stephen \; Turing", ``Alan \; Lovelace"]
+\end{align*}
+Also, $\delta_{S, \ell}^*(s, \ell.\pput \; s \; v) = ([1,1,1], [])$, $\delta_V^*(\ell.\get
+\; s, v) = ([0,0,0], [])$, but
+\begin{align*}
+(\partial(S, V)^* \times \ell^*).\get \; (\delta_{S, \ell}^*(s, \ell.\pput \; s \; v)) &=
+(\partial(S, V)^* \times \ell^*).\get \; ([1,1,1], [])\\
+&= ([1,1,1], [])\\
+&\neq ([0,0,0], [])\\
+&= \delta_V^*(\ell.\get \; s, v)
+\end{align*}
+Here the positional lens $\ell_1$ is not a difference lens with respect to $(\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*)$ since it does not align sources to views in the same way that
+$\delta_V^*$ does. On the other hand, $\ell_2$ does, hence is a difference lens with respect to $(\delta_{S, \ell}^*, 
+\partial(S, V)^* \times \ell^*, \delta_V^*)$. 
+
+In the rest of this paper, we give concrete examples of how to use $\partial D$ preservation to characterize 
+the guarantees on update propagation provided by various lens programming languages. In particular,
+the major technical contributions that we will make in this paper are the following:
+\begin{enumerate}
+  \item
+  We formalize a condition called $\partial D$ preservation which provides a way
+  of constraining the updates that can be made by a bidirectional
+  transformation. We give examples of relations $\partial D$ as well as
+  examples and counterexamples of lenses that are $\partial D$ preserving.
+  \item
+  We describe an instance of $\partial D$ preservation that is satisfied by {\em difference lenses}. We give a set of combinators for {\em difference lenses} and describe the update propagation guarantees that the lenses derived using these combinators give.
+  \item
+  Finally, we show how to represent matching lenses and relational lenses
+  \cite{bohannon2006relational} as difference lenses, and hence
+  describe non-trivial guarantees beyond correctness and hippocraticness that
+  these lens languages provide as well.
+\end{enumerate}
+\iffalse
+A {\em lens} is a program that can be run in two directions. In the
+forward direction, the \get component of a lens produces a {\em view}
+from a {\em source}, while in the backward direction, the \pput component folds
+an updated view back into the original source. Formally, Foster
+\cite{foster2007combinators} defined a lens $\ell : S
+\Leftrightarrow V$ from a source $S$ to a view $V$ to be a pair of functions
+$\ell.\get : S \longrightarrow V$ and $\ell.\pput : S \longrightarrow V
+\longrightarrow S$ satisfying the
+following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
+\ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
+\end{align*}
+The PUTGET law ensures that updates to the view are translated
+``exactly''---i.e. that, given a view, the \pput function produces a source
+that \get maps back to the very same view, while the GETPUT law ensures a
+``stability'' property for the source---i.e. it requires that the \pput
+function returns the original source unmodified whenever the update to the view
+is a no-op.
+
+Unfortunately, while these laws give some guarantees on how the \get and \pput
+components of a lens interact, they do not specify the behaviour of the \pput
+component when the update to the view is non-trivial. Consequently, a
+non-trivial update to a view could lead to an unexpected update to the source.
+Various solutions have been proposed to address this issue, for example {\em
+matching lenses} to deal with the issue of alignment \cite{barbosa2010matching},
+{\em edit lenses} \cite{hofmann2012edit} and {\em delta lenses}
+\cite{diskin2011asymmetric,diskin2011state,pacheco2012delta} which explicitly
+propagate edits through the lens, and {\em least change lenses} which
+add a new LEASTPUTGET law which requires that the source value resulting from a
+\pput application is not only acceptable, but also one of closest to the
+original $s$ among the sources that share the same view $v$
+\cite{macedo2013composing}.
+
+This paper describes a general method for specifying what updates are allowable
+for a given lens without requiring that the lens explicitly propagate updates.
+Our approach is guided by the simple idea the idea that if one starts with a
+source $s$, calls the \get function on $s$ to acquire the view $\ell.\get \;
+s$, updates $\ell.\get \; s$ to get a new view $v$, then the ``difference''
+between $v$ and $\ell.\get \; s$ and $v$ should be related to the difference
+between $\ell.\pput \; s \; v$ and $v$.
+
+To formalize this idea, we first recall a widely used definition of
+bidirectional transformations
+\cite{meertens1998designing,stevens2010bidirectional} definition of a
+bidirectional transformations:
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx $R : M \leftrightarrow N$ is {\em correct} if the consistency restorers do
+restore consistency: that is, for all $m \in M, n \in N$, we have $R(m,
+\overrightarrow{R}(m, n))$, and dually. $R$ is {\em hippocratic} if the
+consistency restores make no change to and already-consistent pair of models:
+that is, for all $m \in M$, $n \in N$, if $R(m, n)$ then $\overrightarrow{R}(m,
+n) = n$ and dually. $R$ is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+
+Observe that $\ell : S \Leftrightarrow V$ is a lens, let $R$ be the
+consistency relation given by $R(s, \ell.\get \; s)$ for all $s \in
+S$, $\overrightarrow{\ell}(s, v) = \ell.\get \; s$, and $\overleftarrow{\ell} =
+\ell.\pput$. By the PUTGET law, $\ell.\get \; (\ell.\pput \; s \; v) = v$,
+hence $\ell$ is correct, and by the GETPUT laws, $\ell.\pput \; s \; (\ell.\get
+\; s) = s$ and $\ell.\get \; (\ell.\create \; v) = v$, hence $\ell$ is
+hippocractic. Therefore $\ell$ is a well-behaved bx.
+
+If $R$ is a well-behaved bx then $R$ restores consistency when a source or view
+is updated (correctness) and preserves consistency when the source and view are
+already consistent (hippocraticness). In order to express
+
+We will then apply this method to define a typing judgement for lenses which
+constrains how a lens propagates updates. We will describe a compositional
+language of {\em difference lenses} which satisfy this new typing judgement,
+and give examples of ordinary lenses that are not difference lenses. Finally,
+we will show how to represent matching lenses and relational lenses
+\cite{bohannon2006relational} as difference lenses, and hence describe the
+guarantees that these lens languages provide.
+
+
+For example suppose that the source is an XML document representing the
+names, dates and nationalities of a collection of classical music
+composers such as,
+
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1956</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin Briten</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+
+while the view is a list if ASCII text representing the names and dates of each
+composer:
+\begin{lstlisting}
+Jean Sibelius, 1865-1956
+Aaron Copland, 1910-1990
+Benjamin Briten, 1913-1976
+\end{lstlisting}
+
+After computing the initial view, we might want to edit it in some way---e.g.,
+correcting the error in Sibelius's death date and the misspelling in Britten's
+name
+\begin{lstlisting}
+Jean Sibelius, 1865-|\colorbox{orange}{1957}|
+Aaron Copland, 1910-1990
+Benjamin |\colorbox{orange}{Britten}|, 1913-1976
+\end{lstlisting}
+and push the changes back into the original XML format:
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-|\colorbox{orange}{1957}|</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin |\colorbox{orange}{Britten}|</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+
+Lenses are designed to perform these kinds of bidirectional transformations. If
+$\ell$ is a suitably defined lens for the transformation that we
+have just described, then the \get component of the lens performs the
+XML to ASCII transformation that produces an ASCII view from an XML source,
+while the \pput component of the lens performs the ASCII to XML transformation
+that folds back an updated ASCII view back into the original XML source.
+
+
+For example, suppose that a source $S$ consists of a pair consisting of a
+boolean value and an integer, and that the view $V$ for $S$ consists of a
+single integer. Further, suppose that we wish to define a \pput function for a
+lens $\ell$ whose \get component is the function which given a pair $(b, n)$
+simply produces the boolean value $b$. Let $f : \mathbb{B} \times \mathbb{Z}
+\longrightarrow \mathbb{Z}$ be any function from $\mathbb{B} \times \mathbb{Z}
+\longrightarrow \mathbb{Z}$. Then the lens $\ell_{f}$ defined by
+\begin{align*}
+\ell_{f}.\get \; (b, n) &= b\\
+\ell_{f}.\pput \; (b, n) \; b' &= \begin{cases}
+(b', n) & \text{if }b = b'\\
+(b', f(b', n)) & \text{otherwise}\\
+\end{cases}\\
+\ell.\create \; b &= (b,f(b, 0))
+\end{align*}
+is a valid lens.
+
+A user who applies a lens $\ell$ of type $\ell : S \Leftrightarrow V$ may expect
+that $\ell.\pput \; (true, 1) \; false = (false, 0)$, reasoning that the
+integer produced by the \pput function should be the number representation of
+the boolean value $false$. Or perhaps she might expect that $\ell.\pput \;
+(true, 1) \; false = (false, 1)$, reasoning that the two pieces of data in a
+pair are independent and that the reasonable \pput behaviour in this case is to
+restore the orginial integer. In either case, the user may be shocked to find
+that in fact $\ell.\pput (true, 0) \; false = (false, 48)$! Given the \get
+behaviour which just produces the boolean value from a pair, since $\ell_f$ is a
+valid lens for any $f$, then the \pput function of a valid lens of type
+$\mathbb{B} \times \mathbb{Z} \Leftrightarrow \mathbb{Z}$ can restore the
+integer in a pair in any way so long as the old boolean value and the updated
+boolean value are different.
+
+
+In order to give a more constrained specification for the desired
+lens we define the difference $\delta_S((a, b), (c, d))$ between $(a, b)$ and
+$(c, d)$ by $$\delta_S((a, b), (c,
+d)) = \begin{cases}
+0 & \text{if }a = c, b = d\\
+1 & \text{if }a=c, b \neq d\\
+1 & \text{if }a \neq c, b = d\\
+2 & \text{if }a \neq c, b \neq d
+\end{cases}$$
+On the view side, we define the difference $\delta_V(a, b)$
+between $a$ and $b$ by, $$\delta_V(a, b) = \begin{cases}
+0 & \text{if } a = b\\
+1 & \text{if } a \neq b
+\end{cases}$$
+
+Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
+which describes how differences should be propagated. For this example, we
+define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
+$\partial V$, keeping in mind that $\partial S = \partial V = \mathbb{Z}$.
+\cref{difflenslaw} enables us to rule out $\ell_{bad}$, since
+\begin{align*}
+(\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
+(\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
+&= (\partial (S, V)).\get \; 2\\
+&= 2\\
+&\neq 1\\
+&= \delta_V(3, 2)\\
+&= \delta_V(3, \ell_{bad}.\get \; (1, 2))
+\end{align*}
+Consequently $\ell_{bad}$ is not a valid delta lens. On the
+other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
+\begin{align*}
+\ell_{good}.\get \; (a, b) &= b\\
+\ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
+\ell_{good}.\create \; b &= (0, b)
+\end{align*}
+is indeed a valid delta lens since the its \pput component always restores the
+first factor.
+
+\section{Strengthening Lens Laws}
+\begin{definition}
+A bidirectional transformation (bx) $R: M \Leftrightarrow N$ comprises of a
+consistency relation $R \subseteq M \times N$ and restorers $\overrightarrow{R}
+: M \times N \rightarrow N$ and $\overleftarrow{R} : M \times N \longrightarrow
+N$.
+\end{definition}
+\begin{definition}
+A bx is {\em correct} if the consistency restorers do restore consistency:
+that is, for all $m \in M, n \in N$, we have $R(m, \overrightarrow{R}(m, n))$,
+and dually.
+\end{definition}
+\begin{definition}
+A bx is {\em hippocratic} if the consistency restores make no change
+to and already-consistent pair of models: that is, for all $m \in M$, $n \in N$,
+if $R(m, n)$ then $\overrightarrow{R}(m, n) = n$ and dually.
+\end{definition}
+\begin{definition}
+A bx is {\em well behaved} if it is correct and hippocratic.
+\end{definition}
+For lenses, if $\ell : S \Leftrightarrow V$ is a lens, we take the
+consistency relation $R$ to be given by $R(s, \ell.\get \; s)$ for all $s \in
+S$, $\overrightarrow{\ell}(s, v) = \ell.\get \; s$, and $\overleftarrow{\ell} =
+\ell.\pput$. By the PUTGET law, $\ell.\get \; (\ell.\pput \; s \; v) = v$,
+hence $\ell$ is correct, and by the GETPUT laws, $\ell.\pput \; s \; (\ell.\get
+\; s) = s$ and $\ell.\get \; (\ell.\create \; v) = v$, hence $\ell$ is
+hippocractic. Therefore $\ell$ is a well-behaved bx.
+
+Using the notation of Stevens \cite{stevens2010bidirectional},
+
+
+
+The major shortcoming of this model of bx transformations is that it does not
+take into account how changes should be propagated by transformation; a
+well-behaved bx need only restore consistency when models go out of sync or
+maintain consisteny if models are already in sync. This becomes an issue when
+there are many different ways of restoring consistency
+
+\section{Motivation and Related Work}
+Foster et. al. \cite{foster2007combinators,foster2009bidirectional}
+defined a lens $\ell : S \Leftrightarrow V$ from a source $S$ to a view $V$ to
+be a triple of functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : S
+\longrightarrow S \longrightarrow V$ and $\ell.\create : V \longrightarrow S$
+satisfying the following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
+\ell.\get \; (\ell.\create \; v) &= v \tag{CREATEGET}\\
+\ell.\pput \; s \; (\ell.\get \; s) &= s \tag{GETPUT}
+\end{align*}
+While these two laws give some guarantees on how the \get, \pput and \create
+components of a lens interact, they do not specify the behaviour of the \pput
+component when the update to the view is non-trivial, because the GETPUT law
+only says that the \pput component must return the original source unmodified
+whenever the update to the view is a no-op. Consequently, a non-trivial update
+to a view could lead to an undesired update to the source.
+
+Therefore, several lens formalism have been proposed that explicitly have a
+notion of an {\em update}. The first of these was Barbosa et. al.'s {\em
+matching lenses}\cite{barbosa2010matching}. Matching lenses specifically deal
+with the issue of {\em alignment}, since Foster et. al.'s original iteration
+lens updates records positionally:
+\begin{align*}
+\ell^* .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= t_1 \cdot
+\ldots \cdot t_n\\
+\text{ where } t_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\end{align*}
+In their work, Barbosa et. al. enrich the types of lenses with ``chunks''
+identifying reorderable pieces of the source and view that should be re-aligned
+after an update, and formulate behavioral laws that capture essential
+constraints on the handling of chunks. They develop a core language
+of matching lenses for strings, together with a set of ``alignment
+combinators'' that implement a variety of alignment strategies. The obvious
+shortcoming of matching lenses is that they only deal with alignment; they do
+not solve the general issue of update propagation.
+
+The next line of work is Diskin et. al.'s {\em delta
+lenses}\cite{diskin2011asymmetric,diskin2011state}. Diskin et. al.'s delta
+lenses work as follows: let $\ell : S \Leftrightarrow V$ be a lens from
+$S$ to $V$. Assume that $s$ is a source, and that $v = \ell.\get s$. A user
+performs an edits $d$ on $v$ to get $v'$: $v \xrightarrow{d} v'$. The \pput
+function now takes the view edit $d$ and the original source $s$ and produces a
+new source $s'$: $s \xrightarrow{\pput(d, s)} s'$. One thing that Diskin et. al.
+do not do is that they do not give any concrete examples of delta lenses,
+no composition, no notion of equivalence, and no combinators for constructing
+delta lenses.
+
+The next line of work is Hofmann et. al.'s {\em edit
+lenses}\cite{hofmann2012edit}. Edit lenses are similar to delta lenses, but edit
+lenses are more explicit. Specifically, the source and view edits are
+represented as elements of a {\em monoid}, and the lens acts on sources and
+views via monoid actions. That is if $v$ is a view and $d_v$ is an edit that
+can be made on $v$ to produce $v'$, then $d_v \cdot v = v'$. The intended usage
+of an edit lens is as follows. There are two users, one holding an element of
+$S$ the other one an element of $V$ both referred to as {\em replicas}.
+Initially, they hold $init_S \in S$ and $init_V \in V$ respectively. The users
+then perform actions and propagate them across the lens. An action consists of
+producing an edit $d_s$ (or $d_v$), applying it to one's current replica $s$
+(resp. $v$), putting the edit through the lens to obtain an edit $d_v$ (resp.
+$d_s$), and asking the user on the other side to apply $d_v$ (resp. $d_s$) to
+their replica. One thing that Hofmann et. al. do that Diskin et. al. do not do
+is that they do give concrete examples of edit lenses, define a suitable notion
+of composition on them, and define combinators for constructing edit lenses.
+
+The final line of work in this area is Pacheco et. al.'s
+version of delta lenses\cite{pacheco2012delta}. Pacheco et. al. are the
+first to give concrete examples of delta lenses, define a suitable notion
+of composition on them, and define combinators for constructing delta
+lenses. Pacheco et al. define a delta lens $\ell$ (d-lens for short), denote by
+$\ell: S \trianglerighteq_{\blacktriangle} V$ to be a bidirectional
+transformations that comprises four total functions:
+\begin{align*}
+\get &: S \longrightarrow V\\
+\pput &: \forall(v, s) : V \times S. (v \triangle \get \;s) \longrightarrow
+SA\\
+\get_{\blacktriangle} &: \forall\{s':S, s:S\}. (s' \triangle s)
+\longrightarrow (\get \; s')\triangle (\get \; s)\\
+\pput_{\blacktriangle} &:\forall\{(v, s):V \times S\},d:(v \triangle \get
+\;s).(\pput \; (v, s) \; d) \triangle s
+\end{align*}
+that satisfy the following propertes:
+\begin{align*}
+\get \; (\pput \; (v, s) \; d) = v \tag{PUTGET}\\
+\pput \; (\get \; s, s) \; id = s \tag{GETPUT}\\
+\get_{\blacktriangle} \; (\pput_{\blacktriangle} \; d) = d
+\tag{$\text{PUTGET}_{\blacktriangle}$}\\
+\pput_{\blacktriangle} \; id = id \tag{$\text{PUTGET}_{\blacktriangle}$}
+\end{align*}
+The \get function is a just like a \get function in Foster's et. al.'s original
+work. The \pput function is different though. Let $s \in S$ and $v \in V$, and
+let $d$ be an update from $v$ to $\ell.\get \; s$; for example, $d$ is a
+sequence of insertions and deletions that transforms $v$ to $\ell.\get \; s$.
+Then \pput takes in $s$ and $v$ as input, and in addition receives $d$ to
+compute $\pput \; (v, s) \; d$.
+
+The $\get_{\blacktriangle}$ and $\pput_{\blacktriangle}$ functions are functions
+that transform deltas to deltas. The last two axioms for delta lenses say that
+if $d$ is a delta from $v$ to $\ell.\get \; s$ and $\Delta$ is a delta from
+$\pput \; (v, s) \; d$ to $s$, then $\get_{\blacktriangle} \; \Delta = d$, and
+that if $d$ is the identity delta, then $\Delta$ is also the identity delta.
+
+In addition to describing a delta lens language, Pacheco et. al. also
+address the following shortcoming with edit lenses: edit lenses include
+combinators for constructing lenses over {\em container types}.
+In the simplest case, container types can be thought of as algebraic datatypes
+such as lists and trees; each value of a container type has a certain {\em
+shape}, and each shape has a set of {\em positions} associated with it. For
+instance, the shape of a list of size $n$ is just $n$, while the positions of
+such a list are the numbers $0, 1, \ldots, n-1$.
+
+The shortcoming of the container edit lenses addressed by Pacheco et. al.
+elements is that these lenses always preserve the number of positions; for
+instance if $\ell$ is a container lens that maps lists to trees, and if $xs$ is
+a list of size $n$, then the number of positions of $\ell.\get \; xs$ is also
+$n$. Pacheco et. al. define a new set of combinators for container lenses that
+can say map a list of size $5$ to a tree with 4 nodes.
+
+In this article we show that it is not necessary for the \pput component of a lens
+to explicitly propagate updates: instead, we can specify what the put function should
+evaluate to, by imposing a more precise type judgement on lenses.
+
+The idea of the stronger typing judgement is that we embed sources and views inside
+of {\em difference structures} and then we define a lens that describes how the
+differences behave as they cross in-between the source and the view. A
+lens that is validly typed is then a lens that preserves this overall structure.
+
+Here are the actual definitions:
+\begin{definition}
+A weighted set is a pair $(X, |\cdot|)$ where $X$ is a set and $|\cdot| : X
+\longrightarrow \mathbb{R}^{\geq 0}$ is a map from $X$ to the non-negative
+reals.
+\end{definition}
+\begin{definition}
+A difference structure is a triple $(S, \partial S, \delta_S)$ where $S$ and
+$\partial S$ are weighted sets, and $\delta_S:
+S \times S \longrightarrow \partial S$ is a function satisfying
+\begin{align*}
+\delta(s, s') &= \delta(s', s)\tag{A1}\\
+|\delta(s, s)| &= 0\tag{A2}\\
+|\delta(s, s')| &\leq |s| + |s'|\tag{A3}
+\end{align*}
+\end{definition}
+\begin{definition}
+Let $(S, \partial S, \delta_S)$ and $(V, \partial V, \delta_V)$ be
+difference structures. Let $\partial(S, V) : \partial S \Leftrightarrow \partial
+V$ be a lens from $\partial S$ to $\partial V$. Then a lens $\ell : S
+\Leftrightarrow V$ also has type $\ell : (S, \partial S,
+\delta_S) \xLeftrightarrow{\partial(S, V)} (V, \partial V, \delta_V)$ if for
+all $s \in S, v \in V$,
+\begin{equation}\label{difflenslaw}
+(\partial (S, V)).\get\; (\delta_S(\ell.\pput \; s \; v, s)) = \delta_V(v,
+\ell.\get \; s)
+\end{equation}
+\end{definition}
+The extra difference structure on the sources and the views, as well as the lens
+$\partial(S, V)$ force the lens $\ell$ to satisfy \cref{difflenslaw}; this law is
+therefore a specification that constrains what $\ell$ can do.
+
+For example, suppose that a source $S$ consists of a pair of integers, and that the
+view $V$ for $S$ consists of a single integer. Further, suppose that we wish
+for the \get component of any lens from $S$ to $V$ to simply project away the
+first factor:that is for any $\ell : \mathbb{Z} \times \mathbb{Z}
+\Leftrightarrow \mathbb{Z}$, $\ell.\get \; (a, b) = b$ for all integers $a, b$.
+Suppose further that we wish to force the \pput function of any lens $\ell$
+defined on the data to restore the factor projected away by the \get function:
+that is, we wish to enforce that for all integers $a, b, c$, $\pi_1(\ell.\pput
+\; (a, b) \; c) = a$, where $\pi_1$ is the projection on the first factor.
+
+Now consider the lens $\ell_{bad}$ defined by
+\begin{align*}
+\ell_{bad}.\get \; (a, b) &= b\\
+\ell_{bad}.\pput \; (a, b) \; c &= \begin{cases}
+(a, c) & \text{if }b = c\\
+(0, c) & \text{otherwise}\\
+\end{cases}\\
+\ell.\create \; b &= (0,b)
+\end{align*}
+Then $\ell_{bad}$ is a valid lens even though $\ell_{bad}$ does not
+always restore the first factor. For example, observe that $\ell.\pput (1, 2) \;
+3 = (0,3)$. In order to give a more constrained specification for the desired
+lens we define the difference $\delta_S((a, b), (c, d))$ between $(a, b)$ and
+$(c, d)$ by $$\delta_S((a, b), (c,
+d)) = \begin{cases}
+0 & \text{if }a = c, b = d\\
+1 & \text{if }a=c, b \neq d\\
+1 & \text{if }a \neq c, b = d\\
+2 & \text{if }a \neq c, b \neq d
+\end{cases}$$
+On the view side, we define the difference $\delta_V(a, b)$
+between $a$ and $b$ by, $$\delta_V(a, b) = \begin{cases}
+0 & \text{if } a = b\\
+1 & \text{if } a \neq b
+\end{cases}$$
+
+Next we define a lens $\partial(S, V) : \partial S \Leftrightarrow \partial V$
+which describes how differences should be propagated. For this example, we
+define $\partial(S,V)$ to simply be the \ccopy lens from $\partial S$ to
+$\partial V$, keeping in mind that $\partial S = \partial V = \mathbb{Z}$.
+\cref{difflenslaw} enables us to rule out $\ell_{bad}$, since
+\begin{align*}
+(\partial (S, V)).\get \; (\delta_S(\ell_{bad}.\pput \; (1,2) \; 3, (1,2))) &=
+(\partial (S, V)).\get \; (\delta_S((0,3), (1,2)))\\
+&= (\partial (S, V)).\get \; 2\\
+&= 2\\
+&\neq 1\\
+&= \delta_V(3, 2)\\
+&= \delta_V(3, \ell_{bad}.\get \; (1, 2))
+\end{align*}
+Consequently $\ell_{bad}$ is not a valid delta lens. On the
+other hand, the lens $\ell_{good} : S \Leftrightarrow V$ defined by
+\begin{align*}
+\ell_{good}.\get \; (a, b) &= b\\
+\ell_{good}.\pput \; (a, b) \; c &= (a, c)\\
+\ell_{good}.\create \; b &= (0, b)
+\end{align*}
+is indeed a valid delta lens since the its \pput component always restores the
+first factor.
+
+For a more realistic example using a difference lens combinator, let $S
+= name \cdot dates$ and $V = name$. Let $\ell :
+S \Leftrightarrow V = (copy \; name) \cdot (del \; dates)$, and suppose that we
+wish to define a lens of type $S^* \Leftrightarrow V^*$, where the difference
+function used on the view side is the min-edit distance difference function.
+Assuming that we inductively use the difference function
+$$ \delta(d_1, d_2) =
+\begin{cases}
+0 & \text{if }d_1 = d_2 \\
+1 & \text{otherwise}
+\end{cases}
+$$
+for both the name and date fields, then with the min-edit distance difference
+function, the difference between the string $v$ given by
+\begin{lstlisting}
+John Doe
+Jane Smith
+\end{lstlisting}
+and the string $v'$ given by
+\begin{lstlisting}
+Jane Smith
+John Doe
+\end{lstlisting}
+is the empty list. Let $s$ =
+\begin{lstlisting}
+John Doe,1900-2000
+Jane Smith,1901-2001
+\end{lstlisting}Then $\ell.\get \; s = v$. Now assume that $v$ is edited to $v'$
+given by
+\begin{lstlisting}
+Mark Moe
+John Doe
+Jane Smith
+\end{lstlisting}
+where a new record \lstinline|Mark Moe| has been added to $v$.
+With the min-edit distance on the view side, $\delta(v', \ell.\get \; s)$ is
+the singleton list [``Mark Moe''].
+
+On the source side, the min-edit distance matching lens $\ell^*_{MIN-EDIT}$,
+$\ell^*_{MIN-EDIT}.\pput \; s \; v'$ is the string
+\begin{lstlisting}
+Mark Moe,0000-0000
+John Doe,1900-2000
+Jane Smith,1901-2001
+\end{lstlisting}
+while with the positional lens $\ell^*$, then $\ell^*.\pput \; s \; v'$ is the
+string
+\begin{lstlisting}
+Mark Moe,1900-2000
+John Doe,1901-2001
+Jane Smith,0000-0000
+\end{lstlisting}
+With the min-edit distance difference function,
+$\delta(\ell^*_{MIN-EDIT}.\pput \; s \; v', s)$ is the singleton list
+$[\text{``Mark Moe, 0000-0000''}]$, while with the
+positional lens, $\delta(\ell^*.\pput \; s \; v', s)$ is the list
+given by
+\begin{lstlisting}
+Mark Moe,1900-2000
+(0,1)
+(0,1)
+\end{lstlisting}
+The min-edit distance satisfies \cref{difflenslaw} since
+\begin{align*}
+(\partial (S, V))^*.\get\; (\delta_S(\ell^*_{MIN-EDIT}.\pput \; s \; v', s)) &=
+(\partial (S, V))^*.\get\; ([\text{``Mark Moe, 1900-2000''}])\\
+&= [\text{``Mark Moe''}]\\
+&=
+\delta_V(v', \ell.\get \; s)
+\end{align*}
+On the other hand, the positional lens does not satisfy \cref{difflenslaw} since
+\begin{align*}
+(\partial (S, V))^*.\get\; (\delta_S(\ell^*.\pput \; s \; v', s)) &=
+(\partial (S, V))^*.\get\; ([\text{``Mark Moe, 1900-2000''}, (0,1), (0,1)])\\
+&=[\text{``Mark Moe''}, (0,*), (0,*)]\\
+& \neq \delta_V(v', \ell.\get \; s)
+\end{align*}
+Let $\mathcal{M}_V$ be the set of min-edit distance alignments on the view side,
+and $\mathcal{M}_S$ the corresponding alignments on the source side.
+Then, the typing judgement
+$$\ell^*_{MIN-EDIT}:(S, (\partial S \sqcup S)^*, \match(\mathcal{M}_S, \delta_s))
+\xLeftrightarrow{\partial(S, V)^*} (V, (\partial V \sqcup V)^*, \match(\mathcal{M}_V, \delta_v))$$
+is valid, whereas the typing judgement
+$$\ell^*:(S, (\partial S \sqcup S)^*, \match(\mathcal{M}_S, \delta_s))
+\xLeftrightarrow{\partial(S, V)^*} (V, (\partial V \sqcup V)^*, \match(\mathcal{M}_V, \delta_v))$$
+is not.
+\iffalse
+For example, if $\ell : S \Leftrightarrow V$ is a lens, Foster's initial
+definition of the iteration lens $\ell^* : S^* \Leftrightarrow V^*$ was
+\begin{align*}
+\ell^* .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot \ldots
+\cdot (\ell.\get \; s_n)\\
+\ell^* .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= t_1 \cdot
+\ldots \cdot t_n\\
+\text{ where } t_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\ell^*.\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot \ldots
+\cdot (\ell.\create \; v_n)
+\end{align*}
+This lens always propagates updates positionally, which is unintended behaviour
+in many cases. For example suppose that $\ell$ is a lens that transforms
+source data in the form of an XML document representing the names, dates and
+nationalities of a collection of classical music composers such as,
+
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1957</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Aaron Copland</name>
+<dates>1910-1990</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Benjamin Britten</name>
+<dates>1913-1976</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+into view data stoored in ASCII text representing the names and dates of each
+composer:
+\begin{lstlisting}
+Jean Sibelius, 1865-1957
+Aaron Copland, 1910-1990
+Benjamin Britten, 1913-1976
+\end{lstlisting}
+Now suppose that the elements in the view are reordered:
+\begin{lstlisting}
+Aaron Copland, 1910-1990
+Benjamin Britten, 1913-1976
+Jean Sibelius, 1865-1957
+\end{lstlisting}
+Then with the positional iteration lens, the updated source is
+\begin{lstlisting}
+<composers>
+<composer>
+<name>Aaron Copeland</name>
+<dates>1910-1990</dates>
+<nationality>Finnish</nationality>
+</composer>
+<composer>
+<name>Benjamin Britten</name>
+<dates>1913-1976</dates>
+<nationality>American</nationality>
+</composer>
+<composer>
+<name>Jean Sibelius</name>
+<dates>1865-1957</dates>
+<nationality>English</nationality>
+</composer>
+</composers>
+\end{lstlisting}
+so each of the composers now has the wrong nationality in the source.
+
+\section{Difference functions}
+\begin{definition}
+A weighted set is a pair $(X, |\cdot|)$ where $X$ is a set and $|\cdot| : X
+\longrightarrow \mathbb{R}^{\geq 0}$ is a map from $X$ to the non-negative
+reals.
+\end{definition}
+\begin{definition}
+A difference structure is a triple $(S, \partial S, \delta_S)$ where $S$ and
+$\partial S$ are weighted sets, and $\delta_S:
+S \times S \longrightarrow \partial S$ is a function satisfying
+\begin{align*}
+\delta(s, s') &= \delta(s', s)\tag{A1}\\
+|\delta(s, s)| &= 0\tag{A2}\\
+|\delta(s, s')| &\leq |s| + |s'|\tag{A3}
+\end{align*}
+We refer to the function $\delta$ as the difference function of the structure.
+\end{definition}
+\iffalse
+
+\begin{example}
+Let $X$ be any set. Define $x \leq y$ if and only if $x=y$, and define $|X|=1$
+for all $x \in X$. Let $Q = \{0,1\}$, and define
+$$\delta(a, b) = \begin{cases} 1 & \text{if } a \neq b\\
+0 & \text{otherwise}
+\end{cases}$$
+Then $\delta$ is a difference function.
+\end{example}
+
+Various different edit distances on strings give a way of defining delta
+functions on sets of strings:
+\begin{example}
+The {\em Levenshtein distance} between two words is the minimum number of
+single-character edits (insertions, deletions or substitutions) required to
+change one word into the other. For example, the Levenshtein distance between
+"kitten" and "sitting" is 3, since the following three edits change one into
+the other, and there is no way to do it with fewer than three edits:
+
+\begin{enumerate}
+  \item
+  kitten -> sitten (substitution of "s" for "k")
+  \item
+  sitten -> sittin (substitution of "i" for "e")
+  \item
+  sittin -> sitting (insertion of "g" at the end).
+\end{enumerate}
+\end{example}
+\begin{example}
+In contrast, the Longest Common Subsequence(LCS) distance only allows for
+insertions and deletions:
+\begin{enumerate}
+  \item
+  delete k at 0
+  \item
+  insert s at 0
+  \item
+  delete e at 4
+  \item
+  insert i at 4
+  \item
+  insert g at 6
+\end{enumerate}
+for a total cost/distance of 5 operations.
+\end{example}
+Both Levenshtein and LCS distances are integer-valued distance functions since
+they are metrics.
+\begin{example}
+If all the strings in a set are of the same length, then the {\em Hamming
+distance} is a difference function since the Hamming distance is also a metric.
+\end{example}
+\begin{example}
+Alignment algorithms also give us a way of defining integer-valued distance
+functions on sets of strings by taking the difference of two strings to be the
+total number of characters that are not equal according to the alignment.
+
+When deciding which alignment to choose between two strings, we often wish to
+choose an alignment that is optimal for alignment strategy. With
+the positional alignment strategy, given two strings $s$ and $t$, then $s_1$ is
+matched to $t_1$, $s_2$ is matched to $t_2$ and so on.
+Also, $\mathcal{M}_{POS}$ is an optimal set of alignments for a positional
+alignment strategy.
+
+For example, using the positional alignment strategy on the strings "kitten" and
+"sitting", then "k" is matched to "s", "i" to "i" and so on. The characters
+which are included in the delta from "kitten" are "k", "e" while the
+in the characters included from "sitting" are "s", "i" and "g", hence the delta
+is equal to 5.
+
+For the non-crossing strategy, we choose among alignments which are increasing
+rather than positional, while for the min-edit distance strategy, we consider
+all possible alignments.
+\end{example}
+
+\begin{example}\label{naturalnumbers}
+Let $P$ be the set of non-negative integers with weight function $|a| = a$. Then
+$\delta$ is a difference function.
+Define $\delta(a, b) = |a-b|$. Then $\delta$ is a difference function.
+\end{example}
+\begin{example}
+Let $X$ be a normed vector space and define $\delta(x, y) = |x-y|$. Then
+$\delta$ is a difference function (in fact, $\delta$ is also a metric).
+\end{example}
+\begin{example}\label{divisibility}
+Let $P$ be the set of positive integers with weight function $|\cdot|$ defined
+by $|p_1^{a_1} \cdot \ldots \cdot p_n^{a_n}| = a_1 + \ldots + a_n$. Define
+$\delta(a, b) = ab/(gcd(a, b))^2$.
+Then $\delta$ is a difference function.
+\end{example}
+\begin{example}\label{boolean}
+Let $X$ be a set and $P$ the set of finite subsets of $X$ with weight function
+given by the size of the set. Define $\delta(A, B) = (A \setminus B) \cup (B
+\setminus A)$. Then $\delta$ is a difference function.
+\end{example}
+\begin{example}\label{general}
+Generalizing \cref{divisibility} and
+\cref{boolean}, let $P$ be a graded complete semi-modular lattice satisfying
+$|\bigwedge P|=0$. Define $\delta(a, b) = \bigwedge \{x \; | \; (a \wedge b)
+\vee x = a\} \vee \bigwedge \{x \; | \; (a \wedge b) \vee x = b\}$. Then
+$\delta$ is a difference function.
+\end{example}
+\begin{proof}
+Let $a, b \in P$. Let $X = \{x \; | \; (a \wedge b) \vee x = a\}$ and $Y = \{y
+\; | \; (a \wedge b) \vee y = b\}$
+\begin{enumerate}
+  \item[(A1)]
+  Certainly $\delta(a, b) = \delta(b, a)$.
+  \item[(A2)]
+  Observe that $\bigwedge X = \bigwedge Y = \bot$, hence $\delta(a,
+  a) = \bot$, and $|\delta(a, a)| = |\bot| = 0$.
+  \item[(A3)]
+  Since $P$ is semi-modular, then $|x \wedge y| + |x \vee y| \leq |x| + |y|$
+  for all $x, y \in P$, from which it follows that $$|\delta(a, b)| =
+  \left|\bigwedge X \vee \bigwedge Y\right| \leq \left|\bigwedge X \vee
+  \bigwedge Y\right| + \left|\bigwedge X \wedge \bigwedge Y\right| \leq
+  \left|\bigwedge X\right| + \left|\bigwedge Y\right|$$
+\end{enumerate}
+\end{proof}
+\fi
+
+\subsection{Constructions on difference functions}
+\subsubsection{Products}
+Given difference functions $\delta_i: P_i \times P_i \longrightarrow Q_i$ for
+$i \in \{1,2\}$, define $\delta_1 \times \delta_2 :(P_1 \times P_2) \times
+(P_1 \times P_2) \longrightarrow (Q_1 \times Q_2)$ by
+$$(\delta_1 \times \delta_2)((x, y), (x', y')) = (\delta_1(x, x'), \delta_2(y,
+y'))$$
+\begin{claim}
+$\delta_1 \times \delta_2$ is a difference function.
+\end{claim}
+\begin{proof}
+Let $x, x' \in P_1$ and $y, y' \in P_2$.
+\begin{enumerate}
+  \item[(A1)]
+  Observe that
+  \begin{align*}
+(\delta_1 \times \delta_2)((x, y), (x', y')) &= (\delta_1(x, x'),
+\delta_2(y, y'))\\
+&= (\delta_1(x', x), \delta_2(y', y))\\
+&= (\delta_1 \times \delta_2)((x', y'), (x, y))
+\end{align*}
+\item[(A2)] Observe that
+$$|(\delta_1 \times \delta_2)((x, y), (x, y))| = |(\delta_1(x, x),
+\delta_2(y, y))| = |\delta_1(x, x)| + |\delta_2(y,y)| = 0 + 0 = 0$$
+\item[(A3)]
+Observe that
+\begin{align*}
+|(\delta_1 \times \delta_2)((x, y), (x', y'))| &= |(\delta_1(x, x'),
+\delta_2(y, y'))|\\
+&= |(\delta_1(x, x')| + |(\delta_2(y, y')|\\
+&\leq (|x| + |x'|) + (|y| + |y'|)\\
+&= (|x| + |y|) + (|x'| + |y'|)\\
+&= |(x, y)| + |(x', y')|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\subsubsection{Coproducts}
+Given difference functions $\delta_i: P_i \times P_i \longrightarrow Q_i$ for
+$i \in \{1,2\}$, define $\delta_1 \sqcup \delta_2 :P_1 \sqcup P_2
+\longrightarrow Q_1 \sqcup Q_2 \sqcup (P_1 \times P_2)$ by
+$$(\delta_1 \sqcup \delta_2)(x, y) =
+\begin{cases}
+\delta_1(x, y) & \text{if }x, y \in P_1\\
+\delta_2(x, y) & \text{if }x, y \in P_2\\
+(x, y) & \text{if }x \in P_1, y \in P_2\\
+(y, x) & \text{if }x \in P_2, y \in P_1
+\end{cases}$$
+\begin{claim}
+$\delta_1 \sqcup \delta_2$ is a difference function
+\end{claim}
+\begin{proof}
+Let $x, x' \in P_1$ and $y, y' \in P_2$.
+\begin{enumerate}
+  \item[(A1)]
+  If $x, y \in P_i$, then $(\delta_1 \sqcup \delta_2)(x, y) = \delta_i(x, y) =
+  \delta_i(y, x)$. If $x \in P_1$ and $y \in P_2$, then $(\delta_1 \sqcup
+  \delta_2)(x, y) = (x, y) = (\delta_1 \sqcup \delta_2)(y, x)$, and similarly
+  if $x \in P_2$ and $y \in P_1$, then $(\delta_1 \sqcup \delta_2)(x, y) =
+  (y,x) = (\delta_1 \sqcup \delta_2)(y, x)$
+  \item[(A2)] If $x \in P_i$, then $|(\delta_1 \sqcup \delta_2)(x, x)| =
+  |\delta_i(x, x)| = 0$
+  \item[(A3)]
+  If $x, y \in P_i$, then $|(\delta_1 \sqcup \delta_2)(x, y)| = |\delta_i(x, y)|
+  \leq |x| + |y|$. If $x \in P_1$ and $y \in P_2$, then $|(\delta_1 \sqcup
+  \delta_2)(x, y)| = |(x, y)| = |x| + |y|$, and if $x \in P_2$ and $y \in
+  P_1$, then $|(\delta_1 \sqcup \delta_2)(x, y)| = (|(y, x)|) = |y| + |x|$.
+\end{enumerate}
+\end{proof}
+\subsubsection{List difference functions}
+Let $P$ be a weighted set. Let $x=(x_1, \ldots, x_m), y=(y_1, \ldots, y_n)$ be
+in $P^*$. Given a difference function $\delta: P \times P \longrightarrow Q$, we
+define the list difference function $\delta^*:P^* \longrightarrow (Q \sqcup
+P)^*$ on $x$ and $y$ to be the list given by $\delta(x_i, y_i)$ for $1 \leq i
+\leq m$, except that we omit $\delta(x_i, y_i)$ in position $i$ if $x_i = y_i$.
+For $m < i \leq n$ we add $y_i$ at position $i$. Finally we collapse the list
+to get rid of the empty spaces left after the omissions.
+
+For instance suppose that $S$ is the set of all letters in the alphabet and
+$\partial S = \{\epsilon\} \sqcup \{\{x, y\} \; | \; x, y \in S, x \neq y\}$
+with $$\delta(x, y) =
+\begin{cases}
+\epsilon & \text{if } x = y\\
+\{x,y\} & \text{if } x \neq y
+\end{cases}$$
+Then $\delta_S^*((a, c, b, d), (a, b, c, d, e)) = (\{b, c\}, \{b, c\},
+e)$ where we match and remove the first $a$ and the fourth $d$ in. Since $b \neq
+c$ we have $\{b,c\}$ in the second and third positions, and since $e$ is
+unmatched, we include $e$ in the fifth position. Finally we collapse the list to
+get rid of the two empty spaces created.
+
+\begin{claim}
+$\delta^*$ is a difference function
+\end{claim}
+\begin{proof}
+Let $x = (x_1, \ldots, x_m), y = (y_1, \ldots, y_n) \in P^*$.
+\begin{enumerate}
+  \item[(A1)]
+  By construction $\delta^*(x, y) = \delta^*(y, x)$.
+  \item[(A2)] Observe that $|\delta^*(x, x)| = \sum_{i=1}^m|\delta(x_i,
+  x_i)| =  \sum_{i=1}^m 0 = 0$.
+  \item[(A3)]
+  Assume WLOG that $m \leq n$. Then
+  \begin{align*}
+|\delta^*(x, y)| &=
+\sum_{i=1}^m|\delta(x_i, y_i)| + \sum_{i=m+1}^n |y_i|\\
+&\leq \sum_{i=1}^m|x_i| + |y_i| + \sum_{i=m+1}^n |y_i|\\
+&= \sum_{i=1}^m|x_i| + \sum_{i=1}^n |y_i|\\
+&= |x| + |y|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\subsubsection{Matching difference functions}
+Now let $\mathcal{M} = \{\varphi_{(x_1, \ldots, x_m), (y_1, \ldots, y_n)} \; |
+\; x_i, y_j \in P, m \leq n\}$ be a set of injective functions $\varphi_{(x_1,
+\ldots, x_m), (y_1, \ldots, y_n)} : [m] \longrightarrow [n]$. Given a difference
+function $\delta:
+P \times P \longrightarrow Q$, we define the difference function
+$\match(\mathcal{M}, \delta):P^* \longrightarrow (Q \sqcup P)^*$ on $x$
+and $y$ to be the list given by $\delta(x_i, y_{\varphi(i)})$ in position
+$\varphi(i)$ for $1 \leq i \leq m$, except that we omit $\delta(x_i,
+y_{\varphi(i)})$ in position $\varphi(i)$ if $x_i = y_{\varphi(i)}$. For $i \in
+[n] \setminus \varphi([m])$ we add $y_i$ at position $i$. Finally we collapse
+the list to get rid of the empty spaces left after the omissions.
+
+Going back to our previous example, let $x = \{a, c, b, d\}$ and $y = \{a, b, c,
+d, e\}$, and assume that $\varphi_{x, y} : [4] \longrightarrow [5]$ is given by
+$$\varphi(1) = 1, \; \varphi(2) = 3, \; \varphi(3) = 2, \text{ and } \varphi(4)
+= 4$$ Then $\match(\mathcal{M}, \delta)((a, c, b, d), (a, b, c, d, e)) =
+(e)$.
+\begin{claim}
+$\match(\mathcal{M}, \delta)$ is a difference function.
+\end{claim}
+\begin{proof}
+Let $x = \{x_1, \ldots, x_m\}, y = \{y_1, \ldots, y_n\} \in \match(P)$.
+\begin{enumerate}
+  \item[(A1)]
+  By construction $\match(\mathcal{M}, \delta)(x, y) =
+  \match(\mathcal{M}, \delta)(y, x)$.
+  \item[(A2)] Observe that $|(\match(\mathcal{M}, \delta))(x, x)| =
+  \sum_{i=1}^m|\delta(x_i, x_{\varphi(i)}| = |\delta(x_i, x_i)| =   \sum_{i=1}^m
+  0 = 0$.
+  \item[(A3)]
+  Assume WLOG that $m \leq n$. Then
+  \begin{align*}
+|\match(\mathcal{M}, \delta)(x, y)| &=
+\sum_{i=1}^m|\delta(x_i, y_{\varphi(i)})| + \sum_{i \in [n] \setminus
+\varphi([m])} |y_i|\\
+&\leq \sum_{i=1}^m|x_i| + |y_{\varphi(i)}| + \sum_{i \in [n] \setminus
+\varphi([m])} |y_i|\\
+&= \sum_{i=1}^m|x_i| + \sum_{i=1}^n |y_i|\\
+&= |x| + |y|
+\end{align*}
+\end{enumerate}
+\end{proof}
+\fi
+\section{Lens Combinators}
+\subsection{Copy}
+Let $P$ be any set. Define the $\ccopy(P) : P \Leftrightarrow P$ by
+\begin{align}
+\ccopy(P).\get \; s &= s\\
+\ccopy(P).\pput \; s \; v &= v\\
+\ccopy(P).\create \; v &= v
+\end{align}
+Then $\ccopy(P)$ is a lens. Now let $\partial S$ be a set, $\delta :
+S \times S \longrightarrow \partial S$ a function.
+\begin{claim}
+$\ccopy(S) : S \xLeftrightarrow{\delta , \ccopy(\partial S), \delta} S$.
+\end{claim}
+\begin{proof}
+We need to show that $(\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput
+\; s \; v, s)) = \delta(v, \ccopy(S).\get \; s)$ which follows from the fact
+that $$ (\ccopy(\partial S)).\get \; (\delta(\ccopy(S).\pput \; s
+\; v, s)) = \delta(\ccopy(S).\pput \; s \; v, s) = \delta(v, \ccopy(S).\get
+\; s) $$
+\end{proof}
+\subsection{Constant}
+Let $S$ be any set with $s'\in S$. Define the \const lens $\const(S) : S
+\Leftrightarrow \{\star\}$ by
+\begin{align*}
+\const.\get \; s &= \star\\
+\const.\pput \; s \; v &= s\\
+\const.\create \; v &= s'
+\end{align*}
+Then $\const(S)$ is a lens. 
+\begin{claim}
+Let $\partial S$ be any set, and $\delta : S \times S \longrightarrow \partial
+S$ any function satisfying $\delta(s, s) = \delta(s', s')$ for all $s, s' \in
+S$. Define $\beta : \{\star\} \times \{\star\} \longrightarrow \partial S$ by
+$\beta(\star, \star) = \delta(s, s)$ for any $s \in S$. Let $\ell : \partial S
+\Leftrightarrow \partial S$ be any lens satisfying $\ell.\get \; \delta(s, s) =
+\delta(s, s)$ for all $s \in S$. Then $\const(S): S \xLeftrightarrow{\delta,
+\ell, \beta} \{\star\}$.
+\end{claim}
+\begin{proof}
+We need to show that $\ell.\get \; (\delta(\const(S).\pput \; s \; \star, s)) =
+\beta (\star, \const(S).\get \; s)$
+which follows from the fact that
+$$ \ell.\get \; (\delta(\const(S).\pput \; s \; \star, s)) = \ell.\get
+\; \delta(s, s) = \delta(s, s) = \beta(\star, \star) = \beta(\star,
+\const(S).\get \; s)$$
+\end{proof}
+
+\subsection{Default}
+Let $\ell : S \Leftrightarrow V$ be a lens. Let $f :
+V \longrightarrow S$ be any function. Define the lens $\default(\ell, f) :
+S \Leftrightarrow V$ by
+\begin{align*}
+\default(\ell, f).\get \; s &= \ell.\get \; s\\
+\default(\ell, f).\pput \; s \; v &= \ell.\pput \; s \; v\\
+\default(\ell, f).\create \; v &= \ell.\pput \; (f \; v) \; v
+\end{align*}
+ 
+\begin{claim}
+If $\ell : S \xLeftrightarrow{\delta_S, \partial (S, V), \partial V}
+V$ and $f: S \longrightarrow V$, then $\default(\ell, f) : S
+\xLeftrightarrow{\delta_S, \partial (S, V), \partial V} V$.
+\end{claim}
+\begin{proof}
+Follows from the fact that $\ell : S \xLeftrightarrow{\delta_S, \partial (S, V),
+\partial V} V$.
+\end{proof}
+\subsection{Product}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens $\ell_1 \times \ell_2 : (S_1 \times S_2) \Leftrightarrow
+(V_1 \times V_2)$ by
+\begin{align*}
+(\ell_1 \times \ell_2).\get \; (s_1, s_2) &= (\ell_1.\get \; s_1, \ell_2.\get
+\; s_1)\\
+(\ell_1 \times \ell_2).\pput \; (s_1, s_2) \; (v_1, v_2) &= (\ell_1.\pput \; s_1
+\; v_1, \ell_2.\pput \; s_2 \; v_2)\\
+(\ell_1 \times \ell_2).\create \; (v_1, v_2) &= (\ell_1.\create \; v_1,
+\ell_2.\create \; v_2)
+\end{align*}
+\begin{claim}\label{productislens}
+If $\ell_1 :S_1 \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_1 \times \ell_2  : S_1 \times S_2 
+\xLeftrightarrow{\delta_{S_1} \times \delta_{S_2}, \partial (S_1, V_1) \times
+\partial (S_2, V_2), \delta_{V_1} \times \delta_{V_2}} V_1 \times V_2$.
+\end{claim}
+\begin{proof}
+We need to show that
+$$(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2))) = \delta((v_1, v_2),
+(\ell_1 \times \ell_2).\get \; (s_1, s_2))$$ which follows from the fact that
+\begin{align*}
+&(\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \; (\delta((\ell_1 \times
+\ell_2).\pput \; (s_1, s_2) \; (v_1, v_2), (s_1, s_2)))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(\delta((\ell_1.\pput \; s_1 \; v_1, \ell_2.\pput \; s_2 \; v_2), (s_1, s_2))\\
+&= (\partial (S_1, V_1) \times \partial (S_2, V_2)).\get \;
+(\delta(\ell_1.\pput \; s_1 \; v_1, s_1), \delta(\ell_2.\pput \; s_2 \; v_2,
+s_2))\\
+&= ((\partial (S_1, V_1)).\get \; (\delta(\ell_1.\pput \;
+s_1 \; v_1, s_1)), (\partial (S_2, V_2)).\get \; (\delta(\ell_2.\pput \; s_2 \;
+v_2, s_2)))\\
+&= (\delta(v_1, \ell_1.\get \; s_1), \delta(v_2, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1.\get \; s_1, \ell_2.\get \; s_2))\\
+&= \delta((v_1, v_2), (\ell_1 \times \ell_2).\get \; (s_1, s_2))
+\end{align*}
+\end{proof}
+\subsection{Sum}
+Let $\ell_1 : S_1 \Leftrightarrow V_1$ and $\ell_2 : S_2 \Leftrightarrow V_2$ be
+lenses. Define the lens
+$\ell_1 \sqcup \ell_2 :
+(S_1 \sqcup S_2) \Leftrightarrow (V_1 \sqcup V_2)$ by
+\begin{align*}
+(\ell_1 \sqcup \ell_2).\get \; s &=
+\begin{cases}
+\ell_1.\get \; s & \text{if } s \in S_1\\
+\ell_2.\get \; s & \text{if } s \in S_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\pput \; s \; v&=
+\begin{cases}
+\ell_1.\pput \; s \; v& \text{if } s \in S_1, \; v \in V_1\\
+\ell_2.\pput \; s \; v& \text{if } s \in S_2, \; v \in V_2\\
+\ell_1.\create \; v & \text{if } s \in S_2, \; v \in V_1\\
+\ell_2.\create \; v & \text{if } s \in S_1, \; v \in V_2\\
+\end{cases}\\
+(\ell_1 \sqcup \ell_2).\create \; v &=
+\begin{cases}
+\ell_1.\create \; v & \text{if } v \in V_1\\
+\ell_2.\create \; v & \text{if } v \in V_2\\
+\end{cases}
+\end{align*}
+
+\begin{claim}
+If $\ell_1 : S_1  \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_1 \sqcup \ell_2 : S_1 \sqcup S_2 \xLeftrightarrow{\delta_{S_1} \sqcup
+\delta_{S_2}, \partial (S_1, V_1) \sqcup \partial (S_2, V_2) \sqcup (\ell_1
+\times \ell_2), \delta_{V_1} \sqcup \delta_{V_2}} V_1 \sqcup V_2$
+\end{claim}
+\begin{proof}
+We need to show that
+$$(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) = \delta(v, (\ell_1 \sqcup
+\ell_2).\get \; s)$$
+
+The result holds inductively if $s \in S_1$ and $v \in V_1$ or $s \in S_2$ and
+$v \in V_2$. Otherwise, assume without loss of generality
+that $s \in S_1$ and $v \in V_2$. Then
+\begin{align*}
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \;
+(\delta((\ell_1 \sqcup \ell_2).\pput \; s \; v, s)) &=
+(\partial (S_1, V_1) \sqcup \partial (S_2, V_2)).\get \; (\delta(\ell_2.\create
+\; v, s))\\
+&= (\ell_1 \times \ell_2).\get \; (s, \ell_2.\create \; v)\\
+&= (\ell_1.\get \; s, \ell_2.\get \; (\ell_2.\create \; v))\\
+&= (\ell_1.\get \; s, v)\\
+&= \delta(v, \ell_1.\get \; s)\\
+&= \delta(v, (\ell_1 \sqcup \ell_2).\get \; s)
+\end{align*}
+\end{proof}
+\subsection{Positional Iteration}
+Let $\ell : S \Leftrightarrow V$ be a lens and define the lens $\ell^*:
+S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\ell^* .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1) \cdot \ldots
+\cdot (\ell.\get \; s_n)\\
+\ell^*.\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n) &= s'_1 \cdot
+\ldots \cdot s'_n\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_i \; v_i & \text{if } 1 \leq i \leq \min\{m, n\}\\
+\ell.\create \; v_i & \text{if } \min\{m, n\} < i \leq n
+\end{cases}\\
+\ell^*.\create \; (v_1, \ldots, v_n) &= (\ell.\create \; v_1) \cdot \ldots
+\cdot (\ell.\create \; v_n)
+\end{align*}
+
+\begin{claim}\label{positionalisvalid}
+If $\ell: S \xLeftrightarrow{\delta_S, \partial (S, V), \delta_V}
+V$, then $\ell^*: S^* \xLeftrightarrow{\delta_{S}^*, (\partial (S, V) \sqcup
+\ell)^*, \delta_{V}^*} V^*$.
+\end{claim}
+\begin{proof}
+We need to show that
+\begin{multline}
+(\partial (S, V) \sqcup \ell)^*.\get \;
+(\delta_S^*(\ell^*.\pput \; (s_1, \ldots, s_n) \; (v_1, \ldots,
+v_m), (s_1, \ldots, s_n))) \\
+= \delta_V^*((v_1, \ldots, v_m), \ell^*.\get \; (s_1, \ldots,
+s_n))
+\end{multline}
+Let $1 \leq i \leq \min\{m, n\}$. Observe that $v_i = \ell.\get \; s_i$ if and
+only if $\ell.\pput \; s_i \; v_i = s_i$, so $\delta_V^*$ omits
+$\delta_V(v_i, \ell.\get \; s_i)$ in position $i$ if and only if
+$\delta_S^*$ also omits $\delta_S(\ell.\pput \; s_i \; v_i, s_i)$ in
+position $i$; if no omission occurs, then $\delta(S, V).\get \;
+(\delta(\ell.\pput \; s_i \; v_i, s_i)) = \delta(v_i, \ell.\get \; s_i)$ since
+$(\ell, \partial(S,V))$ is a delta lens. For $\min\{m,n\} < i \leq m$, then
+$\delta_V^*$ adds $v_i$ in position $i$, and $\delta_S^*$ adds
+$\ell.\create \; v_i$ in position $i$, which gives the desired result since
+$$(\partial (S, V) \sqcup \ell).\get \; (\ell.\create \; v_i) = \ell.\get \;
+(\ell.\create \; v_i)) = v_i$$
+\end{proof}
+\subsection{Matching Iteration}
+\iffalse
+When defining a $\match(\mathcal{M}, \delta)$ difference function, we often wish for
+$\mathcal{M}$ to be an optimal set of matchings for some alignment strategy.
+
+For instance, define the set of matchings $\mathcal{M}_{POS}$ by
+$$\mathcal{M}_{POS} = \{\varphi_{(a_1, \ldots, a_m), (b_1, \ldots, b_n)}:[m]
+\longrightarrow [n] \; | \; m \leq n, \varphi_{(a_1, \ldots, a_m), (b_1,
+\ldots, b_n)}(i) = i\}$$ Then $\mathcal{M}_{POS}$ is an optimal set of
+matchings for a positional alignment strategy.
+
+For the non-crossing strategy, we want to our matchings to be increasing rather
+than positional. That is, given a valid set of matchings $\mathcal{M}$, let
+$\mathcal{M}_{a, b} = \varphi_{a, b} \in \mathcal{M}$, and for $a, a' \in P$
+with $a=(a_1, \ldots, a_m)$ and $a'=(a'_1, \ldots, a'_n)$, define
+$\mathcal{M}^{NC}_{a, b}$ by
+$$\mathcal{M}^{NC}_{a, a'} = \argmin_{\substack{\mathcal{M}_{a, a'} \\
+\mathcal{M}_{a, a'} \text{ is increasing}}} |\match(\mathcal{M}_{a, a'},
+\delta)(a, a')|$$
+There may be multiple matchings which for which the size of the delta is
+minimal, in which case we pick the lexicographically smallest matching.
+Then $\mathcal{M}^{NC}$ is an optimal set of matchings for a non-crossing
+alignment strategy.
+
+Finally, for a min-edit distance strategy, we simply remove the condition that
+the matchings should be increasing. That is, define
+$\mathcal{M}^{MED}_{a, b}$ by
+$$\mathcal{M}^{MED}_{a, a'} = \argmin_{\mathcal{M}_{a, a'}}
+|\match(\mathcal{M}_{a, a'}, \delta)(a, a')|$$
+Then $\mathcal{M}_{MED}$ is an optimal set of matchings for a min-edit distance
+alignment strategy.
+\fi
+Assume that $\ell: S \Leftrightarrow V$. Let $\mathcal{M}_V = \{\varphi_{x, y}
+\; | \; x, y \in V^*\}$ be a set of alignments between $x$ and $y$ for each $x,
+y \in V^*$. For each $s, s' \in S^*$, let $\varphi_{s, s'} = \varphi_{\ell.\get
+\; s, \ell.\get \; s'}$. Define $\mathcal{M}_S$ by $\mathcal{M}_S =
+\{\varphi_{s, s'} \; | \; s, s' \in S^*\}$. Define the lens
+$\match(\mathcal{M}_V, \ell) : S^* \Leftrightarrow V^*$ by
+\begin{align*}
+\match(\mathcal{M}_V, \ell) .\get \; (s_1, \ldots, s_n) &= (\ell.\get \; s_1)
+\cdot \ldots \cdot (\ell.\get \; s_n)\\
+\match(\mathcal{M}_V, \ell) .\pput \; (s_1, \ldots, s_m) \; (v_1, \ldots, v_n)
+&= (s'_1 , \ldots , s'_n)\\
+\text{ where } s'_i &= \begin{cases}
+\ell.\pput \; s_{\psi(i)} \; v_i & \text{if } i \in Dom(\psi)\\
+\ell.\create \; v_i & \text{if } i \not \in Dom(\psi)
+\end{cases}\\
+\text{ and } \psi &= \varphi_{(v_1, \ldots, v_n), ((\ell.\get \; s_1), \ldots,
+(\ell.\get \; s_m))}\\
+\match(\mathcal{M}_V, \ell).\create \; (v_1, \ldots, v_n) &= (\ell.\create \;
+v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
+\end{align*}
+Assume that 
+\begin{claim}
+If $\ell: S \xLeftrightarrow{\delta_{S}, \partial (S, V), \delta_{V}}
+V$, then $\match(\mathcal{M}_V, \ell) : S^*
+\xLeftrightarrow{\match(\mathcal{M}_S, \delta_{S}), \partial (S, V)^*,
+\match(\mathcal{M}_V, \delta_V)} V^*$.
+\end{claim}
+\begin{proof}
+Observe that the matching used to compute the delta on the source side is
+the same as the matching used to compute the matching on the view side, hence we
+may take the update lens to be position and proceed with the rest of the proof
+as in \cref{positionalisvalid}.
+\end{proof}
+\subsection{Composition}
+Let $\ell_1 : S \Leftrightarrow U$ and $\ell_2 : U \Leftrightarrow V$ be lenses.
+Define the lens $\ell_2 \circ \ell_1 : S \Leftrightarrow V$ by
+\begin{align*}
+(\ell_2 \circ \ell_1).\get \; s &= \ell_2.\get \; (\ell_1.\get \; s)\\
+(\ell_2 \circ \ell_1).\pput \; s \; v &= \ell_1.\pput \; s \; (\ell_2.\pput \;
+(\ell_1.\get \; s) \; v) \\
+(\ell_2 \circ \ell_1).\create \; v &= \ell_1.\create \; (\ell_2.\create \; v)
+\end{align*}
+
+\begin{claim}
+If $\ell_1 : S_1  \xLeftrightarrow{\delta_{S_1}, \partial (S_1, V_1),
+\delta_{V_1}} V_1$ and $\ell_2 : S_2 \xLeftrightarrow{\delta_{S_2}, \partial
+(S_2, V_2), \delta_{V_2}} V_2$, then \\
+$\ell_2 \circ \ell_1 :  S \xLeftrightarrow{\delta_S, \partial
+(S_2, V_2) \circ \partial (S_1, V_1), \delta_V} V$.
+\end{claim}
+\begin{proof}
+We need to show that
+$$
+(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta(\ell_2 \circ
+\ell_1).\pput \; s \; v, s) = \delta(v, (\ell_2 \circ \ell_1).\get \; s)$$
+
+This follows from the fact that
+\begin{align*}
+&(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta_S((\ell_2 \circ
+\ell_1).\pput \; s \; v, s))\\
+&=(\partial (S_2, V_2) \circ \partial (S_1, V_1)).\get \; (\delta_S(\ell_1.\pput
+\; s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s))\\
+&= (\partial (S_2, V_2)).\get \; ((\partial (S_1, V_1)).\get \;
+(\delta_S(\ell_1.\pput \; s \; (\ell_2.\pput \; (\ell_1.\get \; s) \; v), s)))\\
+&= (\partial (S_2, V_2)).\get \; (\delta_U(\ell_2.\pput \; (\ell_1.\get \; s)
+\; v, \ell_1.\get \; s))\\
+&= \delta_V(v, \ell_2.\get \; (\ell_1.\get \; s))\\
+&= \delta_V(v, (\ell_2 \circ \ell_1).\get \; s)
+\end{align*}
+\end{proof}
+\iffalse
+\section{Symmetric Delta Lenses}
+Assume that $(X, \partial X, \delta_X)$ and $(Y, \partial Y, \delta_Y)$
+are difference structures. A symmetric delta lens is a pair $(\ell, \partial
+\ell)$ where $\ell : X \Leftrightarrow Y$ is a symmetric lens, and
+$\partial \ell : \partial X \Leftrightarrow \partial Y$ is a symmetric lens
+such that
+\begin{enumerate}
+  \item
+  if $\ell.putr(x, c) = (y, c)$ and $\ell.putl(y', c) = (x', c')$,
+  then $\partial \ell.putl \; (\delta(y, y'), \delta(c, c')) = (\delta(x,
+  x'), \delta(c, c'))$
+  \item
+  if $\ell.putl(y, c) = (x, c)$ and $\ell.putr(x', c) = (y', c')$, then
+  $\partial \ell.putr \; (\delta(x, x'), \delta(c, c')) = (\delta(y, y'),
+  \delta(c, c'))$
+\end{enumerate}
+\begin{fact}[Identity Lens]
+Given any symmetric lens $\partial X : X \Leftrightarrow X$, $(id_X, \partial
+X)$ is a symmetric delta lens
+\end{fact}
+\begin{fact}[Bijective Lenses]
+Assume that $f : X \longrightarrow Y$ and $g : \partial X \longrightarrow
+\partial Y$ are bijections. Assume that $g(\delta(x, x')) = \delta(f(x),
+f(x'))$. Then $(bij_f, bij_g)$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Lens Composition]
+If $(\ell_1, \partial \ell_1) : (X, \partial X, \delta_X) \Leftrightarrow (Y,
+\partial Y, \delta_Y)$ and $(\ell_2, \partial \ell_2): (Y, \partial Y,
+\delta_Y) \Leftrightarrow (Z, \partial Z, \delta_Z)$ are symmetric delta
+lenses, then $(\ell_1;\ell_2, \partial \ell_1;\partial \ell_2)$ is a symmetric
+delta lens.
+\end{fact}
+\begin{fact}[Dual of a Lens]
+If $(\ell, \partial \ell)$ is symmetric delta lens, then $(\ell^{op}, \partial
+\ell^{op})$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Terminal Lens]
+$(term_x, term_{\delta(x, x)})$ is a symmetric delta lens
+\end{fact}
+\begin{corollary}[Disconnect Lens]
+If $x \in X$ and $y \in Y$, then $(term_x;term_y^{op},
+term_{\delta(x, x)};term_{\delta(y, y)}^{op})$ is a symmetric delta lens.
+\end{corollary}
+\begin{fact}[Tensor Product Lens]
+If $(\ell_1, \partial \ell_1)$ and $(\ell_2, \partial \ell_2)$ are symmetric
+delta lenses, then $(\ell_1 \otimes \ell_2, \partial \ell_1 \otimes \partial
+\ell_2)$ is a symmetric delta lens.
+\end{fact}
+\begin{corollary}[Projection Lens]
+Projection lenses are symmetric delta lenses.
+\end{corollary}
+\begin{fact}[Forgetful Tensor Sum Lens]
+If $(\ell_1, \partial \ell_1)$ and $(\ell_2, \partial \ell_2)$ are symmetric
+delta lenses, then $(\ell_1 \oplus^f \ell_2, \partial \ell_1 \oplus^f \partial
+\ell_2 \oplus (\ell_1 \otimes \ell_2))$ is a symmetric delta lens.
+\end{fact}
+\begin{fact}[Forgetful List Mapping Lens]
+If $(\ell, \partial \ell)$ is a symmetric delta lens, then $(map^f(\ell)
+\ell_2, map^f(\partial \ell))$ is a symmetric delta lens.
+\end{fact}
+\begin{remark}[Retentive Lenses]
+The retentive tensor sum and list mapping lenses are in general not symmetric
+delta lenses with the obvious definitions of difference functions.
+\end{remark}
+\fi
+\section{Relational Lenses}
+We define a {\em relation} $R$ of type $((T_1, \ldots, T_n), P, F)$ to be a
+multiset $R$ where $T_i, P$ are sets satisfying $R \subseteq P \subseteq T_1
+\times \ldots \times T_n$, $F \subseteq [n] \times [n]$, and if $i, j \in F$,
+then for all $r, r' \in R$, if $r_i = r'_i$ then $r_j = r'_j$. We interpret the
+$T_i$ to be a set of {\em attributes}, $R$ to be a set of {\em records} with
+$dom(r) = (T_1, \ldots, T_n)$ for all $r \in R$, $P$ to be a {\em predicate}
+such that the records in $R$ satisfy $P$, and $F$ to be a set of {\em
+functional dependencies} on the attributes of the records in $R$.
+
+Let $G(F)$ be the graph induced by $F$ on $T_1, \ldots, T_n$ i.e. there is an
+edge from $T_i$ to $T_j$ if and only if $(i, j) \in F$. We say that $F$ is
+in {\em tree form} if $G(F)$ is a DAG and every vertex has indegree at most 1;
+following \cite{bohannon2006relational},we will always assume that $F$ is in
+tree form from here on. Observe that every record $r$ is completely determined
+by nodes of indegree 0 in $G(F)$: if $Roots(G(F)) = \{T_{i_1}, \ldots,
+T_{i_k}\}$ is the set of nodes of indegree 0 and outdegree greater than 0 in
+$G(F)$ and $Isolated(G(F)) = \{T_{j_1}, \ldots, T_{j_\ell}\}$ is the set of
+nodes of indegree 0 and outdegree 0 in $G(F)$, then for any $r = (r_1, \ldots,
+r_n)\in R$, then the map $((r_{i_1}, \ldots, r_{i_k}), (r_{j_1}, \ldots,
+r_{j_\ell}))$ is a bijection since the $r_{i_1}, \ldots, r_{i_k}$ determine all
+nodes of indegree greater than 0, which leaves just the nodes $r_{j_1}, \ldots,
+r_{j_\ell}$.
+
+In order to define lenses in relations, we first need to describe data
+structures representing the relation; lenses will operate on the data
+structures rather than on relations. Let $Outputs(F) = G(F) \setminus
+(Roots(G(F)) \cup Isolated(G(F)))$. We choose to represent a relation with the
+following data:
+\begin{enumerate}
+  \item
+  A partial map $data : (T_{i_1} \times \ldots \times T_{i_k})
+  \longrightarrow 2^{(T_{j_1} \times \ldots \times T_{j_{\ell}})}$ such that
+  there exists a record $r \in R$ with $r[T_{i_1}, \ldots, T_{i_k}] =
+  (t_{i_1}, \ldots, t_{i_k})$ if and only if
+  $$data(t_{i_1}, \ldots, t_{i_k}) =  \{\{r[T_{j_1}, \ldots, T_{j_{\ell}}] \in
+  R \; | \; r_{i_m} = t_{i_m} \text{ for }1 \leq m \leq k\}\}$$
+  \item
+  A map $dependencies : outputs(F) \longrightarrow \cup_{i,j} 2^{T_i \times
+  T_j}$ such that $(p, q) \in dependencies(j)$ if and only if there exists a
+  record $r \in R$ such that $r[T_i, T_j] = (p, q)$, where $i$ is such that
+  $T_i \longrightarrow T_j \in F$ ($i$ is unique as $F$ is assumed to be in tree
+  form).
+\end{enumerate}
+\subsection{Select}
+We say that a predicate $P$ ignores a set of attributes $X$ if for all $r, r'
+\in R$, if $r[dom(R) \setminus X] = r'[dom(R) \setminus X]$ implies that $r
+\in P$ if and only if $r' \in P$.
+
+The {\em select} lens on $R$ evaluates to a relation which is the same as $R$
+but which satisfies a predicate $P$. The inferrence rule for deriving the select
+lens is the following:
+\begin{prooftree}
+\AxiomC{$R : ((T_1, \ldots, T_2), Q, F)$}
+\AxiomC{$S : ((T_1, \ldots, T_2), P \cap Q, F)$}
+\AxiomC{$F$ is in tree form}
+\AxiomC{$P$ ignores $Outputs(F)$}
+\QuaternaryInfC{$(select \; from \; R\; where \; P \; as \; S) : R
+\Leftrightarrow S$}
+\end{prooftree}
+In the get direction, the select lens simply restricts $R$ to $P$. Now consider
+$put \; s \; r$. The select lens proceeds as follows:
+\begin{enumerate}
+  \item
+  First, it computes $(data_s, dependencies_s)$ and $(data_r, dependencies_r)$.
+  \item
+  Next, it updates $dependencies_r$ using $dependencies_s$ to get
+  $dependencies_r'$.
+  \item
+  Next it filters $data_r$ to contain only records not in $P$ to get $data_r'$.
+  \item
+  Next, it computes $(data_r' \cup data_s, dependencies_r')$.
+  \item
+  Finally, it deletes the records from $data_r' \cup data_s$ that would cause
+  PUT-GET to fail.
+\end{enumerate}
+\section{Matching Lenses}
+\begin{definition}
+A {\em basic lens} $\ell : S \xLeftrightarrow{C} V$ is a 4-tuple of functions
+$\ell.\get : S \longrightarrow V$, $\ell.\res : S \longrightarrow C$,
+$\ell.\pput : V \longrightarrow C \longrightarrow S$ and $\ell.\create : V
+\longrightarrow S$ satisfying the following properties:
+\begin{align*}
+\ell.\get \; (\ell.\pput \; v \; c) &= v \tag{PUTGET}\\
+\ell.\pput \; (\ell.\get \; s) \; (\ell.\res \; s) &= s \tag{GETPUT}
+\end{align*}
+\end{definition}
+Idea: First remove matched parts to leave unmatched skeleton. Next remove
+unmatched parts to leave matched skeleton and then flatten.
+%% Acknowledgments
+\begin{acks}                            %% acks environment is optional
+%% contents suppressed with 'anonymous'
+%% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+%% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+%% acknowledge financial support and will be used by metadata
+%% extraction tools.
+This material is based upon work supported by the
+\grantsponsor{GS100000001}{National Science
+Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
+No.~\grantnum{GS100000001}{nnnnnnn} and Grant
+No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
+conclusions or recommendations expressed in this material are those
+of the author and do not necessarily reflect the views of the
+National Science Foundation.
+\end{acks}
+\fi
+\bibliographystyle{plain}
+\bibliography{local}
+%% Appendix
+%%\appendix
+%%\section{Appendix}
+
+\end{document}
