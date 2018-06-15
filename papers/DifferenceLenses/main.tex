@@ -144,7 +144,7 @@ Many of the bidirectional (bx) programming languages that exist today focus on
 restoring consistency between source and target data. Consequently, these languages often provide two guarantees: (1) that a transformation restores consistency when an
 update is made to source or target data, and (2) that trivial updates to a the source result to trivial updates to the target and vice versa. Unfortunately, in situations
 where there are many different ways of restoring consistency, these languages
-do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results. In this paper we present a formalization of bx transformations that enables a programmer to express non-trivial guarantees on update propagation. We will then use this formalization of bx transformations to describe a compositional language of {\em difference lenses}: each difference lens gives non-trivial guarantees on how it propagates non-trivial updates. We will then embed various lens programming languages into the language of difference lenses, and describe non-trivial guarantees that these languages provide beyond consistency restoration.
+do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results. In this paper we present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates. We will then describe a specific bx language which we call {\em difference lenses}; this language is based on the {\em basic lenses} defined in the bx programming language {\em Boomerang}, but each difference lens comes with explicit guarantees on update propagation. We will then express various lens programming languages as difference lenses, and hence describe non-trivial guarantees on update propagation that these languages provide as well.
 \end{abstract}
 
 %% Keywords
@@ -170,28 +170,32 @@ If the order of the names in the target is reversed then a user might expect tha
 $$\ell.\pput \; [``Ada \; Lovelace", \; ``Alan \; Turing"] \; [``Turing", \; ``Lovelace"] = [``Ada \; Lovelace", \; ``Alan \; Turing"]$$
 However, $\ell$ may not perform this alignment so that instead, the following result occurs:
 $$\ell.\pput \; [``Ada \; Lovelace", \; ``Alan \; Turing"] \; [``Turing", \; ``Lovelace"] = [``Ada \; Turing", \; ``Alan \; Lovelace"]$$
-Consider another example where a source consists of a list of names and a number while the target consists of a list of names. Assume that $\ell$ is a bx which in the \get direction simply discards the number:
-$$\ell.\get \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2)  = [``Lovelace", \; ``Turing"]$$
-A user might expect that $\ell$ should always restore the number in the \pput direction so that the following result occurs:
-$$\ell.\pput \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2) \; [``Lovelace"] = ([``Ada \; Lovelace"], \; 2)$$
-However, perhaps the intended semantics of the source is that the number which is the second component of a source denotes the length of the list in the first component of the source so that an application of \pput leads to the following result:
-$$\ell.\pput \; ([``Ada \; Lovelace", \; ``Alan \; Turing"], \; 2) \; [``Lovelace"] = ([``Ada \; Lovelace"], \; 1)$$
-In both of these examples, there are multiple ways to restore consistency; that is, there are multiple ways to define $\ell.\pput \; s \; v$ in such a way that $\ell.\get \; (\ell.\pput \; s \; v) = v$. Moreover, the source that results from a \pput application may be vastly different from what a user expects, or may break an invariant that is not explicitly maintained by the source.
+Consider another example where both a source and a target consists of a list where every element on the list is a name and a year. Assume that $\ell$ is a bx which in the \get direction returns all elements of the source list that have year greater than or equal to 1900:
+$$\ell.\get \; [``Ada \; Lovelace, \; 1815", \; ``Alan \; Turing, \; 1912"] = [``Alan \; Turing, \; 1912"]$$
+Suppose that the entry $``Ada \; Lovelace, \; 1915"$ is then added to the target list. Should $\ell.\pput$ replace the old entry containing the name $``Ada \; Lovelace"$,
+\begin{align*}
+&\ell.\pput \; [``Ada \; Lovelace, \; 1815", \; ``Alan \; Turing, \; 1912"] \; [``Alan \; Turing, \; 1912", \; ``Ada \; Lovelace, \; 1915"] \\
+&= [``Ada \; Lovelace, \; 1915", \; ``Alan \; Turing, \; 1912"]
+\end{align*}
+or should the \pput application retain both versions of $``Ada \; Lovelace"$?
+\begin{align*}
+&\ell.\pput \; [``Ada \; Lovelace, \; 1815", \; ``Alan \; Turing, \; 1912"] \; [``Alan \; Turing, \; 1912", \; ``Ada \; Lovelace, \; 1915"] \\
+&= [``Ada \; Lovelace, \; 1815", \; ``Alan \; Turing, \; 1912", \; ``Ada \; Lovelace, \; 1915"]
+\end{align*}
+In both of these examples, there are multiple ways to restore consistency---that is, there are multiple ways to define $\ell.\pput \; s \; v$ in such a way that $\ell.\get \; (\ell.\pput \; s \; v) = v$---and the results from the different \pput applications may be vastly different from what a user expects. 
 
 Various solutions have been proposed to address the issue of propagating updates in a ``minimal'' way, for example {\em matching lenses} that deal with the issue of alignment \cite{barbosa2010matching}, {\em edit lenses} \cite{hofmann2012edit} and {\em delta lenses} \cite{diskin2011asymmetric,diskin2011state,pacheco2012delta}
 that explicitly propagate edits through the lens, and {\em least change
 lenses} \cite{macedo2013composing} that require that the source value resulting from a \pput application is not only acceptable, but also one of closest to the original $s$ among the sources that share the same view $v$.
 
-We take the approach that a bx should not have to explicitly propagate updates when going from the source to the target and vice versa. Instead, the programmer should be able provide guarantees on how a bx propagates updates. For instance, in the second example, let $\delta_S$ be a function which takes two source elements $(\ell_1, n_1)$ and $(\ell_2, n_2)$ and returns the number $n_1 - n_2$, and let $\delta_T$ be a function which takes two target lists $\ell_1$ and $\ell_2$ and returns the number $length(\ell_1) - \length(\ell_2)$. Then the programmer should be able to express the fact that the bx restores the length of the list in the backward direction, which is expressed using the following equation:
-$$\delta_S((\ell_1, n_1), \ell.\pput \; (\ell_1, n_1) \; \ell_2) = \delta_V(\ell.\get \; (\ell_1, n_1), \ell_2) $$
-In this paper, we introduce a formalization of bx transformations that enables a programmer to express guarantees such as the one above and show how our formalism can be used to characterize update propagation behaviour of bidirectional transformations.
+We take the approach that a bidirectional programming language should have explicit guarantees on how programs written in that language propagate updates; ideally these guarantees should be strictly stronger than hippocraticness. This way a programmer who derives bx transformations in this language has a clearer understanding of the behaviour of the programs that she writes. 
 
-The major technical contributions that we will make in this paper are the following:
+In this paper we will show how this can be done, by describing a formalization of bx transformations that explicitly accounts for update propagation, and presenting a series of examples showing how this principle can be applied to existing bx programming languages. More specifically, the major technical contributions that we will make in this paper are the following:
 \begin{enumerate}
-  \item
-  We present a formalization of bx transformations that enables a programmer to express non-trivial update propagation behaviour.
-  \item
-  We use our formalization to develop a compositional language of {\em difference lenses} based on the {\em basic lenses} implemented in the lens programming language Boomerang \cite{foster2009bidirectional}, and describe non-trivial update propagation guarantees that these lenses provide.
+\item
+We present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates. 
+\item
+We describe a specific bx language which we call {\em difference lenses}; this language is based on the {\em basic lenses} defined in the bx programming language {\em Boomerang}\cite{foster2009bidirectional}, but each difference lens comes with explicit guarantees on update propagation. As a result of this work, we will describe non-trivial update propagation properties that Boomerang's basic lenses provide.
   \item
   We show how to represent matching lenses and  relational lenses \cite{bohannon2006relational} as difference lenses, and hence describe non-trivial guarantees that these lens languages provide as well.
 \end{enumerate}
