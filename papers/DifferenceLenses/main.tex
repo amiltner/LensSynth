@@ -293,20 +293,24 @@ Given an unambiguous difference regular expression $R$, define $\delta_R : \math
 \end{cases}\\
 \delta_{R^*_{POS}}(s_1 \cdot \ldots \cdot s_m, t_1 \cdot \ldots \cdot t_n) &= 
 \begin{cases}
-0 & \text{if } m=0 \text{ or } n=0\\
-\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi(i) = i\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
+1 & \text{if } m = 0, n = 0\\ 
+0 & \text{if } m = 0, n \neq 0\\
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi(i) = i\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
 \max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi(i) = i\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
 \end{cases}\\
 \delta_{R^*_{NC}}(s_1 \cdot \ldots \cdot s_m, t_1 \cdot \ldots \cdot t_n) &= 
 \begin{cases}
-0 & \text{if } m=0 \text{ or } n=0\\
+1 & \text{if } m = 0, n = 0\\ 
+0 & \text{if } m = 0, n \neq 0\\
+0 & \text{if } m \neq 0, n = 0\\
 \max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is strictly increasing}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
 \max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is strictly increasing}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
 \end{cases}\\
 \delta_{R^*_{MED}}(s_1 \cdot \ldots \cdot s_m, t_1 \cdot \ldots \cdot t_n) &= 
 \begin{cases}
-0 & \text{if } m=0 \text{ or } n=0\\
-\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is injective}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
+1 & \text{if } m = 0, n = 0\\ 
+0 & \text{if } m = 0, n \neq 0\\
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is injective}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
 \max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is injective}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
 \end{cases}
 \end{align*}
@@ -654,20 +658,17 @@ $$\delta_{R \cdot R}(t \cdot t, s \cdot s) = \frac{1}{2}\left(\delta_R(t, s) + \
 $$\delta_{R \cdot R}(t \cdot s', s \cdot s') = \frac{1}{2}\left(\delta_R(t, s) + \delta_R(s', s')\right) = \frac{1}{2}\left(\delta_R(t, s) + 1\right) \geq \delta_R(t, s)$$
 which follows from the fact that $\delta_R(t, s) \leq 1$.
 \end{proof}
+\subsection{Matching Lenses}
+Difference lenses provide three iteration combinators for dealing with the issue of {\em local alignment}. However, if the ``chunks'' that a programmer wishes to align do not occur underneath a star regular expression, then the difference lenses combinators will not align them. Consider for example the lens:
+\begin{lstlisting}
+let k : lens = (copy [A-Z]) . ([a-z]<->"")
+let l : lens = k . (copy "," . k)*
+\end{lstlisting}
+If we try to put the view \lstinline|"Z,Y,W,X"| into the source \lstinline|"Xx,Yy,Zz"|, then using a min-edit distance iteration lens, we will get the result \lstinline|"Zx,Yy,Wz,Xa"|, because the view element $``Z"$, being out outside the star, will be put into $``Xx"$, and the iteration lens will align the chunks remaining in the star. What is needed in this example is a lens which performs a ``global alignment'' strategy.
+
+Barbosa's {\em matching lenses} \cite{barbosa2010matching} do just this, by allowing a programmer to mark every chunk that they wish to align anywhere in a lens term. The guarantee that matching lenses give is that alignment used to match view chunks is the same alignment that is used to match source chunks.
+
 \iffalse
-\section{Matching Lenses}
-\begin{definition}
-A {\em basic lens} $\ell : S \xLeftrightarrow{C} V$ is a 4-tuple of functions
-$\ell.\get : S \longrightarrow V$, $\ell.\res : S \longrightarrow C$,
-$\ell.\pput : V \longrightarrow C \longrightarrow S$ and $\ell.\create : V
-\longrightarrow S$ satisfying the following properties:
-\begin{align*}
-\ell.\get \; (\ell.\pput \; v \; c) &= v \tag{PUTGET}\\
-\ell.\pput \; (\ell.\get \; s) \; (\ell.\res \; s) &= s \tag{GETPUT}
-\end{align*}
-\end{definition}
-Idea: First remove matched parts to leave unmatched skeleton. Next remove
-unmatched parts to leave matched skeleton and then flatten.
 \section{Relational Lenses}
 We define a {\em relation} $R$ of type $((T_1, \ldots, T_n), P, F)$ to be a
 multiset $R$ where $T_i, P$ are sets satisfying $R \subseteq P \subseteq T_1

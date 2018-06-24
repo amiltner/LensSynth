@@ -965,13 +965,23 @@ S_2$ strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \sep S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
-Strong unambiguity is necessary in the premises of the regular QRE combinators
-because it ensures that the canonizing function of a QRE is well-defined.
-For example, consider the QRE \lstinline{"a"$^*$ . (collapse "a"$^*$ $\to$ "a")}. The
+These unambiguity constraints can be a little fiddly in practice. As a simple example of this, consider writing a regular expression for comma-separated lists of strings. Our first impulse might be to write it as,
+\begin{lstlisting}
+CSL = anychar+ . ("," . anychar+)*
+\end{lstlisting}
+(where . is concatenation), but this regular expression is ambiguous, as \lstinline|anychar| is a big union of a of single characters including comma.
+
+While the unambiguity constraints consequently appear to compromise compositionality of QREs, they can usually be circumvented by making a small changes to the offending regular expression: for instance, in the preceding example, then we need to write,
+\begin{lstlisting}
+CSL = anycharexceptcomma+ . ("," . anycharexceptcomma+)*
+\end{lstlisting}
+(assuming \lstinline|anycharexceptcomma| denotes a big union of every single character string except comma). 
+
+Unambiguity constraints are necessary because they ensure that the canonizing function of a QRE is well-defined.
+For example, consider the QRE \lstinline|"a"$^*$ . (collapse "a"$^*$ $\to$ "a")|. The
 behavior of this QRE is not well-defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"}
-depending on how \cd{"aaa"} is parsed. We also require that the regular
-combinators applied to the kernels of QREs be unambiguous since the underlying
+depending on how \cd{"aaa"} is parsed. The unambiguity constraints are also applied to the kernels of QREs since the underlying
 bijective string lens of a QRE lens operates on kernels, and bijective string lenses
 impose the same unambiguity restrictions so that they too are well defined as
 functions.
@@ -1738,7 +1748,7 @@ To evaluate our QRE implementation, we adapted 39 lens synthesis tasks
 from the benchmark suite of the original Optician system. These
 benchmarks are a combination of custom benchmarks, benchmarks derived
 from FlashFill~\cite{flashfill}, and benchmarks derived from
-Augeas~\cite{augeas2}.  In these 39 benchmarks, 10 of
+Augeas~\cite{augeas2} (we also experimented using our QRE implementation to synthesize quotient lenses between XML, RDF and and JSON formats using data from data.gov database; the data consisted of census statistics, demographic statistics, wage comparosion data, and crime index data).  In these 39 benchmarks, 10 of
 the data formats had to be modified to work with the bijectivity
 constraints that Optician required. For instance, when one
 representation permits whitespace where the other does not, we
@@ -1820,10 +1830,10 @@ the three approaches:
 
 Figure~\ref{fig:asts} shows each of these measures for the 10
 non-bijective problems in the benchmark suite.  On
-average, \canonizeAndSpecSize{} used~44\% more AST nodes
-than \QRESize{}, requiring an average of~237 more AST nodes. On 
-average, \LensAndSpecSize{} used~193\% more AST nodes than \QRESize{}, requiring an
-average of~1267 more AST nodes. These figures suggest that introducing QREs saves
+average (using a geometric mean), \canonizeAndSpecSize{} used~38.5\% more AST nodes
+than \QRESize{}, requiring an average of~214 more AST nodes. On 
+average, \LensAndSpecSize{} used~180\% more AST nodes than \QRESize{}, requiring an
+average of~998 more AST nodes. These figures suggest that introducing QREs saves
 programmers significant effort compared to both Optician and basic
 Boomerang.
 
