@@ -148,7 +148,7 @@ Many of the bidirectional (bx) programming languages that exist today focus on
 restoring consistency between source and target data. Consequently, these languages often provide two guarantees: (1) that a transformation restores consistency when an
 update is made to source or target data, and (2) that trivial updates to a the source result to trivial updates to the target and vice versa. Unfortunately, in situations
 where there are many different ways of restoring consistency, these languages
-do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results. In this paper we present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates. We will then describe a specific bx language which we call {\em difference lenses}; this language is based on the {\em basic lenses} defined in the bx programming language {\em Boomerang}, but each difference lens comes with explicit guarantees on update propagation. We will then express various lens programming languages as difference lenses, and hence describe non-trivial guarantees on update propagation that these languages provide as well.
+do not constrain how a transformation chooses to do so. As a result, the transformations derived using these languages can lead to unexpected results. In this paper we present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates and use this formalization to describe a bx language of {\em difference lenses} based on the basic lenses defined in the lens programming language Boomerang. Each difference lens will be shown to respect a ``difference'' measure that estimates how similar two pieces of data are on both sides of a bx; the fact that difference lenses have this property demonstrates that they  have stronger guarantees than consistency restoration. We will then turn our attention to Boomerang's matching lenses, where we will define an appropriate difference measure for data acted on by matching lenses, and show that matching lenses respect this refined measure.
 \end{abstract}
 
 %% Keywords
@@ -196,25 +196,25 @@ Various solutions have been proposed to address the issue of propagating updates
 that explicitly propagate edits through the lens, and {\em least change
 lenses} \cite{macedo2013composing} that require that the source value resulting from a \pput application is not only acceptable, but also one of closest to the original $s$ among the sources that share the same view $v$.
 
-Each one of these solutions has significant shortcomings. While matching lenses successfully address the issue of alignment, they do not address the general issue of correct update propagation. Edit lenses and delta lenses all assume that the lens propagates a specific set of updates explicitly, but this is unrealistic since since in general users do not update data using a small predetermined langauge of edits. Instead users edit the data in any way, for example using text editors or IDEs, and present the updatad data to the bx wholesale. Finally, least change lenses are in general computationally intractable \cite{buneman2002propagation} and also lack a notion of composition---that is, the composition of two deterministic least change lenses is not always a least change lens\cite{macedo2013composing}.
+Each one of these solutions has significant shortcomings. Firstly, while matching lenses successfully address the issue of alignment, they do not address the general issue of correct update propagation. Secondly, edit lenses and delta lenses all assume that the lens propagates a specific set of updates explicitly, but this is unrealistic since since in general users do not update data using a small predetermined langauge of edits; instead users edit the data in any way, for example using text editors or IDEs, and present the updatad data to the bx wholesale. Finally, least change lenses are in general computationally intractable \cite{buneman2002propagation} and also lack a notion of composition---that is, the composition of two deterministic least change lenses is not always a least change lens\cite{macedo2013composing}.
 
 We take the approach that instead of having a bx manually propagate a fixed set of edits, a bidirectional programming language should have explicit guarantees on how programs written in that language propagate updates; ideally these guarantees should be strictly stronger than hippocraticness. Consider again the first example that we presented, which is an instance of the alignment problem. In that example, the list
-$[``Lovelace", \; ``Turing"]$ was updated to the list $[``Turing", \; ``Lovelace"]$. The programmer may wish to consider these two lists equivalent or not: if she does, then she should use a min-edit distance ``metric'' and demand that the source side respects this metric. On the other hand, if she wishes to use a positional metric to compare these two lists, then she should similarly demand that the source side respects this metric. In each case, the programmer does not care how the bx restores consistency; she cares only that the bx restores consistency and respects the appropriate metric.
+$[``Lovelace", \; ``Turing"]$ was updated to the list $[``Turing", \; ``Lovelace"]$. The programmer may wish to consider these two lists equivalent or not: if she does, then she should use a min-edit distance ``metric'' and demand that the source side respects this metric by applying the ``flip'' permutation applying the bx in reverse. On the other hand, if she wishes to use a positional metric to compare these two lists, then she should similarly demand that the source side respects this metric and use the identity permuation when applying the bx in reverse. In each case, the programmer does not care how the bx restores consistency; she cares only that the bx restores consistency and respects the appropriate metric.
 
-In this paper, we present a general approach for describing update propapagtion guarantees for a bx without requiring that the bx manually handle updates. In particular, we will enhance a standard definition of bx transformations that only takes into account a consistency relation with a ``difference'' relation that describes a relationship between source updates and target updates. With this new formalization, a well behaved bx will not only be hippocratic, but will also be required to preserve the difference relation that is part of the bx.
+In this paper, we present a general approach for describing update propapagtion guarantees for a bx without requiring that the bx manually handle updates. In particular, we will enhance a standard definition of bx transformations that only takes into account a consistency relation with a ``difference'' relation that describes the relationship between source updates and target updates. With this new formalization, a well behaved bx will not only be hippocratic, but will also be required to preserve the difference relation that is part of the bx.
 
-We will then use this formalization to describe a particular language of bx transformations which we call {\em difference lenses}. Difference lenses are based on the {\em basic lenses} defined in the lens programming language {\em Boomerang} \cite{foster2009bidirectional}, but come with the guarantee that the lens respects ``differences'' on the source and view side of a lens. Intuitively, this means that if one starts with a source, maps it into a view, edits the view and then maps the updated view back into the old source, then the difference between the new and old source is at most the difference between the old and new view. Difference lenses will have combinators that deal with local alignment; in particular, difference lenses have positional, non-crossing, and min-edit distance iteration combinators that preserve positional, non-crossing, and min-edit distance differences respectively. We will then build on difference lenses to describe a language of {\em matching difference lenses} that deal with global alignment. 
+In this paper we present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates and use this formalization to describe a bx language of {\em difference lenses} based on the basic lenses defined in the lens programming language Boomerang. Each difference lens will be shown to respect a ``difference'' measure that measures how similar two pieces of data are on both sides of a bx. Intuitively, this means that if one starts with some source data, maps it into a target format using a difference lens, edits the target data, and then maps the updated data back into the old source, then the difference between the new and old source is at most the difference between the old and new targets. Difference lenses will have combinators that deal with {\em local alignment}; in particular, difference lenses will have positional, non-crossing, and min-edit distance iteration combinators that preserve positional, non-crossing, and min-edit distance differences respectively. 
 
-\sam{TODO: Talk about relational lenses.}
+We will then turn our attention to Boomerang's matching lenses, where we will define an appropriate difference measure for data acted on by matching lenses, and show that matching lenses respect this new measure. Matching lenses perform {\em global alignment} of data; for example, they can align data inside of an starred regular expression to data outside of a starred regular expression. The measure that we use for matching lenses will thus seperate the difference between aligned chunks and non-aligned chunks and compute the average of the two to get a final result.
 
 The major technical contributions that we will make in this paper are the following:
 \begin{enumerate}
 \item
 We present a formalization for bx transformations that requires a bx to provide guarantees on how it propagates updates. 
 \item
-We describe a specific bx language which we call {\em difference lenses}; this language is based on the {\em basic lenses} defined in the lens programming language {\em Boomerang}\cite{foster2009bidirectional}, but each difference lens comes with explicit guarantees on update propagation. As a result of this work, we will describe non-trivial update propagation properties that Boomerang's basic lenses provide.
+We describe a bx language of {\em difference lenses} based on the basic lenses defined in the lens programming language Boomerang, and show that each difference lens respects a ``difference'' measure that estimates how similar two pieces of data are on both sides of a bx.
   \item
-  We show how to represent matching lenses and  relational lenses \cite{bohannon2006relational} as difference lenses, and hence describe non-trivial guarantees that these lens languages provide as well.
+We define an appropriate difference measure for data acted on by {\em matching lenses} \cite{barbosa2010matching}, and show that matching lenses respect this refined measure.
 \end{enumerate}
 \section{Laying Down BX Laws}
 \begin{definition}[Stevens \cite{stevens2010bidirectional}]
@@ -322,8 +322,6 @@ For any regular expression $R$ and $s, s' \in \mathcal{L}(R)$
 $0 \leq \delta_R(s, s') \leq 1$.
 \item
 $\delta_R(s, s) = 1$.
-\item
-If $s \neq s'$ and either $s = \varepsilon$ or $s' = \varepsilon$, then $\delta_R(s, s') = 0$
 \item
 For all $s, s' \in \mathcal{L}(R^*)$, $\delta_{R^*_{MED}}(s, s') \geq \delta_{R^*_{NC}}(s, s') \geq \delta_{R^*_{MED}}(s, s')$.
 \item
@@ -598,7 +596,7 @@ This follows from the fact that
 \end{align*}
 \end{proof}
 \subsubsection{Filter}
-Let $R$ and $S$ be difference regular expressions. Assume that $\mathcal{L}(R) \cap \mathcal{L}(S) = \varnothing$, and that $(R \cup S)^{!*}$. Define the lens $\filter_{MED} \; R \; S : (R \sqcup S)^*_{MED} \Leftrightarrow R^*_{MED}$ by
+Let $R$ and $S$ be difference regular expressions. Assume that $\mathcal{L}(R) \cap \mathcal{L}(S) = \varnothing$, and that $(R \cup S)^{!*}$. Define the lens $\filter_{MED} \; R \; S : (R \cup S)^*_{MED} \Leftrightarrow R^*_{MED}$ by
 \begin{align*}
 (\filter \; R \; S).\get \; s &= \strfilter \; R \; s\\
 (\filter \; R \; S).\pput \; s \; v &= \strunfilter \; S \; s \;v\\
@@ -621,7 +619,7 @@ $|$ $x \cdot xs',y \cdot ys'$ when $x \not \in S$ -> $y \cdot (\strunfilter \; R
 \end{lstlisting}
 Given a source $s \in (R \cup S)^*$, the lens $\filter \; R \; S$ removes all elements that match $S$ in $s$ in the \get direction and restores them in the \pput direction.
 \begin{claim}
-Let $R$ and $S$ be difference regular expressions with $\mathcal{L}(R) \cap \mathcal{L}(S) = \varnothing$ and $(R \cup S)^{!*}$. Then $\filter_{POS} \; R \; S : (R \sqcup S)^*_{MED} \Leftrightarrow R^*_{MED}$ is a difference lens.
+Let $R$ and $S$ be difference regular expressions with $\mathcal{L}(R) \cap \mathcal{L}(S) = \varnothing$ and $(R \cup S)^{!*}$. Then $\filter_{POS} \; R \; S : (R \cup S)^*_{MED} \Leftrightarrow R^*_{MED}$ is a difference lens.
 \end{claim}
 \begin{proof}
 We need to show that
@@ -653,8 +651,8 @@ $$\delta_{R \cdot R}((\mergelens \; R).\pput \; (s \cdot s') \; t, (s \cdot s'))
 If $s = s'$, then we need to show that
 $$\delta_{R \cdot R}(t \cdot t, s \cdot s) \geq \delta_R(t, s)$$
 which follows from the fact that
-If $s \neq s'$, then we need to show that
 $$\delta_{R \cdot R}(t \cdot t, s \cdot s) = \frac{1}{2}\left(\delta_R(t, s) + \delta_R(t, s)\right) = \delta_R(t, s)$$
+If $s \neq s'$, then we need to show that
 $$\delta_{R \cdot R}(t \cdot s', s \cdot s') = \frac{1}{2}\left(\delta_R(t, s) + \delta_R(s', s')\right) = \frac{1}{2}\left(\delta_R(t, s) + 1\right) \geq \delta_R(t, s)$$
 which follows from the fact that $\delta_R(t, s) \leq 1$.
 \end{proof}
@@ -666,8 +664,136 @@ let l : lens = k . (copy "," . k)*
 \end{lstlisting}
 If we try to put the view \lstinline|"Z,Y,W,X"| into the source \lstinline|"Xx,Yy,Zz"|, then using a min-edit distance iteration lens, we will get the result \lstinline|"Zx,Yy,Wz,Xa"|, because the view element $``Z"$, being out outside the star, will be put into $``Xx"$, and the iteration lens will align the chunks remaining in the star. What is needed in this example is a lens which performs a ``global alignment'' strategy.
 
-Barbosa's {\em matching lenses} \cite{barbosa2010matching} do just this, by allowing a programmer to mark every chunk that they wish to align anywhere in a lens term. The guarantee that matching lenses give is that alignment used to match view chunks is the same alignment that is used to match source chunks.
+Barbosa's {\em matching lenses} \cite{barbosa2010matching} do just this, by allowing a programmer to mark every chunk that they wish to align anywhere in a lens term. For example, to align all chunks handled using the lens \lstinline|k| in the following example, then we would wrap each occurrence of \lstinline|k| with the ``chunk'' annotation \lstinline|<>| and specify which alignment to use i.e. positional, non-crossing or min-edit distance, which leads to the following lens:  
+\begin{lstlisting}
+let k : lens = (copy [A-Z]) . ([a-z]<->"")
+let l : lens = <best:k> . (copy "," . <best:k>)*
+\end{lstlisting}
+The \pput behaviour of this new lens is,
+\begin{lstlisting}
+l.put "Z,Y,W,X" into "Xx,Yy,Zz" = "Zz,Yy,Wa,XX"
+\end{lstlisting}
+Because matching lenses perform a ``global'' alignment of chunks i.e. an alignment which may match chunks in different positions of a regular expression, then the difference $\delta_R$ is not an appropriate measure to compare the difference between two sources or views. Instead, given a {\em chunk-annotated} regular expression, we will pull out all strings which match the annotated part of the regular expression and compute the difference of those separately from the parts of the regular expression that are not chunk annotated, and then take the average of the two.
+\begin{definition}
+Let $\Sigma$ be a finite alphabet. A {\em regular expression} is any term generated by the following grammar,
+$$R := \varnothing \; | \; s \; | \; R \cdot R' \; | \; R \cup R' \; | \; R^*$$
+where $R$ ranges over regular expressions and $s$ ranges over $\Sigma^*$.
+\end{definition}
+\begin{definition}
+A {\em chunk-annotated regular expression} is any term generated by the following grammar,
+$$A := R \; | \; <R,t> \; | \; A \cdot A' \; | \; A \cup A' \; | \; A^*$$
+where $A$ ranges over chunk-annotated regular expressions $R$ ranges over regular expressions, and $t$ ranges over $\{POS,NC,MED\}$
+\end{definition}
+Let $A$ be an unambiguous chunk-annotated regular expression built from the alphabet $\Sigma$. Let $* \not \in \Sigma$ and $s \in \mathcal{L}(A)$. Define $S(A, s)$ and $L(A, s)$ inductively by
+\begin{align*}
+S(R, s) &= s\\
+S(<R,t>, <s>) &= *\\
+S(A \cdot A', s \cdot s') &= S(A, s) \cdot S(A', s')\\
+S(A \cup A', s) &=
+\begin{cases}
+S(A, s) & \text{if } s \in \mathcal{L}(A)\\
+S(A', s) & \text{if } s \in \mathcal{L}(A')
+\end{cases}\\
+S(A^*, s_1 \cdot \ldots \cdot s_n) &= S(A, s_1) \cdot \ldots \cdot T(A, s_n)\\
+\\
+L(R, s) &= []\\
+L(<R,t>, <s>) &= [s]\\
+L(A \cdot A', s \cdot s') &=  L(A,s) +\!\!+ L(A',s')\\
+L(A \cup A', s) &=
+\begin{cases}
+L(A, s) & \text{if } s \in \mathcal{L}(A)\\
+L(A', s) & \text{if } s \in \mathcal{L}(A')
+\end{cases}\\
+L(A^*, s_1 \cdot \ldots \cdot s_n) &= L(A, s_1) +\!\!+ \ldots +\!\!+ L(A, s_n)
+\end{align*}
+The string $S(A, s)$ is the ``skeleton'' of $s$ that matches the annotated regular expression $A$, while the list $L(A, s)$ is the list of strings inside $s$ that have been marked as chunks for alignment.
 
+Define the function $pick : List(A \; option) \longrightarrow A \; option$ by
+$$
+pick \; [a_1, \ldots, a_n] =
+\begin{cases}
+Some \; a & \text{if } i > 0 \text{ and }a_i \neq None \text{ implies } a_i = a\\
+None &\text{otherwise}
+\end{cases}
+$$
+Given a chunk-annotated regular expression $A$, define $M(A)$ and $N(A)$ as follows:
+\begin{align*}
+M(R) &= R\\
+M(<R,t>) &= *\\
+M(A \cdot A') &= M(A) \cdot M(A')\\
+M(A \cup A') &= M(A) \cup M(A')\\
+M(A^*) &= M(A)^*\\
+\\
+N(R) &= None\\
+N(<R, t>) &= Some \; (R, t)\\
+N(A \cdot A') &= pick \; [N(A),N(A')]\\
+N(A \cup A') &= pick \; [N(A),N(A')]\\
+N(A^*) &= pick [M(A)]
+\end{align*}
+$M(A)$ is the skeletal part of a chunk-annotated regular expresion, whereas $N(A)$ is the regular expression inside $A$ that actually matches chunks to be aligned.
+
+For any unambiguous regular expression $R$, let $List(R)$ be the set of all lists with elements in $\mathcal{L}(R)$, and observe that we can define three difference functions $\delta^{List(R)}_{POS}$ $\delta^{List(R)}_{NC}$ and $\delta^{List(R)}_{MED}$ on $List(R)$ in the same way that we define $\delta_{R^*_{POS}}$, $\delta_{R^*_{NC}}$ and $\delta_{R^*_{MED}}$. For example, define
+$$
+\delta^{List(R)}_{MED}([s_1, \ldots, s_m], [t_1, \ldots, t_n]) = 
+\begin{cases}
+1 & \text{if } m = 0, n = 0\\ 
+0 & \text{if } m = 0, n \neq 0\\
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is injective}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
+\max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is injective}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
+\end{cases}
+$$
+
+\begin{definition}
+If $A$ is a chunk-annotated unambiguous regular expression with $s,s' \in \mathcal{L}(A)$ and $N(A) = (R, t)$, define $\delta_A(s, s')$ by
+$$
+\delta_A(s, s) = 
+\frac{1}{2} \left(\delta_{M(V)}(S(A,s), S(A,s')) + \delta^{List(R)}_{t}(L(A, s), L(A, s'))\right)
+$$
+\end{definition}
+Having defined a way of measuring the difference between two chunk-annotated strings, we now give a brief summary of the design of a simplified version of matching lenses, and explain how a matching lens $\ell$ is used to define a basic lens $\lfloor \ell \rfloor$ that performs alignment of chunks in a chunk-annotated string. We will then prove that $\lfloor \ell \rfloor$ is a difference lens with respect to the measure $\delta_A$ that we defined for chunk-annotated regular expressions.
+\begin{definition}
+Given a basic lens $k : S_k \Leftrightarrow V_k$, sets $S$, $V$ that have chunks in $S_k$ and $V_k$ respectively, and a set $C$ of ``complements'', a matching lens $\ell : S \xLeftrightarrow{C, k} V$ comprises four functions:
+\begin{align*}
+\ell.\get &: S \longrightarrow V\\
+\ell.\res &: S \longrightarrow (C \times (\mathbb{N} \rightharpoonup S_k))\\
+\ell.\pput &: V \longrightarrow (C \times (\mathbb{N} \rightharpoonup S_k)) \longrightarrow S\\
+\ell.\create &: V \longrightarrow (\mathbb{N} \rightharpoonup S_k) \longrightarrow S
+\end{align*}
+that satisfy the following laws,
+\begin{align*}
+\ell.\get \; (\ell.\pput \; v \; 
+(c,r)) &= v \tag{PUTGET}\\
+\ell.\pput \; (\ell.\get \; s) \; (\ell.\res \; s) &= s \tag{GETPUT}\\
+\text{if } n \in (locations(v) \cap dom(r)) &\text{ then } (\ell.\pput \; v \; (c, r))[n] = k.\pput \; v[n] \; (r(n)) \tag{CHUNKPUT}\\
+\text{if } n \not \in (locations(v) \cap dom(r)) &\text{ then } (\ell.\pput \; v \; (c, r))[n] = k.\create \; v[n] \tag{NOCHUNKPUT}
+\end{align*}
+where $locations(s)$ is the number of chunks in $s$. (Matching lenses are required to satisfy other laws as well, but these have been ommitted for brevity).
+\end{definition}
+The \pput function of a matching lens takes a complement $c$ and partial map $r$ from natural numbers to chunks of type $S_k$. Intuitively, when the lens encounters a the $n^{th}$ chunk inside of a string, it uses the basic lens $k$ by putting the $n^{th}$ chunk of $v$ into the $n^{th}$ chunk in $r$, and if $r$ does not contain any chunk at position $n$ then $r$ uses the \create function of $k$ to. Otherwise, the lens uses the complement $c$ in the ``skeletal'' parts of the string i.e. the parts of the string that are not marked as chunks.
+
+Now let $\ell : S \xLeftrightarrow{C, k}$ be a matching lens with $k : S_k \Leftrightarrow V_k$.
+Assume that $N(V) = Some \; (R, t)$, and define the basic lens $\lfloor \ell \rfloor : S \Leftrightarrow V$ by
+\begin{align*}
+\lfloor \ell \rfloor.\get \; s &= \ell.\get \; s\\
+\lfloor \ell \rfloor.\pput \; s \; v&= \ell.\pput \; v \; (c, r \circ g)\\
+\text{where } (c, r) &= \ell.\res \;s \\
+\text{and } g &\text{ aligns } L(V, chunks(v)) \text{ to } L(V, chunks(\ell.\get \; s)),\\
+&\text{ maximizing } \delta^{List(R)}_{t}(L(V, chunks(v)), L(V, chunks(\ell.\get \; s)))\\
+\lfloor \ell \rfloor.\create \; v &= \ell.\create \; v \; \varnothing
+\end{align*}
+\begin{claim}
+$\delta_S(\lfloor \ell \rfloor.\pput \; s \;v, s) \geq \delta_V(v, \lfloor \ell \rfloor.\get \; s)$
+\end{claim}
+\begin{proof}
+Let $N(S) = Some \; (R', t)$. Since $$\delta_S(\lfloor \ell \rfloor.\pput \; s \;v, s) = \frac{1}{2} \left(\delta_{M(S)}(S(S,\lfloor \ell \rfloor.\pput \; s \;v), S(S,s)) + \delta^{List(R')}_{t}(L(S, \lfloor \ell \rfloor.\pput \; s \;v), L(S, s))\right)$$
+and
+$$\delta_V(v, \lfloor \ell \rfloor.\get \; s) = \frac{1}{2} \left(\delta_{M(V)}(S(V,v), S(V,\lfloor \ell \rfloor.\get \; s)) + \delta^{List(R)}_{t}(L(V, v), L(V, \lfloor \ell \rfloor.\get \; s))\right)$$
+then it is enough to show that
+$$\delta_{M(S)}(S(S,\lfloor \ell \rfloor.\pput \; s \;v), S(S,s)) \geq \delta_{M(V)}(S(V,v), S(V,\lfloor \ell \rfloor.\get \; s))$$
+and that
+$$\delta^{List(R')}_{t}(L(S, \lfloor \ell \rfloor.\pput \; s \;v), L(S, s)) \geq \delta^{List(R)}_{t}(L(V, v), L(V, \lfloor \ell \rfloor.\get \; s))$$
+Both of these follow from the fact that $k$ and the skeleton of $\ell$ are both basic lenses.
+\end{proof}
 \iffalse
 \section{Relational Lenses}
 We define a {\em relation} $R$ of type $((T_1, \ldots, T_n), P, F)$ to be a
