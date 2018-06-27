@@ -167,52 +167,52 @@ stringstyle=\sffamily\color{dkblue},
 \title{Synthesizing Symmetric Lenses}
 
 \begin{abstract}
-\saz{This abstract too long and doesn't get to the point quickly enough. We
-  should tighten it up considerably.}\bcp{+1.  But not just tighten ---
-  the whole story doesn't feel very compelling.}
-  Users commonly need to synchronize the data shared between formats, so edits
-  to the data in one format gets propagated to the data in the other format.
-  Manually writing the functions for these data synchronizers is tedious and
-  error prone. Instead of manually writing these synchronizers, bidirectional
-  languages can be used to express \emph{lenses}, groups of synchronization
-  functions with guarantees about round-trip behavior. While these bidirectional
-  languages help make programming these synthesizers less error-prone, they
-  remain difficult to program in. Synthesizing bidirectional languages allows
-  users to use lenses without manually programming them. Current
-  synthesizers work only on the simplest types of lenses, when the two formats
-  describe exactly the same data; this is often not the case.
+%% \saz{This abstract too long and doesn't get to the point quickly enough. We
+%%   should tighten it up considerably.}\bcp{+1.  But not just tighten ---
+%%   the whole story doesn't feel very compelling.}
+%%   Users commonly need to synchronize the data shared between formats, so edits
+%%   to the data in one format gets propagated to the data in the other format.
+%%   Manually writing the functions for these data synchronizers is tedious and
+%%   error prone. Instead of manually writing these synchronizers, bidirectional
+%%   languages can be used to express \emph{lenses}, groups of synchronization
+%%   functions with guarantees about round-trip behavior. While these bidirectional
+%%   languages help make programming these synthesizers less error-prone, they
+%%   remain difficult to program in. Synthesizing bidirectional languages allows
+%%   users to use lenses without manually programming them. Current
+%%   synthesizers work only on the simplest types of lenses, when the two formats
+%%   describe exactly the same data; this is often not the case.
 
-  Oftentimes, each format may contain information the other lacks. Such
-  synchronization tasks are described by one of the richest classes of lenses,
-  symmetric lenses. However, symmetric lenses in their current formulation
-  require external\bcp{why not ``internal''?} state in the form of a \emph{complement}. This statefulness
-  makes symmetric lenses both difficult to use and difficult to
-  synthesize. \bcp{This paragraph seems too dense.}
+%%   Oftentimes, each format may contain information the other lacks. Such
+%%   synchronization tasks are described by one of the richest classes of lenses,
+%%   symmetric lenses. However, symmetric lenses in their current formulation
+%%   require external\bcp{why not ``internal''?} state in the form of a \emph{complement}. This statefulness
+%%   makes symmetric lenses both difficult to use and difficult to
+%%   synthesize. \bcp{This paragraph seems too dense.}
 
-  In this work, we reformulate\bcp{More a restriction than a reformulation.}
-  symmetric lenses as \emph{simple symmetric 
-    lenses}. While this formulation is less expressive than symmetric lenses, it
-  expresses many\bcp{weak} symmetric lenses while requiring \emph{no external state}. We
-  provide combinators for simple symmetric lenses on string data, and integrate
-  these combinators into Boomerang\bcp{undefined} while providing full backwards compatibility.
+%%   In this work, we reformulate\bcp{More a restriction than a reformulation.}
+%%   symmetric lenses as \emph{simple symmetric 
+%%     lenses}. While this formulation is less expressive than symmetric lenses, it
+%%   expresses many\bcp{weak} symmetric lenses while requiring \emph{no external state}. We
+%%   provide combinators for simple symmetric lenses on string data, and integrate
+%%   these combinators into Boomerang\bcp{undefined} while providing full backwards compatibility.
 
-\bcp{This bit feels more detailed / technical than needed for an abstract.}
-  We develop a type-directed synthesis algorithm for generating lenses in this
-  language from regular expressions describing the data formats. A significant
-  technical challenge in this work arises from the fact that our target language
-  permits synchronization between formats that don't have exactly the same data
-  -- data in one format need not be present in the other format. This gives the
-  synthesis algorithm much more freedom, as data can be completely unaligned
-  (edits in one format are never propagated), completely aligned (the formats
-  are in bijective correspondence), or anywhere in between. Under the assumption
-  that users typically want to align as much data as possible, we provide an
-  information theoretic metric for how much data is left unaligned based on the
-  theory of \emph{stochastic regular expressions}. Furthermore, we use this
-  metric to develop a greedy synthesis algorithm that tries to minimize
-  unaligned data. We experimentally demonstrate that our algorithm can
-  efficiently synthesize simple symmetric lenses on a variety of benchmark
-  suites consisting of synchronizing file formats from configuration files,
-  application-specific data storage files, and data cleaning tasks.
+%% \bcp{This bit feels more detailed / technical than needed for an abstract.}
+%%   We develop a type-directed synthesis algorithm for generating lenses in this
+%%   language from regular expressions describing the data formats. A significant
+%%   technical challenge in this work arises from the fact that our target language
+%%   permits synchronization between formats that don't have exactly the same data
+%%   -- data in one format need not be present in the other format. This gives the
+%%   synthesis algorithm much more freedom, as data can be completely unaligned
+%%   (edits in one format are never propagated), completely aligned (the formats
+%%   are in bijective correspondence), or anywhere in between. Under the assumption
+%%   that users typically want to align as much data as possible, we provide an
+%%   information theoretic metric for how much data is left unaligned based on the
+%%   theory of \emph{stochastic regular expressions}. Furthermore, we use this
+%%   metric to develop a greedy synthesis algorithm that tries to minimize
+%%   unaligned data. We experimentally demonstrate that our algorithm can
+%%   efficiently synthesize simple symmetric lenses on a variety of benchmark
+%%   suites consisting of synchronizing file formats from configuration files,
+%%   application-specific data storage files, and data cleaning tasks.
 
 
 \end{abstract}
@@ -299,15 +299,196 @@ Type Systems}
 
 % begin introduction
 \section{Introduction}
+
+\noindent
+\dpw{XXXXXX New attempt at intro starts here}
+
+In a big-data world, one will often find the same, or similar, data stored in a
+variety of different formats, with each format processed by a different set of tools.
+For instance, electronic calendars come in iCalendar, vCalendar and h-event
+formats~\cite{calendar-formats}; US
+taxation data can be transmitted via Tax XML (used by the US government for e-filing)
+or TXF (used by TurboTax)~\cite{tax-formats}; and sewing machines can read embroidery files transmitted
+as PES formats, DST formats or several others~\cite{embroidery-formats}.
+
+One way to interconvert between these varied data formats is to use a
+\emph{lens}~\cite{?}---a bi-directional
+program that can transform data represented in one format $S$ to data represented
+in a related format $T$,
+and vice versa.  There are a wide variety of different kinds of lenses, but well-defined lens
+languages typically come with guarantees that help ensure data is
+not lost or corrupted as it is transformed back and forth between formats.
+
+Lens languages, like any domain-specific language, also cut down the space of
+possible programs one can write, and the smaller the space of programs,
+the easier it is to find the program one is looking for.  
+%This feature can be a negative, if the desired transformation
+%falls outside of the scope provided by the language, but can also be positive, as complex
+%properties (like invertability) can be enforced automatically.
+%Another advantage of reducing the
+%set of programs is that doing so can facilitate program synthesis, which is essentially
+%a search through the space of possible computations that can be expressed as a lens.
+Recent research~\cite{miltner+:bijective-synthesis,maina+:quotient-synthesis}
+has exploited this phenomenon by demonstrating it is possible to synthesize relatively
+large, complex lenses from specifications.
+More specifically, given types that describe source and target formats, these synthesis
+engines will quickly find bijective lenses~\cite{miltner+:bijective-synthesis} or
+bijections modulo isomorphism~\cite{maina+quotient-synthesis} (\EG, the isomorphism that
+treats whitespace as irrelevant) for medium-sized files, such as those housing linux
+application configurations.  Oftentimes, these algorithms find such lenses in less than
+a second, and without the aid of any examples, just with types describing the given
+formats.
+
+One of reasons these algorithms are so effective, even relative to successful synthesis projects
+in other domains, is because the specifications cut down the space of programs very far
+indeed.  In particular, the restriction to bijectivity is both a blessing and a curse.
+It is a blessing, because given an input format, unless the same kind of data appears in
+both formats in multiple places, there are typically hardly any bijective lenses between
+the data formats:  If the synthesis algorithm can find a bijection then it is very likely
+to be the one the user wants.  On the other hand, the bijectivity restriction is a curse
+because in reality, bijections are very few and very far between.  It is much more common
+for data formats to have some data in common, but also to contain some differences.  For
+instance, two related tables might share three of five columns, but not the other two.
+Synchronizing such tables involves synchronizing three of the columns while managing the
+other two columns separately.  Indeed, in our study of Augeas~\cite{augeus}, a RedHat system that
+uses lenses to edit Linux files, we found that XXXXX of YYYYY lenses were not bijective.
+\dpw{fill in with accurate stats.}
+
+A natural way to expand the scope of such tools is to consider a more
+powerful language of lenses.  In particular, \emph{symmetric
+lenses}~\cite{symmetric-lenses} encompass a broad collection of bidirectional
+transformations and include bijections as well as transformations that
+allow each side of the transaction to retain information not present
+in the other side.  If $\ell$ is a symmetric lense between formats $S$ and $T$, we can
+use it to transform data from $S$ to $T$ or vice versa equally well.  We would typically
+use $\ell$ in the forwards direction (from $S$ to $T$) on a string $s$ when a user updates
+$s$---using $\ell$ in this direction will propagate those updates to $T$.
+However, because data in format $T$ may contain some information not present in format $T$,
+the $S \rightarrow T$ transformation will take
+both a string $s \in S$ and a string $t \in T$ as arguments.
+Inuitively, the lens should extract the data ``shared'' between the two formats from $s$
+as it generates an output $t'$.  If $s$ is missing information, the transformation should
+extract the missing components from $t$.
+Initially, we hypothesized that extending the algorithms
+of Miltner \ETAL~\cite{miltner+:bijective-synthesis} to this richer class of
+transformations would be relatively straightforward:  Simply extend the set
+of combinators and execute a search with similar heuristics.  However, in our early,
+naive attempts to do so, we ran
+into two different kinds of difficulties. \dpw{I got into the weeds a little bit there.
+The goal was to set up the idea that there are ``two parts'' to a symmetric
+lens transformation: the information from $s$ and the information from $t$.  In
+a future paragraph in the intro we are going to explain that the central heuristic
+involves minimizing the information from $t$.}
+
+The first difficulty was pragmatic:  symmetric lenses actually
+usually operate over three structures, the source $S$, the target $T$ and a
+complement $C$~\cite{symmetric-lenses}.
+The latter contains all the information not present in one of $S$ or $T$.  Logistically,
+the complement object must be stored away somewhere and infrastructure must be developed
+to manage it.  
+Perhaps more relevant though, is that compliments complicate specifications, even when
+those specifications are just examples.  The issues is that one cannot
+just give examples of source and target; one must also give guidance on how to manage
+the ``hidden state.''  In order to avoid such complexities, we defined a new
+variant of symmetric lenses, which we call \emph{simple symmetric lenses}.  Our new
+lenses do not require compliments, only need source and target data.
+In order to characterize the expressive power of simple symmetric lenses
+theoretically, we prove simple symmetric lenses
+include all (and only) those symmetric lenses that satisfy
+an intuitive property called \emph{forgetfulness}.  In other words, they are the
+complete set of symmetric lenses that do not require a ``memory'' to retain data
+from past instances of $S$ or $T$ when making a round trip.\dpw{fix that}
+From a pragmatic perspective, we justify our design choices by extending
+the Boomerang implementation with symmetric lenses (they had never before been implemented),
+applying them successfully to a range of real-world applications,
+and demonstrating that they are compatible, not just with basic bijective combinators,
+but with a rich set of advanced features including quotient lenses and matching lenses.
+
+The second difficulty appears to be more fundamental\dpw{better word?}:
+While the number of bijective lenses
+between two related formats is often tiny, the number of symmetric lenses is often
+large.  In practice, this meant that when a search algorithm simply selects the smallest
+bijective lens it finds that relates two formats, that lens has a good chance of being the
+one a user wants.  In contrast, and to our surprise, our first experiments showed that
+when a search algorithm selects the smallest symmetric lens, it typically fails
+to find the lens the user wants!  The flexibity these lenses admit when it comes to
+eliding information generates an explosion of possibilities.  We needed to discover
+new principles for identifying the ``likely'' transformations and to
+develop new algorithms to search
+the space of program transformations using these principles.
+\dpw{Were the bijective lenses chosen using a ``smaller'' criteria?  I
+forget... if not edit the prior paragraph.}\dpw{Ideally, we could back up the claim
+that there are many symmetric lenses and not many bijective lenses by graphing the
+number of such lenses somehow.  eg, in a past synthesis paper with Steve (POPL 2016)
+we graphed
+the untyped terms of type $\mathsf{int}\rightarrow\mathsf{int}$.  I wonder if we can
+do something similar here.}
+
+To overcome this second difficulty, we turned to information theory
+to try to find a way to characterize the likely and unlikely lenses.  Intuitively, a ``likely'' lens
+is one that propagates a lot of information from source to target and also from target
+back to source.  Conversely, given the source, the target is ``unlikely'' to require very much
+additional information in order to reconstruct it---if it were, then one is unlikely to
+be attempting to synthesize a lens between the two formats!  In order to implement
+this intuition, we use \emph{stochastic regular expressions} (SREs).
+Stochastic regular expressions define a set of strings, as do ordinary regular expressions,
+but they also provide the expected distribution of strings within that set.  These
+distributions allow us to compute the amount of information required to reconstruct
+an element of the set.  For example, the language of the SRE $a |_{0.5} b$ contains two elements
+(the strings $a$ and $b$) and the probability 0.5 annotating the union indicates that both
+elements are equally likely.  Consquently, we observe that a transformation produces
+an element of that language,
+we will gain one bit of information.  On the other hand, consider the language of the SRE $c$.
+It contains just one element (the string $c$).  If we observe that our algorithm
+generates $c$, we gain zero bits of information.
+Hence, a lens is ``likely,'' in a technical sense, if relative to the target SRE $T$,
+very little information from $t$ is required to generate it. \dpw{check that I'm saying
+that correctly (and repair).  I think it is a bit off.}
+
+With SREs in hand, we develop a new algorithm for searching for likely lenses.
+This algorithm is constructed from a pair of collaborating search procedures.
+Given source and target SREs $S$ and $T$, the first algorithm searches for two \emph{related} SREs
+$S'$ and $T'$ that are compatible (a heuristic that estimates the likelihood
+our second algorithm will succeed).  $S'$ and $T'$ are related in the sense
+that they define the same regular sets as $S$ and $T$ (respectively) and the distribution
+of strings is identical.  Indeed, we guarantee these two properties by implementing
+a search procedure that obeys the star semi-ring axioms of regular expression equivalence,
+and which we have proven does not alter the probability distributions.
+Given the two compatible SREs,
+the second algorithm uses a greedy, type-directed algorithm find a likely lens between them.
+If algorithm estimates the lens it has discovered is more likely than
+any future lens it can possibly find, the search will be terminated.  Otherwise,
+this lens is stored away (if it is the best found so far) and the search continues with
+algorithm 1 again.
+
+We implemented this algorithm and evaluated its effectiveness on a range of benchmarks
+from XXXX to YYYYY. We found that ... \dpw{give a number of two that characterize
+our empirical findings.}
+
+In summary, our central contributions are as follows:
+\begin{itemize}
+\item We define the space of simple symmetric lenses, which lies between asymmetric lenses and full symmetric lenses and has the useful property that they don't have any internal state.  We characterize simple as a subset of full symmetric lenses in terms of a semantic ``forgetfulness'' property. We analyze the gap between simple and full symmetric lenses and argue that simple ones suffice for many applications.
+\item We show how to synthesize simple symmetric lenses (including all asymmetric lenses as a special case), using a novel application of stochastic regular expressions to guide the search process.  In particular, we show that the RE equivalences we are also valid when their semantics is enriched with distributions.
+\item We extend Boomerang implementation with simple symmetric lenses, showing that they can easily be combined with a rich variety of other lens extensions including quotients and matching lenses.
+\end{itemize}
+
+%Such synthesis efforts
+%make it easier to use lenses as programmers do not need to be familiar with the syntax
+%of a new language, and even advanced users can benefit from the productivity boost.
+
+\noindent
+\dpw{XXXXXX New attempt at intro ends here}
+
 % state of the world
 \bcp{Not very compelling:}Similar data can come in varieties of formats: scheduled jobs can be stored as
-cron jobs for Linux or as Scheduled Tasks for Windows; web service resources can
-be provided to clients in legacy or modern formats; calendar events can be
-stored in CSV files or ICS files. Oftentimes, files should be synchronized
-across these formats: when I edit a task to run more often on my Linux machine,
-I want this task to run more often on my Windows machine; when I update data
-through a legacy API, I want those changes to be reflected when I retrieve it
-through a modern API; when I create a new calendar event in my ICS file, I want
+cron jobs for Linux or as Scheduled Tasks for Windows; web service
+resources can be provided to clients in legacy or modern formats;
+calendar events can be stored in CSV files or ICS files. Oftentimes,
+files should be synchronized across these formats: when I edit a task
+to run more often on my Linux machine, I want this task to run more
+often on my Windows machine; when I update data through a legacy API,
+I want those changes to be reflected when I retrieve it through a
+modern API; when I create a new calendar event in my ICS file, I want
 my CSV calendar files to be updated to reflect this change.
 
 Unfortunately, writing such synchronizers is quite difficult; we must write
