@@ -196,7 +196,7 @@ Various solutions have been proposed to address the issue of propagating updates
 that explicitly propagate edits through the lens, and {\em least change
 lenses} \cite{macedo2013composing} that require that the source value resulting from a \pput application is not only acceptable, but also one of closest to the original $s$ among the sources that share the same view $v$.
 
-Each one of these solutions has significant shortcomings. Firstly, while matching lenses successfully address the issue of alignment, they do not address the general issue of correct update propagation. Secondly, edit lenses and delta lenses all assume that the lens propagates a specific set of updates explicitly, but this is unrealistic since since in general users do not update data using a small predetermined langauge of edits; instead users edit the data in any way, for example using text editors or IDEs, and present the updatad data to the bx wholesale. Finally, least change lenses are in general computationally intractable \cite{buneman2002propagation} and also lack a notion of composition---that is, the composition of two deterministic least change lenses is not always a least change lens\cite{macedo2013composing}.
+Each one of these solutions has significant shortcomings. While matching lenses successfully address the issue of alignment, they do not address the general issue of correct update propagation. Edit lenses and delta lenses all assume that the lens propagates a specific set of updates explicitly, which is unrealistic since since in general users do not update data using a small predetermined langauge of edits; instead they edit the data in any way, for example using text editors or IDEs, and present the updatad data to the bx wholesale. Finally, least change lenses are in general computationally intractable \cite{buneman2002propagation} and also lack a notion of composition---that is, the composition of two deterministic least change lenses is not always a least change lens\cite{macedo2013composing}.
 
 We take the approach that instead of having a bx manually propagate a fixed set of edits, a bidirectional programming language should have explicit guarantees on how programs written in that language propagate updates; ideally these guarantees should be strictly stronger than hippocraticness. Consider again the first example that we presented, which is an instance of the alignment problem. In that example, the list
 $[``Lovelace", \; ``Turing"]$ was updated to the list $[``Turing", \; ``Lovelace"]$. The programmer may wish to consider these two lists equivalent or not: if she does, then she should use a min-edit distance ``metric'' and demand that the source side respects this metric by applying the ``flip'' permutation applying the bx in reverse. On the other hand, if she wishes to use a positional metric to compare these two lists, then she should similarly demand that the source side respects this metric and use the identity permuation when applying the bx in reverse. In each case, the programmer does not care how the bx restores consistency; she cares only that the bx restores consistency and respects the appropriate metric.
@@ -295,23 +295,20 @@ Given an unambiguous difference regular expression $R$, define $\delta_R : \math
 \begin{cases}
 1 & \text{if } m = 0, n = 0\\ 
 0 & \text{if } m = 0, n \neq 0\\
-0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi(i) = i\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
-\max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi(i) = i\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \rightharpoonup [n] \; | \; \varphi(i) = i\}}\sum\limits_{i \in Dom(\varphi)}\ \frac{\delta_R(s_i, t_{\varphi(i)})}{\max(m,n)}& \text{otherwise}
 \end{cases}\\
 \delta_{R^*_{NC}}(s_1 \cdot \ldots \cdot s_m, t_1 \cdot \ldots \cdot t_n) &= 
 \begin{cases}
 1 & \text{if } m = 0, n = 0\\ 
 0 & \text{if } m = 0, n \neq 0\\
 0 & \text{if } m \neq 0, n = 0\\
-\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is strictly increasing}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
-\max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is strictly increasing}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
+\max\limits_{\{\varphi : [m] \rightharpoonup [n] \; | \; \varphi \text{ is str. increasing}\}}\sum\limits_{i \in Dom(\varphi)}\ \frac{\delta_R(s_i, t_{\varphi(i)})}{\max(m,n)}& \text{otherwise}
 \end{cases}\\
 \delta_{R^*_{MED}}(s_1 \cdot \ldots \cdot s_m, t_1 \cdot \ldots \cdot t_n) &= 
 \begin{cases}
 1 & \text{if } m = 0, n = 0\\ 
 0 & \text{if } m = 0, n \neq 0\\
-0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is injective}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
-\max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is injective}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \rightharpoonup [n] \; | \; \varphi \text{ is injective}\}}\sum\limits_{i \in Dom(\varphi)}\ \frac{\delta_R(s_i, t_{\varphi(i)})}{\max(m,n)}& \text{otherwise }
 \end{cases}
 \end{align*}
 \end{definition}
@@ -323,9 +320,9 @@ $0 \leq \delta_R(s, s') \leq 1$.
 \item
 $\delta_R(s, s) = 1$.
 \item
-For all $s, s' \in \mathcal{L}(R^*)$, $\delta_{R^*_{MED}}(s, s') \geq \delta_{R^*_{NC}}(s, s') \geq \delta_{R^*_{MED}}(s, s')$.
-\item
 $\delta_R(s, s') = \delta_R(s', s)$.
+\item
+For all $s, s' \in \mathcal{L}(R^*)$, $\delta_{R^*_{MED}}(s, s') \geq \delta_{R^*_{NC}}(s, s') \geq \delta_{R^*_{MED}}(s, s')$.
 \end{enumerate}
 
 \end{fact}
@@ -467,15 +464,10 @@ S_1 \cup S_2 \Leftrightarrow V_1 \cup V_2$ is also a difference lens.
 If the source and the view are in $S_i$ and $V_i$ respectively for $i \in \{1,2\}$, then the result holds from the fact that $\ell_1$ and $\ell_2$ are difference lenses, otherwise the difference on both the source and view side are equal to 0, from which the result follows.
 \end{proof}
 \subsubsection{Iteration}
-Let $\ell : S \Leftrightarrow V$ is a difference lens with $S^{!*}$ and $V^{!*}$. Let $s_1 \cdot \ldots \cdot s_m$ be a source, and $v_1 \cdot \ldots \cdot v_n$ a view. If $n \leq m$ and $\varphi : [n] \longrightarrow [m]$, define $ v \xhookrightarrow{\ell, \varphi} s = s'_1 \cdot \ldots \cdot s'_n$ by 
+Let $\ell : S \Leftrightarrow V$ is a difference lens with $S^{!*}$ and $V^{!*}$. Let $s_1 \cdot \ldots \cdot s_m$ be a source, and $v_1 \cdot \ldots \cdot v_n$ a view. Let $\varphi : [n] \rightharpoonup [m]$ and define $ v \xhookrightarrow{\ell, \varphi} s = s'_1 \cdot \ldots \cdot s'_n$ by 
 $$s'_i = \begin{cases}
 \ell.\pput \; s_{\varphi(i)} \; v_i & \text{if } i \in Dom(\varphi)\\
 \ell.\create \; v_i & \text{if } i \not \in Dom(\varphi)
-\end{cases}$$
-If $m < n$ and $\varphi : [m] \longrightarrow [n]$, define $ v \xhookrightarrow{\ell, \varphi} s = s'_1 \cdot \ldots \cdot s'_n$ by 
-$$s'_i = \begin{cases}
-\ell.\pput \; s_{\varphi^{-1}(i)} \; v_i & \text{if } i \in \varphi([m])\\
-\ell.\create \; v_i & \text{if } i \not \in \varphi([m])
 \end{cases}$$
 
 Using the notation $len(v)$ and $len(s)$ to mean $len(v) = n$ if $v = v_1 \cdot \ldots \cdot v_n$ and $len(s) = m$ if $s = s_1 \cdot \ldots \cdot s_m$, define the lenses $\ell^*_{POS} : S^*_{POS} \Leftrightarrow V^*_{POS}$, $\ell^*_{NC} : S^*_{NC} \Leftrightarrow V^*_{NC}$ and $\ell^*_{MED} : S^*_{MED} \Leftrightarrow V^*_{MED}$ by:
@@ -484,10 +476,8 @@ Using the notation $len(v)$ and $len(s)$ to mean $len(v) = n$ if $v = v_1 \cdot 
 \cdot \ldots \cdot (\ell.\get \; s_n)\\
 \ell^*_{POS}.\pput \; s \; v
 &= v \xhookrightarrow{\psi} s\\
-\text{where } \psi &= \begin{cases}
-\argmax \limits_{\{\varphi : [len(v)] \longrightarrow [len(s)] \; | \; \varphi(i) = i\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(v) \leq len(s)\\
-\argmax \limits_{\{\varphi : [len(s)] \longrightarrow [len(v)] \; | \; \varphi(i) = i\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(s) < len(v)
-\end{cases}\\
+\text{where } \psi &= 
+\argmax \limits_{\{\varphi : [len(v)] \rightharpoonup [len(s)] \; | \; \varphi(i) = i\}} \delta_{S^*_{POS}}(v \xhookrightarrow{\ell, \varphi} s, s)\\
 \ell^*_{POS}.\create \; (v_1, \ldots, v_n) &= (\ell.\create \;
 v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
 \end{align*}
@@ -496,10 +486,8 @@ v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
 \cdot \ldots \cdot (\ell.\get \; s_n)\\
 \ell^*_{NC}.\pput \; s \; v
 &= v \xhookrightarrow{\psi} s\\
-\text{where } \psi &= \begin{cases}
-\argmax \limits_{\{\varphi : [len(v)] \longrightarrow [len(s)] \; | \; \varphi \text{ is str. increasing}\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(v) \leq len(s)\\
-\argmax \limits_{\{\varphi : [len(s)] \longrightarrow [len(v)] \; | \; \varphi \text{ is str. increasing}\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(s) < len(v)
-\end{cases}\\
+\text{where } \psi &= 
+\argmax \limits_{\{\varphi : [len(v)] \rightharpoonup [len(s)] \; | \; \varphi \text{ is str. increasing}\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) \\
 \ell^*_{NC}.\create \; (v_1, \ldots, v_n) &= (\ell.\create \;
 v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
 \end{align*}
@@ -508,15 +496,11 @@ v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
 \cdot \ldots \cdot (\ell.\get \; s_n)\\
 \ell^*_{MED}.\pput \; s \; v
 &= v \xhookrightarrow{\ell, \psi} s\\
-\text{where } \psi &= \begin{cases}
-\argmax \limits_{\{\varphi : [len(v)] \longrightarrow [len(s)] \; | \; \varphi \text{ is injective}\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(v) \leq len(s)\\
-\argmax \limits_{\{\varphi : [len(s)] \longrightarrow [len(v)] \; | \; \varphi \text{ is injective}\}} \delta_{S^*_{NC}}(v \xhookrightarrow{\ell, \varphi} s, s) & \text{if } len(s) < len(v)
-\end{cases}\\
+\text{where } \psi &= 
+\argmax \limits_{\{\varphi : [len(v)] \rightharpoonup [len(s)] \; | \; \varphi \text{ is injective}\}} \delta_{S^*_{MED}}(v \xhookrightarrow{\ell, \varphi} s, s)\\
 \ell^*_{MED}.\create \; (v_1, \ldots, v_n) &= (\ell.\create \;
 v_1) \cdot \ldots \cdot (\ell.\create \; v_n)
 \end{align*}
-For the non-crossing and min-edit distance lens, there may be multiple alignments $\psi$ that maximize the respective differences, in which case the lens chooses the lexicographically smallest of those alignments.
-
 \begin{claim}
 If $\ell : S \Leftrightarrow V$ is a difference lens with $S^{!*}$ and $V^{!*}$, then $\ell^*_{POS}$, $\ell^*_{NC}$ and $\ell^*_{MED}$ are also difference lenses.
 \end{claim}
@@ -525,15 +509,15 @@ We will show that $\ell^*_{MED}$ is a difference lens; the proof for each of the
 
 We need to show that
 $$\delta_{S^*_{MED}}(\ell^*_{MED}.\pput \; (s_1 \cdot \ldots \cdot s_m) \; (v_1 \cdot \ldots \cdot v_n), s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{MED}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
-Assume wthout loss of generality that $n \leq m$. An optimal min-edit distance alignment $\varphi : [n] \longrightarrow [m]$ is used to compute the difference on the view side. Since $\ell$ is a difference lens, the following equation holds,
+An optimal min-edit distance alignment $\varphi : [n] \rightharpoonup [m]$ is used to compute the difference on the view side. Since $\ell$ is a difference lens, the following equation holds,
 $$\delta_S(\ell.\pput \; s_{\varphi(i)} \; v_i, s_{\varphi(i)}) \geq \delta_V(v_i, \ell.\get \; s_{\varphi(i)})$$
 from which it follows that
-$$\delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\ell, \varphi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{NC}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
+$$\delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\ell, \varphi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{MED}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
 Since the \pput function of $\ell^*_{MED}$ uses an alignment $\psi$ that maximizes the min-edit distance over all injective alignments mapping $v$ into $s$, then
 $$\delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\ell, \psi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m) \geq \delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\varphi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m)$$
 
 It thus follows that,
-$$\delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\ell, \psi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{NC}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
+$$\delta_{S^*_{MED}}(v_1 \cdot \ldots v_n \xhookrightarrow{\ell, \psi} s_1 \cdot \ldots \cdot s_m, s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{MED}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
 hence,
 $$\delta_{S^*_{MED}}(\ell^*_{MED}.\pput \; (s_1 \cdot \ldots \cdot s_m) \; (v_1 \cdot \ldots \cdot v_n), s_1 \cdot \ldots \cdot s_m) \geq \delta_{V^*_{MED}}(v_1 \cdot \ldots \cdot v_n, (\ell.\get \; s_1) \cdot \ldots (\ell.\get \; s_m))$$
 which is what we wanted to show.
@@ -625,9 +609,9 @@ Let $R$ and $S$ be difference regular expressions with $\mathcal{L}(R) \cap \mat
 We need to show that
 $$
 \delta_{(R \cup S)^*_{MED}} (\strunfilter \; S \; s \; v, s) \geq \delta_{R^*_{MED}}(v, \strfilter \; R \; s)$$
-Observe that if $s = s_1 \cdot \ldots cdot s_m$ with $s_{i_1}, \ldots, s_{i_p} \in R$ and $s_{j_1}, \ldots, s_{j_p} \in S$, then $\strfilter \; R \; s = s_{i_1} \cdot \ldots \cdot s_{i_n}$. Assume that $v = v_1 \cdot \ldots v_{n'}$ and assume without loss of generality that $n \leq n'$. Then since $\delta_{R^*_{MED}}(v, \strfilter \; R \; s) \leq 1$, it follows that
+Observe that if $s = s_1 \cdot \ldots \cdot s_m$ with $s_{i_1}, \ldots, s_{i_p} \in R$ and $s_{j_1}, \ldots, s_{j_p} \in S$, then $\strfilter \; R \; s = s_{i_1} \cdot \ldots \cdot s_{i_n}$. Assume that $v = v_1 \cdot \ldots v_{n'}$. Then since $\delta_{R^*_{MED}}(v, \strfilter \; R \; s) \leq 1$, it follows that
 $$
-\delta_{(R \cup S)^*_{MED}} (\strunfilter \; S \; s \; v, s) = \frac{m + \delta_{R^*_{MED}}(v, \strfilter \; R \; s) * n'}{m+n'} \geq \delta_{R^*_{MED}}(v, \strfilter \; R \; s)
+\delta_{(R \cup S)^*_{MED}} (\strunfilter \; S \; s \; v, s) = \frac{m + \delta_{R^*_{MED}}(v, \strfilter \; R \; s) * \max(n,n')}{m+\max(n,n')} \geq \delta_{R^*_{MED}}(v, \strfilter \; R \; s)
 $$
 which is what we wanted to show.
 \end{proof}
@@ -738,8 +722,7 @@ $$
 \begin{cases}
 1 & \text{if } m = 0, n = 0\\ 
 0 & \text{if } m = 0, n \neq 0\\
-0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \longrightarrow [n] \; | \; \varphi \text{ is injective}\}}\frac{1}{n}\sum\limits_{i=1}^{m}\ \delta_R(s_i, t_{\varphi(i)})& \text{if } m \leq n\\
-\max\limits_{\{\varphi : [n] \longrightarrow [m] \; | \; \varphi \text{ is injective}\}}\frac{1}{m}\sum\limits_{i=1}^{m}\ \delta_R(t_i, s_{\varphi(i)})& \text{otherwise}
+0 & \text{if } m \neq 0, n = 0\\\max\limits_{\{\varphi : [m] \rightharpoonup [n] \; | \; \varphi \text{ is injective}\}}\sum\limits_{i=1}^{m}\ \frac{\delta_R(s_i, t_{\varphi(i)})}{\max(m,n)}& \text{otherwise}
 \end{cases}
 $$
 
