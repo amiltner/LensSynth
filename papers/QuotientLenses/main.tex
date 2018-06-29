@@ -177,7 +177,7 @@ satisfy certain \emph{lens laws}, which imply that round trips, from source to
 target and back again, behave properly.
 
 
-Recent work~\cite{optician} developed a tool called Optician to synthesize a
+Recent work~\cite{miltner2017synthesizing} developed a tool called Optician to synthesize a
 subset of the {\em bijective lenses} that can be derived in the lens
 programming language {\em Boomerang}~\cite{boomerang}. Each lens $\ell : S
 \Leftrightarrow T$ that Optician can synthesize specifies a bijection from the
@@ -248,7 +248,7 @@ Optician synthesizes bijective lenses from a pair $(S, T)$ of regular
 expressions
 specifying the source and target types and a set of example input-output pairs
 that guide the synthesis algorithm. This presents a challenge for synthesizing
-quotient lenses since a specification of its source and target formats
+quotient lenses since a specification of a lens's source and target formats
 needs to account for the equivalence relations defined on the
 respective formats. Our solution is to introduce {\em Quotient Regular
 Expressions} (QREs), which are regular expressions augmented with extra
@@ -277,7 +277,7 @@ the names with a single space between them are canonical.
 
 % Our end goal is to synthesize bijective quotient lenses that map between QREs
 % via a bijective lens between the respective canonical formats of the QREs. This
-% idea is simple and natural, but begs the following question: do we give up
+% idea is simple and natural, but provokes the following question: do we give up
 % expressiveness if we restrict ourselves to this form? We will show that this
 % is not the case by doing the following. First, we will introduce {\em QRE
 % lenses}, which are bijective quotient lenses formed by ``lifting'' bijective
@@ -411,7 +411,7 @@ expressions (which are omitted for brevity).
 \end{figure}
 
 Recent work described the Optician
-algorithm/tool~\cite{optician}, which can synthesize bijective lenses
+algorithm/tool~\cite{miltner2017synthesizing}, which can synthesize bijective lenses
 such as \cd{bib_to_end}, obviating the sometimes tedious tasks
 involved in writing such lenses by hand.  Given the directive
 \begin{lstlisting}
@@ -611,7 +611,7 @@ pair of regular expressions and a set of example input-output pairs
 (Optician), 
 and we have a way of defining regular expressions with equivalence
 relations indicating the essential information (QREs).
-A tantalyzing possibility would be to use the bijective string lens
+A tantalizing possibility would be to use the bijective string lens
 synthesis procedure as a subroutine for a quotient lens synthesis procedure. 
 This new synthesizer would take as input source and target QREs and 
 example input-output pairs, 
@@ -726,7 +726,7 @@ objects:
   % of type $\mathcal{L}(W(Q)) \longrightarrow \mathcal{L}(K(Q))$  which
 
 \noindent
-Intuitivley, $W(Q)$ is the regular expression representing the
+Intuitively, $W(Q)$ is the regular expression representing the
 external format, while $K(Q)$ is the regular expression representing
 the internal format.  The equivalence relation $\eqrel{Q}$ groups
 together elements in the language of $W(Q)$ that contain the same
@@ -965,13 +965,23 @@ S_2$ strongly unambiguous and $S_1 \cdot^! S_n$, or (3) $R = S_1 \sep S_2$ with
 $S_1, S_2$ strongly unambiguous and $\mathcal{L}(S_1) \cap \mathcal{L}(S_2) =
 \varnothing$, or (4) $R = S^*$ with $S$ strongly unambiguous and $S^{*!}$.
 
-Strong unambiguity is necessary in the premises of the regular QRE combinators
-because it ensures that the canonizing function of a QRE is well-defined.
-For example, consider the QRE \lstinline{"a"$^*$ . (collapse "a"$^*$ $\to$ "a")}. The
+These unambiguity constraints can be a little fiddly in practice. As a simple example of this, consider writing a regular expression for comma-separated lists of strings. Our first impulse might be to write it as,
+\begin{lstlisting}
+CSL = anychar+ . ("," . anychar+)*
+\end{lstlisting}
+(where . is concatenation), but this regular expression is ambiguous, as \lstinline|anychar| is a big union of a of single characters including comma.
+
+While the unambiguity constraints consequently appear to compromise compositionality of QREs, they can usually be circumvented by making a small changes to the offending regular expression: for instance, in the preceding example, then we need to write,
+\begin{lstlisting}
+CSL = anycharexceptcomma+ . ("," . anycharexceptcomma+)*
+\end{lstlisting}
+(assuming \lstinline|anycharexceptcomma| denotes a big union of every single character string except comma). 
+
+Unambiguity constraints are necessary because they ensure that the canonizing function of a QRE is well-defined.
+For example, consider the QRE \lstinline|"a"$^*$ . (collapse "a"$^*$ $\to$ "a")|. The
 behavior of this QRE is not well-defined since the string
 \cd{"aaa"} can be canonized to any of \cd{"a"}, \cd{"aa"}, or \cd{"aaa"}
-depending on how \cd{"aaa"} is parsed. We also require that the regular
-combinators applied to the kernels of QREs be unambiguous since the underlying
+depending on how \cd{"aaa"} is parsed. The unambiguity constraints are also applied to the kernels of QREs since the underlying
 bijective string lens of a QRE lens operates on kernels, and bijective string lenses
 impose the same unambiguity restrictions so that they too are well defined as
 functions.
@@ -1100,14 +1110,14 @@ $\equiv_R$ and $\equiv_S$ defined on $\mathcal{L}(R)$ and $\mathcal{L}(S)$, a
 {\em bijective quotient lens} $q : R /{\equiv_R} \Leftrightarrow S/{\equiv_S}$
 is a pair of functions $q.\get : \mathcal{L}(R) \longrightarrow \mathcal{L}(S)$
 and $q.\lput : \mathcal{L}(S) \longrightarrow \mathcal{L}(R)$ such that for all
-$r \in \mathcal{L}(R)$ and $s \in \mathcal{L}(S)$, we have $q.\lput(q_1.\get(r))
-\equiv_R r$ and $q.\get(q_1.\lput(s)) \equiv_R s$. Moreover, if $r \equiv_R
+$r \in \mathcal{L}(R)$ and $s \in \mathcal{L}(S)$, we have $q.\lput(q.\get(r))
+\equiv_R r$ and $q.\get(q.\lput(s)) \equiv_S s$. Moreover, if $r \equiv_R
 r'$, then $q.\get(r) = q.\get(r')$, and if $s \equiv_S s'$, then $q.\lput(s) =
 q.\lput(s')$. In words, a bijective quotient lens $q$ from $R$ to $S$ modulo
 $\equiv_R$ and $\equiv_S$ is a pair of functions $q.\get$ and $q.\lput$ such
 that $q.\get$ respects $\equiv_R$ and $q.\lput$ respects $\equiv_S$, and such
 that the {\em get} and {\em put} functions lifted to $\mathcal{L}(R)/{\equiv_R}$
-and $\mathcal{L}(S)/{\equiv_S}$ are mutual inverses. These laws are similar
+and $\mathcal{L}(S)/{\equiv_S}$ are mutual inverses. These laws are similar to the
 bijective lens laws \cref{bijectivelenslaws}, except that the equality
 restrictions in the bijective lens laws are loosened to allow for equivalence
 relations. Also, the condition that $r \equiv_R r'$ implies $q.\get(r) =
@@ -1203,7 +1213,7 @@ The denotation of a lens $\ell_1$ is $\llbracket \ell_1 \rrbracket \subseteq
 Each bijective string lens $\ell$ has a type $\ell : R \Leftrightarrow S$ where
 $R$ and $S$ are regular expressions. If $\ell : R \Leftrightarrow S$, then the
 source language of $\ell$ is $\mathcal{L}(R)$ and the target language of $\ell$
-is $\mathcal{L}(S)$. IThe final rule in the figure deserves special attention.
+is $\mathcal{L}(S)$. The final rule in the figure deserves special attention.
 It states that a lens $\ell : R \Leftrightarrow S$ can also be considered to be
 of type $\ell : R' \Leftrightarrow S'$ provided that $R$ (resp. $S$) can be
 proven to be equivalent to $R'$ (resp. $S$) from the star-semiring axioms
@@ -1594,7 +1604,7 @@ providing examples, if necessary, to disambiguate among possible
 implementations.  This way of constructing lenses can often be much simpler
 than building them by hand, as we saw in Section~\ref{sec:examplesynth}.
 
-The Optician framework~\cite{optician} showed how to do such lens synthesis in
+The Optician framework~\cite{miltner2017synthesizing} showed how to do such lens synthesis in
 the case for bijective lenses. Here we show how to reduce QRE lens synthesis to
 that case, so that we can re-use the Optician algorithm but in the more
 expressive context of QRE lenses.  The basic idea is straightforward: we run the
@@ -1613,7 +1623,7 @@ guaranteed to succeed (eventually!) if such a bijective lens exists. There are
 typically a large number of such lenses, so this algorithm chooses the one that
 corresponds to a minimal \emph{alignment} of the regular expressions. Additional
 details on this algorithm can be found in the original paper on synthesizing
-bijective lenses~\cite{optician}.
+bijective lenses~\cite{miltner2017synthesizing}.
 
 In our setting, we want to synthesize a quotient lens $q: Q_1 \Leftrightarrow
 Q_2$ from the QREs $Q_1$ and $Q_2$ and a set of example input-output pairs
@@ -1738,7 +1748,7 @@ To evaluate our QRE implementation, we adapted 39 lens synthesis tasks
 from the benchmark suite of the original Optician system. These
 benchmarks are a combination of custom benchmarks, benchmarks derived
 from FlashFill~\cite{flashfill}, and benchmarks derived from
-Augeas~\cite{augeas2}.  In these 39 benchmarks, 10 of
+Augeas~\cite{augeas2} (we also experimented using our QRE implementation to synthesize quotient lenses between XML, RDF and and JSON formats using data from data.gov database; the data consisted of census statistics, demographic statistics, wage comparosion data, and crime index data).  In these 39 benchmarks, 10 of
 the data formats had to be modified to work with the bijectivity
 constraints that Optician required. For instance, when one
 representation permits whitespace where the other does not, we
@@ -1803,7 +1813,7 @@ the three approaches:
   non-trivial canonizer, and (3) the number of AST nodes in the
   examples.  We use (1) to estimate the burden of describing
   the external source and target formats and (2) to estimate the
-  burdern of writing the requisite canonizers
+  burden of writing the requisite canonizers
   by hand.  We count the nodes in the examples because they would be
   fed to the bijective synthesizer.  
   These counts are an approximation, as both $W(q)$ and $\canonize(q)$ are
@@ -1820,10 +1830,10 @@ the three approaches:
 
 Figure~\ref{fig:asts} shows each of these measures for the 10
 non-bijective problems in the benchmark suite.  On
-average, \canonizeAndSpecSize{} used~44\% more AST nodes
-than \QRESize{}, requiring an average of~237 more AST nodes. On 
-average, \LensAndSpecSize{} used~193\% more AST nodes than \QRESize{}, requiring an
-average of~1267 more AST nodes. These figures suggest that introducing QREs saves
+average (using a geometric mean), \canonizeAndSpecSize{} used~38.5\% more AST nodes
+than \QRESize{}, requiring an average of~214 more AST nodes. On 
+average, \LensAndSpecSize{} used~180\% more AST nodes than \QRESize{}, requiring an
+average of~998 more AST nodes. These figures suggest that introducing QREs saves
 programmers significant effort compared to both Optician and basic
 Boomerang.
 
@@ -1861,7 +1871,7 @@ questions. First, how does the performance of \QOpt{} compare to the performance
 of Optician on benchmarks that do not require QREs? The answer to this question
 tells us how much overhead we have introduced by adopting the more general
 mechanism. Figure~\ref{fig:times}(a) shows that \QOpt{} was able to synthesize
-all of the Optician benchmarks at a speed competative with the old version.
+all of the Optician benchmarks at a speed competitive with the old version.
 There is a small amount of additional overhead introduced by QREs in calculating
 the $W$ and $K$ functions, resulting in a slight decrease in performance.
 
@@ -1929,7 +1939,16 @@ support quotienting of data including XSugar~\cite{xsugar}, biXid~\cite{bixid}
 and X/Inv~\cite{Hu2004,Mu2004,Mu2006}; we refer the reader to the related work
 section in \cite{quotientlenses} for this discussion.
 
-A newer language which supports quotenting is BiFluX~\cite{pacheco2014biflux}, a
+A newer language which supports quotenting is FliPpr \cite{matsuda2013flippr}. FliPpr is a program transformation system that uses program inversion to produce a CFG parser from a pretty-printer. FliPpr includes biased choice combinators that choose canonical representatives for sets of strings. For example, one can define variants of (white)spaces with the choice operator as,
+\begin{center}
+\begin{lstlisting}
+nil = text "" <+ space
+space = (text " " <+ text "\n") <> nil
+\end{lstlisting}
+\end{center}
+where \lstinline|nil| and \lstinline|space| pretty-print \lstinline|""| and \lstinline|" "| respectively, but represent zero-or-more and one-or-more whitespaces in parsing. FliPpr also allows annotations for optional parentheses in programs. These features enable a user to easily define a pretty-printer that also recognizes ugly strings that get mapped to a canonical representative modulo whitespace and parentheses quotienting.
+
+Another programming language that supports quotienting is BiFluX~\cite{pacheco2014biflux}, a
 bidirectional functional update language for XML. BiFluX is inspired by
 the FLUX XML update language~\cite{cheney2008flux}, and adopts a bidirectional
 programming by update paradigm, where a program succintly and precisely
@@ -1939,9 +1958,9 @@ update program. The source and view types of BiFluX programs are given by
 regular expressions.
 
 In BiFluX, a regular expression $R$ is said to be unambiguous if there is only
-one way to parse a {\em flat} value of type $R$ to a stuctured value of type
+one way to parse a {\em flat} value of type $R$ to a structured value of type
 $R$; here a flat value of $R$ is a value of $R$ with all left/right tags,
-parantheses and list brackets removed. The bidirectional part of BiFluX involves
+parentheses and list brackets removed. The bidirectional part of BiFluX involves
 transforming source regular expressions to view regular expressions so that
 data sequences described by the two types can be matched. This process can
 result in intermediate types that are ambiguous, and this ambiguity can cause
@@ -1950,18 +1969,18 @@ discarded in this process.
 
 \iffalse
 For example, imagine that a book database has source type \\
-$S$ = \lstinline{books[book[title[string], author[string]+]*]}
-with view type $V$ = \lstinline{title[string]}. When the source type is
+$S$ = \lstinline|books[book[title[string], author[string]+]*]|
+with view type $V$ = \lstinline|title[string]|. When the source type is
 transformed to the view type for matching, only titles are kept, the element
 labels are destroyed and all authors are replaced for the empty sequence, thus
-leaving the intermediate type $S'$ = \lstinline{(title[string],(),()*)*}. In
+leaving the intermediate type $S'$ = \lstinline|(title[string],(),()*)*|. In
 BiFluX, $V$ is considered a subtype of $S'$ because the flat values of $V$ are
 also flat values of $S'$. Since the intermediate type is $S'$ ambiguous, a view
-sequence \lstinline{[title["mybook"]]} would be upcast into an intermediate
-value \lstinline{[(title["mybook"],((), [ ]))]} that would in turn lead to an
-updated source \lstinline{books[[book[(title["mybook"],(aut, [ ]))]]]}, which is
+sequence \lstinline|[title["mybook"]]| would be upcast into an intermediate
+value \lstinline|[(title["mybook"],((), [ ]))]| that would in turn lead to an
+updated source \lstinline|books[[book[(title["mybook"],(aut, [ ]))]]]|, which is
 clearly unsatisfactory as it would discard the entire book database except the
-first author \lstinline{aut} of the first book.
+first author \lstinline|aut| of the first book.
 \fi
 The typechecking phase of a BiFluX program therefore includes a {\em type
 normalization} phase that tries to normalize a source types using automata
@@ -1969,7 +1988,7 @@ reduction techniques, and derive a lens between ambiguous and unambiguous
 types. On the view side, this phase only tries to normalize view types into
 isomorphic types. Pacheco et. al. do not claim that their normalization
 procedures are complete in the sense that they can disambiguate any ambiguous
-type, but they do show that when these procedures succed the normalized types
+type, but they do show that when these procedures succeed the normalized types
 are unambiguous.
 
 {\em Formlenses}~\cite{rajkumar2014lenses} are a variant of lenses that
@@ -1977,53 +1996,18 @@ perform transformations up to equivalence. Formlenses are a bidirectional
 generalization of {\em formlets}~\cite{cooper2008essence}, which are a
 high-level abstraction for building Web forms. Formlets encapsulate several
 low-level details including selecting field names for elements and parsing data
-from client responses. In their work, Rajkumar et. al. represent formlets as
-functions that take a source of names---concretely, an integer $n$ that should
-be used as the next name---as an argument and produce a triple consisting of an
+from client responses. In their work, Rajkumar et. al. represent a formlens as a
+function that takes an optional initial value of a form and a list of integers as a name source and produces a triple consisting of an
 HTML document, a {\em collect} function, and a modified namesource:
-\begin{center}
-\begin{lstlisting}
-type Formlet a = Int $\to$ (Html, Env $\to$ a, Int)
-\end{lstlisting}
-\end{center}
-The names of any generated form fields are drawn from the namesource, and the
-{\em collect} function looks up precisely these names. For example the
-\kw{inputInt} combinator below builds a form that accepts an integer,
-\begin{center}
-\begin{lstlisting}
-inputInt :: Formlet Int
-inputInt i = let n = show i in
-             ($\kw{inputTag}$ {name = n, value = ""},$\lambda e \longrightarrow \kw{read}$ ($\kw{fromJust}$ ($\kw{lookup}$ n e)),i+1)
-\end{lstlisting}
-\end{center}
-where \kw{inputTag} constructs an input element, \kw{lookup}
-retrieves a value from an association list \kw{fromJust} extracts the
-encapsulated value from a \kw{Maybe} value, and \kw{read} parses an \kw{Int}
-from a \kw{String}.
-
-Rajkumar et. al. observe that formlets are a useful abstraction, but they only
-address one half of the problem---they make it easy to construct a function
-that {\em produces} a value of type \codefont{a}, but they do not provide a way
-to describe a function that {\em consumes} a value of type \codefont{a} and
-embeds it in a form. A different way to think about this problem is to observe
-that forms are often used to present an {\em updateable view} of the data
-source. Therefore, Rajkumar et. al. leverage the power of bidirectional
-transformations to define formlets that behave like updatable views, yielding
-the abstraction of formlenses.
-
-The Formlens type is given by
 \begin{center}
 \begin{lstlisting}
 type Formlens a = Maybe a $\to$ [Int] $\to$ (Html,Env $\to$ Maybe a,[Int])
 \end{lstlisting}
 \end{center}
-with the differences between this definition and the standard definition for
-formlets being an extra \codefont{Maybe\; a} parameter that provides an
-optional initial value of the form, the namesource being changed to a list of
-integers, and the {\em collect} function being allowed to return an optional
-value.
+The names of any generated form fields are drawn from the name source, and the
+{\em collect} function looks up precisely these names
 
-Rajkumar et. al. consider only formlenses that are well-formed in that a
+Rajkumar et. al. consider only formlenses that are well-formed in the sense that a
 well-formed formlens should only draw names from the namesource provided as an
 argument, and the {\em collect} function should only look up corresponding
 names. Under this assumption, Rajkumar et. al. define what it means for a
@@ -2055,7 +2039,7 @@ it can greatly reduce the number of test cases and hence the amount of time
 spent testing since only one representative from each class is tested.
 
 More concretely, their approach gives the developer an explicit option to
-formulat her understanding of two object models being different. The technical
+formulate her understanding of two object models being different. The technical
 realization is as follows: The developer specifies ``classifying term'', a
 closed Object Constraint Language (OCL) query term that can be evaluated in an
 object model and returns a characteristic value. Two object models with the same
@@ -2067,7 +2051,7 @@ object models with 2,3 and 4 Person objects respectively.
 Classifying terms are therefore analogous to our QREs or to Boomerang canonizers
 in the sense that they define an equivalence relation on data. However, while
 QREs and canonizers aim at identifying or characterizing the elements that
-should be treated equally by a lens, the focus of the work by Hilken et. al. is
+should be treated equally by a lens, the focus of the work by Hilken et al. is
 on classes that represent specific patterns of particular relevance to the
 modeler who is interested in analyzing the behavior of a transformation.
 
@@ -2082,7 +2066,7 @@ and unfolding combinator laws.
 
 Next we turn to related work in program synthesis. Much of the research in
 synthesis assumes that the synthesizer is provided with a collection of examples.
-Optician and Optician$_Q$ differ in that they require the programmer to supply
+Optician and QRE-Enhanced Optician differ in that they require the programmer to supply
 both examples {\em and} format descriptions in the form of regular expressions
 or QREs, though these two systems are far from the only ones to consider
 type-based synthesis. There is a trade-off here.  On the one hand, a user must
@@ -2109,8 +2093,8 @@ InSynth synthesizes a well-typed term in the succinct calculus, a language with
 types that are equivalent ``modulo isomorphisms of products and
 currying''~\cite{gvero-pldi-2013}. The type structure used in Optician
 is significantly more complex.  In particular, because Optician types do not
-have full canonical forms, Anders et. al. used a pseudo-canonical form that
-captures part of the equivalence relation over types were used. To preserve
+have full canonical forms, Miltner et al. \cite{miltner2017synthesizing} used a pseudo-canonical form that
+captures part of the equivalence relation over types. To preserve
 completeness, they pushed some of the remaining parts of the type equivalence
 relation into a set of rewriting rules and other parts into the synthesis
 algorithm itself.
