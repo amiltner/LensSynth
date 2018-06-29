@@ -386,35 +386,34 @@ let fix_problem_elts
        ~f:(fun e -> Right e)
        (IdIntSet.as_list (IdIntSet.minus s2 s1)))
   in
-  if List.is_empty problem_elements then
-    expand_once
-      rc
-      qe
-  else
-    let new_problems =
-      List.concat_map
-        ~f:(fun se ->
-            begin match se with
-              | Left (v,star_depth) ->
-                let exposes = reveal rc lc v star_depth (QueueElement.get_r2 qe) in
-                assert (not (List.is_empty exposes));
-                List.map ~f:(fun (e,exp) -> (QueueElement.get_r1 qe,e,exp)) exposes
-              | Right (v,star_depth) ->
-                let exposes = reveal rc lc v star_depth (QueueElement.get_r1 qe) in
-                assert (not (List.is_empty exposes));
-                List.map ~f:(fun (e,exp) -> (e,QueueElement.get_r2 qe,exp)) exposes
-            end)
-        problem_elements
-    in
-    List.map
-      ~f:(fun (r1,r2,exp) ->
-          QueueElement.make
-            ~r1:r1
+  begin match problem_elements with
+    | [] -> 
+      expand_once
+        rc
+        qe
+    | se::_ ->
+      let new_problems =
+        begin match se with
+          | Left (v,star_depth) ->
+            let exposes = reveal rc lc v star_depth (QueueElement.get_r2 qe) in
+            assert (not (List.is_empty exposes));
+            List.map ~f:(fun (e,exp) -> (QueueElement.get_r1 qe,e,exp)) exposes
+          | Right (v,star_depth) ->
+            let exposes = reveal rc lc v star_depth (QueueElement.get_r1 qe) in
+            assert (not (List.is_empty exposes));
+            List.map ~f:(fun (e,exp) -> (e,QueueElement.get_r2 qe,exp)) exposes
+        end
+      in
+      List.map
+        ~f:(fun (r1,r2,exp) ->
+            QueueElement.make
+              ~r1:r1
             ~r2:r2
             ~expansions_performed:((QueueElement.get_expansions_performed qe) + exp)
             ~expansions_inferred:((QueueElement.get_expansions_inferred qe)+exp)
             ~expansions_forced:(QueueElement.get_expansions_forced qe))
-      new_problems
+        new_problems
+  end
 (***** }}} *****)
 
 let expand

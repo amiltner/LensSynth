@@ -51,25 +51,20 @@ def generate_examples_required_graph(input_csv):
     zero_count_ind = 0
     one_to_five_count_ind = 1
     six_to_ten_count_ind = 2
-    eleven_to_fifteen_count_ind = 3
-    sixteen_to_twenty_count_ind = 4
-    over_twenty_count_ind = 5
+    over_twenty_count_ind = 3
 
     zero_count_text = "0"
     one_to_five_count_text = "1-5"
     six_to_ten_count_text = "6-10"
     eleven_to_fifteen_count_text = "11-15"
     sixteen_to_twenty_count_text = "16-20"
-    over_twenty_count_text = ">20"
+    over_twenty_count_text = ">10"
     ind_to_text = [zero_count_text,
                    one_to_five_count_text,
                    six_to_ten_count_text,
-                   eleven_to_fifteen_count_text,
-                   sixteen_to_twenty_count_text,
                    over_twenty_count_text]
 
-    experimental_values = [0,0,0,0,0,0,]
-    determinizing_values = [0,0,0,0,0,0,]
+    experimental_values = [0,0,0,0,]
 
     def add_to_correct_group(count_values, n):
         if n < 0.0:
@@ -80,40 +75,35 @@ def generate_examples_required_graph(input_csv):
             count_values[one_to_five_count_ind] = count_values[one_to_five_count_ind]+1
         elif n <= 10.0:
             count_values[six_to_ten_count_ind] = count_values[six_to_ten_count_ind]+1
-        elif n <= 15.0:
-            count_values[eleven_to_fifteen_count_ind] = count_values[eleven_to_fifteen_count_ind]+1
-        elif n <= 20.0:
-            count_values[sixteen_to_twenty_count_ind] = count_values[sixteen_to_twenty_count_ind]+1
         else:
             count_values[over_twenty_count_ind] = count_values[over_twenty_count_ind]+1
 
     experimental_vals = project_column_from_csv(input_csv, "ExamplesRequired")
     for example_num in experimental_vals:
         add_to_correct_group(experimental_values, float(example_num))
-    determinizing_vals = project_column_from_csv(input_csv, "MaxExampleCount")
-    for example_num in determinizing_vals:
-        add_to_correct_group(determinizing_values, float(example_num))
     
 
-    ind = np.arange(6)
+    ind = np.arange(4)
     width = 0.35
 
     fig, ax = plt.subplots()
 
     rects1 = ax.bar(ind, experimental_values, width, color='#ffffb3', align='center')
-    rects2 = ax.bar(ind+width, determinizing_values, width, color='#998ec3', align='center')
 
     ax.set_ylabel('Benchmark Count')
-    ax.set_xlabel('Example Count')
-    ax.set_title("Examples Required for Benchmarks")
-    ax.set_xticks(ind + width / 2)
+    ax.set_xlabel('Examples Required')
+    ax.set_xticks(ind)
     ax.set_xticklabels(ind_to_text)
 
-    ax.legend((rects1[0],rects2[0]),("Experimental Average", "Determinize Permutations"))
+    fig = plt.figure(1,tight_layout=True) 
 
-    fig = plt.figure(1,tight_layout=True)
-    fig.set_figheight(1.8)
-    fig.set_figwidth(5)
+    plt.tick_params(
+                axis='x',          # changes apply to the x-axis
+                    which='both',      # both major and minor ticks are affected
+                        bottom='off',      # ticks along the bottom edge are off
+                            top='off') # labels along the bottom edge are off
+    fig.set_figheight(1)
+    fig.set_figwidth(3)
 
     fig.savefig(generated_graphs_base + "examples.eps", bbox_inches='tight')
 
@@ -325,7 +315,7 @@ def generate_time_vs_tasks_graph(input_csv):
 
     def create_step_plot(colname, outputname,style,width):
         col_vals = [float(x)/1000.0 for x in project_column_from_csv(input_csv, colname) if x != "-1"]
-        col_vals_and_endpoints = col_vals + [0,600]
+        col_vals_and_endpoints = col_vals + [0,5]
         x_vals = sorted([x for x in set(col_vals_and_endpoints)])
         x_count_dict = {key: 0 for key in x_vals}
         for val in col_vals:
@@ -344,24 +334,24 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    create_step_plot("ComputationTime","\\textbf{Full}",'-',full_size)
-    create_step_plot("NoLensContext","\\textbf{NoCS}",':',normal_size)
-    create_step_plot("OnlyForcedExpansionsNoLC","\\textbf{NoFPE}",'-',normal_size)
-    create_step_plot("NoUDTypes","\\textbf{NoUD}",':',normal_size)
-    create_step_plot("NaiveExpansionNoLC","\\textbf{NoER}",'-',normal_size)
-    create_step_plot("FlashExtract","\\textbf{FlashExtract}",':',normal_size)
-    create_step_plot("FlashFill","\\textbf{Flash Fill}",'-',normal_size)
-    create_step_plot("NaiveStrategy",u"\\textbf{Na\\\"ive}",':',normal_size)
+    ax.step([0,5],[39.1,39.1],label="Benchmark Count",linestyle=":",
+            linewidth=1, dashes=(1,1))
+    create_step_plot("ComputationTime","Optician",'-',normal_size)
+    create_step_plot("FlashExtract","FlashExtract",':',normal_size)
+    create_step_plot("FlashFill","Flash Fill",'-',normal_size)
+    create_step_plot("NaiveStrategy",u"Na\\\"ive",':',full_size)
 
-    ax.set_ylabel('Benchmarks Completed')
+    ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Time (s)')
-    ax.set_title("Time vs Benchmarks Completed")
 
-    l = ax.legend(bbox_to_anchor=(1.45,1),borderaxespad=0)
-    plt.setp(l.texts, weight='bold')
+    l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
+    plt.setp(l.texts) 
+
+    plt.xticks(np.arange(0, 5.1, 1))
+    plt.yticks(np.arange(0, 50.1, 10))
 
     fig = plt.figure(4,tight_layout=True)
-    fig.set_figheight(3)
+    fig.set_figheight(2)
     fig.set_figwidth(4)
        
     fig.savefig(generated_graphs_base + "times.eps", bbox_inches='tight')
