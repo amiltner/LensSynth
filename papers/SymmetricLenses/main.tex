@@ -771,23 +771,28 @@ let emp_insurance = header . ("\n" . emp_ins)*
 
 In this section, we give an overview of simple symmetric lenses and
 our corresponding synthesis algorithm using an example drawn from a
-hypothetical U.S. company.  In this company, human resources and upper
-management store information about employees in separate files:
-Management records the names of employees and their salaries while
-Human Resources (HR) stores the names of employees and their health
-insurance providers.  Figure~\ref{fig:minimized-representations} show
-two example files and regular expressions describing the formats.
-The company wants to keep these two files synchronized:
-if management adds a new employee, ``Chris Roe: 32500'', 
-the corresponding entry ``Chris Roe, UNK'' should be added to HR's file.
-
+hypothetical U.S. company.  In this company, management and
+human resources (HR) store information about employees in separate files:
+management records the names of employees and their salaries while
+HR stores the names of employees and their health
+insurance providers.  Figure~\ref{fig:minimized-representations} gives
+examples of the two types of files and regular expressions describing
+the two formats.
+The company uses simple symmetric lenses to keep these files synchronized.
+If management adds a new employee, ``Chris Roe: 32500'',  a lens adds 
+the corresponding entry ``Chris Roe, UNK'' to HR's file.  The
+sentinel value ``UNK'' represents the fact that the employee's
+insurance company is currently unknown.  A similar update happens if
+HR adds a new employee before management, in which case the sentinel
+value ``N/A'' reflects the unknown salary information. 
 Furthermore, if HR
-changes ``John Public'' to ``Jon Public'', that name change should be reflected
-in both files. However, not all the data should be synchronized. The HR file
-should not get altered due to salary changes, and the management file should not
-get altered due to insurance company changes. While names should be matched
-across the two formats, insurance company and salary information should be left
-unmatched. Such a synchronization can be achieved with simple symmetric lenses.
+corrects an error in an employee's name, say changing ``John Public''
+to ``Jon Public'', the lens mirrors that name change in management's
+file. Not all the data is mirrored, however. The management file 
+is not updated in response to insurance changes, and the HR file
+is oblivious to salary changes.  Simple symmetric lenses are
+appropriate for keeping these two files synchronized because they have
+a mix of shared and unshared information.
 
 %Consider the previously
 %described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
@@ -807,7 +812,8 @@ unmatched. Such a synchronization can be achieved with simple symmetric lenses.
 %commands, with the commands running at the same times, we don't want to
 %align the actual commands that are run.
 
-Lenses synchronize files by providing 4 functions, two \emph{create} functions,
+Simple symmetric lenses synchronize files using four functions,
+two \emph{create} functions, 
 and two \emph{put} functions. Create functions are used to initialize data in
 one format when provided with data in the other. If a company.mgmt file is
 initialized, a synchronized company.hr file should also be created, and vice
