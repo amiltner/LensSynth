@@ -703,7 +703,7 @@ In summary, our contributions are:
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-Jane Doe: 35000
+Jane Doe: 38000
 John Public: 37500
 \end{lstlisting}
     \end{minipage}
@@ -715,9 +715,9 @@ John Public: 37500
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-lastname,firstname,company
-Doe,Jane,Healthcare Inc.
-Public,John,Insurance Co.
+Name,Company
+Jane Doe,Healthcare Inc.
+John Public,Insurance Co.
 \end{lstlisting}
     \end{minipage}
   }
@@ -726,7 +726,7 @@ Public,John,Insurance Co.
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let salary = number | "UNSET"
+let salary = number | "N/A"
 let emp_salary = name . " " . name . ": " salary
 let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
 \end{lstlisting}
@@ -737,10 +737,10 @@ let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNSET" in
-let emp_row = name . "," . name "," company in
-let header = "firstname,lastname,company" in
-let emp_insurances = header . ("\n" . emp_row)*
+let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
+let emp_ins = name . " " . name "," company in
+let header = "Name,Company" in
+let emp_insurance = header . ("\n" . emp_ins)*
 \end{lstlisting}
     \end{minipage}
   }
@@ -750,29 +750,38 @@ let emp_insurances = header . ("\n" . emp_row)*
   \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
       \hline
-      company.mgmt & company.hr \\
+      \texttt{company.mgmt} data file & \texttt{company.hr} data file \\
       \hline
       \listingA & \listingB \\
       \hline
-      \listingC & \listingD \\
+      \cellcolor{yellow}\texttt{company.mgmt} regular expression & 
+      \cellcolor{green}\texttt{company.hr}  regular expression\\
+      \hline
+      \cellcolor{yellow}\listingC & \cellcolor{green}\listingD \\
       \hline
     \end{tabular}
   }
-  \caption{Example files used by management and HR, and regular expressions
-    describing the formats of these files.}
+  \caption{Example data files and corresponding regular expressions
+  used by management and HR, respectively, to represent employee salaries and health
+  insurance companies.  
+   \ksf{fix colors so regular expressions are just slightly darker
+  shade than data file.}}  
   \label{fig:minimized-representations}
 \end{figure}
 
-\afm{i commented out the previous version, because this one was quickly written
-  up to give you something to work off. Feel free to delete it if it isnt
-  helpful. } We motivate our problem with an extended example. In our
-theoretical company, human resources and upper management both keep information
-about employees. HR needs to know the names of the employees as well as their
-insurance providers. Management needs to know the names of employees and their
-salary. Two example files, and regular expressions describing the formats, are
-shown in Figure~\ref{fig:minimized-representations}. These two files should be
-synchronized: if management adds a new employee, ``Richard Roe: 32500'', a new
-row should be added to HR's file, ``Roe,Richard,UNSET''. Furthermore, if HR
+In this section, we give an overview of simple symmetric lenses and
+our corresponding synthesis algorithm using an example drawn from a
+hypothetical U.S. company.  In this company, human resources and upper
+management store information about employees in separate files:
+Management records the names of employees and their salaries while
+Human Resources (HR) stores the names of employees and their health
+insurance providers.  Figure~\ref{fig:minimized-representations} show
+two example files and regular expressions describing the formats.
+The company wants to keep these two files synchronized:
+if management adds a new employee, ``Chris Roe: 32500'', 
+the corresponding entry ``Chris Roe, UNK'' should be added to HR's file.
+
+Furthermore, if HR
 changes ``John Public'' to ``Jon Public'', that name change should be reflected
 in both files. However, not all the data should be synchronized. The HR file
 should not get altered due to salary changes, and the management file should not
