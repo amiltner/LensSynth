@@ -754,18 +754,16 @@ let emp_insurance = header . ("\n" . emp_ins)*
       \hline
       \listingA & \listingB \\
       \hline
-      \cellcolor{yellow}\texttt{company.mgmt} regular expression & 
-      \cellcolor{green}\texttt{company.hr}  regular expression\\
+      \cellcolor{vlightyellow}\texttt{company.mgmt} regular expression & 
+      \cellcolor{vlightgreen}\texttt{company.hr}  regular expression\\
       \hline
-      \cellcolor{yellow}\listingC & \cellcolor{green}\listingD \\
+      \cellcolor{vlightyellow}\listingC & \cellcolor{vlightgreen}\listingD \\
       \hline
     \end{tabular}
   }
   \caption{Example data files and corresponding regular expressions
   used by management and HR, respectively, to represent employee salaries and health
-  insurance companies.  
-   \ksf{fix colors so regular expressions are just slightly darker
-  shade than data file.}}  
+  insurance companies.  }  
   \label{fig:minimized-representations}
 \end{figure}
 
@@ -855,7 +853,7 @@ We use regular expressions to denote the types of data formats, and we
 impose a typing discipline on our lenses.  Specifically, if 
 $\Regex$ and $\RegexAlt$ are regular expressions, then the notation
 \lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$} indicates that $\Lens$
-is a simple symmetric lens between formats described by $\LanguageOf{\Regex}$ and
+is a simple symmetric lens between $\LanguageOf{\Regex}$ and
 $\LanguageOf{\RegexAlt}$. 
 When clear from context, we use the term \textit{lens} to denote a
 simple symmetric lens.
@@ -984,59 +982,100 @@ pieces, the lens must further specifiy appropriate defaults.
 To alleviate these difficulties, we wish to synthesize symmetric lenses---given
 a pair of regular expressions and a set of input-output examples, we want to
 find a symmetric lens expression that is typed between the regular expression
-pair, and satisfies the input/output examples. In this example, we wish to
+pair, and satisfies the input/output examples. We call such a lens
+a \emph{satisfying lens}.
+In this example, we wish to
 synthesize a lens from \lstinline{emp_salaries} and \lstinline{emp_insurance},
-using the strings in Figure~\ref{fig:minimized-representations} as an
-input-output example for \CreateR.
+using the example data in Figure~\ref{fig:minimized-representations} as an
+input-output example from which to draw the required defaut values for 
+\Disconnect lenses.  
 
-However, our simple symmetric lens combinators permit many well-typed programs
-between two regular expressions. For example, one possible lens between
-\lstinline{emp_salaries} and \lstinline{emp_insurance} is the one in
-Figure~\ref{fig:example_lens}, but the lens
+A challenge is that the simple symmetric lens combinators permit many
+well-typed lenses
+between a given pair of regular expressions. For example, 
+Figure~\ref{fig:example_lens} gives one possible lens between regular
+expressions  \lstinline{emp_salaries} and \lstinline{emp_insurance},
+but 
 %
 \begin{lstlisting}
 disc(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
 \end{lstlisting}
 %
-is also a valid lens (where \lstinline{rep($\Regex$)} is a string in the
+is another valid lens (where \lstinline{rep($\Regex$)} is a string in the
 language of $\Regex$). Furthermore, adding the synchronized files from
 Figure~\ref{fig:minimized-representations} as an input-output example helps
 little. The default strings given to \Disconnect merely need to be the strings
 in the input-output examples, and the lens will still satisfy the specification.
 While the disconnect lens is prohibited by two examples, or by a carefully
 chosen input-output example on \PutR or \PutL, this problem continues presenting
-itself for the sublenses, and is highlighted even more on larger formats. While
-we could merely ask programmers to provide large, tight specifications for their
+itself for the sublenses, and is highlighted even more on larger
+formats. 
+\ksf{I don't understand the above.  We shouldn't explain the issue in
+terms of \PutR and \PutL as we are focused on the combinators rather
+than the raw functions.}
+While
+we could ask programmers to provide detailed and precise specifications for their
 synthesis tasks, we would prefer the algorithm to choose the right lens
 automatically. Instead of merely finding \emph{any} satisfying lens, we wish to
-synthesize the \emph{best} satisfying lens.
+synthesize the \emph{best} satisfying lens.  
 
-But what is the best satisfying lens? Here, we take the view that the best satisfying lens is the
-one that aligns as much data as is permitted by the type system and the
-examples. More formally, we wish to minimize the expected number of bits
-required to recover data in one format from a synchronized string in the other.
-The expected number of bits is a well known concept in information theory: the
-\emph{entropy} of that data source.
+But what is the best satisfying lens? We propose that the
+best satisfying lens is the satisyfing lens that connects as much data
+as possible between the two formats. More formally, we
+propose that the best satisfying lens is the satisfying lens that 
+minimizes the expected number of bits required to recover data in
+one format from synchronized data in the other.  
+In more detail, we say that two strings $s$ and $t$
+are \emph{synchronized according to lens $l$} if 
+$l.\PutR\ s\ t = t$ and $l.\PutL\ t\ s = s$ where the notation $l.\PutR$
+extracts the \PutR function from simple symmetric lens $l$; similarly
+for \PutL.
+We say that we can \emph{recover} $s$ from $t$ using bits $b$ and lens
+$l$ if we can reconstruct $s$ from $t$, $b$, and $l$.  For example,
+given the \IdentityLens{} lens, we can recover $s$ from $t$ using
+no bits because in this case, $s$ is just $t$.  In contrast, given
+the \Disconnect{} lens, we need enough bits to fully encode $s$ in
+order to recover it from $t$ because $t$ contains no useful
+information.  This calculation shows that if both \IdentityLens{}
+and \Disconnect{} are satisfying lenses, then \IdentityLens{} is
+better. 
 
-The entropy of a data source is based on the probability distribution of that
-data source. Given a set $S$, and a probability distribution over that set $P
+The expected number of bits required to recover some data is a
+well-known concept in information theory: it is the \emph{entropy} of
+the data. Calculating the 
+entropy of some data requires a probability distribution over the
+space of possible values the data can take on.  Specifically,
+given a set $S$ and a probability distribution over that set $P
 \OfType S \rightarrow \Reals$, the entropy of the $(S,P)$ pair is $-\Sigma_{s\in
-  S}P(s)\Log_2P(s)$. While we have ways of expressing sets of strings (with
-regular expressions), we do not have probability distributions. Here, we
-express these probability distributions jointly with the language through
-\emph{stochastic regular expressions}, regular expressions annotated with
-probabilities. Our algorithm guesses a reasonable probability distribution from
-the syntax, though if users manually provided stochastic regular expressions, or
-a large suite of data in the formats through which we could learn the annotations,
-we could instead use that.
+  S}P(s)\Log_2P(s)$. 
 
-With sets and probability distributions, we can find the expected number of bits
-required to recover one string from a synchronized string. This expected value
-is the conditional entropy of the stochastic regular expression ($\Regex$) given
-another stochastic regular expression ($\RegexAlt$), and a lens that shows which
-strings are synchronized with which ($\Lens$). We aim to find the lens that
+In our setting, we already have a way of expressing sets of data:
+regular expressions.  What we need is a way to express probability
+distributions over that data.
+To that end, we adopt \emph{stochastic regular expressions}\ksf{is
+there a citation?}, 
+which are regular expressions where each operator is annotated with a
+probability.  Stochastic regular expressions
+allow us to jointly specify the allowable data and give a probability
+distribution over it.  From this information, we can calculate the
+entropy of the stochastic regular expression. 
+
+Given a lens $\Lens$ between two stochastic regular expressions $\Regex$ and
+$\RegexAlt$, we can calculate the expected number of bits required
+to recover a string $s$ in $\LanguageOf{\Regex}$ from a synchronized
+string $t$ in $\LanguageOf{\RegexAlt}$. 
+This expected value is just the conditional entropy of the $\Regex$ given
+$\RegexAlt$ and $\Lens$. 
+To ensure symmetry, we seek to find the lens that
 minimizes the sum of that entropy with the conditional entropy of $\RegexAlt$
 given $\Regex$ and $\Lens$. 
+
+\ksf{This piece might better go somewhere deeper in the paper.}
+Our algorithm guesses a reasonable probability distribution from
+the syntax, though if users manually provided stochastic regular expressions, or
+a large suite of data in the formats through which we could learn the annotations,
+we could instead use that.  
+
 
 Now that we have a notion of best, we need a way to search for that best lens.
 Our overall approach involves two communicating synthesizers: one (\RXSearch)
