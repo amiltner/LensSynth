@@ -26,6 +26,7 @@
 \usepackage{multicol}
 \usepackage{siunitx}
 \usepackage{listings}
+\usepackage{letltxmacro}
 \usepackage{sansmath}
 \usepackage{url}
 \usepackage{flushend}
@@ -1053,6 +1054,43 @@ very well synchronized, \RXSearch stops. By doing this \RXSearch continues
 searching for better lenses, but does not tackle huge search spaces unless it
 needs to. In this way, the algorithm can provide lenses quickly to the users,
 which users can refine with additional examples.
+
+
+\afm{calculations for cost of various lenses between \lstinline{emp_salary} and
+  \lstinline{emp_row}} Consider the lens \lstinline{single_emp_map} between
+\lstinline{emp_salary} and \lstinline{emp_row}. Given this lens, the expected
+entropy of recovering the left format from the right
+($\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
+  \lstinline{single_emp_map} }$) is the sum of the expected entropy of
+recovering each of its subcomponents, $\EntropyOf{\lstinline{emp_salary} \Given
+  \lstinline{emp_row}, \lstinline{single_emp_map} } = \EntropyOf{\lstinline{name
+    . " " . name} \Given \lstinline{name . "," . name}, \lstinline{name_map}
+}$\\ + $\EntropyOf{\lstinline{": " . salary} \Given
+  \lstinline{"," . company}, \lstinline{disc(salary,company,"UNSET","UNSET")}
+}$.
+
+The entropy of the identity lens is zero. As the two formats are in bijective
+correspondence, we know exactly which string is present in the left-hand format.
+The entropy of the disconnect lens is just the entropy of
+\lstinline{": " . salary}.  Knowing which string is present in the right-hand
+format tells us nothing about what string is present in the left-hand format. So
+$\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
+  \lstinline{single_emp_map} } = \EntropyOf{\lstinline{": " . salary} }$
+
+Analogously, $\EntropyOf{\lstinline{emp_row} \Given \lstinline{emp_salary},
+  \lstinline{single_emp_map} }$ is just $\EntropyOf{\lstinline{"," . company}
+}$, so the total cost of the lens is $\EntropyOf{\lstinline{": " . salary}} +
+\EntropyOf{\lstinline{"," . company}}$
+
+Consider the trivial lens
+\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
+the disconnect lens, the cost of each side is the entropy of the data format, so
+the total cost is $\EntropyOf{\lstinline{emp_salary}} +
+\EntropyOf{\lstinline{emp_row}}}$. \lstinline{emp_salary} contains strictly more
+imformation than \EntropyOf{\lstinline{": " . salary}}, and \lstinline{emp_row}
+contains strictly more information than \EntropyOf{\lstinline{": " . salary}},
+so by our metric \lstinline{single_emp_map} is preferable to the disconnect
+lens.
 % end overview
 
 % begin stoch-rx
