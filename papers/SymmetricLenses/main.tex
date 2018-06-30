@@ -702,9 +702,8 @@ In summary, our contributions are:
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-0,20,40 cp -r /Library/ "$\$$(date)"
-
-* df -h | sendmail admin@domain.com
+Jane Doe: 35000
+John Public: 37500
 \end{lstlisting}
     \end{minipage}
   }
@@ -715,16 +714,9 @@ stringstyle=\upshape\sffamily
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-<Tasks>
- <Task>
-  <Command>c</Command>
-  <Time>0</Time><Time>20</Time> <Time>40</Time>
- </Task>
- <Task>
-  <Command>c</Command>
-  <AllTimes/>
- </Task>
-<Tasks>
+lastname,firstname,company
+Doe,Jane,Healthcare Inc.
+Public,John,Insurance Co.
 \end{lstlisting}
     \end{minipage}
   }
@@ -733,10 +725,9 @@ stringstyle=\upshape\sffamily
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let minute_list = minute . ("," . minute)$^*$ in
-let times = "*" | minute_list in
-let line = times . " " . command in
-let crontab = "" | line . ("\n\n" line)*
+let salary = number | "UNSET"
+let emp_salary = name . " " . name . ": " salary
+let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
 \end{lstlisting}
     \end{minipage}
   }
@@ -745,14 +736,10 @@ let crontab = "" | line . ("\n\n" line)*
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let minute_xml = "<Time>" . minute . "</Time>" in
-let minutes_xml = minute_xml . minute_xml$^*$ in
-let xml_time = "<AllTimes/>" | minutes_xml in
-let command_xml = 
-  "<Command>" . command . "</Command>"
-in
-let xml_task = command_xml . xml_time in
-let scheduled_job = "<Tasks>" . xml_task$^*$ . "</Tasks>"
+let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNSET" in
+let emp_row = name . "," . name "," company in
+let header = "firstname,lastname,company" in
+let emp_insurances = header . ("\n" . emp_row)*
 \end{lstlisting}
     \end{minipage}
   }
@@ -762,7 +749,7 @@ let scheduled_job = "<Tasks>" . xml_task$^*$ . "</Tasks>"
   \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
       \hline
-      crontab & scheduled.job \\
+      company.mgmt & company.hr \\
       \hline
       \listingA & \listingB \\
       \hline
@@ -770,40 +757,56 @@ let scheduled_job = "<Tasks>" . xml_task$^*$ . "</Tasks>"
       \hline
     \end{tabular}
   }
-  \caption{An example crontab and Scheduled Tasks file, and regular expressions
-    describing the formats. For simplicity, these are modified versions of the
-    real formats.}
+  \caption{Example files used by management and HR, and regular expressions
+    describing the formats of these files.}
   \label{fig:minimized-representations}
 \end{figure}
 
-We motivate our problem with an extended example. Consider the previously
-described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
-(scheduled.job) synchronized. These are each formats specifying when to run
-recurring tasks. For the sake of exposition, we use simplified versions crontab
-and scheduled.job formats, with examples and corresponding regular expressions
-shown in Figure~\ref{fig:minimized-representations}. Each file contains a list
-of tasks set to run at specific times every hour. In both formats, users
-can either provide specific minutes at which they want the program to run, or they
-can specify that the program should run at every minute.
+\afm{i commented out the previous version, because this one was quickly written
+  up to give you something to work off. Feel free to delete it if it isnt
+  helpful. } We motivate our problem with an extended example. In our
+theoretical company, human resources and upper management both keep information
+about employees. HR needs to know the names of the employees as well as their
+insurance providers. Management needs to know the names of employees and their
+salary. Two example files, and regular expressions describing the formats, are
+shown in Figure~\ref{fig:minimized-representations}. These two files should be
+synchronized: if management adds a new employee, ``Richard Roe: 32500'', a new
+row should be added to HR's file, ``Roe,Richard,UNSET''. Furthermore, if HR
+changes ``John Public'' to ``Jon Public'', that name change should be reflected
+in both files. However, not all the data should be synchronized. The HR file
+should not get altered due to salary changes, and the management file should not
+get altered due to insurance company changes. While names should be matched
+across the two formats, insurance company and salary information should be left
+unmatched. Such a synchronization can be achieved with simple symmetric lenses.
 
-We wish for the jobs to be synchronized across our Windows and Linux devices.
-However, the commands that need to be run are typically different for each
-device. Paths are different in Windows and Linux, and, while there is typically a
-Windows equvialent for a Linux command, that equivalent command is not always
-named the same thing. So, while we want to be able to have the same number of
-commands, with the commands running at the same times, we don't want to
-align the actual commands that are run.
+%Consider the previously
+%described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
+%(scheduled.job) synchronized. These are each formats specifying when to run
+%recurring tasks. For the sake of exposition, we use simplified versions crontab
+%and scheduled.job formats, with examples and corresponding regular expressions
+%shown in Figure~\ref{fig:minimized-representations}. Each file contains a list
+%of tasks set to run at specific times every hour. In both formats, users
+%can either provide specific minutes at which they want the program to run, or they
+%can specify that the program should run at every minute.
+%
+%We wish for the jobs to be synchronized across our Windows and Linux devices.
+%However, the commands that need to be run are typically different for each
+%device. Paths are different in Windows and Linux, and, while there is typically a
+%Windows equvialent for a Linux command, that equivalent command is not always
+%named the same thing. So, while we want to be able to have the same number of
+%commands, with the commands running at the same times, we don't want to
+%align the actual commands that are run.
 
 Lenses synchronize files by providing 4 functions, two \emph{create} functions,
 and two \emph{put} functions. Create functions are used to initialize data in
-one format when provided with data in the other. If a crontab is initialized, a
-synchronized Scheduled Tasks file should also be created, and vice versa. Put
-functions are used to propagate edits from one format to the other. If a crontab
-is updated, we should be able to combine it with a non-updated Scheduled Tasks
-file, and output a new Scheduled Tasks file, synchronized to the updated
-crontab. To have a simple symmetric lens is to have these required
-synchronization functions. Formally, a simple symmetric lens between $X$ and $Y$
-comprises 4 functions:
+one format when provided with data in the other. If a company.mgmt file is
+initialized, a synchronized company.hr file should also be created, and vice
+versa. Put functions are used to propagate edits from one format to the other.
+If a company.hr file is updated, we should be able to combine it with a
+non-updated company.mgmt file, and output a new company.mgmt file, synchronized
+to the updated company.hr. To have a simple symmetric lens is to have these
+required synchronization functions. Formally, a simple symmetric lens between
+$X$ and $Y$ comprises 4 functions:
 \begin{enumerate}
 \item $\CreateR \OfType X \rightarrow Y$
 \item $\CreateL \OfType Y \rightarrow X$
@@ -825,29 +828,30 @@ change the file data.
   \PutROf{(\PutLOf{y}{x})}{y} = y
 \end{gather}
 
-For synchronization, when the original crontab or Scheduled Tasks file is
+For synchronization, when the original company.hr or company.mgmt file is
 created, a synchronized file of the other form is created from it with
 $\CreateR$ or $\CreateL$ (depending on which file was initially created). On
 future edits, changes are made with the puts, a \PutR would propagate the shared
-information from the crontab, and knit it together with the information specific
-to the Scheduled Tasks file.
+information from the company.hr file, and knit it together with the information
+specific to the company.mgmt file.
 
 \subsection{Programming Symmetric Lenses} We now build up a symmetric lens by
 example. Our symmetric lens expressions are typed between regular expression
 pairs, if \lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$}, then $\Lens$
 encodes a simple symmetric lens between $\LanguageOf{\Regex}$ and
 $\LanguageOf{\RegexAlt}$. At the end, we want our symmetric lenses to by typed
-between \lstinline{crontab} and \lstinline{scheduled_job}.
+between \lstinline{emp_salaries} and \lstinline{emp_insurance}.  The finished
+lens is shown in Figure~\ref{fig:example_lens}.
 
 The identity lens takes, as argument, a regular expression, and performs the
 identity function on strings in that regular expression. The identity lens fully
-aligns the data formats: when one data format is updated, the other format gets
-the exact same value. In our example, when a job is told to run at a specific
-time in crontab, it is also expected to run at that same time in the Scheduled
-Jobs list. The identity lens propagates that information.
+matches the data formats: when one data format is updated, the other format gets
+the exact same value. In our example, when a name is updated, it is also
+expected to updated in the other format. The identity lens propagates that
+information.
 %
 \begin{lstlisting}
-id(minute) : minute $\Leftrightarrow$ minute
+id(name) : name $\Leftrightarrow$ name
 \end{lstlisting}
 %
 
@@ -855,15 +859,12 @@ Where the identity lens aligns data, the disconnect lens does the opposite: it
 leaves data unaligned. The disconnect lens takes 4 arguments: two regular
 expressions and two strings. On creates, because there is no association between
 data in the first format and data in the second format, designated default
-strings are used for the other format. In our extended example, the Linux
-commands should not be synchronized with the Windows commands, so a disconnect
-lens would be used. We want our default behavior to be failures, under the
-assumption this failure will raise a warning, in case somebody forgets to find
-the analogous command of the other operating system.
+strings are used for the other format. In our extended example, salaries and
+insurance companies should not be matched, so a disconnect lens would be used.
+We want our default behavior to specify that the value has not been set.
 %
 \begin{lstlisting}
-disc(command,command_xml,"false","<Command>SET ERRORLEVEL=1</Command>") 
-  : command $\Leftrightarrow$ command_xml
+disc(salary,company,"UNSET","UNSET") : salary $\Leftrightarrow$ company
 \end{lstlisting}
 %
 When building a disconnect lens between two strings, one of which is merely the
@@ -879,79 +880,54 @@ synchronize those settings in each format, then those lenses can be composed
 with an \OrLens lens.
 %
 \begin{lstlisting}
-or(minutes_map,alltimes_map) : times $\Leftrightarrow$ xml_time
+or(id(""),multi_emp_map) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_row) . ("\n" emp_row)*
 \end{lstlisting}
 
-Data can also be concatenated, and so lens mappings can be concatenated.
-However, synchronizing concatenated data can happen in a number of ways, as data
-can appear in the same order, and data can be reordered. For example, in the
-crontab, time data appears before command data, whereas in the Scheduled Jobs
-file, command data comes before time data. If \lstinline{command_map} provides a
-lens between commands in each format, and \lstinline{time_map} provides a lens
-between time data in each format, those lenses can be composed with a \SwapLens
-lens.
+Data can also be concatenated, and so lens mappings can be concatenated.  This
+is achieved with the concat map.
 %
 \begin{lstlisting}
-swap(command_map,time_map) : line $\Leftrightarrow$ xml_task
+concat(ins(header),multi_emp_map) : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
 %
 Two lenses, $\Lens_1$ and $\Lens_2$, can be concatenated as
 \lstinline{concat($\Lens_1$,$\Lens_2$)} or as the infix style
-\lstinline{$\Lens_1$ . $\Lens_2$} for data that is not reordered.
+\lstinline{$\Lens_1$ . $\Lens_2$}.
 
 Lastly, the \IterateLens lens synchronizes repeated data, aligning the number of
 times the data is repeated. The \IterateLens combinator takes a lens as an
 argument and synchronizes each element of the iteration with that lens. For
-example, if \lstinline{full_task_map} synchronizes crontab lines prepended by
-two newlines and xml for a single task, iterating that lens builds a lens that
-synchronizes a list of tasks.
+example, if \lstinline{single_emp_map} synchronizes a single employee's data,
+iterating that lens builds a lens that synchronizes a list of tasks.
 %
 \begin{lstlisting}
-iterate(full_task_map) : ("\n\n" . line)$^*$ $\Leftrightarrow$ xml_task$^*$
+iterate(id("\n") . single_emp_map) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_row)$^*$
 \end{lstlisting}
 %
 
 \begin{figure}
 \begin{lstlisting}
-let full_minute_map = ins("<Time>") . id(minute) . ins("</Time>") in
-let comma_minute_map = del(",") . full_minute_map in
-let minutes_map = full_minute_map . iterate(comma_minute_map) in
-let alltimes_map = del("*") . ins("<AllTimes/>") in
-let times_map = or(minutes_map,alltimes_map) in
-
-let command_core = 
-  disc(command,command_xml,"false","<Command>SET ERRORLEVEL=1</Command>")
-in
-let command_map = 
-  ins("<Command>") . command_core . ins("</Command>")) . del(" ") 
-in
-
-let task_map = swap(command_map,time_map) in
-let full_task_map = 
-  ins("<Task>") . del("\n\n") . task_map . ins("</Task>") 
-in
-let repeated_task_map = full_task_map . iterate(full_task_map)
-let nonempty_task_map = ins("<Tasks>") . repeated_task_map . ins("</Tasks>")
-
-or(ins("<Tasks></Tasks>"),nonempty_task_map) : crontab $\Leftrightarrow$ scheduled_job
+let name_map = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
+let single_emp_map = name_map . disc(salary,company,"UNSET","UNSET") in
+let multi_emp_map = ins("\n") . single_emp_map . iterate(id("\n") . single_emp_map) in
+let emp_map = or(id(""),multi_emp_map) in
+ins(header) . multi_emp_map : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
   \caption{A lens, written in our language for building simple symmetric lenses
-    on string data, that synchronizes crontab files and Scheduled Task files.
+    on string data, that synchronizes management and hr employee files.
     Note that we can annotate our lenses with types, to confirm the lens
     operates on the languages of the regular expressions. In this work, we
-    synthesize the lens itself from such regular expressions. \saz{Say something
-      about the possibility of synthesizing this lens?}}
+    synthesize the lens itself from such regular expressions.}
   \label{fig:example_lens}
 \end{figure}
 
-Using these combinators, we can build up a lens that synchronizes crontabs and
-Scheduled Task files, shown in Figure~\ref{fig:example_lens}. This lens uses one
-typing rule not previously mentioned: type equivalence. While
-\lstinline{scheduled_job} is a equivalent to a regular expression with an
-outermost disjunction, it is not syntactically equivalent to one. Without type
-equivalence, the provided lens wouldn't actually be well-typed, but type
-equivalence states that if a lens is typed between a pair of regular
-expressions, it is also typed between an equivalent pair.
+Using these combinators, we can build up a lens that synchronizes HR and
+management employee files. This lens uses one typing rule not previously
+mentioned: type equivalence. While \lstinline{scheduled_job} is a equivalent to
+a regular expression with an outermost disjunction, it is not syntactically
+equivalent to one. Without type equivalence, the provided lens wouldn't actually
+be well-typed, but type equivalence states that if a lens is typed between a
+pair of regular expressions, it is also typed between an equivalent pair.
 
 Note that, while the programmed lens should be quite simple, it was relatively
 difficult to write. We had to provide a lot of scaffolding to map between the
@@ -966,17 +942,17 @@ To alleviate these difficulties, we wish to synthesize symmetric lenses---given
 a pair of regular expressions and a set of input-output examples, we want to
 find a symmetric lens expression that is typed between the regular expression
 pair, and satisfies the input/output examples. In this example, we wish to
-synthesize a lens from \lstinline{crontab} and \lstinline{scheduled_job}, using
-the strings in Figure~\ref{fig:minimized-representations} as an input-output
-example for \CreateR.
+synthesize a lens from \lstinline{emp_salaries} and \lstinline{emp_insurance},
+using the strings in Figure~\ref{fig:minimized-representations} as an
+input-output example for \CreateR.
 
 However, our simple symmetric lens combinators permit many well-typed programs
 between two regular expressions. For example, one possible lens between
-\lstinline{crontab} and \lstinline{scheduled_job} is the one in
+\lstinline{emp_salaries} and \lstinline{emp_insurance} is the one in
 Figure~\ref{fig:example_lens}, but the lens
 %
 \begin{lstlisting}
-disc(crontab,scheduled_job,rep(crontab),rep(scheduled_job))
+disc(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
 \end{lstlisting}
 %
 is also a valid lens (where \lstinline{rep($\Regex$)} is a string in the
@@ -1019,8 +995,7 @@ strings are synchronized with which ($\Lens$). We aim to find the lens that
 minimizes the sum of that entropy with the conditional entropy of $\RegexAlt$
 given $\Regex$ and $\Lens$. 
 
-Now that we have a notion of best, we need a way to
-search for that best lens.
+Now that we have a notion of best, we need a way to search for that best lens.
 Our overall approach involves two communicating synthesizers: one (\RXSearch)
 that proposes regular expression pairs, semantically but not syntactically
 equivalent to the originals; one (\GreedySynth) that tries to find the best lens
@@ -1029,9 +1004,9 @@ two regular expressions, \GreedySynth can quickly search through the class of
 lenses that can be typed between them, where all instances of type equivalence
 involve no star equivalences. For example, consider the lens shown in
 Figure~\ref{fig:example_lens}. This lens would \emph{not} be in the class
-characterized by \lstinline{crontab} and \lstinline{scheduled_job}, as that
-typing derivation requires unrolling \lstinline{xml_task$^*$} within
-\lstinline{scheduled_job} into \lstinline{"" | (xml_task . xml_task$^*$)}.
+characterized by \lstinline{emp_salaries} and \lstinline{emp_insurance}, as that
+typing derivation requires unrolling \lstinline{("\n" . emp_salary)$^*$} within
+\lstinline{emp_salaries} into \lstinline{"" | (("\n" . emp_salary) . ("\n" . emp_salary)$^*$)}.
 
 How does \RXSearch propose stochastic regular expression pairs? We define
 rewrite rules for stochastic regular expressions, and prove those rewrites
@@ -1063,7 +1038,7 @@ enumerating classes and efficiently searching through them, but it poses a
 problem: when do we stop? While we may have found a great lens between two regular
 expressions, a different regular expression pair may provide an even better
 lens. Moreover, we may find a great lens characterized by
-\lstinline{crontab} and \lstinline{scheduled_job} that is not the
+\lstinline{emp_salaries} and \lstinline{emp_insurances} that is not the
 desired lens shown in Figure~\ref{fig:example_lens}.  The
 tension is that we want to find a good lens, but we also want to give quick feedback to
 the user. After finding the lens in Figure~\ref{fig:example_lens}, we dont want
@@ -1163,8 +1138,8 @@ is needed.
 \begin{center}
   \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String'$ & = & $\StringAlt$\\
-    $\CreateL{} \App \StringAlt'$ & = & $\String$\\
-    $\PutR{} \App \String' \App \StringAlt'$ & = & $\StringAlt'$\\
+    $\CreateL{} \App \StringAlt'''''$ & = & $\String$\\
+    $\PutR{} \App \String'' \App \StringAlt'$ & = & $\StringAlt'$\\
     $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
   \end{tabular}
 \end{center}
