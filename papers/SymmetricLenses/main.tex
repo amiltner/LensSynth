@@ -812,58 +812,76 @@ a mix of shared and unshared information.
 %commands, with the commands running at the same times, we don't want to
 %align the actual commands that are run.
 
-Simple symmetric lenses synchronize files using four functions,
-two \emph{create} functions, 
-and two \emph{put} functions. Create functions are used to initialize data in
-one format when provided with data in the other. If a company.mgmt file is
-initialized, a synchronized company.hr file should also be created, and vice
-versa. Put functions are used to propagate edits from one format to the other.
-If a company.hr file is updated, we should be able to combine it with a
-non-updated company.mgmt file, and output a new company.mgmt file, synchronized
-to the updated company.hr. To have a simple symmetric lens is to have these
-required synchronization functions. Formally, a simple symmetric lens between
-$X$ and $Y$ comprises 4 functions:
+\subsection{Simple Symmetric Lenses}
+A simple symmetric lens between formats described by types $\Regex$
+and $\RegexAlt$ 
+is defined by four functions: 
 \begin{enumerate}
-\item $\CreateR \OfType X \rightarrow Y$
-\item $\CreateL \OfType Y \rightarrow X$
-\item $\PutR \OfType X \rightarrow Y \rightarrow Y$
-\item $\PutL \OfType Y \rightarrow X \rightarrow X$
+\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
+\item $\CreateL \OfType \RegexAlt \rightarrow \Regex$
+\item $\PutR \OfType \Regex \rightarrow \RegexAlt \rightarrow \RegexAlt$
+\item $\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$
 \end{enumerate}
-Furthermore, if a file is not edited, but is then resynchronized using a put
-function, no data should be changed. To be a simple symmetric lens, one must
-satisfy the following ``round-tripping'' laws, guaranteeing identity edits won't
-change the file data.
+\noindent
+that collectively satisfy four ``round-tripping'' laws: 
 \begin{gather}
   \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x\\
+  \PutLOf{(\CreateROf{s})}{s} = s\\
   \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y\\
+  \PutROf{(\CreateLOf{t})}{t} = t\\
   \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x\\
+  \PutLOf{(\PutROf{s}{t})}{s} = s\\
   \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
+  \PutROf{(\PutLOf{t}{s})}{t} = t
 \end{gather}
+\noindent
+The two \emph{create} functions provide default values for times when
+data appears on one side but not the other (eg, the ``N/A'' salary
+entry added to the management file when HR inserts a new employee).
+The two \emph{put} functions propagate edits from one format to the
+other by combining the change from one file with the previous value
+from the other file. The roundtripping laws guarantee that identify edits to one file do
+not change the data in the other file. 
 
-For synchronization, when the original company.hr or company.mgmt file is
-created, a synchronized file of the other form is created from it with
-$\CreateR$ or $\CreateL$ (depending on which file was initially created). On
-future edits, changes are made with the puts, a \PutR would propagate the shared
-information from the company.hr file, and knit it together with the information
-specific to the company.mgmt file.
 
-\subsection{Programming Symmetric Lenses} We now build up a symmetric lens by
-example. Our symmetric lens expressions are typed between regular expression
-pairs, if \lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$}, then $\Lens$
-encodes a simple symmetric lens between $\LanguageOf{\Regex}$ and
-$\LanguageOf{\RegexAlt}$. At the end, we want our symmetric lenses to by typed
-between \lstinline{emp_salaries} and \lstinline{emp_insurance}.  The finished
-lens is shown in Figure~\ref{fig:example_lens}.
+%%For synchronization, when the original company.hr or company.mgmt
+%%file is created, a synchronized file of the other form is created
+%%from it with $\CreateR$ or $\CreateL$ (depending on which file was
+%%initially created). On future edits, changes are made with the puts,
+%%a \PutR would propagate the shared information from the company.hr
+%%file, and knit it together with the information specific to the company.mgmt file.
 
-The identity lens takes, as argument, a regular expression, and performs the
+We use regular expressions to denote the types of data formats, and we
+impose a typing discipline on our lenses.  Specifically, if 
+$\Regex$ and $\RegexAlt$ are regular expressions, then the notation
+\lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$} indicates that $\Lens$
+is a simple symmetric lens between formats described by $\LanguageOf{\Regex}$ and
+$\LanguageOf{\RegexAlt}$. 
+When clear from context, we use the term \textit{lens} to denote a
+simple symmetric lens.
+
+
+\subsection{Simple Symmetric Lens Combinators} 
+\ksf{This section needs more polishing}
+Generally, we do not expect programmers to define simple symmetric lenses by
+writing the four functions by hand and showing they satisfy the
+roundtripping laws.  Instead, we provide simple symmetric lens
+combinators to build up the requisite lenses from simpler ones.
+We explain these combinators by using them to define a lens between
+the two employee data formats in Figure~\ref{fig:minimized-representations}. 
+The finished lens, which appears in Figure~\ref{fig:example_lens}, has
+the type 
+\lstinline{emp_salaries} $\Leftrightarrow$ \lstinline{emp_insurance}, where
+\lstinline{emp_salaries} and \lstinline{emp_insurance} are regular
+expressions defined in Figure~\ref{fig:minimized-representations}. 
+
+
+The simplest combinator is the identity lens, which takes as an argument a
+regular expression, and performs the 
 identity function on strings in that regular expression. The identity lens fully
 matches the data formats: when one data format is updated, the other format gets
 the exact same value. In our example, when a name is updated, it is also
-expected to updated in the other format. The identity lens propagates that
+expected to be updated in the other format. The identity lens propagates that
 information.
 %
 \begin{lstlisting}
@@ -871,16 +889,16 @@ id(name) : name $\Leftrightarrow$ name
 \end{lstlisting}
 %
 
-Where the identity lens aligns data, the disconnect lens does the opposite: it
-leaves data unaligned. The disconnect lens takes 4 arguments: two regular
-expressions and two strings. On creates, because there is no association between
-data in the first format and data in the second format, designated default
-strings are used for the other format. In our extended example, salaries and
-insurance companies should not be matched, so a disconnect lens would be used.
-We want our default behavior to specify that the value has not been set.
+In contrast to the identity lens, the disconnect lens leaves data
+unaligned. The disconnect lens takes four arguments: two regular 
+expressions and two strings. The regular expressions specify the
+formats of the data on the two sides while the strings provide default
+values.  In our extended example, salaries and
+insurance companies unrelated, so we use a disconnect lens.  The
+defaults are strings that indicate the information is missing.
 %
 \begin{lstlisting}
-disc(salary,company,"UNSET","UNSET") : salary $\Leftrightarrow$ company
+disc(salary,company,"N/A","UNK") : salary $\Leftrightarrow$ company
 \end{lstlisting}
 %
 When building a disconnect lens between two strings, one of which is merely the
@@ -889,68 +907,77 @@ used, where \lstinline{ins($t$) = disc("",$t$,"",$t$)} and
 \lstinline{del($s$) = disc($s$,"",$s$,"")}.
 
 Finally, there are a number of lenses that compositionally build up new lenses
-from old ones. For example, data can appear in one form or another: a program
-can run during a specific set of minutes, or that program can run the every
-minute. If \lstinline{minutes_map} and \lstinline{alltimes_map} are lenses that
-synchronize those settings in each format, then those lenses can be composed
-with an \OrLens lens.
+from old ones. 
+For example, data can be concatenated, and so we provide
+the \lstinline{concat} combinator that sequences lenses, usually
+written using an infix notation \lstinline{$\Lens_1$ . $\Lens_2$}:
 %
 \begin{lstlisting}
-or(id(""),multi_emp_map) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_row) . ("\n" emp_row)*
+id(name) . ins(",") . id(name) . del(": ") . ins(",")
+\end{lstlisting}
+% concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
+%
+
+Data can also appear in multiple forms. For example,
+a list of employees with insurance information can either be empty or
+be a sequence of employee/insurance records: \ksf{This example is
+vacuous as you could eliminate the or in favor of the *.  Do somethign
+else to introduce or?}
+%
+\begin{lstlisting}
+or(id(""),employees_lens) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_ins) . ("\n" emp_ins)*
 \end{lstlisting}
 
-Data can also be concatenated, and so lens mappings can be concatenated.  This
-is achieved with the concat map.
-%
-\begin{lstlisting}
-concat(ins(header),multi_emp_map) : emp_salaries $\Leftrightarrow$ emp_insurance
-\end{lstlisting}
-%
-Two lenses, $\Lens_1$ and $\Lens_2$, can be concatenated as
-\lstinline{concat($\Lens_1$,$\Lens_2$)} or as the infix style
-\lstinline{$\Lens_1$ . $\Lens_2$}.
 
 Lastly, the \IterateLens lens synchronizes repeated data, aligning the number of
 times the data is repeated. The \IterateLens combinator takes a lens as an
 argument and synchronizes each element of the iteration with that lens. For
-example, if \lstinline{single_emp_map} synchronizes a single employee's data,
-iterating that lens builds a lens that synchronizes a list of tasks.
+example, if \lstinline{employee_lens} synchronizes a single employee's data,
+iterating that lens builds a lens that synchronizes a list of employees.
 %
 \begin{lstlisting}
-iterate(id("\n") . single_emp_map) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_row)$^*$
+iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
 \end{lstlisting}
 %
 
 \begin{figure}
 \begin{lstlisting}
-let name_map = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
-let single_emp_map = name_map . disc(salary,company,"UNSET","UNSET") in
-let multi_emp_map = ins("\n") . single_emp_map . iterate(id("\n") . single_emp_map) in
-let emp_map = or(id(""),multi_emp_map) in
-ins(header) . multi_emp_map : emp_salaries $\Leftrightarrow$ emp_insurance
+let name_lens = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
+let employee_lens = name_lens . disc(salary,company,"N/A","UNK") in
+let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
+let emp_lens = or(id(""),employees_lens) in
+ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
   \caption{A lens, written in our language for building simple symmetric lenses
-    on string data, that synchronizes management and hr employee files.
+    on string data, that synchronizes management and HR employee files.
     Note that we can annotate our lenses with types, to confirm the lens
     operates on the languages of the regular expressions. In this work, we
     synthesize the lens itself from such regular expressions.}
   \label{fig:example_lens}
 \end{figure}
 
-Using these combinators, we can build up a lens that synchronizes HR and
-management employee files. This lens uses one typing rule not previously
+Using these combinators, we can build up a lens that synchronizes
+management and HR employee files. 
+
+\ksf{This paragraph needs to be updated, if nothing else, to reflect
+the new example. Also, we haven't mentioned any typing rules so the
+first sentence doesn't make sense.  Perhaps the whole topic could be
+defered to later where we can explain why such a rule is necessary?}
+This lens uses one typing rule not previously
 mentioned: type equivalence. While \lstinline{scheduled_job} is a equivalent to
 a regular expression with an outermost disjunction, it is not syntactically
 equivalent to one. Without type equivalence, the provided lens wouldn't actually
 be well-typed, but type equivalence states that if a lens is typed between a
 pair of regular expressions, it is also typed between an equivalent pair.
 
-Note that, while the programmed lens should be quite simple, it was relatively
-difficult to write. We had to provide a lot of scaffolding to map between the
-desired formats, even though the idea was quite simple: align the times but
-leave the commands unaligned. Furthermore, this is inherent to manually writing
-these synchronization functions as a programmer must describe which components
-of the strings are aligned with which, and which components are scaffolding.
+Note that, while the synchronization task is quite simple, the
+requisite lens is relatively complex. Furthermore, this complexity is
+inherent in manually writing simple symmetric lenses because the
+lenses must precisely describe the portions of the data that should be
+connected and those that should be disconnected.  For disconnected
+pieces, the lens must further specifiy appropriate defaults.
+
+
 
 \subsection{Synthesizing Symmetric Lenses}
 
