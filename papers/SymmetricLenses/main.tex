@@ -21,7 +21,7 @@
 \usepackage{changepage}
 \usepackage{booktabs}
 \usepackage{amssymb}
-\usepackage[inline]{enumitem}
+\usepackage{enumitem}
 \usepackage{multirow,bigdelim}
 \usepackage{multicol}
 \usepackage{siunitx}
@@ -1085,12 +1085,12 @@ Analogously, $\EntropyOf{\lstinline{emp_row} \Given \lstinline{emp_salary},
 Consider the trivial lens
 \lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
 the disconnect lens, the cost of each side is the entropy of the data format, so
-the total cost is $\EntropyOf{\lstinline{emp_salary}} +
-\EntropyOf{\lstinline{emp_row}}}$. \lstinline{emp_salary} contains strictly more
-imformation than \EntropyOf{\lstinline{": " . salary}}, and \lstinline{emp_row}
-contains strictly more information than \EntropyOf{\lstinline{": " . salary}},
-so by our metric \lstinline{single_emp_map} is preferable to the disconnect
-lens.
+the total cost is $\EntropyOf{\lstinline{emp_salary} } +
+\EntropyOf{\lstinline{emp_row}}$. \lstinline{emp_salary} contains strictly more
+imformation than $\EntropyOf{\lstinline{": " . salary}}$, and
+\lstinline{emp_row} contains strictly more information than
+\EntropyOf{\lstinline{": " . salary}}, so by our metric
+\lstinline{single_emp_map} is preferable to the disconnect lens.
 % end overview
 
 % begin stoch-rx
@@ -2383,17 +2383,75 @@ examples in a desired way.
 % begin implementation
 \section{Implementation}
 \label{sec:implementation}
-We have implemented our symmetric DNF lenses and the synthesis of them as an
-extension to Boomerang. We added symmetric lens combinators to Boomerang, and
-implemented Boomerang's previous asymmetric lens combinators within the
-symmetric lens combinators.
-
-We have extended Optician with our symmetric synthesis algorithm.
 % end implementation
 
 % begin evaluation
 \section{Evaluation}
 \label{sec:evaluation}
+We have implemented our symmetric DNF lenses and the synthesis of them as an
+extension to Boomerang. We added symmetric lens combinators to Boomerang, and
+implemented Boomerang's previous asymmetric lens combinators within the
+symmetric lens combinators.
+
+We have extended Optician with our symmetric synthesis algorithm. Users can
+write synthesis tasks alongside lens combinators, use those synthesis results in
+the manual writing of new lenses, and use previously defined lenses in the
+synthesis of new lenses.
+
+In this work, we aim to answer two primary research questions:
+\begin{itemize}
+\item Is our synthesis procedure efficient enough to be used in everyday
+  development?  Can it be used in place of the existing bijective lens synthesis
+  algorithm integrated with Boomerang?
+\item Is our information theoretic cost metric useful in finding good lenses.
+\end{itemize}
+
+\subsection{Benchmark Suite Construction}
+Our benchmarks came from four different sources.
+\begin{enumerate}
+\item We adapted \afm{8} data cleaning benchmarks from Flash Fill. In adopting
+  these benchmarks, we go beyond the data cleaning tasks, and synthesize
+  synchronization functions between the ad-hoc data and their cleaned forms.
+  Optician also adopted benchmarks from Flash Fill, but required alterations to
+  be in bijective form. With our symmetric enhancement, we Optician's four
+  benchmarks, and 4 new Flash Fill benchmarks with no alterations.
+\item We adapted \afm{29} benchmarks from Augeas.  These benchmarks are the same
+  as those present in Optician.  While these benchmarks had to be slightly
+  adopted for bijectivity, previous work addressed this lack of bijectivity by
+  synthesizing quotient bijective lenses~\cite{?}.
+\item We used \afm{8} benchmarks from synchronization tasks on synchronizing a
+  variety of real-life formats. These formats range from the synchronizing REST
+  and JSON web resource descriptions to synchronizing BibTeX and EndNote
+  citation descriptions.
+\end{enumerate}
+
+\subsection{Efficiency}
+
+To answer our first research question, we analyze the runtime of our algorithm,
+and compare it to the existing algorithm for synthesizing bijective lenses.
+
+We synthesized lenses in 4 modes:
+
+\begin{tabulary}{\linewidth}{rL}
+  \SSOpt{}: & We synthesize lenses using our symmetric synthesis algorithm with all optimizations enabled.\\
+  \SSNCOpt{}: & We synthesize lenses using our symmetric synthesis algorithm,
+                but compositional synthesis is not enabled.\\
+  \BSOpt{}: &  We synthesize lenses using the existing bijective lens synthesis
+              algorithm with all optimizations enabled\\
+  \BSNCOpt{}: & We synthesize lenses using the existing bijective lens synthesis
+                algorithm, but compositional synthesis is not enabled.\\
+\end{tabulary}\\
+
+We include running these algorithms without compositional synthesis to stress
+test the algorithms. While compositional synthesis makes the procedure easier,
+and demonstrates the potential to be used in arbitrarily hard problems, it is
+dependent on the user identifying important sublenses between subcomponents of
+the final formats. It is therefore interesting to see how many problems each
+algorithm can solve, when trying to synthesize ``in one go''.
+
+For each benchmark in our benchmark suite, we ran every mode on it with a
+timeout of 1 minute, and average the result over 5 runs. Figure~\ref{fig:times}
+summarizes the results of these tests.
 % end evaluation
 
 % begin related-work
@@ -2429,7 +2487,7 @@ round-tripping laws.  This guarantees that if an identity edit is propagated, no
 data gets changed.
 \begin{equation}
   \tag{\PutRL}
-  \frac{\PutRSymOf{(x,c)} = (y,c')}{\PutLSymOf{(y,c')} = (x,c')}
+  \frac{\PutRSymOf{(x,c)} = (y,c'')}{\PutLSymOf{(y,c')} = (x,c')}
 \end{equation}
 \begin{equation}
   \tag{\PutLR}
