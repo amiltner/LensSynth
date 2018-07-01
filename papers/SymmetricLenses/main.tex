@@ -703,7 +703,7 @@ In summary, our contributions are:
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-Jane Doe: 35000
+Jane Doe: 38000
 John Public: 37500
 \end{lstlisting}
     \end{minipage}
@@ -715,9 +715,9 @@ John Public: 37500
 \begin{lstlisting}[
 stringstyle=\upshape\sffamily
 ]
-lastname,firstname,company
-Doe,Jane,Healthcare Inc.
-Public,John,Insurance Co.
+Name,Company
+Jane Doe,Healthcare Inc.
+John Public,Insurance Co.
 \end{lstlisting}
     \end{minipage}
   }
@@ -726,7 +726,7 @@ Public,John,Insurance Co.
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let salary = number | "UNSET"
+let salary = number | "N/A"
 let emp_salary = name . " " . name . ": " salary
 let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
 \end{lstlisting}
@@ -737,10 +737,10 @@ let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNSET" in
-let emp_row = name . "," . name "," company in
-let header = "firstname,lastname,company" in
-let emp_insurances = header . ("\n" . emp_row)*
+let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
+let emp_ins = name . " " . name "," company in
+let header = "Name,Company" in
+let emp_insurance = header . ("\n" . emp_ins)*
 \end{lstlisting}
     \end{minipage}
   }
@@ -750,35 +750,49 @@ let emp_insurances = header . ("\n" . emp_row)*
   \resizebox{\columnwidth}{!}{%
     \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
       \hline
-      company.mgmt & company.hr \\
+      \texttt{company.mgmt} data file & \texttt{company.hr} data file \\
       \hline
       \listingA & \listingB \\
       \hline
-      \listingC & \listingD \\
+      \cellcolor{vlightyellow}\texttt{company.mgmt} regular expression & 
+      \cellcolor{vlightgreen}\texttt{company.hr}  regular expression\\
+      \hline
+      \cellcolor{vlightyellow}\listingC & \cellcolor{vlightgreen}\listingD \\
       \hline
     \end{tabular}
   }
-  \caption{Example files used by management and HR, and regular expressions
-    describing the formats of these files.}
+  \caption{Hypothetical example data files and corresponding regular expressions
+  used by management and HR at a US company to represent employee salaries and health
+  insurance providers, respectively. \ksf{Why
+  is \lstinline{emp_salaries} written with an or instead of just using
+  the star operator? Can we simplify?} }  
   \label{fig:minimized-representations}
 \end{figure}
 
-\afm{i commented out the previous version, because this one was quickly written
-  up to give you something to work off. Feel free to delete it if it isnt
-  helpful. } We motivate our problem with an extended example. In our
-theoretical company, human resources and upper management both keep information
-about employees. HR needs to know the names of the employees as well as their
-insurance providers. Management needs to know the names of employees and their
-salary. Two example files, and regular expressions describing the formats, are
-shown in Figure~\ref{fig:minimized-representations}. These two files should be
-synchronized: if management adds a new employee, ``Richard Roe: 32500'', a new
-row should be added to HR's file, ``Roe,Richard,UNSET''. Furthermore, if HR
-changes ``John Public'' to ``Jon Public'', that name change should be reflected
-in both files. However, not all the data should be synchronized. The HR file
-should not get altered due to salary changes, and the management file should not
-get altered due to insurance company changes. While names should be matched
-across the two formats, insurance company and salary information should be left
-unmatched. Such a synchronization can be achieved with simple symmetric lenses.
+In this section, we give an overview of simple symmetric lenses and
+our corresponding synthesis algorithm using an example drawn from a
+hypothetical U.S. company.  In this company, management and
+human resources (HR) store information about employees in separate files:
+management records the names of employees and their salaries while
+HR stores the names of employees and their health
+insurance providers.  Figure~\ref{fig:minimized-representations} gives
+examples of the two types of files and regular expressions describing
+the two formats.
+The company uses simple symmetric lenses to keep these files synchronized.
+If management adds a new employee, ``Chris Roe: 32500'',  a lens adds 
+the corresponding entry ``Chris Roe, UNK'' to HR's file.  The
+sentinel value ``UNK'' represents the fact that the employee's
+insurance company is currently unknown.  A similar update happens if
+HR adds a new employee before management, in which case the sentinel
+value ``N/A'' reflects the unknown salary information. 
+Furthermore, if HR
+corrects an error in an employee's name, say changing ``John Public''
+to ``Jon Public'', the lens mirrors that name change in management's
+file. Not all the data is mirrored, however. The management file 
+is not updated in response to insurance changes, and the HR file
+is oblivious to salary changes.  Simple symmetric lenses are
+appropriate for keeping these two files synchronized because the files have
+a mix of shared and unshared information.
 
 %Consider the previously
 %described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
@@ -798,290 +812,452 @@ unmatched. Such a synchronization can be achieved with simple symmetric lenses.
 %commands, with the commands running at the same times, we don't want to
 %align the actual commands that are run.
 
-Lenses synchronize files by providing 4 functions, two \emph{create} functions,
-and two \emph{put} functions. Create functions are used to initialize data in
-one format when provided with data in the other. If a company.mgmt file is
-initialized, a synchronized company.hr file should also be created, and vice
-versa. Put functions are used to propagate edits from one format to the other.
-If a company.hr file is updated, we should be able to combine it with a
-non-updated company.mgmt file, and output a new company.mgmt file, synchronized
-to the updated company.hr. To have a simple symmetric lens is to have these
-required synchronization functions. Formally, a simple symmetric lens between
-$X$ and $Y$ comprises 4 functions:
-\begin{enumerate}
-\item $\CreateR \OfType X \rightarrow Y$
-\item $\CreateL \OfType Y \rightarrow X$
-\item $\PutR \OfType X \rightarrow Y \rightarrow Y$
-\item $\PutL \OfType Y \rightarrow X \rightarrow X$
-\end{enumerate}
-Furthermore, if a file is not edited, but is then resynchronized using a put
-function, no data should be changed. To be a simple symmetric lens, one must
-satisfy the following ``round-tripping'' laws, guaranteeing identity edits won't
-change the file data.
+\subsection{Simple Symmetric Lenses}
+A simple symmetric lens between formats described by types $\Regex$
+and $\RegexAlt$ 
+is defined by four functions
+
+%\begin{enumerate}
+%\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
+%\item $\CreateL \OfType \RegexAlt \rightarrow \Regex$
+%\item $\PutR \OfType \Regex \rightarrow \RegexAlt \rightarrow \RegexAlt$
+%\item $\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$
+%\end{enumerate}
+
 \begin{gather}
-  \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x\\
-  \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y\\
-  \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x\\
-  \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
+ \tag{1}
+ \mbox{$\CreateR \OfType \Regex \rightarrow \RegexAlt$}\\
+ \tag{2}
+ \mbox{$\CreateL \OfType \RegexAlt \rightarrow \Regex$}\\
+ \tag{3}
+ \mbox{$\PutR \OfType \Regex \rightarrow \RegexAlt \rightarrow \RegexAlt$}\\
+ \tag{4}
+ \mbox{$\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$}
 \end{gather}
 
-For synchronization, when the original company.hr or company.mgmt file is
-created, a synchronized file of the other form is created from it with
-$\CreateR$ or $\CreateL$ (depending on which file was initially created). On
-future edits, changes are made with the puts, a \PutR would propagate the shared
-information from the company.hr file, and knit it together with the information
-specific to the company.mgmt file.
+\noindent
+that collectively satisfy four ``round-tripping'' laws: 
+\begin{gather}
+  \tag{\CreatePutRL}
+  \PutLOf{(\CreateROf{s})}{s} = s\\
+  \tag{\CreatePutLR}
+  \PutROf{(\CreateLOf{t})}{t} = t\\
+  \tag{\PutRL}
+  \PutLOf{(\PutROf{s}{t})}{s} = s\\
+  \tag{\PutLR}
+  \PutROf{(\PutLOf{t}{s})}{t} = t
+\end{gather}
+\noindent
+The two create functions provide default values for times when
+data appears on one side but not the other (\EG, the ``N/A'' salary
+entry added to the management file when HR inserts a new employee).
+The two put functions propagate edits from one format to the
+other by combining the change from one file with the previous value
+from the other file. The roundtripping laws guarantee that identify edits to one file do
+not change the data in the other file. 
 
-\subsection{Programming Symmetric Lenses} We now build up a symmetric lens by
-example. Our symmetric lens expressions are typed between regular expression
-pairs, if \lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$}, then $\Lens$
-encodes a simple symmetric lens between $\LanguageOf{\Regex}$ and
-$\LanguageOf{\RegexAlt}$. At the end, we want our symmetric lenses to by typed
-between \lstinline{emp_salaries} and \lstinline{emp_insurance}.  The finished
-lens is shown in Figure~\ref{fig:example_lens}.
 
-The identity lens takes, as argument, a regular expression, and performs the
-identity function on strings in that regular expression. The identity lens fully
-matches the data formats: when one data format is updated, the other format gets
-the exact same value. In our example, when a name is updated, it is also
-expected to updated in the other format. The identity lens propagates that
-information.
+%%For synchronization, when the original company.hr or company.mgmt
+%%file is created, a synchronized file of the other form is created
+%%from it with $\CreateR$ or $\CreateL$ (depending on which file was
+%%initially created). On future edits, changes are made with the puts,
+%%a \PutR would propagate the shared information from the company.hr
+%%file, and knit it together with the information specific to the company.mgmt file.
+
+We use regular expressions to denote the types of data formats, and we
+impose a typing discipline on our lenses.  Specifically, if 
+$\Regex$ and $\RegexAlt$ are regular expressions, then the notation
+\lstinline{$\Lens$ : $\Regex \Leftrightarrow \RegexAlt$} indicates that $\Lens$
+is a simple symmetric lens between $\LanguageOf{\Regex}$ and
+$\LanguageOf{\RegexAlt}$. 
+When clear from context, we use the term \textit{lens} to denote a
+simple symmetric lens.
+
+
+\subsection{Simple Symmetric Lens Combinators} 
+Generally, we do not expect programmers to define simple symmetric lenses by
+writing the four functions by hand and showing they satisfy the
+roundtripping laws.  Instead, we provide simple symmetric lens
+combinators to build up the requisite lenses from simpler ones.
+We briefly explain a selection of these combinators by using them to
+define a lens between 
+the two employee data formats in Figure~\ref{fig:minimized-representations}. 
+The finished lens, which appears in Figure~\ref{fig:example_lens}, has
+the type 
+\lstinline{emp_salaries} $\Leftrightarrow$ \lstinline{emp_insurance}, where
+\lstinline{emp_salaries} and \lstinline{emp_insurance} are regular
+expressions defined in Figure~\ref{fig:minimized-representations}. 
+
+
+The simplest combinator is the identity lens \IdentityLens, which takes as an
+argument a regular expression $\Regex$ and performs an identity mapping on data
+matching $\Regex$. The identity lens fully connects the
+corresponding data in the two formats: when one format is
+updated, the other format gets the exact same value. In our example,
+when a \lstinline{name} is updated in one file, the identify lens ensures it is
+also updated in the other file. 
+
 %
 \begin{lstlisting}
 id(name) : name $\Leftrightarrow$ name
 \end{lstlisting}
 %
 
-Where the identity lens aligns data, the disconnect lens does the opposite: it
-leaves data unaligned. The disconnect lens takes 4 arguments: two regular
-expressions and two strings. On creates, because there is no association between
-data in the first format and data in the second format, designated default
-strings are used for the other format. In our extended example, salaries and
-insurance companies should not be matched, so a disconnect lens would be used.
-We want our default behavior to specify that the value has not been set.
+In contrast to the identity lens, the disconnect lens \Disconnect leaves data
+unconnected. The disconnect lens takes four arguments: two regular 
+expressions and two strings. The regular expressions specify the
+formats of the corresponding data on the two sides while the strings provide default
+values.  In our extended example, 
+the \lstinline{salary} and \lstinline{company} fields are independent,
+so we use the disconnect lens to relate them.
+The defaults are strings that indicate the information is missing.
 %
 \begin{lstlisting}
-disc(salary,company,"UNSET","UNSET") : salary $\Leftrightarrow$ company
+disc(salary, company, "N/A", "UNK") : salary $\Leftrightarrow$ company
 \end{lstlisting}
 %
-When building a disconnect lens between two strings, one of which is merely the
-empty string, the lenses \lstinline{ins} and \lstinline{del} can instead be
-used, where \lstinline{ins($t$) = disc("",$t$,"",$t$)} and
-\lstinline{del($s$) = disc($s$,"",$s$,"")}.
-
-Finally, there are a number of lenses that compositionally build up new lenses
-from old ones. For example, data can appear in one form or another: a program
-can run during a specific set of minutes, or that program can run the every
-minute. If \lstinline{minutes_map} and \lstinline{alltimes_map} are lenses that
-synchronize those settings in each format, then those lenses can be composed
-with an \OrLens lens.
-%
+The insert \lstinline{ins} and delete \lstinline{del} lenses are
+syntactic sugar for uses of the disconnect lens in which a string
+constant is omitted entirely from the source and target formats,
+respectively. \ksf{Are these in the right order?}
 \begin{lstlisting}
-or(id(""),multi_emp_map) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_row) . ("\n" emp_row)*
+ ins($t$) = disc("", $t$, "", $t$)
+ del($s$) = disc($s$, "", $s$, "")
 \end{lstlisting}
 
-Data can also be concatenated, and so lens mappings can be concatenated.  This
-is achieved with the concat map.
+Finally, there are a number of standard lenses that compositionally
+construct more complex lenses from simpler ones.  These combinators include 
+\lstinline{concat} for concatenation, 
+\lstinline{or} for variation, and
+\IterateLens for sequences.
+We usually write \lstinline{concat} using an infix
+notation \lstinline{$\Lens_1$ . $\Lens_2$}
+as in:
 %
 \begin{lstlisting}
-concat(ins(header),multi_emp_map) : emp_salaries $\Leftrightarrow$ emp_insurance
+id(name) . ins(",") . id(name) . del(": ") . ins(",")
 \end{lstlisting}
+% concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
 %
-Two lenses, $\Lens_1$ and $\Lens_2$, can be concatenated as
-\lstinline{concat($\Lens_1$,$\Lens_2$)} or as the infix style
-\lstinline{$\Lens_1$ . $\Lens_2$}.
-
-Lastly, the \IterateLens lens synchronizes repeated data, aligning the number of
-times the data is repeated. The \IterateLens combinator takes a lens as an
-argument and synchronizes each element of the iteration with that lens. For
-example, if \lstinline{single_emp_map} synchronizes a single employee's data,
-iterating that lens builds a lens that synchronizes a list of tasks.
+which appears in the definition of the \lstinline{name_lens} in our
+running example. 
+%\ksf{I don't think this example is necessary.}
+%Data can also appear in multiple forms. For example,
+%a list of employees with insurance information can either be empty or
+%be a sequence of employee/insurance records: \ksf{This example is
+%vacuous as you could eliminate the or in favor of the *.  Do somethign
+%else to introduce or?}
+%
+%\begin{lstlisting}
+%or(id(""),employees_lens) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_ins) . ("\n" emp_ins)*
+%\end{lstlisting}
+The \IterateLens lens also appears in our running example, where it
+synchronizes data for a list of employees when given a
+lens \lstinline{employee_lens} that synchronizes  data for a single employee:
 %
 \begin{lstlisting}
-iterate(id("\n") . single_emp_map) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_row)$^*$
+iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
 \end{lstlisting}
 %
 
 \begin{figure}
 \begin{lstlisting}
-let name_map = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
-let single_emp_map = name_map . disc(salary,company,"UNSET","UNSET") in
-let multi_emp_map = ins("\n") . single_emp_map . iterate(id("\n") . single_emp_map) in
-let emp_map = or(id(""),multi_emp_map) in
-ins(header) . multi_emp_map : emp_salaries $\Leftrightarrow$ emp_insurance
+let name_lens = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
+let employee_lens = name_lens . disc(salary,company,"N/A","UNK") in
+let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
+ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
+%\ksf{I don't think this is necesssary.}
+%let emp_lens = or(id(""),employees_lens) in
   \caption{A lens, written in our language for building simple symmetric lenses
-    on string data, that synchronizes management and hr employee files.
+    on string data, that synchronizes management and HR employee files.
     Note that we can annotate our lenses with types, to confirm the lens
     operates on the languages of the regular expressions. In this work, we
     synthesize the lens itself from such regular expressions.}
   \label{fig:example_lens}
 \end{figure}
 
-Using these combinators, we can build up a lens that synchronizes HR and
-management employee files. This lens uses one typing rule not previously
-mentioned: type equivalence. While \lstinline{scheduled_job} is a equivalent to
-a regular expression with an outermost disjunction, it is not syntactically
-equivalent to one. Without type equivalence, the provided lens wouldn't actually
-be well-typed, but type equivalence states that if a lens is typed between a
-pair of regular expressions, it is also typed between an equivalent pair.
+% Using these combinators, we can build up a lens that synchronizes
+% management and HR employee files. 
 
-Note that, while the programmed lens should be quite simple, it was relatively
-difficult to write. We had to provide a lot of scaffolding to map between the
-desired formats, even though the idea was quite simple: align the times but
-leave the commands unaligned. Furthermore, this is inherent to manually writing
-these synchronization functions as a programmer must describe which components
-of the strings are aligned with which, and which components are scaffolding.
+
+We provide typing rules for each of the simple symmetric combinators,
+most of which are syntax directed.  There is one additional
+typing rule, which allows us to use equivalence relations on regular
+expressions to convert the type of any lens to a semantically equal
+but syntactically different pair of regular expressions.  The flexibility this
+type equivalence rule provides is useful when a different
+representation of a regular expression would facilitate synthesis. 
+
+%%\ksf{Do we need to use
+%%type equivalence to type the employee example?  If so, perhaps we
+%%should explain her}
+%%
+%%This lens uses one typing rule not previously
+%%mentioned: type equivalence. While \lstinline{scheduled_job} is a equivalent to
+%%a regular expression with an outermost disjunction, it is not syntactically
+%%equivalent to one. Without type equivalence, the provided lens wouldn't actually
+%%be well-typed, but type equivalence states that if a lens is typed between a
+%%pair of regular expressions, it is also typed between an equivalent pair.
+
+Note that, while the synchronization task for our running example is quite simple, the
+requisite lens is relatively complex. Furthermore, this complexity is
+inherent in manually writing simple symmetric lenses because the
+lenses must precisely describe the portions of the data that should be
+connected and those that should be disconnected.  For disconnected
+pieces, the lens must further specifiy appropriate defaults.
+
+
 
 \subsection{Synthesizing Symmetric Lenses}
 
-To alleviate these difficulties, we wish to synthesize symmetric lenses---given
+To alleviate the difficulty of manually writing simple symmetric
+lenses, we wish to synthesize them instead. Given 
 a pair of regular expressions and a set of input-output examples, we want to
-find a symmetric lens expression that is typed between the regular expression
-pair, and satisfies the input/output examples. In this example, we wish to
-synthesize a lens from \lstinline{emp_salaries} and \lstinline{emp_insurance},
-using the strings in Figure~\ref{fig:minimized-representations} as an
-input-output example for \CreateR.
+find a simple symmetric lens that is typed by the regular expression
+pair and satisfies the input/output examples. We call such a lens
+a \emph{satisfying lens}.
+In our running example, we wish to
+synthesize a lens between \lstinline{emp_salaries} and \lstinline{emp_insurance},
+using as an input-output example the data in
+Figure~\ref{fig:minimized-representations}.  The algorithm uses such
+examples to find suitable defaults for \Disconnect lenses and to
+figure out how to match data that could be synchronised in multiple
+ways. 
 
-However, our simple symmetric lens combinators permit many well-typed programs
-between two regular expressions. For example, one possible lens between
-\lstinline{emp_salaries} and \lstinline{emp_insurance} is the one in
-Figure~\ref{fig:example_lens}, but the lens
+A challenge is that the simple symmetric lens combinators permit many
+well-typed lenses
+between a given pair of regular expressions. For example, 
+Figure~\ref{fig:example_lens} gives one possible lens between regular
+expressions  \lstinline{emp_salaries} and \lstinline{emp_insurance},
+but 
 %
 \begin{lstlisting}
 disc(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
 \end{lstlisting}
 %
-is also a valid lens (where \lstinline{rep($\Regex$)} is a string in the
-language of $\Regex$). Furthermore, adding the synchronized files from
-Figure~\ref{fig:minimized-representations} as an input-output example helps
-little. The default strings given to \Disconnect merely need to be the strings
-in the input-output examples, and the lens will still satisfy the specification.
-While the disconnect lens is prohibited by two examples, or by a carefully
-chosen input-output example on \PutR or \PutL, this problem continues presenting
-itself for the sublenses, and is highlighted even more on larger formats. While
-we could merely ask programmers to provide large, tight specifications for their
+is another valid lens (where \lstinline{rep($\Regex$)} is a string in the
+language of $\Regex$). Furthermore, adding the input-output example in
+Figure~\ref{fig:minimized-representations} 
+helps, but only a little, because it requires many examples to rule
+out all the possible occurrences of nested \Disconnect lenses,
+particularly in complex formats. 
+%\ksf{I don't understand the following.  We shouldn't explain the issue in
+%terms of \PutR and \PutL as we are focused on the combinators rather
+%than the raw functions.}
+%The default strings given to \Disconnect merely need to be the strings
+%in the input-output examples, and the lens will still satisfy the
+%specification.  While the disconnect lens is prohibited by two
+%examples, or by a carefully chosen input-output example on \PutR
+%or \PutL, this problem continues presenting itself for the sublenses,
+%and is highlighted even more on larger formats.
+While
+we could ask programmers to provide detailed and precise specifications for their
 synthesis tasks, we would prefer the algorithm to choose the right lens
 automatically. Instead of merely finding \emph{any} satisfying lens, we wish to
-synthesize the \emph{best} satisfying lens.
+synthesize a satisfying lens that is likely to please the user.  
 
-But what is the best satisfying lens? Here, we take the view that the best satisfying lens is the
-one that aligns as much data as is permitted by the type system and the
-examples. More formally, we wish to minimize the expected number of bits
-required to recover data in one format from a synchronized string in the other.
-The expected number of bits is a well known concept in information theory: the
-\emph{entropy} of that data source.
+But what is a likely satisfying lens? We propose that a satisfying
+lens is more likely if it connects more data between the two
+formats, \IE, by using an identity rather than a disconnect lens.  The
+likeliest satisfying lenses would connect as much data as
+possible. More formally, we propose that the likelihood of a
+satisfying lens is the expected number of bits required to recover
+data in one format from synchronized data in the other.  Higher
+likelihoods correspond to fewer numbers of bits. In more
+detail, we say that two strings $s$ and $t$ are \emph{synchronized
+according to lens $l$} if $l.\PutR\ s\ t = t$ and $l.\PutL\ t\ s = s$.\footnote{
+The notation $l.\PutR$ extracts the \PutR function from simple
+symmetric lens $l$; similarly for \PutL.}  We say that we
+can \emph{recover} $s$ from $t$ using bits $b$ and lens $l$ if we can
+reconstruct $s$ from $t$, $b$, and $l$.  For example, given
+the \IdentityLens{} lens, we can recover $s$ from $t$ using no bits
+because in this case, $s$ is just $t$.  In contrast, given
+the \Disconnect{} lens, we need enough bits to fully encode $s$ in
+order to recover it from $t$ because $t$ contains no useful
+information.  This calculation shows that if both \IdentityLens{}
+and \Disconnect{} are satisfying lenses, then \IdentityLens{} is more
+likely.
 
-The entropy of a data source is based on the probability distribution of that
-data source. Given a set $S$, and a probability distribution over that set $P
+The expected number of bits required to recover data is a
+well-known concept in information theory: it is the \emph{entropy} of
+the data. Calculating the 
+entropy of data requires a probability distribution over the
+space of possible values for the data.  Specifically,
+given a set $S$ and a probability distribution over that set $P
 \OfType S \rightarrow \Reals$, the entropy of the $(S,P)$ pair is $-\Sigma_{s\in
-  S}P(s)\Log_2P(s)$. While we have ways of expressing sets of strings (with
-regular expressions), we do not have probability distributions. Here, we
-express these probability distributions jointly with the language through
-\emph{stochastic regular expressions}, regular expressions annotated with
-probabilities. Our algorithm guesses a reasonable probability distribution from
-the syntax, though if users manually provided stochastic regular expressions, or
-a large suite of data in the formats through which we could learn the annotations,
-we could instead use that.
+  S}P(s)\Log_2P(s)$. 
 
-With sets and probability distributions, we can find the expected number of bits
-required to recover one string from a synchronized string. This expected value
-is the conditional entropy of the stochastic regular expression ($\Regex$) given
-another stochastic regular expression ($\RegexAlt$), and a lens that shows which
-strings are synchronized with which ($\Lens$). We aim to find the lens that
-minimizes the sum of that entropy with the conditional entropy of $\RegexAlt$
-given $\Regex$ and $\Lens$. 
+In our setting, we already have a way of expressing sets of data:
+regular expressions.  What we need is a way to express probability
+distributions over that data.
+To that end, we adopt \emph{stochastic regular expressions}\ksf{is
+there a citation?}, 
+which are regular expressions where each operator is annotated with a
+probability.  Stochastic regular expressions
+allow us to jointly specify the allowable data and give a probability
+distribution over it.  From this information, we can calculate the
+entropy of the stochastic regular expression. 
 
-Now that we have a notion of best, we need a way to search for that best lens.
-Our overall approach involves two communicating synthesizers: one (\RXSearch)
-that proposes regular expression pairs, semantically but not syntactically
-equivalent to the originals; one (\GreedySynth) that tries to find the best lens
-within a class of lenses, characterized by such regular expression pairs. Given
-two regular expressions, \GreedySynth can quickly search through the class of
-lenses that can be typed between them, where all instances of type equivalence
-involve no star equivalences. For example, consider the lens shown in
-Figure~\ref{fig:example_lens}. This lens would \emph{not} be in the class
-characterized by \lstinline{emp_salaries} and \lstinline{emp_insurance}, as that
-typing derivation requires unrolling \lstinline{("\n" . emp_salary)$^*$} within
-\lstinline{emp_salaries} into \lstinline{"" | (("\n" . emp_salary) . ("\n" . emp_salary)$^*$)}.
+This infrastructure gives us what we need to find likely
+satisfying lenses from a collection of satisfying lenses.  All such
+lenses must synchronize data between the same two 
+stochastic regular expressions $\Regex$ and $\RegexAlt$.
+For any such lens $\Lens$, we can calculate the expected number of
+bits required 
+to recover a string $s$ in $\LanguageOf{\Regex}$ from a synchronized
+string $t$ in $\LanguageOf{\RegexAlt}$. 
+This expected number of bits is just the conditional entropy of
+$\Regex$ given $\RegexAlt$ and $\Lens$. 
+To ensure symmetry, the likelihood we assign to $\Lens$ is the sum of 
+the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and
+the conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$.
 
-How does \RXSearch propose stochastic regular expression pairs? We define
-rewrite rules for stochastic regular expressions, and prove those rewrites
-preserve language and probability distributions. By applying these rewrites, we
-can generate new regular expression pairs, syntactically distinct but
-semantically equivalent to the originals. \RXSearch proposes the regular
-expression pairs which are most similar to the originals first (in that they
-require fewer rewrite rules to generate), and iteratively propose pairs that are
-increasingly dissimilar to the original pair (in that they require more rewrite
-rules to generate).
+To obtain stochastic regular expressions from the plain regular
+expressions that we expect users to supply, we use a heurstic 
+that attempts to assign
+probability annotations that give each string in the language equal
+probablity.  We can also take as input a stochastic regular
+expression rather than a plain one, which allows the user to
+specify a data-specific probability distribution.  Alternatively,
+the user could provide a large suite of example data from which we
+could infer the necessary annotations to model the supplied data. 
 
-Critically for this work, \GreedySynth efficiently searches for one of the best
-lenses in a class of lenses, characterized by a stochastic regular expression
-pair. \GreedySynth works by searching through a smaller search space. First,
-\GreedySynth converts the provided stochastic regular expression pair into a
-\emph{stochastic DNF regular expression} pair. Then, the algorithm uses the
-syntax of the DNF regular expression pair to greedily find a highly normalized
-version of a simple symmetric lens, a \emph{symmetric DNF lens}. Finally, this
-symmetric DNF lens is converted into a simple symmetric lens. DNF Lenses include
-neither a composition operator nor a type equivalence rule. Unlike simple
-symmetric lenses, for which a single lens term is typed between many possible
-regular expression pairs, each DNF lens is typed only between a single regular
-expression pair. The relationship between DNF lens syntax and DNF regular
-expression syntax is very tight, permitting an efficient
-synthesis algorithm for DNF lenses from DNF regular expressions.
+Now that we have a way to calculate likelihood, we need a way to search for
+it.
+Previous work on synthesis~\ksf{add citations} has shown
+that we can use types to dramatically restrict the search space and
+improve the effectiveness of synthesis.  In our setting, types are
+pairs of stochastic regular expressions, which come with a rich
+algebraic structure that makes each regular expression semantically
+equal to infinitely many others.  To tame that search space and
+leverage the benefits of type-directed synthesis, we split our
+algorithm into two communicating synthesizers following earlier
+work~\cite{quotient-lens-synthesis}.  The first
+synthesizer, \RXSearch, navigates the space of semantically equivalent
+regular expressions by iteratively applying rewrite rules that
+preserve both the semantics and the probability
+distributions of those stochastic regular expressions. \RXSearch
+ranks pairs of stochastic regular expressions 
+by the number of rewrite rule applications required to obtain the pair
+from the stochastic regular expressions given as input. It passes the
+pairs off to the second synthesizer, \GreedySynth, in rank order with
+the smallest first.
 
-Our strategy involving communicating synthesizers permits both a way of
-enumerating classes and efficiently searching through them, but it poses a
-problem: when do we stop? While we may have found a great lens between two regular
-expressions, a different regular expression pair may provide an even better
-lens. Moreover, we may find a great lens characterized by
-\lstinline{emp_salaries} and \lstinline{emp_insurances} that is not the
-desired lens shown in Figure~\ref{fig:example_lens}.  The
-tension is that we want to find a good lens, but we also want to give quick feedback to
-the user. After finding the lens in Figure~\ref{fig:example_lens}, we dont want
-the algorithm to spend much longer searching for better lenses.
+At a high level, \GreedySynth looks for lenses between a given pair of
+stochastic regular expressions $\Regex$ and $\RegexAlt$ that have the
+highest likelihood by performing a type-directed search. 
+In more detail, \GreedySynth first uses type equalities based on semiring 
+equivalences (ignoring the star semiring equivalences that are managed
+by \RXSearch) to normalize the
+stochastic regular expressions provided by \RXSearch into 
+\emph{stochastic n-ary DNF regular expressions}.  
+Then, \GreedySynth uses the syntax of these n-ary DNF regular
+expressions to find highly normalized lenses, in a
+form we call \emph{simple symmetric n-ary DNF lenses}.  These lenses include
+neither a composition operator nor a type equivalence rule.  These
+restrictions mean that each simple symmetric n-ary DNF lens is typed
+by a single pair of stochastic n-ary DNF regular expressions and 
+\GreedySynth's search space for a given pair of regular expressions is
+finite.  The variations that \GreedySynth 
+considers include choosing between \IdentityLens{} and  \Disconnect
+lenses and deciding how to match multiple occurrences of the same kind
+of data, \EG, the two occurrences of \lstinline{name} in the
+management and HR data formats (we want to map first names to first
+names and last names to last names). 
+Finally, \GreedySynth converts this lens 
+back into a simple symmetric lens by converting the n-ary forms into
+the binary forms provided in the surface language.  
 
-\saz{The following is hard to follow} Eventually, we cut the proposal-synthesis
-loop short. Before proposing new types \RXSearch evaluates whether it should
-continue proposing regular expression pairs, or whether it is content with lens
-of lowest cost seen thus far. If there are a large number of regular expression
-pairs that are equally dissimilar to the originals or if the current lens is
-very well synchronized, \RXSearch stops. By doing this \RXSearch continues
-searching for better lenses, but does not tackle huge search spaces unless it
-needs to. In this way, the algorithm can provide lenses quickly to the users,
-which users can refine with additional examples.
+As an example of the partnership between \RXSearch and \GreedySynth,
+consider the lens shown in Figure~\ref{fig:example_lens}. 
+Inferring this lens requires \RXSearch to use a star semiring axiom to
+rewrite the regular expression \lstinline{("\n" . emp_salary)$^*$} within
+\lstinline{emp_salaries} into 
+\lstinline{"" | (("\n" . emp_salary). ("\n" . emp_salary)$^*$)} 
+so that \GreedySynth can find the appropriate lens.  
+
+Our strategy of communicating synthesizers gives us a way to
+enumerate pairs of stochastic regular expressions of increasing
+rank and to efficiently search through them, but it poses a
+problem: when do we stop? We may have found a promising lens
+between a pair of stochastic regular expressions, but a different 
+pair we haven't yet discovered may give rise to an even better lens. 
+Or, we may have found a promising lens between a given pair of
+stochastic regular expressions, but the discovered lens is not 
+acceptable to the users. 
+
+Our algorithm must resolve a three-way tension between the quality of
+the inferred lens, the number of examples the user must provide to
+eliminate unwanted lenses, and the amount of time it takes to return a
+result.  For example, if the algorithm has already found the lens in
+Figure~\ref{fig:example_lens}, we don't want to spend a lot of time
+searching for an even better lens.
+
+To resolve this tension, \RXSearch uses heuristics to judge whether to
+return the current best satisfying lens to the user or to pass the
+next set of unrollings to \GreedySynth.
+The heuristics favor stopping if the current best satisfying
+lens has relatively high likelihood, indicating the lens is very promising.
+The heuristics also favor stopping if \RXSearch 
+has delievered to \GreedySynth all pairs of stochastic regular
+expressions at a given rank and there is a large number of pairs at the next
+rank because searching through all such pairs will take a long time.
+With this approach, the algorithm can quickly respond with a satisfying
+lens with relatively high likelihood.  If users are unhappy with the result, they can refine the
+search by supplying additional examples, which serve both to rule out
+the previously proposed lens(es) and to reduce the size of the search
+space by cutting down on the number of satisfying lenses.
 
 
-\afm{calculations for cost of various lenses between \lstinline{emp_salary} and
-  \lstinline{emp_row}} Consider the lens \lstinline{single_emp_map} between
-\lstinline{emp_salary} and \lstinline{emp_row}. Given this lens, the expected
-entropy of recovering the left format from the right
-($\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
-  \lstinline{single_emp_map} }$) is the sum of the expected entropy of
-recovering each of its subcomponents, $\EntropyOf{\lstinline{emp_salary} \Given
-  \lstinline{emp_row}, \lstinline{single_emp_map} } = \EntropyOf{\lstinline{name
-    . " " . name} \Given \lstinline{name . "," . name}, \lstinline{name_map}
-}$\\ + $\EntropyOf{\lstinline{": " . salary} \Given
-  \lstinline{"," . company}, \lstinline{disc(salary,company,"UNSET","UNSET")}
-}$.
+%Consider the trivial lens
+%\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
+%the disconnect lens, the cost of each side is the entropy of the data format, so
+%the total cost is $\EntropyOf{\lstinline{emp_salary}} +
+%\EntropyOf{\lstinline{emp_row}}}$. \lstinline{emp_salary} contains strictly more
+%imformation than \EntropyOf{\lstinline{": " . salary}}, and \lstinline{emp_row}
+%contains strictly more information than \EntropyOf{\lstinline{": " . salary}},
+%so by our metric \lstinline{single_emp_map} is preferable to the disconnect
+%lens.
 
-The entropy of the identity lens is zero. As the two formats are in bijective
-correspondence, we know exactly which string is present in the left-hand format.
-The entropy of the disconnect lens is just the entropy of
-\lstinline{": " . salary}.  Knowing which string is present in the right-hand
-format tells us nothing about what string is present in the left-hand format. So
-$\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
-  \lstinline{single_emp_map} } = \EntropyOf{\lstinline{": " . salary} }$
+\ksf{Commented out entropy calculation; I don't think we need that
+level of detail; leaving the text in case we change our mind :-)}
+%Not sure we need this level of detail after all.
+%\afm{calculations for cost of various lenses between \lstinline{emp_salary} and
+%  \lstinline{emp_row}} Consider the lens \lstinline{single_emp_map} between
+%\lstinline{emp_salary} and \lstinline{emp_row}. Given this lens, the expected
+%entropy of recovering the left format from the right
+%($\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
+%  \lstinline{single_emp_map} }$) is the sum of the expected entropy of
+%recovering each of its subcomponents, $\EntropyOf{\lstinline{emp_salary} \Given
+%  \lstinline{emp_row}, \lstinline{single_emp_map} } = \EntropyOf{\lstinline{name
+%    . " " . name} \Given \lstinline{name . "," . name}, \lstinline{name_map}
+%}$\\ + $\EntropyOf{\lstinline{": " . salary} \Given
+%  \lstinline{"," . company}, \lstinline{disc(salary,company,"UNSET","UNSET")}
+%}$.
+%
+%The entropy of the identity lens is zero. As the two formats are in bijective
+%correspondence, we know exactly which string is present in the left-hand format.
+%The entropy of the disconnect lens is just the entropy of
+%\lstinline{": " . salary}.  Knowing which string is present in the right-hand
+%format tells us nothing about what string is present in the left-hand format. So
+%$\EntropyOf{\lstinline{emp_salary} \Given \lstinline{emp_row},
+%  \lstinline{single_emp_map} } = \EntropyOf{\lstinline{": " . salary} }$
+%
+%Analogously, $\EntropyOf{\lstinline{emp_row} \Given \lstinline{emp_salary},
+%  \lstinline{single_emp_map} }$ is just $\EntropyOf{\lstinline{"," . company}
+%}$, so the total cost of the lens is $\EntropyOf{\lstinline{": " . salary}} +
+%\EntropyOf{\lstinline{"," . company}}$
 
-Analogously, $\EntropyOf{\lstinline{emp_row} \Given \lstinline{emp_salary},
-  \lstinline{single_emp_map} }$ is just $\EntropyOf{\lstinline{"," . company}
-}$, so the total cost of the lens is $\EntropyOf{\lstinline{": " . salary}} +
-\EntropyOf{\lstinline{"," . company}}$
-
+%Consider the trivial lens
+%\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
+%the disconnect lens, the cost of each side is the entropy of the data format, so
+%the total cost is $\EntropyOf{\lstinline{emp_salary}} +
+%\EntropyOf{\lstinline{emp_row}}$. \lstinline{emp_salary} contains strictly more
+%imformation than \EntropyOf{\lstinline{": " . salary}}, and \lstinline{emp_row}
+%contains strictly more information than \EntropyOf{\lstinline{": " . salary}},
+%so by our metric \lstinline{single_emp_map} is preferable to the disconnect
+%lens.
 Consider the trivial lens
 \lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
 the disconnect lens, the cost of each side is the entropy of the data format, so
