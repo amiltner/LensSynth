@@ -1060,60 +1060,84 @@ allow us to jointly specify the allowable data and give a probability
 distribution over it.  From this information, we can calculate the
 entropy of the stochastic regular expression. 
 
-Given a lens $\Lens$ between two stochastic regular expressions $\Regex$ and
-$\RegexAlt$, we can calculate the expected number of bits required
+This infrastructure gives us what we need to find the best
+satisfying lens from a collection of satisfying lenses.  All such
+lenses must synchronize data between the same two 
+stochastic regular expressions $\Regex$ and $\RegexAlt$.
+For any such lens $\Lens$, we can calculate the expected number of
+bits required 
 to recover a string $s$ in $\LanguageOf{\Regex}$ from a synchronized
 string $t$ in $\LanguageOf{\RegexAlt}$. 
-This expected value is just the conditional entropy of the $\Regex$ given
-$\RegexAlt$ and $\Lens$. 
-To ensure symmetry, we seek to find the lens that
-minimizes the sum of that entropy with the conditional entropy of $\RegexAlt$
-given $\Regex$ and $\Lens$. 
+This expected number of bits is just the conditional entropy of
+$\Regex$ given $\RegexAlt$ and $\Lens$. 
+To ensure symmetry, the entropy we assign to $\Lens$ is the sum of 
+the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ with 
+the conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$.
 
-\ksf{This piece might better go somewhere deeper in the paper.}
-Our algorithm guesses a reasonable probability distribution from
-the syntax, though if users manually provided stochastic regular expressions, or
-a large suite of data in the formats through which we could learn the annotations,
-we could instead use that.  
+To obtain stochastic regular expressions from the plain regular
+expressions that we expect users to supply, we use a heurstic 
+that attempts to assign
+probability annotations that give each string in the language equal
+probablity.  We can also take as input a stochastic regular
+expression rather than a plain one, which allows the user to
+specify a data-specific probability distribution.  Alternatively,
+the user could provide a large suite of example data from which we
+could infer the necessary annotations to model the supplied data. 
+
+\ksf{Should we be talking about ``best'' or just ``good'' or ``low''?
+There are typically a collection of ``best'' lenses, and we choose the
+one that requires the simplest permutation.}
+Now that we have a notion of best, we need a way to search for that
+best lens.  Previous work on synthesis~\ksf{add citations} has shown
+that we can use types to dramatically restrict the search space and
+improve the effectiveness of synthesis.  In our setting, types are
+pairs of stochastic regular expressions, which come with a rich
+algebraic structure that makes each regular expression semantically
+equal to infinitely many others.  To tame that search space and
+leverage the benefits of type-directed synthesis, we split our
+algorithm into two communicating synthesizers following earlier
+work~\cite{quotient-lens-synthesis}.  The first
+synthesizer, \RXSearch, navigates the space of semantically equivalent
+regular expressions by iteratively applying rewrite rules that
+preserve both the semantics and the probability
+distributions of those stochastic regular expressions. \RXSearch ranks
+pairs of stochastic regular expressions 
+by the number of rewrite rule applications required to obtain the pair
+from the stochastic regular expressions given as input. It passes the
+pairs off to the second synthesizer, \GreedySynth, in rank order.
+
+At a high level, \GreedySynth looks for lenses between a given pair of
+stochastic regular expressions $\Regex$ and $\RegexAlt$ that have the
+best conditional entropy by performing a type-directed search. 
+In more detail, \GreedySynth first uses type equalities based on semiring 
+equivalences (ignoring star semiring equivalences) to normalize the
+stochastic regular expressions provided by \RXSearch into 
+\emph{stochastic n-ary DNF regular expressions}.  
+Then, \GreedySynth uses the syntax of these n-ary DNF regular
+expressions to find highly normalized lenses, in a
+form we call \emph{simple symmetric n-ary DNF lenses}.  These lenses include
+neither a composition operator nor a type equivalence rule.  These
+restrictions mean that each simple symmetric n-ary DNF lens is typed
+by a single pair of stochastic n-ary DNF regular expressions and they
+make \GreedySynth's search space finite.  The variations that \GreedySynth
+considers include choosing between \IdentityLens{} and  \Disconnect
+lenses and deciding how to match multiple occurrences of the same kind
+of data, \EG, the two occurrences of \lstinline{name} in the
+management and HR data formats (we want to map first names to first
+names and last names to last names). 
+Finally, \GreedySynth converts this lens 
+back into a simple symmetric lens by converting the n-ary forms into
+the binary forms provided in the surface language.  
 
 
-Now that we have a notion of best, we need a way to search for that best lens.
-Our overall approach involves two communicating synthesizers: one (\RXSearch)
-that proposes regular expression pairs, semantically but not syntactically
-equivalent to the originals; one (\GreedySynth) that tries to find the best lens
-within a class of lenses, characterized by such regular expression pairs. Given
-two regular expressions, \GreedySynth can quickly search through the class of
-lenses that can be typed between them, where all instances of type equivalence
-involve no star equivalences. For example, consider the lens shown in
-Figure~\ref{fig:example_lens}. This lens would \emph{not} be in the class
+
+As an example of the partnership between \RXSearch and \GreedySynth,
+consider the lens shown in Figure~\ref{fig:example_lens}. 
+This lens is \emph{not} in the set of lenses 
 characterized by \lstinline{emp_salaries} and \lstinline{emp_insurance}, as that
 typing derivation requires unrolling \lstinline{("\n" . emp_salary)$^*$} within
 \lstinline{emp_salaries} into \lstinline{"" | (("\n" . emp_salary) . ("\n" . emp_salary)$^*$)}.
 
-How does \RXSearch propose stochastic regular expression pairs? We define
-rewrite rules for stochastic regular expressions, and prove those rewrites
-preserve language and probability distributions. By applying these rewrites, we
-can generate new regular expression pairs, syntactically distinct but
-semantically equivalent to the originals. \RXSearch proposes the regular
-expression pairs which are most similar to the originals first (in that they
-require fewer rewrite rules to generate), and iteratively propose pairs that are
-increasingly dissimilar to the original pair (in that they require more rewrite
-rules to generate).
-
-Critically for this work, \GreedySynth efficiently searches for one of the best
-lenses in a class of lenses, characterized by a stochastic regular expression
-pair. \GreedySynth works by searching through a smaller search space. First,
-\GreedySynth converts the provided stochastic regular expression pair into a
-\emph{stochastic DNF regular expression} pair. Then, the algorithm uses the
-syntax of the DNF regular expression pair to greedily find a highly normalized
-version of a simple symmetric lens, a \emph{symmetric DNF lens}. Finally, this
-symmetric DNF lens is converted into a simple symmetric lens. DNF Lenses include
-neither a composition operator nor a type equivalence rule. Unlike simple
-symmetric lenses, for which a single lens term is typed between many possible
-regular expression pairs, each DNF lens is typed only between a single regular
-expression pair. The relationship between DNF lens syntax and DNF regular
-expression syntax is very tight, permitting an efficient
-synthesis algorithm for DNF lenses from DNF regular expressions.
 
 Our strategy involving communicating synthesizers permits both a way of
 enumerating classes and efficiently searching through them, but it poses a
