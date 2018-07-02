@@ -41,8 +41,8 @@ module RegexContext = struct
     let create_from_list_exn (nral:(Id.t * Regex.t * bool) list) : t =
       insert_list_exn empty nral
 
-    let autogen_id (rc:t) (r:Regex.t) : Id.t =
-      let base = Regex.show r in
+    let autogen_id (_:t) (r:Regex.t) : Id.t =
+      (*let base = Regex.show r in
       let rec fresh n =
         let x = Id.Id (Printf.sprintf "%s%d" base n) in
         begin match D.lookup rc x with
@@ -55,7 +55,8 @@ module RegexContext = struct
           | _ -> x
         end
       in
-      fresh 1
+        fresh 1*)
+      Id.Id (Regex.show r)
 
     let autogen_fresh_id (rc:t) : Id.t =
       let base = "r" in

@@ -74,6 +74,8 @@ let run_declaration
         else
           (rc,r1,r2)
       in
+      (*print_endline (Regex.show r1);
+      print_endline (Regex.show r2);*)
       let lo = gen_lens rc lc r1 r2 exs in
       begin match lo with
         | None -> failwith ((Id.show n) ^ " has no satisfying lens")
