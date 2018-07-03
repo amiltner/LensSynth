@@ -1,4 +1,4 @@
-
+>
 \newif\ifdraft\drafttrue  % set true to show comments
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anonfalse    % set true to suppress names, etc.
@@ -2370,17 +2370,19 @@ In this work, we aim to answer two primary research questions:
 \end{enumerate}
 
 \subsection{Benchmark Suite Construction}
-Our benchmarks came from four different sources.
+Our benchmarks came from four different sources.\bcp{What makes this a good
+  set of benchmarks for present purposes?}
 \begin{enumerate}
 \item We adapted \afm{8} data cleaning benchmarks from Flash Fill. In adopting
   these benchmarks, we go beyond the data cleaning tasks, and synthesize
   synchronization functions between the ad-hoc data and their cleaned forms.
-  Optician also adopted benchmarks from Flash Fill, but required alterations to
+  \bcp{Clarify:}Optician also adopted benchmarks from Flash Fill, but required alterations to
   be in bijective form. With our symmetric enhancement, we Optician's four
   benchmarks, and 4 new Flash Fill benchmarks with no alterations.
 \item We adapted \afm{29} benchmarks from Augeas.  These benchmarks are the same
-  as those present in Optician.  While these benchmarks had to be slightly
-  adopted for bijectivity, previous work addressed this lack of bijectivity by
+  as those present in Optician.  \bcp{I (think I) understand what this
+    means, but readers will not.}While these benchmarks had to be slightly
+  adapted for bijectivity, previous work addressed this lack of bijectivity by
   synthesizing quotient bijective lenses~\cite{?}.
 \item We used \afm{8} benchmarks from synchronization tasks on synchronizing a
   variety of real-life formats. These formats range from the synchronizing REST
@@ -2390,8 +2392,9 @@ Our benchmarks came from four different sources.
 
 \subsection{Efficiency}
 
-To answer our first research question, we analyze the runtime of our algorithm,
-and compare it to the existing algorithm for synthesizing bijective lenses.
+To answer our first research question, we analyze\bcp{measure?} the runtime of our algorithm,
+and compare it to the existing algorithm for synthesizing bijective
+lenses.\bcp{Why is this the right thing to compare against?}
 
 We synthesized lenses in 4 modes:
 
@@ -2414,14 +2417,17 @@ algorithm can solve, when trying to synthesize ``in one go.''
 
 \begin{figure}
   \includegraphics{generated-graphs/times}
-  \caption{ Number of benchmarks that can be solved by a given algorithm in a
+  \caption{Number of benchmarks that can be solved by a given algorithm in a
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
     \BSOpt{} is the full bijective lens synthesis algorithm. \SSNCOpt{} is the
     symmetric synthesis algorithm without using a library of existing lenses.
     \BSNCOpt{} is the bijective synthesis algorithm without using a library of
     existing lenses. Our symmetric synthesis algorithm is able to complete all
     benchmarks in our benchmark suite in under 30 seconds, and is able to
-    complete most of the benchmarks without using compositional synthesis. }
+    complete most of the benchmarks without using compositional
+    synthesis. \bcp{The interesting part of the figure seems to be all
+      squished up against the Y axis.  Could we use a log-scale for the X
+      axis?}} 
   \label{fig:times}
 \end{figure}
 
@@ -2461,6 +2467,8 @@ symmetric lenses, string transformation synthesis, and type-directed synthesis.
 We also refer the reader to a recent, general survey on synthesis~\ref{?}.
 
 \subsection{Symmetric Lenses}
+\bcp{I suggest adding an adjective---e.g., ``classic symmetric lenses''---to
+avoid confusion between the old ones and our new ones.}
 \paragraph*{Formalization} We have reformulated the problem addressed by
 symmetric lenses with simple symmetric lenses. Classically, these types of
 synchronization tasks are represented as symmetric lenses. A symmetric lens
@@ -2476,7 +2484,8 @@ other format are stored in the complement. When one format is edited, the \PutR
 or \PutL function stitches together that edited data with the data for the other
 side, stored in the complement.  The designated element, $init$, is used as the
 initial value of $C$, and specifies default behavior when there isn't existing
-data to stitch with.  In our example, the complement would consist of two lists
+data to stitch with.  In our example\bcp{which example?}, the complement
+would consist of two lists 
 of commands, where one list contains the Linux commands and one list contains
 the Windows commands.
 
@@ -2533,13 +2542,17 @@ $apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
 sequences $es$.
 
 By describing our lenses in this complement style, we can express an incredibly
-wide class of lenses, as these complements permit storing any amount of
+wide class\bcp{where is the evidence that this class of lenses is {\em
+    usefully} wider than simple symmetric lenses?} of lenses, as these complements permit storing any amount of
 information in them.  However, they pose problems when implementing them in
 real-world systems and in synthesizing them.
 
 \paragraph*{Issues with Symmetric Lenses} Using symmetric lenses for
 synchronization forces us to maintain not just two files that we aim to
-sycnrhonize, but three. This is unintuitive, and creates many problems in
+sycnrhonize, but three. \bcp{I don't find it unintuitive, and I think we
+  should be careful not to oversell the difficulty of storing the
+  complements.  It requires more engineering, but it's not rocket
+  science.}This is unintuitive, and creates many problems in 
 practice. For example, consider the situation where I am synchronizing a crontab
 and job manager file. I am synchronizing across computers, so I must either
 maintain a copy of the complement on each computer, and keep them synchronized,
@@ -2548,7 +2561,10 @@ through that complement. Furthermore, if I want to change the synchronization to
 a different computer, I don't need to merely make sure that my files are moved
 to the computer, I also have to make sure that I correctly move the complement,
 and hook up that complement to be used for that synchronization task. This is a
-huge divergence from other synchronization utilities, where all that needs to be
+huge divergence from other synchronization utilities\bcp{No.  For example,
+  Unison maintains a database on each replica recording, for each file, what
+its hash was after the last time the two replicas were synchronized.}, where all
+that needs to be 
 done is maintain the files. Using those for synchronization, edits can be sent
 over the wire, and the appropriate function can stitch together those edits, no
 additional state needed.
@@ -2676,10 +2692,14 @@ simple symmetric lenses.
   $apply(\Lens,\Lens.init,es) = apply(\Lens',\None,es)$, for all put sequences $es$.
 \end{theorem}
 
+\bcp{I guess we could also show that equivalence of simple symmetric lenses
+  is just the identity relation?}
+
 Despite being less expressive than symmetric lenses, simple symmetric lenses are
 strictly more expressive than classical asymmetric lenses.
 
-\begin{theorem}
+\begin{theorem}\bcp{To prove this, we need to state the type and laws for
+  asymmetric lenses.}
   Let $\Lens$ be an asymmetric lens. $\Lens$ is also a simple symmetric lens,
   where
   \begin{center}
