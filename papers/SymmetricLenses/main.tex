@@ -54,6 +54,10 @@
 \usepackage{remreset}
 \usepackage{tabulary}
 \usepackage{xspace}
+\usepackage{bbm}
+
+\newtheorem*{theorem*}{Theorem}
+
 
 \lstset{ language=Caml, basicstyle=\upshape\sffamily,
 keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
@@ -1175,7 +1179,7 @@ annotations would be.  The probabilities are defined as follows:
     
     $\ProbabilityOf{\PRegexStar{\Regex}{\Probability}}{\String}$
     & =
-    & $\Sigma_{\String = \String_1 \ldots \String_n}\Probability^n*(1-\Probability)*\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
+    & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n*(1-\Probability)*\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
   \end{tabular}
 \end{center}
 In the stochastic regular expression
@@ -1197,7 +1201,7 @@ to stochastic regular expressions.
     $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
     $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
-    \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{(1-\Probability_1)*\Probability_2})}{\Probability_1*\Probability_2} & \OrAssociativityRule{}  \\
+    \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)*\Probability_2}{1 - \Probability_1 * \Probability_2}})}{\Probability_1*\Probability_2} & \OrAssociativityRule{}  \\
     \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
     \RegexConcat{\Regex{}}{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})}{\Probability} & \DistributivityLeftRule{} \\
     \RegexConcat{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})}{\Regex{}} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})}{\Probability} & \DistributivityRightRule{} \\
@@ -3434,7 +3438,106 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
 \end{proof}
 
 \fi
+\section{Forgetful Symmetric Lenses}
+\begin{theorem*}
+  If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
+  \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
+\end{theorem*}
+The following lemma is
+\begin{proof}
+\begin{enumerate}
 
+\item
+($S \; |_1 \; \varnothing \equiv^S S$)
+
+For all $s \in \mathcal{L}(S \; | \; \varnothing)$, then $P_{S \; |_1 \; \varnothing} = 1 * P_S(s) = P_S(s)$.
+\item
+($S \cdot \varnothing \equiv^S \varnothing$)
+
+For all $s \in \mathcal{L}(S \cdot \varnothing)$, the $P_{S \cdot \varnothing}(s) = \sum_{s_1 \cdot s_2}P_S(s_1) * P_{\varnothing}(s_2)$, but this sum is empty, hence $P_{S \cdot \varnothing}(s) = 0 = P_{\varnothing}(s)$.
+\item
+($\varnothing \cdot S \equiv^S \varnothing$)
+
+Similar to the previous case.
+\item
+($(S \cdot S') \cdot S'' \equiv^S S \cdot (S' \cdot S'')$). Let $s \in \mathcal{L}(S \cdot S' \cdot S'')$
+
+Then
+\begin{align*}
+P_{(S \cdot S') \cdot S''}(s) &= \sum_{s=s_4 \cdot s_3}P_{S \cdot S'}(s_4) * P_{S''}(s_3)\\
+&= \sum_{s=s_4 \cdot s_3}\left(\sum_{s_4=s_1 \cdot s_2} P_{S}(s_1) * P_{S'}(s_2)\right)* P_{S''}(s_3)\\
+&= \sum_{s=s_1\cdot s_2 \cdot s_3} P_{S}(s_1) * P_{S'}(s_2) * P_{S''}(s_3)\\
+P_{S \cdot (S' \cdot S'')}(s) &= \sum_{s=s_1\cdot s_4} P_{S}(s) * \left(\sum_{s_4=s_2\cdot s_3}P_{S'}(s_2) * P_{S''}(s_3)\right)
+\end{align*}
+\item
+($(S \; |_{p_1} \; S') \; |_{p_2} \; S'' \equiv^S S \; |_{p_1 * p_2} \; (S' \; |_{\frac{(1-p_1)*p_2}{1-p_1*p_2}} \; S'')$)
+
+Let $s \in \mathcal{L}(S \; |\; S' \; | \; S'')$. Then
+\begin{align*}
+P_{(S \; |_{p_1} \; S') \; |_{p_2} \; S''}(s) &= p_2 * P_{S \; |_{p_1} \; S'}(s) + (1-p_2)P_{S''}(s)\\
+&= (p_2 * (p_1 * P_S(s) + (1-p_1) * P_{S'}(s))) + (1-p_2)P_{S''}(s)\\
+&= (p_2 * (p_1 * P_S(s) + P_{S'}(s)-p_1* P_{S'}(s))) + (1-p_2)P_{S''}(s)\\
+&= p_2*p_1 * P_S(s) + p_2*P_{S'}(s)-p_2*p_1* P_{S'}(s) + (1-p_2)P_{S''}(s)\\
+&= p_2*p_1 * P_S(s) + (1-p_1) * p_2 * P_{S'}(s)+ (1-p_2)P_{S''}(s)\\
+S \; |_{p_1 * p_2} \; (S' \; |_{\frac{(1-p_1)*p_2}{1-p_1*p_2}} \; S'') &= (p_1p_2)  P_S(s) + (1-p_1p_2)  \left(\frac{(1-p_1)p_2}{1-p_1p_2}  P_{S'}(s) + \left(1-\frac{(1-p_1)p_2}{1-p_1p_2}\right)P_{S''}(s)\right)
+\end{align*}
+\item
+($S \; |_p \; T \equiv^S T \; |_{1-p} \; S$)
+
+For all $s \in \mathcal{L}(S \; | \; T)$, we have
+$$P_{S \; |_p \; T}(s) = p*P_S(s) + (1-p)*P_T(s) = (1-p) * P_T(s) + (1-(1-p))*P_s(s) = P_{T \; |_{1-p} \; S}(s)$$
+\item
+($S \cdot (S' \; |_p \; S'' ) \equiv^S (S \cdot S') \; |_p \; (S \cdot S'')$)
+
+For all $s \in \mathcal{L}(S \cdot (S' \sep S''))$ we have
+\begin{align*}
+P_{S \cdot (S' \; |_p \; S'' )} &= \sum_{s_1 \cdot s_2 = s}P_S(s_1) * P_{S' \; |_p \; S''}(s)\\
+&= \sum_{s_1 \cdot s_2 = s}P_S(s_1) * (p * P_{S'}(s_2) + (1-p) * P_{S''}(s_2))\\
+&= \sum_{s_1 \cdot s_2 = s}p * P_S(s_1) * P_{S'}(s_2) + \sum_{s_1 \cdot s_2 = s}(1-p) * P_S(s_1) * P_{S''}(s_2)\\
+P_{(S \cdot S') \; |_p \; (S \cdot S'')}(s) &= p*P_{S \cdot S'}(s) + (1-p)*P_{S \cdot S''}(s)
+\end{align*}
+\item
+$((S' \; |_p \; S'') \cdot S \equiv^S (S' \cdot S) \; |_p \; (S'' \cdot S))$
+
+For all $s \in \mathcal{L}((S' \; | \; S'') \cdot S)$,  we have
+\begin{align*}
+P_{(S' \; |_p \; S'') \cdot S}(s) &= \sum_{s_1 \cdot s_2 = s}P_{S' \; |_p \; S''}(s_1) * P_S(s_2)\\
+&= \sum_{s_1 \cdot s_2 = s}(p * P_{S'}(s_1) + (1-p) * P_{S''}(s_1))* P_S(s_2)\\
+&= \sum_{s_1 \cdot s_2=s}p*P_{S'}(s_1) * P_S(s_2) + \sum_{s_1 \cdot s_2 = s}(1-p) * P_{S''}(s_1) * P_S(s_2)\\
+P_{(S' \cdot S) \; |_p \; (S'' \cdot S)}&= p * P_{S' \cdot S}(s) + (1-p) * P_{S'' \cdot S}(s)
+\end{align*}
+\item
+($\varepsilon \cdot S \equiv^S S$)
+
+For all $s \in \mathcal{L}(S)$, we have
+$$P_{\epsilon \cdot S}(s) = \sum_{s_1 \cdot s_2 = s}P_{\epsilon}(s_1) * P_S(s_2) = P_{\epsilon}(\epsilon) * P_S(s_2) = P_S(s)$$
+since $s_2 = s$ in the computation above.
+\item
+($S \cdot \epsilon \equiv^S S$)
+
+Similar to the previous case.
+\item
+($S^{*p} \equiv^S \epsilon \; |_{(1-p)} \; (S^{*p} \cdot S)$)
+
+Let $s \in \mathcal{L}(S^*)$, in which case we have
+\begin{align*}
+P_{\epsilon \; |_{1-p} \; (S^{*p} \cdot S)}(s) &= (1-p) * P_{\epsilon}(s) + p * P_{S^{*p} \cdot S}(s)\\
+&= (1-p) * P_{\epsilon}(s) + p * \sum_{a \cdot b = s}\left(\sum_n \sum_{s_1 \ldots \cdot s_n=a} p^n (1-p) \prod_{i=1}^n P_S(s_i)\right) * P_S(b)\\
+&= (1-p) * P_{\epsilon}(s) + \sum_{a \cdot b = s}\left(\sum_n \sum_{s_1 \cdot \ldots \cdot s_n=s} p^{n+1} (1-p) \prod_{i=1}^n P_S(s_i) * P_S(b)\right)\\
+&= (1-p) * P_{\epsilon}(s) + \sum_n \sum_{s_1 \cdot \ldots \cdot s_{n+1}=s} p^{n+1} (1-p) \prod_{i=1}^{n+1} P_S(s_i)\\
+&= (1-p) * P_{\epsilon}(s) + \left(\sum_n \sum_{s_1 \cdot \ldots \cdot s_n = s} p^n * (1-p) * \prod_{i=1}^n P_S(s_i)\right) - (1-p) * (\mathbbm{1}_{s = \varepsilon})
+\end{align*}
+Since
+$$
+P_{S^{*p}}(s) = \sum_n \sum_{s_1 \cdot \ldots \cdot s_n = s} p^n * (1-p) * \prod_{i=1}^n P_S(s_i)
+$$
+then if $s = \epsilon$, the terms $(1-p) * P_{\epsilon}(s)$ and $(1-p) * \mathbbm{1}_{s=\varepsilon}$ cancel each other out. Otherwise, if $s \neq \epsilon$, then $(1-p) * P_{\epsilon}(s) = 0 = (1-p) * (\mathbbm{1}_{s = \varepsilon})$ from which the result follows.
+\item
+($S^{*p} \equiv^S \epsilon \; |_{(1-p)} \; (S \cdot S^{*p})$)
+
+Similar to the previous case.
+\end{enumerate}
+\end{proof}
 \end{document}
 
 
