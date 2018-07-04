@@ -56,6 +56,10 @@ def generate_examples_required_graph(input_csv):
     nmcc_count = count_real_vals(input_csv,"NMCC")
     fc_count = count_real_vals(input_csv,"FC")
     notp_count = count_real_vals(input_csv,"NoTP")
+    print(nm_count)
+    print(nmcc_count)
+    print(fc_count)
+    print(notp_count)
 
     ind = np.arange(4)
     width = 0.35
@@ -64,7 +68,7 @@ def generate_examples_required_graph(input_csv):
 
     rects1 = ax.bar(ind, [nm_count,nmcc_count,fc_count,notp_count], width, color='#ffffb3', align='center')
 
-    ax.set_ylabel('Benchmarks Completed')
+    ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Run Mode')
     ax.set_xticks(ind)
     ax.set_xticklabels(["\\textbf{NM}","\\textbf{NMCC}","\\textbf{FC}","\\textbf{NoTP}"])
