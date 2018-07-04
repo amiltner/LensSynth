@@ -1,4 +1,3 @@
-
 \newif\ifdraft\drafttrue  % set true to show comments
 %\newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anonfalse    % set true to suppress names, etc.
@@ -2435,12 +2434,39 @@ termination heuristic.  To this end, we run our program in 3 different modes:\\
   \NoTPOpt{}: & We synthesize lenses using our symmetric synthesis algorithm,
                 but users cannot tune when \RXSearch returns using a termination parameter.\\
   \FCOpt{}: &  The first time \GreedySynth finds a lens, it returns that lens.\\
-  \NMOpt{}: & \GreedySynth does not have any notion of cost, and searches for
-              any lens that satisfies the specification. \\
+  \NMCCOpt{}: & The lens cluster that contains is identified through \SSOpt{}. \GreedySynth is then called on that pair of SREs. \\
+  \NMOpt{}: & Neither \GreedySynth nor \RXSearch have any notion of cost; they
+              both merely search for
+              any lens that satisfies the specification. 
 \end{tabulary}
 
-Figure~\ref{fig:heuristic} summarizes the result of this experiment.  We find
-that \afm{TODO}.
+\begin{figure}
+  \includegraphics{generated-graphs/metrics_importance}
+  \caption{Number of benchmarks that synthesize the correct lens by a given
+    algorithm. \NoTPOpt{} is the full symmetric synthesis algorithm, but
+    termination parameters are ignored. \FCOpt{} provides a notion of cost to
+    \GreedySynth, but once a satisfying lens is greedily found, that lens is
+    returned. \NMCCOpt{} identifies the lens cluster in which the desired 
+    lens lies.  \GreedySynth{} is then run on that cluster with no notion of
+    cost. \NMOpt{} removes all notion of cost, and merely finds the first
+    satisfying lens.}
+  \label{fig:metric}
+\end{figure}
+
+Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
+our metrics are very important for finding the correct lens. Our
+information-theoretic metric is critical for finding the correct lens. Indeed,
+even when provided with the correct lens cluster, without a notion of cost, we
+would need constrain our search space more with additional examples to find the
+correct lens.
+
+Our termination condition is also quite important. When running in \FCOpt{},
+only 5 lenses are found. The first cluster in which a lens is found is rarely
+the correct cluster. However, our termination condition is not perfect.
+Sometimes users must tell the algorithm to ``keep going'' or ``stop early.''
+Without termination parameters, our algorithm finds the correct lens for 36 of
+our 45 benchmarks, 9 of them need help in the form of a termination parameter
+for finding the correct lens.
 % end evaluation
 
 % begin related-work
@@ -2475,7 +2501,7 @@ round-tripping laws.  This guarantees that if an identity edit is propagated, no
 data gets changed.
 \begin{equation}
   \tag{\PutRL}
-  \frac{\PutRSymOf{(x,c)} = (y,c'')}{\PutLSymOf{(y,c'')} = (x,c')}
+  \frac{\PutRSymOf{(x,c)} = (y,c'')}{\PutLSymOf{(y,c'''')} = (x,c')}
 \end{equation}
 \begin{equation}
   \tag{\PutLR}
