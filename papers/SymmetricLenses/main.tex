@@ -3649,6 +3649,65 @@ By definition $\Downarrow (S_1 \; |_p \; S_2) = (\Downarrow S_1) \oplus_p (\Down
   which is what we wanted to show. This completes the proof.
 \end{enumerate}
 \end{proof}
+\begin{theorem*}
+  \label{thm:correct_entropy}
+  If $\Regex$ is unambiguous and contains no empty subcomponents,
+  $\EntropyOf{\Regex}$ is the entropy of $\mathcal{L}(\Regex)$.
+\end{theorem*}
+\begin{proof}
+Given a discrete set $X$ and a probability distribution $P$ on $X$, we define the entropy $H(X)$ of $X$ by
+$$H(X) = -\sum_{x \in X}P(x)\log_2{P(x)}$$
+We prove the theorem by induction on $S$.
+\begin{enumerate}
+\item
+($S = s$)
+
+Then $\mathbb{H}(s) = 0 = H(\mathcal{L}(s)) = H(\{s\})$
+\item
+$(S = S^{*p})$
+
+Since $S^{*p}$ is unambiguous, then $S$ is also anambiguous, and for each $s \in \mathcal{L}(S^{*p})$, there exist unique $t_1, \ldots, t_n \in \mathcal{L}(S)$ such that $s = t^s_1 \cdot \ldots \cdot t^s_{n_s}$. By the induction hypothesis, $H(\mathcal{L}(S)) = \mathbb{H}(S)$, thus
+\begin{align*}
+H(\mathcal{L}(S^{*p})) &= - \sum_{s \in \mathcal{L}(S^{*p})} P_{S^{*p}}(s) \log_2 P_{S^{*p}}(s)\\
+&= -(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i)\log_2 \left(p^n * (1 - p) * \prod_{i=1}^n P_S(s_i)\right)\\
+&= -(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i)\left(n \log_2 p  + \log_2 (1 - p) + \log_2 \left(\prod_{i=1}^n P_S(s_i)\right)\right)\\
+&= -(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i)\left(n \log_2 p  + \log_2 (1 - p) + \log_2 \left(\prod_{i=1}^n P_S(s_i)\right)\right)\\
+&= -(1-p) * \log_2 p \sum_n n * p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i)
+-(1-p) * \log_2 (1 - p) \sum_n p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) \\
+&-(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i)\log_2 \left(\prod_{i=1}^n P_S(s_i)\right)\\
+&= -\log_2 p * \frac{p}{(1-p)} -\log_2 (1 - p) 
+-(1-p)\sum_n p^n H(\mathcal{L}(S^n))\\
+&= -\log_2 p * \frac{p}{(1-p)} -\log_2 (1 - p) 
+-(1-p)\sum_n p^n n H(\mathcal{L}(S))\\
+&= -\log_2 p * \frac{p}{(1-p)} -\log_2 (1 - p) 
+-\frac{p}{(1-p)} * H(\mathcal{L}(S))\\
+&= \frac{p}{(1-p)}(H(\mathcal{L}(S)) - \log_2 p) -\log_2 (1 - p)\\
+&= \frac{p}{(1-p)}(\mathbb{H}(S) - \log_2 p) -\log_2 (1 - p)
+\end{align*}
+\item
+($S = S_1 \cdot S_2$)
+
+Since $S$ is unambigous, then $S_1$ and $S_2$ are also unambiguous, and for each $s \in \mathcal{L}(S_1 \cdot S_2)$ there exists a unique $s_1 \in \mathcal{L}(S_1)$ and a unique $s_2 \in \mathcal{L}(S_2)$ such that $s = s_1 \cdot s_2$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$, hence
+\begin{align*}
+H(\mathcal{L}(S_1 \cdot S_2))(s) &= -\sum_{s_1 \in S_1} \sum_{s_2 \in S_2}P_{S_1}(s_1)*P_{s_2}(s_2) \log_2(P_{S_1}(s_1)*P_{S_2}(s_2))\\
+&= -\sum_{s_1 \in S_1} P_{S_1}(s_1)\sum_{s_2 \in S_2}P_{s_2}(s_2) (\log_2(P_{S_1}(s_1) + \log_2 P_{S_2}(s_2)))\\
+&= -\sum_{s_1 \in S_1} P_{S_1}(s_1) \sum_{s_2 \in S_2}P_{S_2}(s_2)\log_2(P_{S_1}(s_1)) + \sum_{s_1 \in S_1} P_{S_1}(s_1)\sum_{s_2 \in S_2} P_{S_2}(s_2)\log_2 P_{S_2}(s_2)\\
+&= -\sum_{s_1 \in S_1} P_{S_1}(s_1) \log_2(P_{S_1}(s_1)) + \sum_{s_2 \in S_2} P_{S_2}(s_2)\log_2 P_{S_2}(s_2)\\
+&= H(\mathcal{L}(S_1)) + H(\mathcal{L}(S_2))\\
+&= \mathbb{H}(S_1) + \mathbb{H}(S_2)
+\end{align*}
+\item
+($S = S_1 \; |_p \; S_2$)
+
+Since $S$ is unambiguous, then $S_1$ and $S_2$ are also unambiguous, and every $s \in \mathcal{L}(S_1 \; |_p \; S_2)$ is either in $\mathcal{L}(S_1)$ or in $\mathcal{L}(S_2)$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$. Then
+\begin{align*}
+H(\mathcal{L}(S_1 \; |_p \; S_2)) &= -\sum_{s \in \mathcal{L}(S_1)}(p * P_{S_1}(s))\log_2 (p * P_{S_1}(s)) - \sum_{s \in \mathcal{L}(S_2)}((1-p) * P_{S_2}(s))\log_2 ((1-p) * P_{S_2}(s))\\
+&=- p\sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s)(\log_2 p + \log_2 P_{S_1}(s)) - (1-p)\sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s)(\log_2 (1-p) + \log_2 P_{S_2}(s))\\
+&= p * (\log_2 p +  H(\mathcal{L}(S_1))) + (1-p) * ( \log_2 (1-p) + H(\mathcal{L}(S_2)))\\
+&= p * (\log_2 p +  \mathbb{H}(S_1)) + (1-p) * ( \log_2 (1-p) + \mathbb{H}(S_2))\\
+\end{align*}
+\end{enumerate}
+\end{proof}
 \end{document}
 
 
