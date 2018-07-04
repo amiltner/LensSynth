@@ -43,59 +43,35 @@ def retrieve_csv(filename):
 def project_column_from_csv(csv_obj, col_name):
     return [r[col_name] for r in csv_obj]
 
+def count_real_vals(csv_obj, col_name):
+    col = project_column_from_csv(csv_obj, col_name)
+    return len([val for val in col if val != "[-1]"])
+
 def write_to_filename(filename, s):
     with open(filename, "wb") as f:
         f.write(s)
 
 def generate_examples_required_graph(input_csv):
-    zero_count_ind = 0
-    one_to_five_count_ind = 1
-    six_to_ten_count_ind = 2
-    over_twenty_count_ind = 3
-
-    zero_count_text = "0"
-    one_to_five_count_text = "1-5"
-    six_to_ten_count_text = "6-10"
-    eleven_to_fifteen_count_text = "11-15"
-    sixteen_to_twenty_count_text = "16-20"
-    over_twenty_count_text = ">10"
-    ind_to_text = [zero_count_text,
-                   one_to_five_count_text,
-                   six_to_ten_count_text,
-                   over_twenty_count_text]
-
-    experimental_values = [0,0,0,0,]
-
-    def add_to_correct_group(count_values, n):
-        if n < 0.0:
-            raise Exception("SOMETHING WENT WRONG")
-        if n == 0.0:
-            count_values[zero_count_ind] = count_values[zero_count_ind]+1
-        elif n <= 5.0:
-            count_values[one_to_five_count_ind] = count_values[one_to_five_count_ind]+1
-        elif n <= 10.0:
-            count_values[six_to_ten_count_ind] = count_values[six_to_ten_count_ind]+1
-        else:
-            count_values[over_twenty_count_ind] = count_values[over_twenty_count_ind]+1
-
-    experimental_vals = project_column_from_csv(input_csv, "ExamplesRequired")
-    for example_num in experimental_vals:
-        add_to_correct_group(experimental_values, float(example_num))
-    
+    nm_count = count_real_vals(input_csv,"NM")
+    nmcc_count = count_real_vals(input_csv,"NMCC")
+    fc_count = count_real_vals(input_csv,"FC")
+    notp_count = count_real_vals(input_csv,"NoTP")
 
     ind = np.arange(4)
     width = 0.35
 
     fig, ax = plt.subplots()
 
-    rects1 = ax.bar(ind, experimental_values, width, color='#ffffb3', align='center')
+    rects1 = ax.bar(ind, [nm_count,nmcc_count,fc_count,notp_count], width, color='#ffffb3', align='center')
 
-    ax.set_ylabel('Benchmark Count')
-    ax.set_xlabel('Examples Required')
+    ax.set_ylabel('Benchmarks Completed')
+    ax.set_xlabel('Run Mode')
     ax.set_xticks(ind)
-    ax.set_xticklabels(ind_to_text)
+    ax.set_xticklabels(["\\textbf{NM}","\\textbf{NMCC}","\\textbf{FC}","\\textbf{NoTP}"])
 
-    fig = plt.figure(1,tight_layout=True) 
+    fig = plt.figure(2,tight_layout=True)
+    ax.step([-.5,3.5],[45.1,45.1],label="Benchmark Count",linestyle=":",
+            linewidth=1, dashes=(1,1))
 
     plt.tick_params(
                 axis='x',          # changes apply to the x-axis
@@ -105,7 +81,7 @@ def generate_examples_required_graph(input_csv):
     fig.set_figheight(1)
     fig.set_figwidth(3)
 
-    fig.savefig(generated_graphs_base + "examples.eps", bbox_inches='tight')
+    fig.savefig(generated_graphs_base + "metrics_importance.eps", bbox_inches='tight')
 
 def generate_compositional_lenses_graph(input_csv):
     zero_count_ind = 0
@@ -398,10 +374,10 @@ def main(args):
         input_csv = retrieve_csv(input_filepath)
         #ensure_dir(generated_graphs_base)
         #ensure_dir(transformed_data_base)
-        #generate_examples_required_graph(input_csv)
         #generate_uninferred_expansions_graph(input_csv)
         #generate_compositional_lenses_graph(input_csv)
         generate_time_vs_tasks_graph(input_csv)
+        generate_examples_required_graph(input_csv)
         #generate_benchmark_count(input_csv)
         #generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv)
         #generate_number_augeas(input_csv)
