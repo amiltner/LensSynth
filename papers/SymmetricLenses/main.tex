@@ -3743,6 +3743,91 @@ We now show that $\lceil \ell \rceil$ satisfies the simple symmetric lens laws:
 \lceil \ell \rceil.\PutROf{(\lceil \ell \rceil.\PutLOf{v}{s})}{v} &= \ell.\get \; (\ell.\pput \; v \; s) = v
 \end{align*}
 \end{proof}
+
+\begin{theorem*}
+  Let $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, where $\Lens$ does not
+  include composition, $\Regex$ and $\RegexAlt$ and unambiguous, and neither
+  $\Regex$ nor $\RegexAlt$ contain any empty subcomponents.
+  \begin{enumerate}
+  \item $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
+    information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
+    given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
+      \Lens.\PutLOf{t}{s} = s}$
+  \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
+    information content of $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt}}$,
+    given $\SetOf{s \SuchThat s \in \LanguageOf{\Regex} \BooleanAnd
+      \Lens.\PutROf{s}{t} = t}$
+  \end{enumerate}
+\end{theorem*}
+\begin{proof}
+Given $s \in S$, let $V_{\ell}(s) = \{t \in \mathcal{L}(T) \; | \; \ell.\PutLOf{t}{s} = s\}$. We want to show that
+$$\sum_{s \in \mathcal{L}(S)}P_{\mathcal{L}(S)}H(V_{\ell}(s)) = \mathbb{H}^{\leftarrow}(S \; | \; \ell, T)$$
+We proceed by induction over $\ell$. 
+\begin{center}
+  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
+            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\ComposeLensOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\MergeROf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\MergeLOf{\Lens_1}{\Lens_2}$ \\
+            & & \GBar{} & $\InvertOf{\Lens}$ \\
+  \end{tabular}
+\end{center}
+\begin{enumerate}
+\item
+($\ell = \IdentityLensOf{S}$)
+
+Observe that $V_{\IdentityLensOf{S}}(s) = \{t \in \mathcal{L}(S) \; | \; \IdentityLensOf{S}.\PutLOf{t}{s} = s\} = \{t \in \mathcal{L}(S) \; | \; t = s\} = \{s\}$.
+
+Consequently, $H(V_{\IdentityLensOf{S}}(s)) = H(\{s\}) = 0$, from which it follows that 
+$$\sum_{s \in \mathcal{L}(S)} P_{\mathcal{L}(S)}(s) * H(V_{\IdentityLensOf{S}}(s)) = 0 = \mathbb{H}^{\leftarrow}(S \; | \; \IdentityLensOf{S}, T)$$
+\item
+($\ell = \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}$)
+
+Observe that 
+$$V_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s) = \{t \in \mathcal{L}(T) \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}.\PutLOf{t}{s} = s\} = \{t \in \mathcal{L}(T) \; | \; s = s\} = \mathcal{L}(T)$$
+Consequently
+$$\sum_{s \in \mathcal{L}(S)}P_{S}(s)H(V_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s)) = \sum_{s \in \mathcal{L}(S)}P_{\mathcal{S}}(s)H(\mathcal{L}(T)) = H(\mathcal{L}(T)) = \mathbb{H}(T) = \mathbb{H}^{\leftarrow}(S \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, T)$$
+\item
+($\ell = \IterateLensOf{\Lens} : S^{*p} \Leftrightarrow T^{*q}$)
+
+Observe that 
+\begin{align*}
+V_{\IterateLensOf{\Lens}}(s_1 \cdot \ldots \cdot s_n) &= \{t_1 \cdot \ldots \cdot t_m \; | \; \IterateLensOf{\Lens}.\PutLOf{(t_1 \cdot \ldots \cdot t_m)}{(s_1 \cdot \ldots \cdot s_n)} = s_1 \cdot \ldots \cdot s_n\}\\
+&= \{t_1 \cdot \ldots \cdot t_n \; | \; \ell.\PutLOf{t_i}{s_i} = s_i \text{ for }1 \leq i \leq n\}\\
+&= V_{\ell}(s_1) \cdot \ldots \cdot V_{\ell}(s_n)
+\end{align*}
+Consequently
+\begin{align*}
+\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) H(V_{\ell}(s_1) \cdot \ldots \cdot V_{\ell}(s_n))\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) \left(\sum_{j=1}^n H(V_{\ell}(s_j)) \right)\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \sum_{s_n} P_S(s_n) \left(\sum_{j=1}^n H(V_{\ell}(s_j)) \right)
+\end{align*}
+We focus on the term $\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V_{\ell}(s_j))$:
+\begin{align*}
+\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V_{\ell}(s_j)) &= \sum_{s_n} P_S(s_n)H(V_{\ell}(s_n)) + P_S(s_n) \sum_{j=1}^{n-1} H(V_{\ell}(s_j))\\
+&= \mathbb{H}^{\leftarrow}(S \; | \; \ell, T) + \sum_{j=1}^{n-1}H(V_{\ell}(s_j))
+\end{align*}
+Consequently,
+\begin{align*}
+\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left( \mathbb{H}^{\leftarrow}(S \; | \; \ell, T) + \sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1})\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \mathbb{H}^{\leftarrow}(S \; | \; \ell, T)\\
+&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)\\
+&= \mathbb{H}^{\leftarrow}(S \; | \; \ell, T) * (1-p)\sum_n p^n \\
+&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)
+\end{align*}
+Unrolling the term 
+$$\sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)$$ 
+$(n-1)$ more times gives
+$$\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
+= \mathbb{H}^{\leftarrow}(S \; | \; \ell, T) * (1-p)\sum_n n * p^n  = \frac{p}{1-p} * \mathbb{H}^{\leftarrow}(S \; | \; \ell, T)$$
+which is what we wanted to show.
+\end{enumerate}
+
+\end{proof}
 \end{document}
 
 
