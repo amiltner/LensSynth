@@ -1644,54 +1644,54 @@ annotations, and for making well-typed compositions.
 \subsection{Lens Costs}
 Our cost metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
-$\REntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate the expected amount
-of information required to recover a string in $\Regex$ from a string in
-$\RegexAlt$, synchronized by $\Lens$. We use the function
 $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate the expected amount
 of information required to recover a string in $\RegexAlt$ from a string in
-$\Regex$, synchronized by $\Lens$.
+$\Regex$, synchronized by $\Lens$. We use the function $\LEntropyOf{\Regex
+  \Given \Lens, \RegexAlt}$ to calculate the expected amount of information
+required to recover a string in $\Regex$ from a string in $\RegexAlt$,
+synchronized by $\Lens$.
 \begin{center}
   \begin{tabular}{rcl}
-    $\REntropyOf{\Regex \Given \IdentityLensOf{\Regex}, \Regex}$
+    $\REntropyOf{\RegexAlt \Given \IdentityLensOf{\RegexAlt}, \RegexAlt}$
     & =
     & 0\\
     
-    $\REntropyOf{\Regex \Given \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, \RegexAlt}$
+    $\REntropyOf{\RegexAlt \Given \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, \Regex}$
     & =
     & \EntropyOf{\RegexAlt}\\
 
-    $\REntropyOf{\PRegexStar{\Regex}{\Probability} \Given \IterateLensOf{\Lens}^, \PRegexStar{\RegexAlt}{\ProbabilityAlt}}$
+    $\REntropyOf{\PRegexStar{\RegexAlt}{\ProbabilityAlt} \Given \IterateLensOf{\Lens}, \PRegexStar{\Regex}{\Probability}}$
     & =
-    & $\frac{\Probability}{1-\Probability}(\REntropyOf{\Regex \Given \Lens, \RegexAlt})$\\
+    & $\frac{\Probability}{1-\Probability}(\REntropyOf{\RegexAlt \Given \Lens, \Regex})$\\
     
-    $\REntropyOf{\Regex_1 \Concat \Regex_2 \Given \ConcatLensOf{\Lens_1}{\Lens_2}, \RegexAlt_1 \Concat \RegexAlt_2}$
+    $\REntropyOf{\RegexAlt_1 \Concat \RegexAlt_2 \Given \ConcatLensOf{\Lens_1}{\Lens_2}, \Regex_1 \Concat \Regex_2}$
     & =
-    & $\REntropyOf{\Regex_1 \Given \Lens_1^\leftarrow, \RegexAlt_1} + \REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt_2}$\\
+    & $\REntropyOf{\RegexAlt_1 \Given \Lens_1, \Regex_1} + \REntropyOf{\RegexAlt_2 \Given \Lens_2, \Regex_2}$\\
     
-    $\REntropyOf{\Regex_1 \Concat \Regex_2 \Given \SwapLensOf{\Lens_1}{\Lens_2}, \RegexAlt_2 \Concat \RegexAlt_1}$
+    $\REntropyOf{\RegexAlt_2 \Concat \RegexAlt_1 \Given \SwapLensOf{\Lens_1}{\Lens_2}, \Regex_1 \Concat \Regex_2}$
     & =
-    & $\REntropyOf{\Regex_1 \Given \Lens_1^\leftarrow, \RegexAlt_1} + \REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt_2}$\\
+    & $\REntropyOf{\RegexAlt_2 \Given \Lens_1, \Regex_2} + \REntropyOf{\RegexAlt_1 \Given \Lens_1, \Regex_1}$\\
     
-    $\REntropyOf{\PRegexOr{\Regex_1}{\Regex_2}{\Probability} \Given \OrLensOf{\Lens_1}{\Lens_2}, \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}}$
+    $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \OrLensOf{\Lens_1}{\Lens_2}, \PRegexOr{\Regex_1}{\Regex_2}{\Probability}}$
     & =
     & $\Probability*(\REntropyOf{\Regex_1 \Given \Lens_1, \RegexAlt_1} ) + (1-\Probability)*(\REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt_2})$\\
     
-    $\REntropyOf{\PRegexOr{\Regex_1}{\Regex_2}{\Probability} \Given \MergeROf{\Lens_1}{\Lens_2}, \RegexAlt}$
+    $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \MergeLOf{\Lens_1}{\Lens_2}, \Regex}$
     & =
-    & $\Probability*(\REntropyOf{\Regex \Given \Lens_1, \RegexAlt_1}) + (1-\Probability)*(\REntropyOf{\Regex \Given \Lens_2, \RegexAlt_2})$\\
+    & $\ProbabilityAlt*(\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1}) + (1-\ProbabilityAlt)*(\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2})$\\
     
-    $\REntropyOf{\Regex \Given \MergeLOf{\Lens_1}{\Lens_2}, \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}}$
+    $\REntropyOf{\RegexAlt \Given \MergeROf{\Lens_1}{\Lens_2}, \PRegexOr{\Regex_1}{\Regex_2}{\Probability}}$
     & =
-    & $\ProbabilityAlt*(\REntropyOf{\Regex_1 \Given \Lens_1, \RegexAlt} - \Log_2(\ProbabilityAlt)) + $\\
+    & $\Probability*(\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1} - \Log_2(\Probability)) + $\\
     &
-    & $(1-\ProbabilityAlt)*(\REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt} - \Log_2(1 - \ProbabilityAlt))$\\
+    & $(1-\Probability)*(\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2} - \Log_2(1 - \Probability))$\\
     
-    $\REntropyOf{\RegexAlt \Given \InvertOf{\Lens}, \Regex}$
+    $\REntropyOf{\Regex \Given \InvertOf{\Lens}, \RegexAlt}$
     & =
-    & $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$\\
+    & $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$\\
   \end{tabular}
 \end{center}
-$\LEntropyOf{\RegexAlt \Given \Lens, \Regex}$ is defined symmetrically.  These
+$\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ is defined symmetrically.  These
 functions calculate the expected number of bits to recover one data format from
 a synchronized string in the other format.
 The cost of a lens, $c(\Lens \OfType \Regex \Leftrightarrow \RegexAlt) =
@@ -1707,14 +1707,14 @@ actual conditional entropy to recover the data.\bcp{Again, they should be
   include composition, $\Regex$ and $\RegexAlt$ and unambiguous, and neither
   $\Regex$ nor $\RegexAlt$ contain any empty subcomponents.
   \begin{enumerate}
-  \item $\REntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
-    information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
-    given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
-      \Lens.\PutLOf{t}{s} = s}$
-  \item $\LEntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
+  \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
     information content of $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt}}$,
     given $\SetOf{s \SuchThat s \in \LanguageOf{\Regex} \BooleanAnd
       \Lens.\PutROf{s}{t} = t}$
+  \item $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
+    information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
+    given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
+      \Lens.\PutLOf{t}{s} = s}$
   \end{enumerate}
 \end{theorem}
 
@@ -3745,14 +3745,14 @@ We now show that $\lceil \ell \rceil$ satisfies the simple symmetric lens laws:
   include composition, $\Regex$ and $\RegexAlt$ and unambiguous, and neither
   $\Regex$ nor $\RegexAlt$ contain any empty subcomponents.
   \begin{enumerate}
-  \item $\REntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
-    information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
-    given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
-      \Lens.\PutLOf{t}{s} = s}$
-  \item $\LEntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
+  \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
     information content of $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt}}$,
     given $\SetOf{s \SuchThat s \in \LanguageOf{\Regex} \BooleanAnd
       \Lens.\PutROf{s}{t} = t}$
+  \item $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
+    information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
+    given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
+      \Lens.\PutLOf{t}{s} = s}$
   \end{enumerate}
 \end{theorem*}
 \begin{proof}
