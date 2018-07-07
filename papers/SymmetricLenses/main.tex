@@ -1116,6 +1116,7 @@ jointly express a language and a probability distribution over that language.
   \begin{tabular}{rcl}
     \Regex{},\RegexAlt{}
     & \GEq{} & $\String$ \\
+    & \GBar{} & $\emptyset$ \\
     & \GBar{} & $\PRegexStar{\Regex}{p}$ \\
     & \GBar{} & $\RegexConcat{\Regex_1}{\Regex_2}$ \\
     & \GBar{} & $\PRegexOr{\Regex_1}{\Regex_2}{p}$
@@ -1135,6 +1136,10 @@ the function $P$ below.
     $\ProbabilityOf{\String}{\String''}$
     & =
     & $\begin{cases*}1 & if $\String = \String''$\\ 0 & otherwise\end{cases*}$ \\
+     
+    $\ProbabilityOf{\emptyset}{\String}$
+    & =
+    & $0$ \\
     
     $\ProbabilityOf{\RegexConcat{\Regex_1}{\Regex_2}}{s}$
 
@@ -1160,6 +1165,9 @@ to stochastic regular expressions.
 
 \begin{center}
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
+    \PRegexOr{\Regex}{\emptyset}{1} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} \\
+    $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
+    $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
     \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)*\Probability_2}{1 - \Probability_1 * \Probability_2}})}{\Probability_1*\Probability_2} & \OrAssociativityRule{}  \\
     \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
@@ -1182,10 +1190,11 @@ to stochastic regular expressions.
 \end{proof}
 
 \subsection{Stochastic Regular Expression Entropy}
-The entropy of a data source $S$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$, the
-expected number of bits required to describe a random element in $S$. The
-entropy of a stochastic regular expression can be computed directly from its
-syntax, when the stochastic regular expression is unambiguous.
+The entropy of a data source $S$ is the expected number of bits required to
+describe a random element in $S$ ($-\Sigma_{s\in S}P(s)\Log_2P(s)$). The entropy
+of a stochastic regular expression can be computed directly from its syntax,
+when the stochastic regular expression is unambiguous, and contains no nonempty
+components.
 \begin{center}
   \begin{tabular}{rcl}
     $\EntropyOf{s}$
@@ -1211,9 +1220,21 @@ stochastic regular expression.
 
 \begin{theorem}
   \label{thm:correct_entropy}
-  If $\Regex$ is unambiguous and contains no empty subcomponents,
+  If $\Regex$ is unambiguous and does not contain $\emptyset$ as a subterm,
   $\EntropyOf{\Regex}$ is the entropy of $\Regex$.
 \end{theorem}
+
+Without unambiguity constraints it is not easy to calculate the entropy. For
+example, consider the SRE $\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$.
+Using the above computation, this SRE has an entropy of $1$, but the entropy
+should be $0$. Similar issues occur when trying to find the entropy when
+$\emptyset$ is a subterm, so we do not define the entropy on $\emptyset$.
+
+In our work, we do not find this to be a problem, we require unambiguous regular
+expressions as input to our synthesis procedure, and we can easily preprocess
+emptysets out of the stochastic regular expressions that are themselves nonempty
+by traversing the correct star-semiring equivalences
+(\PRegexOr{\emptyset}{\lstinline{"s"}}{.5} \SSREquiv \lstinline{"s"}).
 
 % \caption{Regular Expression Equivalences}
 % \label{fig:regex-equivalence-rules}
