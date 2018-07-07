@@ -62,7 +62,7 @@
 keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
 framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
 commentstyle=\itshape\rmfamily,
-emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disc,merge_left,merge_right,const},
+emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disconnect,merge_left,merge_right,const},
 emphstyle=\upshape\sffamily\color{dkpurple}, 
 columns=fullflexible,
 mathescape, 
@@ -306,14 +306,13 @@ Type Systems}
 \section{Introduction}
 
 \noindent
-In a big-data world, one will often find similar data stored in a
-variety of different formats. For instance, electronic calendars come in iCalendar, vCalendar and h-event
-formats~\cite{calendar-formats}; US taxation data can be transmitted via Tax XML (used by the US government
-for e-filing) or TXF (used by TurboTax)~\cite{tax-formats}; and sewing machines can read embroidery files
-transmitted as PES formats, DST formats or several others~\cite{embroidery-formats}. \dpw{Editorial comment:
-Phil Wadler forced his very irritating long-form citations into the
-standard format. ug. how stupid is that.}
-\ksf{I like the embroidery example and I also hate the long form citations.}
+In a big-data world, one will often find similar data stored in a variety of
+different formats. For instance, electronic calendars come in iCalendar,
+vCalendar and h-event formats~\cite{calendar-formats}; US taxation data can be
+transmitted via Tax XML (used by the US government for e-filing) or TXF (used by
+TurboTax)~\cite{tax-formats}; and sewing machines can read embroidery files
+transmitted as PES formats, DST formats or several
+others~\cite{embroidery-formats}.
 
 One way to interconvert between these varied data formats is to use a
 \emph{lens}~\cite{?}---a bi-directional
@@ -331,18 +330,16 @@ the easier it is to find the program one is looking for.
 %Another advantage of reducing the
 %set of programs is that doing so can facilitate program synthesis, which is essentially
 %a search through the space of possible computations that can be expressed as a lens.
-Recent research~\cite{optician, maina+:quotient-synthesis} has exploited this fact by demonstrating that it
-is possible to synthesize relatively large, complex lenses from specifications.
-In particular, given types that describe source and target formats, there are
-synthesis algorithms\bcp{more than one?  I know there are two papers, but
-  it's really the same synthesis algorithm} that will find bijective
-lenses
+Recent research~\cite{optician, maina+:quotient-synthesis} has exploited this
+fact by demonstrating that it is possible to synthesize relatively large,
+complex lenses from specifications. In particular, given types that describe
+source and target formats, the bijective synthesis algorithm presented in this
+research will find bijective lenses
 % ~\cite{optician}
-for files 
-in ad-hoc formats, such as those housing linux application configurations.
-Oftentimes, these algorithms find such lenses in less than a second, and without
-the aid of any examples at all, with just types describing the source and target
-formats. 
+for files in ad-hoc formats, such as those housing linux application
+configurations. Oftentimes, these algorithms find such lenses in less than a
+second, and without the aid of any examples at all, with just types describing
+the source and target formats.
 % \dpw{I would cite the ICFP paper (cite string:
 %   maina+:quotient-synthesis) as to appear but I'm not sure how to do that
 %   without possibly violating the spirit of double-blind reviewing. ie, if it
@@ -436,51 +433,38 @@ typically fails to find the lens the user wants. The flexibity these lenses
 admit when it comes to eliding information generates an explosion of possible
 transformations. To disambiguate between the many possible lenses, we need new
 principles for identifying the ``likely'' ones, and we need new algorithms to
-search the space of program transformations using these principles. \dpw{Were
-  the bijective lenses chosen using a ``smaller'' criteria? I forget... if not
-  edit the prior paragraph.}\afm{no, chosen using a ``first'' criteria.
-  Edited.}\dpw{Ideally, we could back up the claim that there are many symmetric
-  lenses and not many bijective lenses by graphing the number of such lenses
-  somehow. eg, in a past synthesis paper with Steve (POPL 2016) we graphed the
-  untyped terms of type $\mathsf{int}\rightarrow\mathsf{int}$. I wonder if we
-  can do something similar here.}\afm{What about lenses between ``a''* and
-  ''b``*}\bcp{Aren't there an infinite number of those, even if we restrict
-  to bijective ones?}
+search the space of program transformations using these principles.
 
 To overcome this second difficulty, we turned to information theory to try to
 find a way to characterize the likely and unlikely lenses. Intuitively, a
 ``likely'' lens is one that propagates a lot of information from source to
 target and also from target back to source. Conversely, given the source, the
 target is ``unlikely'' to require very much additional information in order to
-reconstruct it---if it were\bcp{were what? likely, or unlikely?}, then one is
-unlikely to be attempting to synthesize a lens between the two formats\bcp{why?
-  even if two big formats only share a little bit of common information,
-  mightn't one want a lens between them?}! In order to implement this intuition,
-we turn to \emph{stochastic regular expressions} (SREs). Stochastic regular
-expressions define a set of strings, as do ordinary regular expressions, but
-they also provide the expected distribution of strings within that set. Such
+reconstruct it, under the assumption that users typically want to synchronize
+formats with a large amount of shared information. In order to implement this
+intuition, we turn to \emph{stochastic regular expressions} (SREs). Stochastic
+regular expressions define a set of strings, as do ordinary regular expressions,
+but they also provide the expected distribution of strings within that set. Such
 distributions allow us to compute the amount of information gained when
 presented an element of the set. For example, the language of the SRE
 $\lstinline{"a"} |_{0.5}
-\lstinline{"b"}$ contains two elements (the strings
-\lstinline{"a"} and
-\lstinline{"b"}). The probability 0.5 annotating the union indicates that both
-elements are equally likely to appear. Consequently, if we observe an element of
-that language (either \lstinline{"a"} or \lstinline{"b"}), we will gain one bit
-of information. Said another way, one bit, together with the SRE, suffices to
-recover the string in question.\bcp{Is this implying that, if the annotation
-  were different, we'd need something other than one bit to recover the
-  string??}
-\afm{From an information theoretic perspective, yes, because that perspective
-  views it as the amount of information if we were communicating a stream of
-  these choices.}\bcp{I see---very interesting.  What about mentioning this
-  point, to get people ready for some information-theoretic thinking
-  later...?} 
-On the other hand, consider the language of the SRE \lstinline{c}. It contains 
-just one element (the string $c$). If we observe that our algorithm generates
-$\lstinline{"c"}$, we gain zero bits of information --- the string was already determined.
-Hence\bcp{?}, a lens is ``likely,'' in a technical sense, if relative to the
-target SRE $T$, very little information from $t$ is required to generate it.
+\lstinline{"b"}$ contains two elements (the strings \lstinline{"a"} and \lstinline{"b"}).
+The probability 0.5 annotating the union indicates that both elements are
+equally likely to appear. Consequently, if we observe an element of that
+language (either \lstinline{"a"} or
+\lstinline{"b"}), we will gain one bit of information. Said another way, one bit, together with
+the SRE, suffices to recover the string in question. Interestingly, if the
+probability annotation were anything but 0.5, the expected information content
+(or entropy) would actually be less than 1 (given a stream of such choices, on
+average we could encode the the contents of stream in fewer bits than the the
+number of choices present). On the other hand, consider the language of the SRE
+\lstinline{c}. It contains just one element (the string $c$). If we observe that
+our algorithm generates $\lstinline{"c"}$, we gain zero bits of information ---
+the string was already determined. Using this foundation, a lens $\Lens \OfType
+\Regex \Leftrightarrow \RegexAlt$ is ``likely,''
+in a technical sense, if given a string $s$ in the source $S$, very little information
+is needed to determine which synchronized string $t$ is present in the target
+$T$.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -513,11 +497,12 @@ it has discovered is more likely than any future lens it can possibly find, the
 search terminates. Otherwise, this lens is stored away (if it is the best found
 so far) and the search continues with \RXSearch again.
 
-We implemented this\bcp{which?} algorithm and evaluated its effectiveness on a
-range of benchmarks, including data cleaning tasks taken from Flash Fill,
-information extraction tasks taken from Augeas, and ad-hoc format
-synchronization tasks taken from a variety of locations\footnote{The majority of
-  these format synchronization tasks were found from the following index:
+We implemented the \GreedySynth and \RXSearch algorithms and evaluated their
+effectiveness of synthesizing synchronization functions on a range of
+benchmarks, including data cleaning tasks taken from Flash Fill, information
+extraction tasks taken from Augeas, and ad-hoc format synchronization tasks
+taken from a variety of locations\footnote{The majority of these format
+  synchronization tasks were found from the following index:
   \url{http://fileformats.archiveteam.org/wiki/Electronic_File_Formats}}.
 
 In summary, our main contributions are:
@@ -538,11 +523,9 @@ are enriched by distributions (\S\ref{sec:synthesis}).
 %
   We also analyze the gap between simple and full symmetric lenses
   empirically and argue that simple ones suffice for many applications.
-\item We show that the class of simple lenses can be characterized
-  semantically as the subset of full symmetric lenses for which a simple
-  ``forgetfulness'' property holds (\S\ref{sec:related}).  \bcp{I suggest
-    splitting this out into its own section, since there is other related
-    work that we'll want to discuss in a Related Work section.}
+\item We show that the class of simple lenses can be characterized semantically
+  as the subset of full symmetric lenses for which a simple ``forgetfulness''
+  property holds (\S\ref{sec:relationship}).
 \end{itemize}
 
 %Such synthesis efforts
@@ -588,7 +571,7 @@ John Public,Insurance Co.
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let salary = number | "N/A"
+let salary = number | "unk"
 let emp_salary = name . " " . name . ": " salary
 let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
 \end{lstlisting}
@@ -610,16 +593,16 @@ let emp_insurance = header . ("\n" . emp_ins)*
   
   \centering
   \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{|>{\columncolor{lightyellow}}c|>{\columncolor{lightgreen}}c|}
+    \begin{tabular}{|>{\columncolor{vlightyellow}}c|>{\columncolor{vlightgreen}}c|}
       \hline
       \texttt{company.mgmt} data file & \texttt{company.hr} data file \\
       \hline
       \listingA & \listingB \\
       \hline
-      \cellcolor{vlightyellow}\texttt{company.mgmt} regular expression & 
-      \cellcolor{vlightgreen}\texttt{company.hr}  regular expression\\
+      \cellcolor{lightyellow}\texttt{company.mgmt} regular expression & 
+      \cellcolor{lightgreen}\texttt{company.hr}  regular expression\\
       \hline
-      \cellcolor{vlightyellow}\listingC & \cellcolor{vlightgreen}\listingD \\
+      \cellcolor{lightyellow}\listingC & \cellcolor{lightgreen}\listingD \\
       \hline
     \end{tabular}
   }
@@ -627,36 +610,32 @@ let emp_insurance = header . ("\n" . emp_ins)*
   used by management and HR at a US company to represent employee salaries and health
   insurance providers, respectively. \ksf{Why
   is \lstinline{emp_salaries} written with an or instead of just using
-  the star operator? Can we simplify?} }  
+  the star operator? Can we simplify?}\afm{It does require the or operator, if
+  we don't want it to have trailing or preceding newlines.  Howevever, I
+  intentionally had this as not having those to force a discussion about
+  rewrites and searching through rewrites.} }  
   \label{fig:minimized-representations}
 \end{figure}
 
-In this section, we give an overview of simple symmetric lenses and
-our corresponding synthesis algorithm using an example drawn from a
-hypothetical U.S. company.  In this company, management and
-human resources (HR) store information about employees in separate files:
-management records the names of employees and their salaries while
-HR stores the names of employees and their health
-insurance providers.  Figure~\ref{fig:minimized-representations} gives
-examples of the two types of files and regular expressions describing
-the two formats.
-The company uses simple symmetric lenses to keep these files synchronized.
-If management adds a new employee, ``Chris Roe: 32500'',  a lens adds 
-the corresponding entry ``Chris Roe, UNK'' to HR's file.  The
-sentinel value ``UNK'' represents the fact that the employee's
-insurance company is currently unknown.  A similar update happens if
-HR adds a new employee before management, in which case the sentinel
-value ``N/A'' reflects the unknown salary information\bcp{can we just use
-  ``UNKNOWN'' on both sides?  Or is there some reason to make it more
-  complicated?} 
-Furthermore, if HR
-corrects an error in an employee's name, say changing ``John Public''
-to ``Jon Public'', the lens mirrors that name change in management's
-file. Not all the data is mirrored, however. The management file 
-is not updated in response to insurance changes, and the HR file
-is oblivious to salary changes.  Simple symmetric lenses are
-appropriate for keeping these two files synchronized because the files have
-a mix of shared and unshared information.
+In this section, we give an overview of simple symmetric lenses and our
+corresponding synthesis algorithm using an example drawn from a hypothetical
+U.S. company. In this company, management and human resources (HR) store
+information about employees in separate files: management records the names of
+employees and their salaries while HR stores the names of employees and their
+health insurance providers. Figure~\ref{fig:minimized-representations} gives
+examples of the two types of files and regular expressions describing the two
+formats. The company uses simple symmetric lenses to keep these files
+synchronized. If management adds a new employee, ``Chris Roe: 32500'', a lens
+adds the corresponding entry ``Chris Roe, UNK'' to HR's file. The sentinel value
+``UNK'' represents the fact that the employee's insurance company is currently
+unknown. A similar update happens if HR adds a new employee before management,
+in which case the sentinel value ``unk'' reflects the unknown salary information
+Furthermore, if HR corrects an error in an employee's name, say changing ``John
+Public'' to ``Jon Public'', the lens mirrors that name change in management's
+file. Not all the data is mirrored, however. The management file is not updated
+in response to insurance changes, and the HR file is oblivious to salary
+changes. Simple symmetric lenses are appropriate for keeping these two files
+synchronized because the files have a mix of shared and unshared information.
 
 %Consider the previously
 %described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
@@ -681,6 +660,7 @@ A simple symmetric lens between formats described by types $\Regex$
 and $\RegexAlt$ 
 is defined by four functions\bcp{I think a picture would be helpful.  I can probably
   make one pretty easily by tweaking the one from the original symmetric paper.}
+\afm{That would be awesome.}
 
 %\begin{enumerate}
 %\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
@@ -714,7 +694,7 @@ that collectively satisfy four ``round-tripping'' laws:
 \end{gather}
 \noindent
 The two create functions provide default values for times when
-data appears on one side but not the other (\EG, the ``N/A'' salary
+data appears on one side but not the other (\EG, the ``unk'' salary
 entry added to the management file when HR inserts a new employee).
 The two put functions propagate edits from one format to the
 other by combining the change from one file with the previous value
@@ -760,7 +740,9 @@ matching $\Regex$. The identity lens fully connects the
 corresponding data in the two formats: when one format is
 updated, the other format gets the exact same value. In our example,
 when a \lstinline{name} is updated in one file, the identify lens ensures it is
-also updated in the other file. 
+also updated in the other file. In this manner, both the \CreateR and \CreateL
+functions are the identity function ($\CreateR \App s = s$), and the put
+functions merely return the first argument ($\PutROf{s_1}{s_2} = s_2$).
 
 %
 \begin{lstlisting}
@@ -769,43 +751,39 @@ id(name) : name $\Leftrightarrow$ name
 %
 
 In contrast to the identity lens, the disconnect lens, \Disconnect, leaves data
-unconnected.\bcp{Can we call it ``disconnect''?} The disconnect lens takes four arguments: two regular 
-expressions and two strings. The regular expressions specify the
-formats of the corresponding data on the two sides while the strings provide default
-values.  In our extended example, 
-the \lstinline{salary} and \lstinline{company} fields are independent,
-so we use the disconnect lens to relate them.
-The defaults are strings that indicate the information is missing.
+unconnected. The disconnect lens takes four arguments: two regular expressions
+and two strings. The regular expressions specify the formats of the
+corresponding data on the two sides while the strings provide default values.
+On creates, the input values are thrown away, and default values are returned ($\CreateROf{\String} =
+\lstinline{"UNK"}$), and on puts, the second argument is used, and the first is
+thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$).  In
+our extended example, the \lstinline{salary} and
+\lstinline{company} fields are independent, so we use the disconnect lens to relate them. The defaults are strings that indicate the information is missing.
 %
 \begin{lstlisting}
-disc(salary, company, "N/A", "UNK") : salary $\Leftrightarrow$ company
+disconnect(salary, company, "unk", "UNK") : salary $\Leftrightarrow$ company
 \end{lstlisting}
 %
 The insert \lstinline{ins} and delete \lstinline{del} lenses are
 syntactic sugar for uses of the disconnect lens in which a string
 constant is omitted entirely from the source and target formats,
-respectively. \ksf{Are these in the right order?}
+respectively.
 \begin{lstlisting}
- ins($t$) = disc("", $t$, "", $t$)
- del($s$) = disc($s$, "", $s$, "")
+ ins($t$) = disconnect("", $t$, "", $t$)
+ del($s$) = disconnect($s$, "", $s$, "")
 \end{lstlisting}
 
-Finally, there are a number of standard lenses that compositionally
-construct more complex lenses from simpler ones.  These combinators include 
-\lstinline{concat} for concatenation, 
-\lstinline{or} for variation, and
-\IterateLens for sequences.
-We usually write \lstinline{concat} using an infix
-notation \lstinline{$\Lens_1$ . $\Lens_2$}
-as in:
+Finally, there are a number of standard lenses that compositionally construct
+more complex lenses from simpler ones. These combinators include concatenation
+($\ConcatLensOf{\Lens_1}{\Lens_2}$ or $\Lens_1 . \Lens_2$), variation
+($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).  For example;
 %
 \begin{lstlisting}
 id(name) . ins(",") . id(name) . del(": ") . ins(",")
 \end{lstlisting}
 % concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
 %
-which appears in the definition of the \lstinline{name_lens} in our
-running example. 
+appears in the definition of the \lstinline{name_lens} in our running example.
 %\ksf{I don't think this example is necessary.}
 %Data can also appear in multiple forms. For example,
 %a list of employees with insurance information can either be empty or
@@ -828,7 +806,7 @@ iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("
 \begin{figure}
 \begin{lstlisting}
 let name_lens = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
-let employee_lens = name_lens . disc(salary,company,"N/A","UNK") in
+let employee_lens = name_lens . disconnect(salary,company,"unk","UNK") in
 let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
 ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
@@ -846,13 +824,14 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 % management and HR employee files. 
 
 
-We provide typing rules for each of the simple symmetric combinators,
-most of which are syntax directed.  There is one additional
-typing rule, which allows us to use equivalence relations on regular
-expressions to convert the type of any lens to a semantically equal
-but syntactically different pair of regular expressions.  The flexibility this
-type equivalence rule provides is useful when a different
-representation of a regular expression would facilitate synthesis. 
+We provide typing rules for each of the simple symmetric combinators, most of
+which are syntax directed. However, regular expressions have a number of
+equivalences on them, and sometimes we must convert one regular expression type
+to another, equivalent regular expression type. Our typing rules include type
+equivalence, so if a lens is typed between two regular expressions, it is also
+typed between two equivalent ones. The flexibility this type equivalence rule
+provides is useful when a different representation of a regular expression would
+facilitate synthesis.
 
 %%\ksf{Do we need to use
 %%type equivalence to type the employee example?  If so, perhaps we
@@ -865,30 +844,21 @@ representation of a regular expression would facilitate synthesis.
 %%be well-typed, but type equivalence states that if a lens is typed between a
 %%pair of regular expressions, it is also typed between an equivalent pair.
 
-Note that, while the synchronization task for our running example is quite simple, the
-requisite lens is relatively complex. Furthermore, this complexity is
-inherent in manually writing simple symmetric lenses because the
-lenses must precisely describe the portions of the data that should be
-connected and those that should be disconnected.  For disconnected
-pieces, the lens must further specifiy appropriate defaults.
-
-
 
 \subsection{Synthesizing Symmetric Lenses}
 
-To alleviate the difficulty of manually writing simple symmetric
-lenses, we wish to synthesize them instead. Given 
-a pair of regular expressions and a set of input-output examples, we want to
-find a simple symmetric lens that is typed by the regular expression
-pair and satisfies the input/output examples. We call such a lens
-a \emph{satisfying lens}.
-In our running example, we wish to
-synthesize a lens between \lstinline{emp_salaries} and \lstinline{emp_insurance},
-using as an input-output example the data in
-Figure~\ref{fig:minimized-representations}.  The algorithm uses such
-examples to find suitable defaults for \Disconnect lenses and to
-figure out how to match data that could be synchronised in multiple
-ways. 
+While our example is relatively simple for demonstration, writing such lenses
+for real-world formats is quite difficult, as these formats can be large and
+transform data in complex and unintuitive ways. To alleviate the difficulty of
+manually writing simple symmetric lenses, we wish to synthesize them instead.
+Given a pair of regular expressions and a set of input-output examples, we want
+to find a simple symmetric lens that is typed by the regular expression pair and
+satisfies the input/output examples. We call such a lens a \emph{satisfying
+  lens}. In our running example, we wish to synthesize a lens between
+\lstinline{emp_salaries} and \lstinline{emp_insurance}, using as an input-output
+example the data in Figure~\ref{fig:minimized-representations}. The algorithm
+uses such examples to find suitable defaults for \Disconnect lenses and to
+figure out how to match data that could be synchronised in multiple ways.
 
 A challenge is that the simple symmetric lens combinators permit many
 well-typed lenses
@@ -898,7 +868,7 @@ expressions  \lstinline{emp_salaries} and \lstinline{emp_insurance},
 but 
 %
 \begin{lstlisting}
-disc(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
+disconnect(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
 \end{lstlisting}
 %
 is another valid lens (where \lstinline{rep($\Regex$)} is a string in the
@@ -916,11 +886,11 @@ particularly in complex formats.
 %examples, or by a carefully chosen input-output example on \PutR
 %or \PutL, this problem continues presenting itself for the sublenses,
 %and is highlighted even more on larger formats.
-While
-we could ask programmers to provide detailed and precise specifications for their
-synthesis tasks, we would prefer the algorithm to choose the right lens
-automatically. Instead of merely finding \emph{any} satisfying lens, we wish to
-synthesize a satisfying lens that is likely to please the user.  
+While we could ask programmers to provide detailed and precise specifications
+for their synthesis tasks, we would prefer an algorithm that can intelligently
+choose a lens despite the underspecification. Instead of merely finding
+\emph{any} satisfying lens, we wish to synthesize a satisfying lens that is
+likely to please the user.
 
 But what is a likely satisfying lens? We propose that a satisfying
 lens is more likely if it connects more data between the two
@@ -956,8 +926,7 @@ given a set $S$ and a probability distribution over that set $P
 In our setting, we already have a way of expressing sets of data:
 regular expressions.  What we need is a way to express probability
 distributions over that data.
-To that end, we adopt \emph{stochastic regular expressions}\ksf{is
-there a citation?}, 
+To that end, we adopt \emph{stochastic regular expressions}\cite{?}, 
 which are regular expressions where each operator is annotated with a
 probability.  Stochastic regular expressions
 allow us to jointly specify the allowable data and give a probability
@@ -978,19 +947,18 @@ To ensure symmetry, the likelihood we assign to $\Lens$ is the sum of
 the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and
 the conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$.
 
-To obtain stochastic regular expressions from the plain regular
-expressions that we expect users to supply, we use a heurstic 
-that attempts to assign
-probability annotations that give each string in the language equal
-probablity.  We can also take as input a stochastic regular
-expression rather than a plain one, which allows the user to
-specify a data-specific probability distribution.  Alternatively,
-the user could provide a large suite of example data from which we
-could infer the necessary annotations to model the supplied data. 
+To obtain stochastic regular expressions from the plain regular expressions that
+we expect users to supply, we use a heurstic that attempts to assign probability
+annotations that give each string in the language equal probablity. We can also
+take as input a stochastic regular expression rather than a plain one, which
+allows the user to specify a data-specific probability distribution.
+Alternatively, the user could provide a large suite of example data from which
+we could infer the necessary annotations to model the supplied data. We found
+our heuristically chosen distribution works well in practice.
 
 Now that we have a way to calculate likelihood, we need a way to search for
 it.
-Previous work on synthesis~\ksf{add citations} has shown
+Previous work on synthesis~\cite{?,?,?} has shown
 that we can use types to dramatically restrict the search space and
 improve the effectiveness of synthesis.  In our setting, types are
 pairs of stochastic regular expressions, which come with a rich
@@ -2513,13 +2481,8 @@ for finding the correct lens.
 % end evaluation
 
 % begin related-work
-\section{Related Work}
-\label{sec:related}
-There is related work in a number of directions. There is related work in
-symmetric lenses, string transformation synthesis, and type-directed synthesis.
-We also refer the reader to a recent, general survey on synthesis~\ref{?}.
-
-\subsection{Symmetric Lenses}
+\section{Relationship To Classic Symmetric Lenses}
+\label{sec:relationship}
 \bcp{I suggest adding an adjective---e.g., ``classic symmetric lenses''---to
 avoid confusion between the old ones and our new ones.}
 \paragraph*{Formalization} We have reformulated the problem addressed by
@@ -2764,6 +2727,14 @@ strictly more expressive than classical asymmetric lenses.
     \end{tabular}
   \end{center}
 \end{theorem}
+
+
+\section{Related Work}
+\label{sec:related}
+There is related work in a number of directions. There is related work in string
+transformation synthesis and type-directed synthesis. We also refer the reader
+to a recent, general survey on synthesis~\ref{?}.
+
 
 \subsection{String Transformation Synthesis}
 Much of the research on string transformation synthesis is on synthesizing
