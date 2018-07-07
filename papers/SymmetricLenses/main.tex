@@ -1105,35 +1105,36 @@ information than $\EntropyOf{\lstinline{": " . salary}}$, and
 
 \section{Stochastic Regular Expressions}
 \label{sec:srx}
-Important to our algorithm is finding the expected number of bits needed to
-recover a string in one data source from a synchronized string in the other data
-source. To do this, we must first develop a probability model for our language.
-We do this with \emph{stochastic regular expressions}, regular expressions
-annotated with probability information. With this, we can jointly express a
-language and a probability distribution over that language.
+To characterize the likely lenses, we must compute the expected number of bits
+needed to recover a string in one data source from a synchronized string in the
+other data source. To do this, we must first develop a probabilistic langauge
+model for our language. We do this with \emph{stochastic regular expressions},
+regular expressions annotated with probability information. With this, we can
+jointly express a language and a probability distribution over that language.
 
 \begin{center}
   \begin{tabular}{rcl}
     \Regex{},\RegexAlt{}
     & \GEq{} & $\String$ \\
-    & \GBar{} & $\emptyset$ \\
     & \GBar{} & $\PRegexStar{\Regex}{p}$ \\
     & \GBar{} & $\RegexConcat{\Regex_1}{\Regex_2}$ \\
     & \GBar{} & $\PRegexOr{\Regex_1}{\Regex_2}{p}$
   \end{tabular}
 \end{center}
 
-The language is defined like the regular expression without probability
-annotations would be.  The probabilities are defined as follows:
+In the stochastic regular expression
+$\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation \Probability
+represents the likelihood the string is in $\Regex_1$. In the stochastic regular
+expression $\PRegexStar{\Regex}{\Probability}$, the annotation \Probability how
+much more likely having a string involving more than $n$ iterations is than
+having a string involving $n$ iterations. The semantics of SREs is defined by
+the function $P$ below.
+
 \begin{center}
   \begin{tabular}{rcl}
     $\ProbabilityOf{\String}{\String''}$
     & =
     & $\begin{cases*}1 & if $\String = \String''$\\ 0 & otherwise\end{cases*}$ \\
-    
-    $\ProbabilityOf{\emptyset}{\String}$
-    & =
-    & $0$ \\
     
     $\ProbabilityOf{\RegexConcat{\Regex_1}{\Regex_2}}{s}$
 
@@ -1150,12 +1151,6 @@ annotations would be.  The probabilities are defined as follows:
     & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n*(1-\Probability)*\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
   \end{tabular}
 \end{center}
-In the stochastic regular expression
-$\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation \Probability
-represents the likelihood the string is in $\Regex_1$. In the stochastic regular
-expression $\PRegexStar{\Regex}{\Probability}$, the annotation \Probability
-how much more likely having a string involving more than $n$ iterations is than
-having a string involving $n$ iterations.
 
 \subsection{Stochastic Regular Expression Equivalences}
 $\RXSearch$ needs to be able to find equivalent stochastic regular expressions.
@@ -1165,9 +1160,6 @@ to stochastic regular expressions.
 
 \begin{center}
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-    \PRegexOr{\Regex}{\emptyset}{1} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} \\
-    $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
-    $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
     \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)*\Probability_2}{1 - \Probability_1 * \Probability_2}})}{\Probability_1*\Probability_2} & \OrAssociativityRule{}  \\
     \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
@@ -1184,16 +1176,16 @@ to stochastic regular expressions.
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
-
-\bcp{This is a POPL paper: Proofs of important theorems should
-be included.  (This one might be easy enough that we can just label it as a
-``Fact'' and omit the proof, or better yet we can say that the proof is straightforward.}
+\begin{proof}
+  The proofs of this theorem, and subsequent theorems in this paper, appears in
+  the auxiliary materials accompanying this submission.
+\end{proof}
 
 \subsection{Stochastic Regular Expression Entropy}
-The {\em entropy} of a stochastic regular expression can be computed
-directly from its syntax, when the stochastic regular expression is
-unambiguous and contains only nonempty subcomponents.\bcp{What is an empty
-  subcomponent?} 
+The entropy of a data source $S$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$, the
+expected number of bits required to describe a random element in $S$. The
+entropy of a stochastic regular expression can be computed directly from its
+syntax, when the stochastic regular expression is unambiguous.
 \begin{center}
   \begin{tabular}{rcl}
     $\EntropyOf{s}$
@@ -1214,8 +1206,8 @@ unambiguous and contains only nonempty subcomponents.\bcp{What is an empty
     & $\Probability*(\EntropyOf{\Regex} - \Log_2(\Probability)) + (1-\Probability)*(\EntropyOf{\RegexAlt} - \Log_2(1-\Probability))$\\
   \end{tabular}
 \end{center}
-We have proven\bcp{Again, some kind of proof is needed.} that this syntactic
-computation corresponds to the entropy of the stochastic regular expression.
+We have proven that this syntactic computation corresponds to the entropy of the
+stochastic regular expression.
 
 \begin{theorem}
   \label{thm:correct_entropy}
