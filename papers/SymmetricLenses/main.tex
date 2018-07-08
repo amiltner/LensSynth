@@ -1765,30 +1765,54 @@ they do not contain instances of composition.
 % begin synthesis
 \section{Synthesis}
 \label{sec:synthesis}
-Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm. The
+Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a
+high level of abstraction. The
 input regular expressions are first converted into stochastic regular
-expressions with \ToStochastic. Next, $\RXSearch$ is initialized with that pair
-of stochastic regular expressions. $\RXSearch$ then proposes candidate classes
-of lenses by proposing regular expression pairs that characterize those classes.
-These lens classes are proposed based on the distance from the original
-stochastic regular expressions: classes characterized by stochastic regular
-expressions closer to the originals are proposed earlier. $\GreedySynth$
-greedily finds a low cost lens within each proposed lens class, if there is one
-that satisfies the specification. These lenses are then provided to $\RXSearch$.
-Eventually, $\RXSearch$ terminates and returns the best lens found thus far.
+expressions with \ToStochastic. Once that conversion has taken place,
+the $\RXSearch$ algorithm executes.
+This algorithm itself is defined via
+five functions:
+(1) $\PCF{\RXSearch.Create}$,
+(2) $\PCF{\RXSearch.Continue}$,
+(3) $\PCF{\RXSearch.Propose}$,
+(4) $\PCF{\RXSearch.Enqueue}$, and
+(5) $\PCF{\RXSearch.Best}$.
+First, $\PCF{\RXSearch.Create}$ creates a priority queue ($rxs$)
+containing a single element:  the initial pair of stochastic regular
+expressions.  Next, 
+$\RXSearch$ enters a loop that searches for likely lenses.  The loop
+terminates when the algorithm believes it is unlikely
+to find a better lens than the best one it has found so far (a
+termination condition defined by $\PCF{\RXSearch.Continue}$).
+Within each iteration of the loop, it:
+\begin{itemize}
+\item generates the next class ($S$, $T$) of lenses to
+search ($\PCF{\RXSearch.Propose}$),
+\item executes $\GreedySynth$ to find a best lens in that class if
+one exists ($lco$),
+using the examples $exs$ to filter out potential lenses that do not satisfy
+the specification, and
+\item adds this best lens to the set of possibilities
+under consideration $\PCF{\RXSearch.Add}$
+\end{itemize}
+When the loop terminates, the search returns the globally best lens found
+($\PCF{\RXSearch.Best}$).  Each element of this algorithm will be explained in
+further depth in the following subsections.
 
+\dpw{Note: I added overbars to regexps in Algorithm 1 below ... double check me
+for correctness.}
 \begin{algorithm}
   \caption{\SynthSymLens}
   \label{alg:synth-sym-lens}
   \begin{algorithmic}[1]
-    \Function{SynthSymLens}{$\Regex,\RegexAlt,\Examples$}
-    \State $\Regex \gets \Call{\ToStochastic}{\Regex}$
-    \State $\RegexAlt \gets \Call{\ToStochastic}{\RegexAlt}$
-    \State $\RXSearchState \gets \Call{\RXSearch.Init}{\Regex,\RegexAlt}$
+    \Function{SynthSymLens}{$\BRegex,\BRegexAlt,\Examples$}
+    \State $\Regex \gets \Call{\ToStochastic}{\BRegex}$
+    \State $\RegexAlt \gets \Call{\ToStochastic}{\BRegexAlt}$
+    \State $\RXSearchState \gets \Call{\RXSearch.Create}{\Regex,\RegexAlt}$
     \While{$\Call{\RXSearch.Continue}{\RXSearchState}$}
     \State $(\Regex,\RegexAlt,\RXSearchState) \gets \Call{\RXSearch.Propose}{\RXSearchState}$
     \State $\LCO \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
-    \State $\RXSearchState \gets \Call{\RXSearch.Consider}{\RXSearchState,\LCO}$
+    \State $\RXSearchState \gets \Call{\RXSearch.Add}{\RXSearchState,\LCO}$
     \EndWhile
     \State \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
     \EndFunction
@@ -1837,8 +1861,7 @@ Eventually, $\RXSearch$ terminates and returns the best lens found thus far.
 %language of Symmetric DNF lenses. After finding such a symmetric DNF lens, that
 %symmetric DNF lens is converted into a simple symmetric lens.
 
-
-\subsection{\RXSearch}
+\subsection{\PCF{\RXSearch.Propose}}
 The first synthesizer is one that searches through regular expression pairs.
 This synthesizer, \RXSearch, proposes regular expressions, semantically but not
 syntactically equivalent to the originals.  In particular, this synthesizer
@@ -1870,14 +1893,23 @@ best lens found thus far. Note this means that if \RXSearch finds a bijective
 lens, which has zero cost it will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
-Stochastic DNF regular expressions are a highly normalized form of stochastic
-regular expressions. Due to this highly normalized nature, where type
-equivalence is often needed for simple symmetric lenses, such rules aren't
-needed when typed between DNF regular expressions, as many semantically equal
-but syntactically distinct regular expressions have syntactically equal DNF
-forms.  Like how stochastic regular expressions are regular expressions with
-probability annotations, stochastic DNF regular expressions are DNF regular
-expressions with probability annotations.  Like with SREs and regular
+Stochastic DNF regular expressions (\SDNFREabbrev) are a pseudo-normal form
+for stochastic regular expressions.  Of all the star-semiring equations
+required to relate two \SDNFREabbrevs, only those relating to Kleene star
+(\EG, \emph{Unrollstar$_L$} and \emph{Unrollstar$_R$}) are needed to relate
+two \SDNFREabbrevs, other axioms, like associativity, commutativity
+or distributivity, are unneeded.  This important property makes it possible to
+construct an efficient algorithm ($\GreedySynth$), directed
+by the syntax of two \SDNFREabbrevs, to synthesize any lenses in the
+same ``class'' (\IE, any lenses that have the same type when the
+Kleene star axioms are unused).  This property, and the resulting
+efficiency of $\GreedySynth$ is key to the effectiveness of our
+core algorithms.
+
+
+Just as SREs are REs with probability annotations,
+\SDNFREabbrevs are \DNFREabbrevs with probability annotations.
+As with SREs and regular
 expressions, if $\DNFRegex$ is a stochastic DNF regular expression,
 $\overline{\DNFRegex}$ is the DNF regular expression generated by erasing
 probability annotations.
