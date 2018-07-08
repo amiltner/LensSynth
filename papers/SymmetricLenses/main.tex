@@ -968,14 +968,13 @@ $\Regex$ given $\RegexAlt$ and $\Lens$, \bcp{Am I supposed to know what this
 $\Lens$.\bcp{Why is this the right (or a sensible) thing to do, besides the fact
   that it ensures symmetry?}
 
-To obtain SREs from the plain regular expressions that
-we expect users to supply, we use a heurstic that attempts to assign probability
-annotations that give each string in the language equal probablity. We can also
-take as input a stochastic regular expression rather than a plain one, which
-allows the user to specify a data-specific probability distribution.
-Alternatively, the user could provide a large suite of example data from which
-we could infer the necessary annotations to model the supplied data. We found
-our heuristically chosen distribution works well in practice.
+To obtain SREs from the plain regular expressions that we expect users to
+supply, we use a heurstic that attempts to assign probability annotations that
+give each string in the language equal probablity. Our algorithm could also take
+as input a stochastic regular expression rather than a plain one, which allows
+the user to specify a data-specific probability distribution, either manually
+written or inferred from a large dataset. We found our heuristically chosen
+distribution works well in practice.
 
 Now that we have a way to calculate likelihood, we need a way to search for
 likely lenses. Previous work on synthesis~\cite{?,?,?} has shown that we can use
@@ -1201,14 +1200,15 @@ stochastic regular expressions.\bcp{Why these?}
 \end{theorem}
 \begin{proof}
   The proofs of this theorem, and subsequent theorems in this paper, appears in
-  the auxiliary materials accompanying this submission.\bcp{Not in the appendix?}
+  the appendix present in the full version of the paper accompanying this
+  submission.
 \end{proof}
 
 \subsection{Stochastic Regular Expression Entropy}
 The entropy of a data source $S$ is the expected number of bits required to
 describe a random element in $S$ ($-\Sigma_{s\in S}P(s)\Log_2P(s)$). The entropy
 of a stochastic regular expression can be computed directly from its syntax,
-when the stochastic regular expression is unambiguous and contains no nonempty\bcp{empty?}
+when the stochastic regular expression is unambiguous and contains no empty
 subcomponents.
 \begin{center}
   \begin{tabular}{rcl}
@@ -1538,9 +1538,8 @@ The \IterateLens lens deals with iterated data.
   \end{tabular}
 \end{center}
 The \MergeR lens is interesting because it merges data where one data can be in
-two formats, and one data has only one format. In previous work\bcp{where?},
-this was
-combined into \OrLens{}, where \OrLens{} could have ambiguous types, but we
+two formats, and one data has only one format. In previous work~\cite{?}, this
+was combined into \OrLens{}, where \OrLens{} could have ambiguous types, but we
 find it more clear to have explicit merge operators: it is easier to see what
 lens the synthesis algorithm is creating.
 
@@ -1795,10 +1794,9 @@ Eventually, $\RXSearch$ terminates and returns the best lens found thus far.
     \State $\LCO \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
     \State $\RXSearchState \gets \Call{\RXSearch.Consider}{\RXSearchState,\LCO}$
     \EndWhile
-    \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
+    \State \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
     \EndFunction
   \end{algorithmic}
-\bcp{Why does the RETURN statement not get a number?}
 \end{algorithm}
 
 %In this work, we aim to quickly find a good lens between two regular expressions
@@ -1864,17 +1862,16 @@ As well as the congruence rules that allow these rewrites to be applied on
 subexpressions.
 
 \RXSearch proposes rewrites incrementally, where it proposes regular expression
-pairs with the smallest number of rewrites first, and when there are no more
-proposed regular expressions of that size, \RXSearch proposes regular
-expressions of larger size.
+pairs with the smallest number of rewrites first. When there are no more
+proposed regular expressions derived from $n$ rewrites, \RXSearch proposes
+regular expressions derived from $n+1$ rewrites.
 
 \RXSearch terminates when the sum of the number of regular expressions of the
 smallest unproposed size with the distance of those regular expressions from the
 originals exceeds the cost of the current best lens. At this point, \RXSearch
 stops proposing regular expression pairs, and instead returns to the user the
 best lens found thus far. Note this means that if \RXSearch finds a bijective
-lens (a lens of cost 0\bcp{have we proved that the bijective lenses are
-  exactly the ones with zero cost?  That would be nice to state clearly someplace...}) it will immediately return.
+lens, which has zero cost it will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
 Stochastic DNF regular expressions are a highly normalized form of stochastic
@@ -2016,22 +2013,22 @@ distributions.
 
 \paragraph*{\ToStochastic} With stochastic DNF regular expressions and
 \ToDNFRegex defined, it is easier to explain the function that converts regular
-expressions into stochastic regular expressions, \ToStochastic\bcp{from the
-  description above, I thought this step was optional (because we allowed
-  the user to write SREs directly)}. If $\Regex$ is a
-stochastic DNF regular expression generated by \ToStochastic, then
-$\ToDNFRegexOf{\Regex} = \DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
+expressions into stochastic regular expressions, \ToStochastic. If users
+specified stochastic regular expressions themselves, this step could be skipped,
+though our integration into Boomerang does not permit users to provide
+stochastic regular expressions. If $\Regex$ is a stochastic DNF regular
+expression generated by \ToStochastic, then $\ToDNFRegexOf{\Regex} =
+\DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
   (\Sequence_n,\frac{1}{n})}$ for some sequences $\Sequence_1\ldots\Sequence_n$,
 and every stochastic atom generated by \ToStochastic is
 $\PRegexStar{\DNFRegex}{.8}$. In particular, $\ToDNFRegex$ generates regular
-expressions whose DNF form gives equal probability to all sequences\bcp{Why?}\bcp{Also, what does this mean?  If a given RE denotes an
-infinite language, then there is no way to give equal probability to every
-string in that language, is there???}, and gives
-iterations a .8 chance to continue iterating. In our experience generating
-random strings from regular expressions\bcp{what does generating random
-  strings have to do with synthesis? i.e., why is this a good thing to measure?}, these probabilities provide good
-distributions of strings -- stars are iterated 4 times on average, and no
-individual choice in a series disjunctions is chosen disproportionately often.
+expressions whose DNF form gives equal probability to all sequence subcomponents
+of the DNF regular expression., and gives iterations a .8 chance to continue
+iterating. In our experience generating random strings from regular expressions,
+these probabilities provide good distributions of strings -- stars are iterated
+4 times on average, and no individual choice in a series disjunctions is chosen
+disproportionately often. As we have found these distributions generate
+reasonable strings, we believe they describe the shape of data well.
 
 \paragraph*{Entropy}
 We have developed a syntactic means of finding the entropy of a stochastic DNF
@@ -2070,11 +2067,12 @@ synthesizing such lenses can be driven primarily by the type of the lenses.
 
 \paragraph*{Syntax}
 Like stochastic DNF regular expressions, symmetric DNF Lenses are hierarchically
-structured. Symmetric DNF lenses consist of a list of symmetric sequence lenses,
-as well as some additional information. Symmetric sequence lenses consist of a
-list of symmetric atom lenses\bcp{why are they called atom lenses?}, as well
-as some additional information, and
-symmetric atom lenses are merely iterations of symmetric DNF lenses. In the
+structured. Symmetric DNF lenses, which provide lens functions between DNF
+regular expressions, consist of a list of symmetric sequence lenses, as well as
+some additional information. Symmetric sequence lenses, which provide lens
+functions betwen sequences, consist of a list of symmetric atom lenses, as well
+as some additional information. Symmetric atom lenses, which provide lens
+functions between atoms, are merely iterations of symmetric DNF lenses. In the
 following syntax, the nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all
 represent natural numbers. The nonterminals $\String$ and $\StringAlt$ represent
 strings.
@@ -2189,9 +2187,9 @@ calculation for symmetric atom lenses, which in turn relies on the entropy
 calculation for symmetric DNF lenses.
 
 \[\begin{array}{rl}
-      & \REntropyOf{\PRegexStar{\DNFRegex}{\Probability} \Given \StarOf{\DNFRegexAlt},\StarOf{\SDNFLens}}\\
-      =\\
-      & 4*\REntropyOf{\DNFRegex\Given\DNFRegexAlt,\SDNFLens}
+      & \REntropyOf{\PRegexStar{\DNFRegexAlt}{\ProbabilityAlt} \Given \PRegexStar{\DNFRegex}{\Probability},\StarOf{\SDNFLens}}\\
+      =
+      & \frac{\Probability}{1-\Probability}\REntropyOf{\DNFRegexAlt\Given\DNFRegex,\SDNFLens}
   \end{array}
 \]
 The expected number of bits required to recover a string in $\DNFRegexAlt$ from
@@ -2201,38 +2199,46 @@ a synchronized string in $\DNFRegex$, $\REntropyOf{\DNFRegexAlt \Given
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
-\bcp{The following is all pretty incomprehensibly dense.  A little running example
-might help.}
-
 The greedy algorithm is actually two greedy algorithms, one that greedily finds
 symmetric DNF lenses (\GreedySynth) and one that greedily finds symmetric
 sequence lenses (\GreedySeqSynth).
+We describe this synthesis algorithm in the context of trying to find a lens
+between \lstinline{"" | name.name*} and \lstinline{"" | name}, with the example
+\lstinline{creater "John Doe" = "John"}.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
 \GreedySynth, a means to synthesize symmetric DNF lenses. The inputs to
 \GreedySynth are a pair of stochastic DNF regular expressions and a suite of
-input-output examples. First, \PCF{CannotMap} checks if there could possibly be
-a lens satisfying the examples. If there is not, \GreedySynth returns \None
-early. After this, \GreedySynth finds the best lenses between each sequence pair
-of the left and right DNF regular expressions, given the examples that match
-them. An internal state for the algorithm is initialized from these. This state
-consists of two things: an intermediate partial DNF Lens and a priority queue
-consisting of potential sequence lenses. On initialization, \GreedySynth checks
-which sequence lenses are \emph{required} to be included, from the examples.
-Those are added into the partial lens, and the rest are thrown into the priority
-queue. For example, an example if an input output example is provided, the
-sequences that match those provided strings must be mapped to each other with a
-sequence lens. \GreedySynth then loops until there are no more sequence lenses
-in the priority queue. Within this loop, sequence lenses are popped. If a popped
-sequence lens maps between two sequences which aren't yet included in a sequence
-lens, then this sequence lens is added to the partial DNF lens. Furthermore, we
-update the priorities of our sequence lenses as the algorithm proceeds: if two
-sequence lenses have the same source, the second one to be popped gets a higher
-cost than it originally had, to address the information that needs to be stored
-for including that source of non-bijectivity. Finally, after all sequences have
-been popped, the partial DNF lens is converted into a symmetric DNF lens. This
-is only possible if all sequences are involved in some sequence lens: if they
-are not, \PCF{GreedyState.ToDNFLens} instead returns \None.
+input-output examples.
+
+First, \PCF{CannotMap} checks if there could possibly be a lens satisfying the
+examples. If there is not, \GreedySynth returns \None early. After this,
+\GreedySynth finds the best lenses between each sequence pair of the left and
+right DNF regular expressions, given the examples that match them. An internal
+state for the algorithm is initialized from these. This state consists of two
+things: an intermediate partial DNF Lens and a priority queue consisting of
+potential sequence lenses.
+
+\GreedySynth then loops until there are no more sequence lenses in the priority
+queue. Within this loop, sequence lenses are popped. If a popped sequence lens
+maps between two sequences which aren't yet included in a sequence lens, then
+this sequence lens is added to the partial DNF lens. Furthermore, we update the
+priorities of our sequence lenses as the algorithm proceeds: if two sequence
+lenses have the same source, the second one to be popped gets a higher cost than
+it originally had, to address the information that needs to be stored for
+including that source of non-bijectivity.
+
+In our example, \GreedySynth may first pop the sequence pair \lstinline{""} and
+\lstinline{""}, as there is a bijective sequence lens between them. After this,
+the sequence lens between \lstinline{name.name*} and \lstinline{name} would be
+popped. While examples prevent lenses between the other sequence pairs, if there
+were other lenses, they would be popped, but not added to the ongoing state, as
+they would not be a useful addition to the state.
+
+Finally, after all sequences have been
+popped, the partial DNF lens is converted into a symmetric DNF lens. This is
+only possible if all sequences are involved in some sequence lens: if they are
+not, \PCF{GreedyState.ToDNFLens} instead returns \None.
 
 \begin{algorithm}
   \caption{\GreedySynth}
@@ -2252,15 +2258,16 @@ are not, \PCF{GreedyState.ToDNFLens} instead returns \None.
     \State $\GreedyState \gets \Call{GreedyState.AddSeq}{\GreedyState,\SSQLens}$
     \EndIf
     \EndWhile
-    \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
+    \State \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
 
 \paragraph*{Symmetric Sequence lenses} Algorithm~\ref{alg:greedyseqsynth}
-presents \GreedySeqSynth, a means to synthesizes symmetric sequence lenses. This
-algorithm uses \PCF{AtomSynth}, a simple function that synthesizes atom lenses
-by iterating the DNF lens between its subcomponents. The inputs to
+presents \GreedySeqSynth, a means to synthesizes symmetric sequence lenses.
+
+This algorithm uses \PCF{AtomSynth}, a simple function that synthesizes atom
+lenses by iterating the DNF lens between its subcomponents. The inputs to
 \GreedySeqSynth are a pair of stochastic atoms and a suite of input-output
 examples. First, \PCF{CannotMap} checks if there is a possibility of a lens
 between the given sequences regular expressions that is consistent with the
@@ -2272,6 +2279,11 @@ queue consisting of potential sequence lenses. On initialization,
 \GreedySeqSynth throws all the atom lenses into the priority queue, and the
 intermediate sequence lens is one that projects all the atoms.
 
+For example, if trying to find a sequence lens between \lstinline{name.name*}
+and \lstinline{name}, lenses are found between \lstinline{name} and
+\lstinline{name}, and \lstinline{name} and \lstinline{name*}, and added to the
+queue.
+
 \GreedySeqSynth then loops until there are no more atom lenses in the priority
 queue. Within this loop, atom lenses are popped. The atom lens is then added if
 it is either necessary, or useful. Within a sequence lens, each atom can either
@@ -2282,7 +2294,13 @@ lens reduces the overall cost of the partial lens. If both atoms are not
 involved in an atom lens, the lens will always be useful, but sometimes adding
 that lens requires removing another lens. If the cost added by removing that
 other lens is more than is removed by adding the proposed lens, then this atom
-lens is not included in the sequence lens. Finally, after all atoms have been
+lens is not included in the sequence lens. For example, the bijective lens
+between \lstinline{name} and \lstinline{name} would first be found, and added to
+the state.  Next, the disconnect lens between \lstinline{name} and
+\lstinline{name*} would be popped.  Because this lens is not useful, it is not
+added to the state.
+
+Finally, after all atoms have been
 popped, the sequence lens is validated and returned. The sequence lens is
 validated if all atoms that need to be mapped, are: if they are not,
 \PCF{GreedySeqState.ToDNFLens} instead returns \None.
@@ -2314,7 +2332,7 @@ validated if all atoms that need to be mapped, are: if they are not,
     \State $\GreedyState \gets \Call{GreedySeqState.AddAtom}{\GreedyState,\SAtomLens}$
     \EndIf
     \EndWhile
-    \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
+    \State \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -2365,15 +2383,30 @@ mapped to each other either if they are the same regular expression and agree
 with the examples, or if there is a lens which is a composition of predefined
 lenses between them, where the lens agrees with the examples.
 
-\paragraph*{\RXSearch Permissiveness Customization}\bcp{I don't follow this:}
-While the termination heuristic works for many situations, there are situations
-where a large number of expansions must be performed to find the correct lens.
-While users could prevent incorrect lenses with a large number of examples, we
+\paragraph*{\RXSearch Permissiveness Customization}
+In this work, we are constrained by three competing constraints. (1) We want to
+return lenses quickly to users, (2) we want to return good lenses, and (3) we
+don't want to require users to write a large number of examples in the
+specifications. Our termination heuristic works well for most situations, but
+there are situations where a large number of expansions must be performed to
+find the correct lens.
+
+Users could prevent incorrect lenses with a large number of examples, but it can
+be quite difficult to write a large number of examples for complex formats. We
 find it simpler to let the users specify that \RXSearch should be more
-restrictive in which lenses it accepts. If the user's desired transformation has
+restrictive in which lenses it accepts, so users do not have to write a lot of
+examples.
+
+This constraint goes the other way too. If the user's desired transformation has
 a particularly high cost, the algorithm may spend a long time searching in vain
-for lenses with lower cost.  By tuning \RXSearch to me more permissive in the
+for lenses with lower cost. By tuning \RXSearch to me more permissive in the
 lenses it accepts, this search can be short-circuited.
+
+While our defaults termination condition quickly finds the correct lens for
+\afm{35} of our \afm{45} benchmarks, our termination condition is not
+one-size-fits all. Particularly complex lenses, or lenses that project a
+particularly large amount of data, can be synthesized more easily and more
+quickly by customizing how permissive \RXSearch is in returning lenses.
 % end synthesis
 
 % begin evaluation
