@@ -505,18 +505,16 @@ taken from a variety of locations\footnote{The majority of these format
   synchronization tasks were found from the following index:
   \url{http://fileformats.archiveteam.org/wiki/Electronic_File_Formats}}.
 
-In summary, our main contributions are:
+In summary, our main contributions are:\bcp{We need to find a way to mention
+sections 3 and 4!}
 \begin{itemize}
 \item We define the space of simple symmetric lenses, which lies between
   asymmetric lenses and full symmetric lenses and has the useful property that
-  its members don't have any internal state (\S\ref{sec:overview}). We describe
-  a language for simple symmetric string lenses and the cost metric for that
-  language (\S\ref{sec:ssl}).
-\item We show how to synthesize simple symmetric lenses (including all
-  asymmetric lenses as a special case), using a novel application of stochastic
-  regular expressions to guide the search process (\S\ref{sec:synthesis}). In
-  particular, we show that the RE star semi-ring equivalences remain valid when
-  their semantics are enriched by distributions (\S\ref{sec:sre}).
+  its members don't have any internal state (\S\ref{sec:overview}). 
+\item We show how to synthesize simple symmetric lenses (including all asymmetric lenses as a special case),
+using a novel application of stochastic regular expressions to guide the search process.  In particular, we
+show that the RE star semi-ring equivalences remain valid when their semantics
+are enriched by distributions (\S\ref{sec:synthesis}).
 \item We extend the Boomerang implementation with simple symmetric lenses,
   showing that they can easily be combined with a rich variety of other lens
   extensions including quotients and matching lenses. We evaluate our
@@ -530,8 +528,7 @@ In summary, our main contributions are:
   as the subset of full symmetric lenses for which a simple ``forgetfulness''
   property holds (\S\ref{sec:relationship}).
 \end{itemize}
-We finish the paper with a discussion of related work (\S\ref{sec:related}) and
-our final thoughts (\S\ref{sec:conc}).
+\bcp{Related work?  Conclusions?  Appendices?}
 
 %Such synthesis efforts
 %make it easier to use lenses as programmers do not need to be familiar with the syntax
@@ -663,10 +660,12 @@ synchronized because the files have a mix of shared and unshared information.
 %align the actual commands that are run.
 
 \subsection{Simple Symmetric Lenses}
-A simple symmetric lens between formats described by types $X$ and $Y$ is
-defined by four functions.\bcp{I think a picture would be helpful. I can
-  probably make one pretty easily by tweaking the one from the original
-  symmetric paper.} \afm{That would be awesome.}
+A simple symmetric lens between formats described by regular expression types
+$\BRegex$ and $\BRegexAlt$\footnote{We use nonterminals \BRegex and \BRegexAlt
+  for regular expressions, using \Regex and \RegexAlt for stochastic regular
+  expressions.} is defined by four functions.\bcp{I think a picture would be
+  helpful. I can probably make one pretty easily by tweaking the one from the
+  original symmetric paper.} \afm{That would be awesome.}
 
 %\begin{enumerate}
 %\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
@@ -677,42 +676,39 @@ defined by four functions.\bcp{I think a picture would be helpful. I can
 
 \begin{gather}
  \tag{1}
- \mbox{$\CreateR \OfType X \rightarrow Y$}\\
+ \mbox{$\CreateR \OfType \BRegex \rightarrow \BRegexAlt$}\\
  \tag{2}
- \mbox{$\CreateL \OfType Y \rightarrow X$}\\
+ \mbox{$\CreateL \OfType \BRegexAlt \rightarrow \BRegex$}\\
  \tag{3}
- \mbox{$\PutR \OfType X \rightarrow Y \rightarrow Y$}\\
+ \mbox{$\PutR \OfType \BRegex \rightarrow \BRegexAlt \rightarrow \BRegexAlt$}\\
  \tag{4}
- \mbox{$\PutL \OfType Y \rightarrow X \rightarrow X$}
+ \mbox{$\PutL \OfType \BRegexAlt \rightarrow \BRegex \rightarrow \BRegex$}
 \end{gather}
 
 \noindent
 that collectively satisfy four ``round-tripping'' laws: 
 \begin{gather}
   \tag{\CreatePutRL}
-  \PutLOf{(\CreateROf{x})}{x} = x\\
+  \PutLOf{(\CreateROf{s})}{s} = s\\
   \tag{\CreatePutLR}
-  \PutROf{(\CreateLOf{y})}{y} = y\\
+  \PutROf{(\CreateLOf{t})}{t} = t\\
   \tag{\PutRL}
-  \PutLOf{(\PutROf{x}{y})}{x} = x\\
+  \PutLOf{(\PutROf{s}{t})}{s} = s\\
   \tag{\PutLR}
-  \PutROf{(\PutLOf{y}{x})}{y} = y
+  \PutROf{(\PutLOf{t}{s})}{t} = t
 \end{gather}
 \noindent
-The two {\sc Create} functions propagate shared information and fill in default
-values when introducing new data. (\EG, the ``unk'' salary entry is added
-alongside the name to the management file when HR inserts a new employee). The
-two {\sc Put} functions propagate edits from one format to the other by
-combining the change from one file with the previous value from the other file.
-The roundtripping laws guarantee that if two formats are already synchronized,
-{\sc Put}s merely return the second argument, unchanged.
+The two {\sc Create} functions fill in default values for times when
+data appears on one side but not the other\bcp{confusing wording: the whole point of
+symmetric lenses is that data can appear on one side but not the other} (\EG, the ``unk'' salary
+entry added to the management file when HR inserts a new employee).
+The two {\sc Put} functions propagate edits from one format to the
+other by combining the change from one file with the previous value
+from the other file. The roundtripping laws guarantee that identify
+edits\bcp{I think you mean ``identity edits,'' but even then this is going
+  to be very opaque to readers} to one file do
+not change the data in the other file. 
 
-This definition differs from previous formulations of simple symmetric lenses,
-as previous formulations required a \emph{complement}. Instead of comprising
-four functions, existing formulations merely comprised two functions, which
-combined complements with edited formats to create updated complements and
-synchronized data. We provide a detailed comparison to classic symmetric lenses
-in \S\ref{sec:relationship}.
 
 %%For synchronization, when the original company.hr or company.mgmt
 %%file is created, a synchronized file of the other form is created
@@ -721,33 +717,32 @@ in \S\ref{sec:relationship}.
 %%a \PutR would propagate the shared information from the company.hr
 %%file, and knit it together with the information specific to the company.mgmt file.
 
+We use regular expressions\bcp{At this point, we are just talking about
+  simple symmetric lenses in general: we do not have to restrict to regular
+  expressions as types.}\bcp{Also, we should say briefly how this definition
+differs from full symmetric lenses.} to denote the types of data formats, and we
+impose a typing discipline on our lenses.  Specifically, if 
+$\BRegex$ and $\BRegexAlt$ are regular expressions, then the notation
+\lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that $\Lens$
+is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
+$\LanguageOf{\BRegexAlt}$. 
+When clear from context, we use the term \textit{lens} to denote a
+simple symmetric lens.
 
-\subsection{Simple Symmetric Lens Combinators}
 
-
-
-
+\subsection{Simple Symmetric Lens Combinators} 
 Generally, we do not expect programmers to define simple symmetric lenses by
-writing the four functions by hand and showing they satisfy the roundtripping
-laws. Instead, we provide simple symmetric lens combinators to build up the
-requisite lenses from simpler ones, and focus our combinators on providing
-lenses between string data formats.
-
-We use regular expressions to denote the types of data formats, and we impose a
-typing discipline on our lenses. Specifically, if $\BRegex$ and $\BRegexAlt$ are
-regular expressions\footnote{We use \BRegex and \BRegexAlt to denote regular
-  expressions. We later use the plain nonterminals \Regex and \RegexAlt for
-  stochastic regular expressions.}, then the notation
-\lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that $\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and $\LanguageOf{\BRegexAlt}$. When clear from context, we use the term \textit{lens} to denote a simple symmetric lens.
-
-We briefly explain a selection of these
-combinators by using them to define a lens between the two employee data formats
-in Figure~\ref{fig:minimized-representations}. The finished lens, which appears
-in Figure~\ref{fig:example_lens}, has the type
-\lstinline{emp_salaries} $\Leftrightarrow$
-\lstinline{emp_insurance}, where
-\lstinline{emp_salaries} and
-\lstinline{emp_insurance} are regular expressions defined in Figure~\ref{fig:minimized-representations}.
+writing the four functions by hand and showing they satisfy the
+roundtripping laws.  Instead, we provide simple symmetric lens
+combinators to build up the requisite lenses from simpler ones.
+We briefly explain a selection of these combinators by using them to
+define a lens between 
+the two employee data formats in Figure~\ref{fig:minimized-representations}. 
+The finished lens, which appears in Figure~\ref{fig:example_lens}, has
+the type 
+\lstinline{emp_salaries} $\Leftrightarrow$ \lstinline{emp_insurance}, where
+\lstinline{emp_salaries} and \lstinline{emp_insurance} are regular
+expressions defined in Figure~\ref{fig:minimized-representations}. 
 
 
 The simplest combinator is the identity lens \IdentityLens, which takes as an
@@ -766,21 +761,19 @@ id(name) : name $\Leftrightarrow$ name
 \end{lstlisting}
 %
 
-In contrast to the identity lens, the \Disconnect lens does not propagate edits
-from one format to the other. The disconnect lens takes four arguments: two
-regular expressions and two strings. The regular expressions specify the formats
-of the corresponding data on the two sides while the strings provide default
-values. On creates, the input values are thrown away, and default values are
-returned ($\CreateROf{\String} =
+In contrast to the identity lens, the \Disconnect lens, leaves data
+unconnected\bcp{``leaves data
+unconnected'' doesn't say much to me}. The disconnect lens takes four arguments: two regular expressions
+and two strings. The regular expressions specify the formats of the
+corresponding data on the two sides while the strings provide default values.
+On creates, the input values are thrown away, and default values are returned ($\CreateROf{\String} =
 \lstinline{"UNK"}$), and on puts, the second argument is used, and the first is
-thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). In our extended
-example, the \lstinline{salary} and \lstinline{company} fields are independent,
-so we use the disconnect lens to relate them\bcp{Potentially confusing to
-  readers (and, even to me, hacky). Why not relate each of them to the constant
-  empty string?}\afm{I'm fine with the empty string.  I've seen sentinel values
-  like UNK used before in practice, but if it makes the example cleaner and more
-  comprehensible, sure.  Anybody else have thoughts on the matter?}.
-The defaults are strings that indicate the information is missing.
+thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$).  In
+our extended example, the \lstinline{salary} and
+\lstinline{company} fields are independent, so we use the disconnect lens to
+relate them\bcp{Potentially confusing to readers (and, even to me, hacky).
+  Why not relate each of them to the constant 
+  empty string?}. The defaults are strings that indicate the information is missing.
 %
 \begin{lstlisting}
 disconnect(salary, company, "unk", "UNK") : salary $\Leftrightarrow$ company
@@ -850,11 +843,11 @@ We provide typing rules for each of the simple symmetric combinators, most of
 which are syntax directed. However, regular expressions have a number of
 equivalences on them, and sometimes we must convert one regular expression type
 to another, equivalent, regular expression type. Our typing rules include type
-equivalence, so if a lens has type $\Regex \Leftrightarrow \RegexAlt$, then it
-is also has type $\Regex' \Leftrightarrow \RegexAlt'$, where $\Regex$ is
-equivalent to $\Regex'$, and $\RegexAlt$ is equivalent to $\RegexAlt'$. The
-flexibility this type equivalence rule provides is useful when a different
-representation of a regular expression would facilitate synthesis.
+equivalence, so if a lens is typed between\bcp{``is typed between'' is
+  awkward and potentially confusing} two regular expressions, it is also
+typed between two equivalent ones. The flexibility this type equivalence rule
+provides is useful when a different representation of a regular expression would
+facilitate synthesis.
 
 %%\ksf{Do we need to use
 %%type equivalence to type the employee example?  If so, perhaps we
@@ -872,7 +865,7 @@ representation of a regular expression would facilitate synthesis.
 
 While our example is relatively simple for demonstration, writing such lenses
 for real-world formats is quite difficult, as these formats can be large and
-represent data in complex and unintuitive ways. To alleviate the difficulty of
+transform data\bcp{formats do not transform anything} in complex and unintuitive ways. To alleviate the difficulty of
 manually writing simple symmetric lenses, we wish to synthesize them instead.
 Given a pair of regular expressions and a set of input-output examples, we want
 to find a simple symmetric lens that is typed by the regular expression pair and
@@ -938,12 +931,17 @@ information.  This calculation shows that if both \IdentityLens{}
 and \Disconnect{} are satisfying lenses, then \IdentityLens{} is more
 likely.
 
-The expected number of bits required to recover data is a well-known concept in
-information theory: it is the \emph{entropy} of the data. Calculating the
-entropy of data requires a probability distribution over the space of possible
-values for the data. Specifically, given a set $S$ and a probability
-distribution over that set $P \OfType S \rightarrow \Reals$, the entropy of $S$
-with probability distribution $P$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$.
+The expected number of bits required to recover data is a
+well-known concept in information theory: it is the \emph{entropy} of
+the data. Calculating the 
+entropy of data requires a probability distribution over the
+space of possible values for the data.  Specifically,
+given a set $S$ and a probability distribution over that set $P
+\OfType S \rightarrow \Reals$, the entropy of the $(S,P)$ pair is $-\Sigma_{s\in
+  S}P(s)\Log_2P(s)$. 
+\bcp{Wait---is entropy a property of the whole set of values, or of
+  individual data values in the set??  I think the former, but some of the
+  explanation made me think the latter.}
 
 In our setting, we already have a way of expressing sets of data:
 regular expressions.  What we need is a way to express probability
@@ -953,6 +951,7 @@ which are regular expressions where each operator is annotated with a
 probability.  A stochastic regular expression
 specifies both a set of strings and a probability
 distribution over it.  From this information, we can calculate the
+<<<<<<< HEAD
 entropy of the SRE. 
 
 This infrastructure gives us what we need to find likely satisfying lenses from
@@ -963,56 +962,69 @@ $\LanguageOf{\Regex}$ from a synchronized string $t$ in
 $\LanguageOf{\RegexAlt}$. This expected number of bits is just the conditional
 entropy of $\Regex$ given $\RegexAlt$ and $\Lens$. To ensure symmetry, the
 likelihood we assign to $\Lens$ is the sum of the conditional entropy of
-$\Regex$ given $\RegexAlt$ and $\Lens$, \bcp{Am I supposed to know what this
-  means?} and the conditional entropy of $\RegexAlt$ given $\Regex$ and
-$\Lens$.\bcp{Why is this the right (or a sensible) thing to do, besides the fact
-  that it ensures symmetry?}
+$\Regex$ given $\RegexAlt$ and $\Lens$\bcp{Am I supposed to know what this
+  means?} and the conditional entropy of
+$\RegexAlt$ given $\Regex$ and $\Lens$.\bcp{Why
+  is this the right (or a sensible)  thing to do, besides the fact that it
+  ensures symmetry?}
 
-To obtain SREs from the plain regular expressions that we expect users to
-supply, we use a heurstic that attempts to assign probability annotations that
-give each string in the language equal probablity. Our algorithm could also take
-as input a stochastic regular expression rather than a plain one, which allows
-the user to specify a data-specific probability distribution, either manually
-written or inferred from a large dataset. We found our heuristically chosen
-distribution works well in practice.
+To obtain SREs from the plain regular expressions that
+we expect users to supply, we use a heurstic that attempts to assign probability
+annotations that give each string in the language equal probablity. We can also
+take as input a stochastic regular expression rather than a plain one, which
+allows the user to specify a data-specific probability distribution.
+Alternatively, the user could provide a large suite of example data from which
+we could infer the necessary annotations to model the supplied data. We found
+our heuristically chosen distribution works well in practice.
 
 Now that we have a way to calculate likelihood, we need a way to search for
-likely lenses. Previous work on synthesis~\cite{?,?,?} has shown that we can use
-types to dramatically restrict the search space and improve the effectiveness of
-synthesis. In our setting, types are pairs of stochastic regular expressions,
-which come with a rich algebraic structure that makes each regular expression
-semantically equal to infinitely many others. To tame that search space and
-leverage the benefits of type-directed synthesis, we split our algorithm into
-two communicating synthesizers following earlier
-work~\cite{quotient-lens-synthesis}. The first synthesizer, \RXSearch, navigates
-the space of semantically equivalent regular expressions by iteratively applying
-rewrite rules that preserve both the semantics and the probability distributions
-of those stochastic regular expressions. \RXSearch ranks pairs of stochastic
-regular expressions by the number of rewrite rule applications required to
-obtain the pair from the stochastic regular expressions given as input. It
-passes the pairs off to the second synthesizer, \GreedySynth, in rank order with
+it.\bcp{A way to search for likelihood???}
+Previous work on synthesis~\cite{?,?,?} has shown
+that we can use types to dramatically restrict the search space and
+improve the effectiveness of synthesis.  In our setting, types are
+pairs of stochastic regular expressions, which come with a rich
+algebraic structure that makes each regular expression semantically
+equal to infinitely many others.  To tame that search space and
+leverage the benefits of type-directed synthesis, we split our
+algorithm into two communicating synthesizers following earlier
+work~\cite{quotient-lens-synthesis}.  The first
+synthesizer, \RXSearch, navigates the space of semantically equivalent
+regular expressions by iteratively applying rewrite rules that
+preserve both the semantics and the probability
+distributions of those stochastic regular expressions. \RXSearch
+ranks pairs of stochastic regular expressions 
+by the number of rewrite rule applications required to obtain the pair
+from the stochastic regular expressions given as input. It passes the
+pairs off to the second synthesizer, \GreedySynth, in rank order with
 the smallest first.
 
 At a high level, \GreedySynth looks for lenses between a given pair of
-stochastic regular expressions $\Regex$ and $\RegexAlt$ that have the highest
-likelihood by performing a type-directed search. In more detail, \GreedySynth
-first normalizes the stochastic regular expressions provided by \RXSearch into
-\emph{stochastic DNF regular expressions}. These stochastic DNF regular
-expressions are, intuitively, stochastic regular expressions with disjunctions
-distributed over concatenations, where associativity information has been
-removed. Then, \GreedySynth uses the syntax of these n-ary DNF regular
-expressions to find highly normalized lenses, in a form we call \emph{simple
-  symmetric n-ary DNF lenses}. These lenses include neither a composition
-operator nor a type equivalence rule. These restrictions mean that each simple
-symmetric n-ary DNF lens is typed by a single pair of stochastic n-ary DNF
-regular expressions and \GreedySynth's search space for a given pair of regular
-expressions is finite. The variations that \GreedySynth considers include
-choosing between \IdentityLens{} and \Disconnect lenses and deciding how to
-match multiple occurrences of the same kind of data, \EG, the two occurrences of
-\lstinline{name} in the management and HR data formats (we want to map first
-names to first names and last names to last names). Finally, \GreedySynth
-converts this lens back into a simple symmetric lens by converting the n-ary
-forms into the binary forms provided in the surface language.
+stochastic regular expressions $\Regex$ and $\RegexAlt$ that have the
+highest likelihood by performing a type-directed search. 
+In more detail, \GreedySynth first uses type equalities based on semiring 
+equivalences (ignoring the star semiring equivalences that are managed
+by \RXSearch)\bcp{``ring equivalences'' and ``star semiring equivalences''
+  are jargon that most readers won't know} to normalize the
+stochastic regular expressions provided by \RXSearch into 
+\emph{stochastic n-ary DNF regular expressions}\bcp{As a reader, I can
+  sort of imagine what a ``DNF lens'' might be, but it would be better to say
+  it.  And I have no idea what ``n-ary'' might be.}.  
+Then, \GreedySynth uses the syntax of these n-ary DNF regular
+expressions to find highly normalized lenses, in a
+form we call \emph{simple symmetric n-ary DNF lenses}.  These lenses include
+neither a composition operator nor a type equivalence rule.  These
+restrictions mean that each simple symmetric n-ary DNF lens is typed
+by a single pair of stochastic n-ary DNF regular expressions and 
+\GreedySynth's search space for a given pair of regular expressions is
+finite.  The variations that \GreedySynth 
+considers include choosing between \IdentityLens{} and  \Disconnect
+lenses and deciding how to match multiple occurrences of the same kind
+of data, \EG, the two occurrences of \lstinline{name} in the
+management and HR data formats (we want to map first names to first
+names and last names to last names). 
+Finally, \GreedySynth converts this lens 
+back into a simple symmetric lens by converting the n-ary forms into
+the binary forms provided in the surface language.  
 
 As an example of the partnership between \RXSearch and \GreedySynth,
 consider the lens shown in Figure~\ref{fig:example_lens}. 
@@ -1116,7 +1128,7 @@ information than $\EntropyOf{\lstinline{": " . salary}}$, and
 % end stoch-rx
 
 \section{Stochastic Regular Expressions}
-\label{sec:sre}
+\label{sec:srx}
 To characterize the likely lenses, we must compute the expected number of bits
 needed to recover a string in one data source from a synchronized string in the
 other data source. To do this, we must first develop a probabilistic langauge
@@ -1142,8 +1154,8 @@ $\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation $\Probability$
 represents the likelihood the string is in $\Regex_1$. In the stochastic regular
 expression $\PRegexStar{\Regex}{\Probability}$, the annotation \Probability how
 much more likely having a string involving more than $n$ iterations is than
-having a string involving exactly $n$ iterations. The semantics of SREs is
-defined by the function $P$ below.
+having a string involving $n$ iterations\bcp{exactly n?  n or fewer?}. The semantics of SREs is defined by
+the function $P$ below.
 
 \begin{center}
   \begin{tabular}{rcl}
@@ -1173,9 +1185,10 @@ defined by the function $P$ below.
 
 \subsection{Stochastic Regular Expression Equivalences}
 $\RXSearch$ needs to be able to find equivalent stochastic regular expressions.
-However, existing work does not reason about stochastic regular expression
-equivalence. We extend the \emph{star-semiring}~\cite{?} equivalences to
-stochastic regular expressions.\bcp{Why these?}
+However, as of yet\bcp{meaning that this is something we invented?  or was
+  it present in other treatments of stochastic REs?}, there is no syntactic means to reason about stochastic
+regular expression equivalence. We extend the \emph{star-semiring}\bcp{citation?} equivalences
+to stochastic regular expressions.\bcp{Why these?}
 
 \begin{center}
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
@@ -1200,15 +1213,14 @@ stochastic regular expressions.\bcp{Why these?}
 \end{theorem}
 \begin{proof}
   The proofs of this theorem, and subsequent theorems in this paper, appears in
-  the appendix present in the full version of the paper accompanying this
-  submission.
+  the auxiliary materials accompanying this submission.\bcp{Not in the appendix?}
 \end{proof}
 
 \subsection{Stochastic Regular Expression Entropy}
 The entropy of a data source $S$ is the expected number of bits required to
 describe a random element in $S$ ($-\Sigma_{s\in S}P(s)\Log_2P(s)$). The entropy
 of a stochastic regular expression can be computed directly from its syntax,
-when the stochastic regular expression is unambiguous and contains no empty
+when the stochastic regular expression is unambiguous and contains no nonempty\bcp{empty?}
 subcomponents.
 \begin{center}
   \begin{tabular}{rcl}
@@ -1538,8 +1550,9 @@ The \IterateLens lens deals with iterated data.
   \end{tabular}
 \end{center}
 The \MergeR lens is interesting because it merges data where one data can be in
-two formats, and one data has only one format. In previous work~\cite{?}, this
-was combined into \OrLens{}, where \OrLens{} could have ambiguous types, but we
+two formats, and one data has only one format. In previous work\bcp{where?},
+this was
+combined into \OrLens{}, where \OrLens{} could have ambiguous types, but we
 find it more clear to have explicit merge operators: it is easier to see what
 lens the synthesis algorithm is creating.
 
@@ -1794,9 +1807,10 @@ Eventually, $\RXSearch$ terminates and returns the best lens found thus far.
     \State $\LCO \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
     \State $\RXSearchState \gets \Call{\RXSearch.Consider}{\RXSearchState,\LCO}$
     \EndWhile
-    \State \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
+    \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
     \EndFunction
   \end{algorithmic}
+\bcp{Why does the RETURN statement not get a number?}
 \end{algorithm}
 
 %In this work, we aim to quickly find a good lens between two regular expressions
@@ -1862,16 +1876,17 @@ As well as the congruence rules that allow these rewrites to be applied on
 subexpressions.
 
 \RXSearch proposes rewrites incrementally, where it proposes regular expression
-pairs with the smallest number of rewrites first. When there are no more
-proposed regular expressions derived from $n$ rewrites, \RXSearch proposes
-regular expressions derived from $n+1$ rewrites.
+pairs with the smallest number of rewrites first, and when there are no more
+proposed regular expressions of that size, \RXSearch proposes regular
+expressions of larger size.
 
 \RXSearch terminates when the sum of the number of regular expressions of the
 smallest unproposed size with the distance of those regular expressions from the
 originals exceeds the cost of the current best lens. At this point, \RXSearch
 stops proposing regular expression pairs, and instead returns to the user the
 best lens found thus far. Note this means that if \RXSearch finds a bijective
-lens, which has zero cost it will immediately return.
+lens (a lens of cost 0\bcp{have we proved that the bijective lenses are
+  exactly the ones with zero cost?  That would be nice to state clearly someplace...}) it will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
 Stochastic DNF regular expressions are a highly normalized form of stochastic
@@ -2013,22 +2028,22 @@ distributions.
 
 \paragraph*{\ToStochastic} With stochastic DNF regular expressions and
 \ToDNFRegex defined, it is easier to explain the function that converts regular
-expressions into stochastic regular expressions, \ToStochastic. If users
-specified stochastic regular expressions themselves, this step could be skipped,
-though our integration into Boomerang does not permit users to provide
-stochastic regular expressions. If $\Regex$ is a stochastic DNF regular
-expression generated by \ToStochastic, then $\ToDNFRegexOf{\Regex} =
-\DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
+expressions into stochastic regular expressions, \ToStochastic\bcp{from the
+  description above, I thought this step was optional (because we allowed
+  the user to write SREs directly)}. If $\Regex$ is a
+stochastic DNF regular expression generated by \ToStochastic, then
+$\ToDNFRegexOf{\Regex} = \DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
   (\Sequence_n,\frac{1}{n})}$ for some sequences $\Sequence_1\ldots\Sequence_n$,
 and every stochastic atom generated by \ToStochastic is
 $\PRegexStar{\DNFRegex}{.8}$. In particular, $\ToDNFRegex$ generates regular
-expressions whose DNF form gives equal probability to all sequence subcomponents
-of the DNF regular expression., and gives iterations a .8 chance to continue
-iterating. In our experience generating random strings from regular expressions,
-these probabilities provide good distributions of strings -- stars are iterated
-4 times on average, and no individual choice in a series disjunctions is chosen
-disproportionately often. As we have found these distributions generate
-reasonable strings, we believe they describe the shape of data well.
+expressions whose DNF form gives equal probability to all sequences\bcp{Why?}\bcp{Also, what does this mean?  If a given RE denotes an
+infinite language, then there is no way to give equal probability to every
+string in that language, is there???}, and gives
+iterations a .8 chance to continue iterating. In our experience generating
+random strings from regular expressions\bcp{what does generating random
+  strings have to do with synthesis? i.e., why is this a good thing to measure?}, these probabilities provide good
+distributions of strings -- stars are iterated 4 times on average, and no
+individual choice in a series disjunctions is chosen disproportionately often.
 
 \paragraph*{Entropy}
 We have developed a syntactic means of finding the entropy of a stochastic DNF
@@ -2067,12 +2082,11 @@ synthesizing such lenses can be driven primarily by the type of the lenses.
 
 \paragraph*{Syntax}
 Like stochastic DNF regular expressions, symmetric DNF Lenses are hierarchically
-structured. Symmetric DNF lenses, which provide lens functions between DNF
-regular expressions, consist of a list of symmetric sequence lenses, as well as
-some additional information. Symmetric sequence lenses, which provide lens
-functions betwen sequences, consist of a list of symmetric atom lenses, as well
-as some additional information. Symmetric atom lenses, which provide lens
-functions between atoms, are merely iterations of symmetric DNF lenses. In the
+structured. Symmetric DNF lenses consist of a list of symmetric sequence lenses,
+as well as some additional information. Symmetric sequence lenses consist of a
+list of symmetric atom lenses\bcp{why are they called atom lenses?}, as well
+as some additional information, and
+symmetric atom lenses are merely iterations of symmetric DNF lenses. In the
 following syntax, the nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all
 represent natural numbers. The nonterminals $\String$ and $\StringAlt$ represent
 strings.
@@ -2187,9 +2201,9 @@ calculation for symmetric atom lenses, which in turn relies on the entropy
 calculation for symmetric DNF lenses.
 
 \[\begin{array}{rl}
-      & \REntropyOf{\PRegexStar{\DNFRegexAlt}{\ProbabilityAlt} \Given \PRegexStar{\DNFRegex}{\Probability},\StarOf{\SDNFLens}}\\
-      =
-      & \frac{\Probability}{1-\Probability}\REntropyOf{\DNFRegexAlt\Given\DNFRegex,\SDNFLens}
+      & \REntropyOf{\PRegexStar{\DNFRegex}{\Probability} \Given \StarOf{\DNFRegexAlt},\StarOf{\SDNFLens}}\\
+      =\\
+      & 4*\REntropyOf{\DNFRegex\Given\DNFRegexAlt,\SDNFLens}
   \end{array}
 \]
 The expected number of bits required to recover a string in $\DNFRegexAlt$ from
@@ -2199,46 +2213,38 @@ a synchronized string in $\DNFRegex$, $\REntropyOf{\DNFRegexAlt \Given
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
+\bcp{The following is all pretty incomprehensibly dense.  A little running example
+might help.}
+
 The greedy algorithm is actually two greedy algorithms, one that greedily finds
 symmetric DNF lenses (\GreedySynth) and one that greedily finds symmetric
 sequence lenses (\GreedySeqSynth).
-We describe this synthesis algorithm in the context of trying to find a lens
-between \lstinline{"" | name.name*} and \lstinline{"" | name}, with the example
-\lstinline{creater "John Doe" = "John"}.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
 \GreedySynth, a means to synthesize symmetric DNF lenses. The inputs to
 \GreedySynth are a pair of stochastic DNF regular expressions and a suite of
-input-output examples.
-
-First, \PCF{CannotMap} checks if there could possibly be a lens satisfying the
-examples. If there is not, \GreedySynth returns \None early. After this,
-\GreedySynth finds the best lenses between each sequence pair of the left and
-right DNF regular expressions, given the examples that match them. An internal
-state for the algorithm is initialized from these. This state consists of two
-things: an intermediate partial DNF Lens and a priority queue consisting of
-potential sequence lenses.
-
-\GreedySynth then loops until there are no more sequence lenses in the priority
-queue. Within this loop, sequence lenses are popped. If a popped sequence lens
-maps between two sequences which aren't yet included in a sequence lens, then
-this sequence lens is added to the partial DNF lens. Furthermore, we update the
-priorities of our sequence lenses as the algorithm proceeds: if two sequence
-lenses have the same source, the second one to be popped gets a higher cost than
-it originally had, to address the information that needs to be stored for
-including that source of non-bijectivity.
-
-In our example, \GreedySynth may first pop the sequence pair \lstinline{""} and
-\lstinline{""}, as there is a bijective sequence lens between them. After this,
-the sequence lens between \lstinline{name.name*} and \lstinline{name} would be
-popped. While examples prevent lenses between the other sequence pairs, if there
-were other lenses, they would be popped, but not added to the ongoing state, as
-they would not be a useful addition to the state.
-
-Finally, after all sequences have been
-popped, the partial DNF lens is converted into a symmetric DNF lens. This is
-only possible if all sequences are involved in some sequence lens: if they are
-not, \PCF{GreedyState.ToDNFLens} instead returns \None.
+input-output examples. First, \PCF{CannotMap} checks if there could possibly be
+a lens satisfying the examples. If there is not, \GreedySynth returns \None
+early. After this, \GreedySynth finds the best lenses between each sequence pair
+of the left and right DNF regular expressions, given the examples that match
+them. An internal state for the algorithm is initialized from these. This state
+consists of two things: an intermediate partial DNF Lens and a priority queue
+consisting of potential sequence lenses. On initialization, \GreedySynth checks
+which sequence lenses are \emph{required} to be included, from the examples.
+Those are added into the partial lens, and the rest are thrown into the priority
+queue. For example, an example if an input output example is provided, the
+sequences that match those provided strings must be mapped to each other with a
+sequence lens. \GreedySynth then loops until there are no more sequence lenses
+in the priority queue. Within this loop, sequence lenses are popped. If a popped
+sequence lens maps between two sequences which aren't yet included in a sequence
+lens, then this sequence lens is added to the partial DNF lens. Furthermore, we
+update the priorities of our sequence lenses as the algorithm proceeds: if two
+sequence lenses have the same source, the second one to be popped gets a higher
+cost than it originally had, to address the information that needs to be stored
+for including that source of non-bijectivity. Finally, after all sequences have
+been popped, the partial DNF lens is converted into a symmetric DNF lens. This
+is only possible if all sequences are involved in some sequence lens: if they
+are not, \PCF{GreedyState.ToDNFLens} instead returns \None.
 
 \begin{algorithm}
   \caption{\GreedySynth}
@@ -2258,16 +2264,15 @@ not, \PCF{GreedyState.ToDNFLens} instead returns \None.
     \State $\GreedyState \gets \Call{GreedyState.AddSeq}{\GreedyState,\SSQLens}$
     \EndIf
     \EndWhile
-    \State \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
+    \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
 
 \paragraph*{Symmetric Sequence lenses} Algorithm~\ref{alg:greedyseqsynth}
-presents \GreedySeqSynth, a means to synthesizes symmetric sequence lenses.
-
-This algorithm uses \PCF{AtomSynth}, a simple function that synthesizes atom
-lenses by iterating the DNF lens between its subcomponents. The inputs to
+presents \GreedySeqSynth, a means to synthesizes symmetric sequence lenses. This
+algorithm uses \PCF{AtomSynth}, a simple function that synthesizes atom lenses
+by iterating the DNF lens between its subcomponents. The inputs to
 \GreedySeqSynth are a pair of stochastic atoms and a suite of input-output
 examples. First, \PCF{CannotMap} checks if there is a possibility of a lens
 between the given sequences regular expressions that is consistent with the
@@ -2279,11 +2284,6 @@ queue consisting of potential sequence lenses. On initialization,
 \GreedySeqSynth throws all the atom lenses into the priority queue, and the
 intermediate sequence lens is one that projects all the atoms.
 
-For example, if trying to find a sequence lens between \lstinline{name.name*}
-and \lstinline{name}, lenses are found between \lstinline{name} and
-\lstinline{name}, and \lstinline{name} and \lstinline{name*}, and added to the
-queue.
-
 \GreedySeqSynth then loops until there are no more atom lenses in the priority
 queue. Within this loop, atom lenses are popped. The atom lens is then added if
 it is either necessary, or useful. Within a sequence lens, each atom can either
@@ -2294,13 +2294,7 @@ lens reduces the overall cost of the partial lens. If both atoms are not
 involved in an atom lens, the lens will always be useful, but sometimes adding
 that lens requires removing another lens. If the cost added by removing that
 other lens is more than is removed by adding the proposed lens, then this atom
-lens is not included in the sequence lens. For example, the bijective lens
-between \lstinline{name} and \lstinline{name} would first be found, and added to
-the state.  Next, the disconnect lens between \lstinline{name} and
-\lstinline{name*} would be popped.  Because this lens is not useful, it is not
-added to the state.
-
-Finally, after all atoms have been
+lens is not included in the sequence lens. Finally, after all atoms have been
 popped, the sequence lens is validated and returned. The sequence lens is
 validated if all atoms that need to be mapped, are: if they are not,
 \PCF{GreedySeqState.ToDNFLens} instead returns \None.
@@ -2332,7 +2326,7 @@ validated if all atoms that need to be mapped, are: if they are not,
     \State $\GreedyState \gets \Call{GreedySeqState.AddAtom}{\GreedyState,\SAtomLens}$
     \EndIf
     \EndWhile
-    \State \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
+    \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -2383,30 +2377,15 @@ mapped to each other either if they are the same regular expression and agree
 with the examples, or if there is a lens which is a composition of predefined
 lenses between them, where the lens agrees with the examples.
 
-\paragraph*{\RXSearch Permissiveness Customization}
-In this work, we are constrained by three competing constraints. (1) We want to
-return lenses quickly to users, (2) we want to return good lenses, and (3) we
-don't want to require users to write a large number of examples in the
-specifications. Our termination heuristic works well for most situations, but
-there are situations where a large number of expansions must be performed to
-find the correct lens.
-
-Users could prevent incorrect lenses with a large number of examples, but it can
-be quite difficult to write a large number of examples for complex formats. We
+\paragraph*{\RXSearch Permissiveness Customization}\bcp{I don't follow this:}
+While the termination heuristic works for many situations, there are situations
+where a large number of expansions must be performed to find the correct lens.
+While users could prevent incorrect lenses with a large number of examples, we
 find it simpler to let the users specify that \RXSearch should be more
-restrictive in which lenses it accepts, so users do not have to write a lot of
-examples.
-
-This constraint goes the other way too. If the user's desired transformation has
+restrictive in which lenses it accepts. If the user's desired transformation has
 a particularly high cost, the algorithm may spend a long time searching in vain
-for lenses with lower cost. By tuning \RXSearch to me more permissive in the
+for lenses with lower cost.  By tuning \RXSearch to me more permissive in the
 lenses it accepts, this search can be short-circuited.
-
-While our defaults termination condition quickly finds the correct lens for
-\afm{35} of our \afm{45} benchmarks, our termination condition is not
-one-size-fits all. Particularly complex lenses, or lenses that project a
-particularly large amount of data, can be synthesized more easily and more
-quickly by customizing how permissive \RXSearch is in returning lenses.
 % end synthesis
 
 % begin evaluation
@@ -3895,86 +3874,101 @@ We now show that $\lceil \ell \rceil$ satisfies the simple symmetric lens laws:
   include composition, $\Regex$ and $\RegexAlt$ and unambiguous, and neither
   $\Regex$ nor $\RegexAlt$ contain any empty subcomponents.
   \begin{enumerate}
-  \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ calculates the expected
+  \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ is an upper bound for the expected
     information content of $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt}}$,
     given $\SetOf{s \SuchThat s \in \LanguageOf{\Regex} \BooleanAnd
       \Lens.\PutROf{s}{t} = t}$
-  \item $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ calculates the expected
+  \item $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ is an upper bound for the expected
     information content of $\SetOf{s \SuchThat s \in \LanguageOf{\Regex}}$,
     given $\SetOf{t \SuchThat t \in \LanguageOf{\RegexAlt} \BooleanAnd
       \Lens.\PutLOf{t}{s} = s}$
   \end{enumerate}
 \end{theorem*}
 \begin{proof}
-Given $s \in S$, let $V_{\ell}(s) = \{t \in \mathcal{L}(T) \; | \; \ell.\PutROf{s}{t} = t\}$. We want to show that
-$$\sum_{s \in \mathcal{L}(S)}P_{\mathcal{L}(S)}(s)H(V_{\ell}(s)) = \mathbb{H}^{\rightarrow}(S \; | \; \ell, T)$$
-We proceed by induction over $\ell$. 
+Let $H(T \; | \; \ell, S)$ be the expected information content of $\{t \; | \; t \in \mathcal{L}(T)\}$ given $\{s \; | \; s \in \mathcal{L}(S) \wedge \ell.\PutROf{s}{t} = t\}$. Given $s \in S$, let $V^{\rightarrow}_{\ell}(s) = \{t \in \mathcal{L}(T) \; | \; \ell.\PutROf{s}{t} = t\}$. We want to show that
+$$H(T \; | \; \ell, S) = \sum_{s \in \mathcal{L}(S)}P_{\mathcal{L}(S)}(s)H(V^{\rightarrow}_{\ell}(s)) \leq \mathbb{H}^{\rightarrow}(T \; | \; \ell, S)$$
+(The proofs for $\mathbb{H}^{\leftarrow}(S \; | \; \ell, T)$ will follow the same pattern). We proceed by induction over $\ell$. 
 \begin{enumerate}
 \item
 ($\ell = \IdentityLensOf{S}$)
 
-Observe that $V_{\IdentityLensOf{S}}(s) = \{t \in \mathcal{L}(S) \; | \; \IdentityLensOf{S}.\ell.\PutROf{s}{t} = t\} = \{t \in \mathcal{L}(S) \; | \; t = s\} = \{s\}$.
+Observe that $V^{\rightarrow}_{\IdentityLensOf{S}}(s) = \{t \in \mathcal{L}(S) \; | \; \IdentityLensOf{S}.\ell.\PutROf{s}{t} = t\} = \{t \in \mathcal{L}(S) \; | \; t = s\} = \{s\}$.
 
-Consequently, $H(V_{\IdentityLensOf{S}}(s)) = H(\{s\}) = 0$, from which it follows that 
-$$\sum_{s \in \mathcal{L}(S)} P_{\mathcal{L}(S)}(s) * H(V_{\IdentityLensOf{S}}(s)) = 0 = \mathbb{H}^{\rightarrow}(S \; | \; \IdentityLensOf{S}, T)$$
+Consequently, $H(V^{\rightarrow}_{\IdentityLensOf{S}}(s)) = H(\{s\}) = 0$, from which it follows that 
+$$\sum_{s \in \mathcal{L}(S)} P_{\mathcal{L}(S)}(s) * H(V^{\rightarrow}_{\IdentityLensOf{S}}(s)) = 0 = \mathbb{H}^{\rightarrow}(S \; | \; \IdentityLensOf{S}, T)$$
 \item
 ($\ell = \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}$)
 
 Observe that 
-$$V_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s) = \{t \in \mathcal{L}(T) \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}.\PutROf{s}{t} = t\} = \{t \in \mathcal{L}(T) \; | \; t = t\} = \mathcal{L}(T)$$
+$$V^{\rightarrow}_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s) = \{t \in \mathcal{L}(T) \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}.\PutROf{s}{t} = t\} = \{t \in \mathcal{L}(T) \; | \; t = t\} = \mathcal{L}(T)$$
 Consequently
-$$\sum_{s \in \mathcal{L}(S)}P_{S}(s)H(V_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s)) = \sum_{s \in \mathcal{L}(S)}P_{S}(s)H(\mathcal{L}(T)) = H(\mathcal{L}(T)) = \mathbb{H}(T) = \mathbb{H}^{\rightarrow}(S \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, T)$$
+\begin{align*}
+\sum_{s \in \mathcal{L}(S)}P_{S}(s)H(V^{\rightarrow}_{\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}}(s)) &= \sum_{s \in \mathcal{L}(S)}P_{S}(s)H(\mathcal{L}(T))\\
+&= H(\mathcal{L}(T))\\
+&= \mathbb{H}(T)\\
+&= \mathbb{H}^{\rightarrow}(T \; | \; \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, S)
+\end{align*}
 \item
 ($\ell = \IterateLensOf{\Lens} : S^{*p} \Leftrightarrow T^{*q}$)
 
 Observe that 
 \begin{align*}
-V_{\IterateLensOf{\Lens}}(s_1 \cdot \ldots \cdot s_n) &= \{t_1 \cdot \ldots \cdot t_m \; | \; \IterateLensOf{\Lens}.\PutROf{(s_1 \cdot \ldots \cdot s_n) }{(t_1 \cdot \ldots \cdot t_m)} = t_1 \cdot \ldots \cdot t_m\}\\
+V^{\rightarrow}_{\IterateLensOf{\Lens}}(s_1 \cdot \ldots \cdot s_n) &= \{t_1 \cdot \ldots \cdot t_m \; | \; \IterateLensOf{\Lens}.\PutROf{(s_1 \cdot \ldots \cdot s_n) }{(t_1 \cdot \ldots \cdot t_m)} = t_1 \cdot \ldots \cdot t_m\}\\
 &= \{t_1 \cdot \ldots \cdot t_n \; | \; \ell.\PutROf{s_i}{t_i} = t_i \text{ for }1 \leq i \leq n\}\\
-&= V_{\ell}(s_1) \cdot \ldots \cdot V_{\ell}(s_n)
+&= V^{\rightarrow}_{\ell}(s_1) \cdot \ldots \cdot V^{\rightarrow}_{\ell}(s_n)
 \end{align*}
 Consequently
 \begin{align*}
-\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
-&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) H(V_{\ell}(s_1) \cdot \ldots \cdot V_{\ell}(s_n))\\
-&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) \left(\sum_{j=1}^n H(V_{\ell}(s_j)) \right)\\
-&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \sum_{s_n} P_S(s_n) \left(\sum_{j=1}^n H(V_{\ell}(s_j)) \right)
+\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V^{\rightarrow}_{\IterateLensOf{\Lens}}(s))
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) H(V^{\rightarrow}_{\ell}(s_1) \cdot \ldots \cdot V^{\rightarrow}_{\ell}(s_n))\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_n)\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^n P_S(s_i) \left(\sum_{j=1}^n H(V^{\rightarrow}_{\ell}(s_j)) \right)\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \sum_{s_n} P_S(s_n) \left(\sum_{j=1}^n H(V^{\rightarrow}_{\ell}(s_j)) \right)
 \end{align*}
-We focus on the term $\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V_{\ell}(s_j))$:
+We focus on the term $\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V^{\rightarrow}_{\ell}(s_j))$:
 \begin{align*}
-\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V_{\ell}(s_j)) &= \sum_{s_n} P_S(s_n)H(V_{\ell}(s_n)) + P_S(s_n) \sum_{j=1}^{n-1} H(V_{\ell}(s_j))\\
-&= \mathbb{H}^{\rightarrow}(S \; | \; \ell, T) + \sum_{j=1}^{n-1}H(V_{\ell}(s_j))
+\sum_{s_n} P_S(s_n) \sum_{j=1}^n H(V^{\rightarrow}_{\ell}(s_j)) &= \sum_{s_n} P_S(s_n)H(V^{\rightarrow}_{\ell}(s_n)) + P_S(s_n) \sum_{j=1}^{n-1} H(V^{\rightarrow}_{\ell}(s_j))\\
+&= H(T \; | \; \ell, S) + \sum_{j=1}^{n-1}H(V^{\rightarrow}_{\ell}(s_j))
 \end{align*}
 Consequently,
 \begin{align*}
-\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
-&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left( \mathbb{H}^{\rightarrow}(S \; | \; \ell, T) + \sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)\\
-&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1})\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \mathbb{H}^{\rightarrow}(S \; | \; \ell, T)\\
-&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)\\
-&= \mathbb{H}^{\rightarrow}(S \; | \; \ell, T) * (1-p)\sum_n p^n \\
-&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)
+\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V^{\rightarrow}_{\IterateLensOf{\Lens}}(s))
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left( H(S \; | \; \ell, T) + \sum_{j=1}^{n-1}H(V^{\rightarrow}_{\ell}(s_j))\right)\\
+&= (1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1})\\s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) H(S \; | \; \ell, T)\\
+&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V^{\rightarrow}_{\ell}(s_j))\right)\\
+&= H(S \; | \; \ell, T) * (1-p)\sum_n p^n \\
+&+(1-p)\sum_n p^n \sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V^{\rightarrow}_{\ell}(s_j))\right)
 \end{align*}
 Unrolling the term 
-$$\sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V_{\ell}(s_j))\right)$$ 
+$$\sum_{\substack{(s_1, \ldots, s_{n-1}) \\ s_i \in \mathcal{L}(S)}} \prod_{i=1}^{n-1}P_S(s_i) \left(\sum_{j=1}^{n-1}H(V^{\rightarrow}_{\ell}(s_j))\right)$$ 
 $(n-1)$ more times gives
-$$\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V_{\IterateLensOf{\Lens}}(s))
-= \mathbb{H}^{\rightarrow}(S \; | \; \ell, T) * (1-p)\sum_n n * p^n  = \frac{p}{1-p} * \mathbb{H}^{\rightarrow}(S \; | \; \ell, T)$$
+\begin{align*}
+H(T^{*q} \; | \; V^{\rightarrow}_{\IterateLensOf{\Lens}}(s), S^{*p}) &=
+\sum_{s \in \mathcal{L}(S^{*p})}P_{S^{*p}}(s) H(V^{\rightarrow}_{\IterateLensOf{\Lens}}(s))\\
+&= H(T \; | \; \ell, S) * (1-p)\sum_n n * p^n \\
+&= \frac{p}{1-p} * H(T \; | \; \ell, S)\\
+&\leq \frac{p}{1-p} * \mathbb{H}^{\rightarrow}(T \; | \; \ell, S)\\
+&= \mathbb{H}(T^{*q} \; | \; V^{\rightarrow}_{\IterateLensOf{\Lens}}(s), S^{*p})
+\end{align*}
+
 which is what we wanted to show.
 \item
 ($S = \ConcatLensOf{\Lens_1}{\Lens_2}$)
 
 Observe that 
 \begin{align*}
-V_{ \ConcatLensOf{\Lens_1}{\Lens_2}}(s_1 \cdot s_2) &= \{t_1 \cdot t_2 \in \mathcal{L}(T_1 \cdot T_2) \; | \;  \ConcatLensOf{\Lens_1}{\Lens_2}.\PutROf{(s_1 \cdot s_2)}{(t_1 \cdot t_2)} = t_1 \cdot t_2\}\\
+V^{\rightarrow}_{ \ConcatLensOf{\Lens_1}{\Lens_2}}(s_1 \cdot s_2) &= \{t_1 \cdot t_2 \in \mathcal{L}(T_1 \cdot T_2) \; | \;  \ConcatLensOf{\Lens_1}{\Lens_2}.\PutROf{(s_1 \cdot s_2)}{(t_1 \cdot t_2)} = t_1 \cdot t_2\}\\
 &= \{t_1 \cdot t_2 \in \mathcal{L}(T_1 \cdot T_2) \; | \;  \ell_1.\PutROf{s_1}{t_1 } = t_1  \text{ and } \ell_2.\PutROf{t_2}{t_2} = t_2\}\\
-&= V_{\ell_1}(s_1) \cdot V_{\ell_2}(s_2)
+&= V^{\rightarrow}_{\ell_1}(s_1) \cdot V^{\rightarrow}_{\ell_2}(s_2)
 \end{align*}
 Consequently,
 \begin{align*}
-&\sum_{s \in \mathcal{L}(S_1 \cdot S_2)}P_{S_1 \cdot S_2}(s) H(V_{\ConcatLensOf{\Lens_1}{\Lens_2}}(s))\\
-&= \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)(H(V_{\ell_1}(s_1)) + H(V_{\ell_2}(s_2)))\\
-&= \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)H(V_{\ell_1}(s_1)) + \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)H(V_{\ell_2}(s_2))\\
-&= \mathbb{H}^{\rightarrow}(S_1 \; | \; \ell_1, T_1) + \mathbb{H}^{\rightarrow}(S_2 \; | \; \ell_2, T_2)
+&H(T_1 \cdot T_2 \; | \; \ConcatLensOf{\Lens_1}{\Lens_2}, S_1 \cdot S_2)\\
+& =\sum_{s \in \mathcal{L}(S_1 \cdot S_2)}P_{S_1 \cdot S_2}(s) H(V^{\rightarrow}_{\ConcatLensOf{\Lens_1}{\Lens_2}}(s))\\
+&= \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)(H(V^{\rightarrow}_{\ell_1}(s_1)) + H(V^{\rightarrow}_{\ell_2}(s_2)))\\
+&= \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)H(V^{\rightarrow}_{\ell_1}(s_1)) + \sum_{s_1 \in \mathcal{L}(s_1)} P_{S_1}(s_1)\sum_{s_2 \in \mathcal{L}(s_2)}P_{S_2}(s_2)H(V^{\rightarrow}_{\ell_2}(s_2))\\
+&= H(T_1 \; | \; \ell_1, S_1) + H(T_2 \; | \; \ell_2, S_2)\\
+&\leq \mathbb{H}^{\rightarrow}(T_1 \; | \; \ell_1, S_1) + \mathbb{H}^{\rightarrow}(T_2 \; | \; \ell_2, S_2)\\
+&= \mathbb{H}(T_1 \cdot T_2 \; | \; \ConcatLensOf{\Lens_1}{\Lens_2}, S_1 \cdot S_2)
 \end{align*}
 \item
 ($S = \SwapLensOf{\Lens_1}{\Lens_2}$)
@@ -3985,105 +3979,93 @@ Similar to the previous case.
 
 Observe that 
 $$
-V_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \OrLensOf{\Lens_1}{\Lens_2}.\ell.\PutROf{s}{t} = t\}
+V^{\rightarrow}_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \OrLensOf{\Lens_1}{\Lens_2}.\ell.\PutROf{s}{t} = t\}
 $$
 If $s \in \mathcal{L}(S_1)$, then
 $$
-V_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \ell_1.\PutROf{s}{t} = t\} = V_{\ell_1}(s)
+V^{\rightarrow}_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \ell_1.\PutROf{s}{t} = t\} = V^{\rightarrow}_{\ell_1}(s)
 $$
 while if $s \in \mathcal{L}(S_2)$, then
 $$
-V_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \ell_2.\PutROf{s}{t} = t\} = V_{\ell_2}(s)
+V^{\rightarrow}_{ \OrLensOf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \ell_2.\PutROf{s}{t} = t\} = V^{\rightarrow}_{\ell_2}(s)
 $$
 Consequently,
 \begin{align*}
-&\sum_{s \in \mathcal{L}(S_1 \; |_p \; S_2)}P_{S_1 \; |_p \; S_2}(s) H(V_{\OrLensOf{\Lens_1}{\Lens_2}}(s))\\
-&= p * \sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s) H(V_{\ell_1}(s)) + (1-p) * \sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s) H(V_{\ell_2}(s))\\
-&= p * (\mathbb{H}^{\rightarrow}(S_1 \; | \; \ell_1,T_1)) + (1-p) * (\mathbb{H}^{\rightarrow}(S_2 \; | \; \ell_2,T_2))
+H(T_1 \; |_q \; T_2 \; | \; \OrLensOf{\Lens_1}{\Lens_2}, S_1 \; |_p \; S_2) &= \sum_{s \in \mathcal{L}(S_1 \; |_p \; S_2)}P_{S_1 \; |_p \; S_2}(s) H(V^{\rightarrow}_{\OrLensOf{\Lens_1}{\Lens_2}}(s))\\
+&= p * \sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s) H(V^{\rightarrow}_{\ell_1}(s)) + (1-p) * \sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s) H(V^{\rightarrow}_{\ell_2}(s))\\
+&= p * (H(T_1 \; | \; \ell_1,S_1)) + (1-p) * (H(T_2 \; | \; \ell_2,S_2))\\
+&\leq p * (\mathbb{H}^{\rightarrow}(T_1 \; | \; \ell_1,S_1)) + (1-p) * (\mathbb{H}^{\rightarrow}(T_2 \; | \; \ell_2,S_2))\\
+&= \mathbb{H}(T_1 \; |_q \; T_2 \; | \; \OrLensOf{\Lens_1}{\Lens_2}, S_1 \; |_p \; S_2) 
 \end{align*}
 \item
 ($S = \MergeROf{\Lens_1}{\Lens_2}$)
 
 Observe that 
 $$
-V_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \MergeROf{\Lens_1}{\Lens_2}.\PutROf{s}{t} = t\}
+V^{\rightarrow}_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \MergeROf{\Lens_1}{\Lens_2}.\PutROf{s}{t} = t\}
 $$
 If $s \in \mathcal{L}(S_1)$, then
 $$
-V_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \ell_1.\PutROf{s}{t} = t\} = V_{\ell_1}(s)
+V^{\rightarrow}_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \ell_1.\PutROf{s}{t} = t\} = V^{\rightarrow}_{\ell_1}(s)
 $$
 while if $s \in \mathcal{L}(S_2)$, then
 $$
-V_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \ell_2.\PutROf{s}{t} = t\} = V_{\ell_2}(s)
+V^{\rightarrow}_{ \MergeROf{\Lens_1}{\Lens_2}}(s) = \{t \in \mathcal{L}(T) \; | \;  \ell_2.\PutROf{s}{t} = t\} = V^{\rightarrow}_{\ell_2}(s)
 $$
 Consequently,
 \begin{align*}
-&\sum_{s \in \mathcal{L}(S_1 \; |_p \; S_2)}P_{S_1 \; |_p \; S_2}(s) H(V_{\MergeROf{\Lens_1}{\Lens_2}}(s))\\
-&= p * \sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s) H(V_{\ell_1}(s)) + (1-p) * \sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s) H(V_{\ell_2}(s))\\
-&= p * (\mathbb{H}^{\rightarrow}(S_1 \; | \; \ell_1,T_1) ) + (1-p) * (\mathbb{H}^{\rightarrow}(S_2 \; | \; \ell_2,T_2) )
+H(T \; | \; \MergeROf{\Lens_1}{\Lens_2}, S_1 \; |_p \; S_2) &= \sum_{s \in \mathcal{L}(S_1 \; |_p \; S_2)}P_{S_1 \; |_p \; S_2}(s) H(V^{\rightarrow}_{\MergeROf{\Lens_1}{\Lens_2}}(s))\\
+&= p * \sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s) H(V^{\rightarrow}_{\ell_1}(s)) + (1-p) * \sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s) H(V^{\rightarrow}_{\ell_2}(s))\\
+&= p * (H(T_1 \; | \; \ell_1, S_1) ) + (1-p) * (H(T_2 \; | \; \ell_2, S_2) )\\
+&\leq p * (\mathbb{H}^{\rightarrow}(T_1 \; | \; \ell_1, S_1) ) + (1-p) * (\mathbb{H}^{\rightarrow}(T_2 \; | \; \ell_2, S_2) )\\
+&= \mathbb{H}(T \; | \; \MergeROf{\Lens_1}{\Lens_2}, S_1 \; |_p \; S_2) 
 \end{align*}
 \item
 ($S = \MergeLOf{\Lens_1}{\Lens_2}$)
 
 Observe that 
 \begin{align*}
-V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s) &= \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \MergeLOf{\Lens_1}{\Lens_2}.\PutROf{s}{t} = t\}\\
+V^{\rightarrow}_{ \MergeLOf{\Lens_1}{\Lens_2}}(s) &= \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \MergeLOf{\Lens_1}{\Lens_2}.\PutROf{s}{t} = t\}\\
 &= \{t \in \mathcal{L}(T_1 \; |_q \; T_2) \; | \;  \ell_1.\PutROf{s}{t} = t \text{ or } \ell_2.\PutROf{s}{t} = t\}\\
-&= V_{\ell_1}(s) \cup V_{\ell_2}(s)
+&= V^{\rightarrow}_{\ell_1}(s) \cup V^{\rightarrow}_{\ell_2}(s)
 \end{align*}
-To compute $H(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))$, we use the formula 
+To compute $H(V^{\rightarrow}_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))$, we use the formula 
 $$H(P_1, P_2) = H(m(P_1), m(P_2)) + m(P_1)H\left(\frac{P_1}{m(P_1)}\right) + m(P_2)H\left(\frac{P_2}{m(P_2)}\right)$$
 if the probability space $P$ is the sum of measure spaces $P_1$ and $P_2$, and $m(P_i)$ is the measure of $P_i$:
 \begin{align*}
-&H(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)) = H \left(\frac{q * P_{T_1}V_{\ell_1}(s)}{P_{T_1 \; |_q \; T_2}{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}}, \frac{(1-q) * P_{T_2}V_{\ell_2}(s)}{P_{T_1 \; |_q \; T_2}{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}}\right)\\
-&= \frac{q * P_{T_1}V_{\ell_1}(s)}{P_{T_1 \; |_q \; T_2}{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}} H(V_{\ell_1}(s)) + \frac{(1-q) * P_{T_2}V_{\ell_2}(s)}{P_{T_1 \; |_q \; T_2}{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}} H(V_{\ell_2}(s))
-\end{align*}
-
-
-\iffalse
-\begin{align*}
--H(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)) &= \sum_{t \in V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}(t) \log_2 P_{V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}(t)\\
-&= \sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \\
-&+ \sum_{t \in \mathcal{L}(T_2) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{(1-q) * P_{T_2}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{(1-q) * P_{T_2}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}
-\end{align*}
-We focus on the term 
-$$\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}$$
-Observe that
-\begin{align*}
-&\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\\
-&= \frac{q}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t) \log_2 q * P_{T_1}(t)\\
-&- \frac{q * \log_2 P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t)
-\end{align*}
-Again we focus on the term
-$$\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t) \log_2 q * P_{T_1}(t)$$
-Observe that
-\begin{align*}
-&\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t) \log_2 q * P_{T_1}(t) = \log_2 q * P_{T_1}(V_{\ell_1}(s))\\
-& + P_{T_1}(V_{\ell_1}(s))\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{P_{T_1}(t)}{P_{T_1}(V_{\ell_1}(s))} \log_2 \left( P_{T_1}(V_{\ell_1}(s)) *  \frac{P_{T_1}(t)}{P_{T_1}(V_{\ell_1}(s))} \right)\\
-&= \log_2 q * P_{T_1}(V_{\ell_1}(s)) + \log_2 P_{T_1}(V_{\ell_1}(s)) * P_{T_1}(V_{\ell_1}(s)) + P_{T_1}(V_{\ell_1}(s))* -H(V_{\ell_1}(s))\\
-&= P_{T_1}(V_{\ell_1}(s))[\log_2 q + \log_2 P_{T_1}(V_{\ell_1}(s)) - H(V_{\ell_1}(s))]
-\end{align*}
-Hence
-\begin{align*}
-&\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{q * P_{T_1}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \\
-&= \frac{q}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t) \log_2 q * P_{T_1}(t)\\
-&- \frac{q * \log_2 P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\sum_{t \in \mathcal{L}(T_1) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}P_{T_1}(t)\\
-&= \frac{q * P_{T_1}(V_{\ell_1}(s))[\log_2 q + \log_2 P_{T_1}(V_{\ell_1}(s)) - H(V_{\ell_1}(s))]}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\\
-&- \frac{q * \log_2 P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)) * P_{T_1}(V_{\ell_1}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\\
-&= \frac{q * P_{T_1}(V_{\ell_1}(s)) \left[\log_2 q + \log_2 \left[\frac{P_{T_1}(V_{\ell_1}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\right]  -H(V_{\ell_1}(s)) \right] }{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}
-\end{align*}
-Similarly,
-\begin{align*}
-&\sum_{t \in \mathcal{L}(T_2) \cap V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)}\frac{(1-q) * P_{T_2}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))} \log_2 \frac{(1-q) * P_{T_2}(t)}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\\
-&= \frac{(1-q) * P_{T_2}(V_{\ell_2}(s)) \left[\log_2 (1-q) + \log_2 \left[\frac{P_{T_2}(V_{\ell_2}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\right] - H(V_{\ell_2}(s)) \right] }{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}
+&H(V^{\rightarrow}_{ \MergeLOf{\Lens_1}{\Lens_2}}(s)) =\\
+&H \left(\frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}, \frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right)\\
+&+ \frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)} H(V^{\rightarrow}_{\ell_1}(s)) + \frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)} H(V^{\rightarrow}_{\ell_2}(s))
 \end{align*}
 Consequently,
 \begin{align*}
-&-H(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))\\
-&= \frac{q * P_{T_1}(V_{\ell_1}(s)) \left[\log_2 \left[\frac{q * P_{T_1}(V_{\ell_1}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\right] - H(V_{\ell_1}(s)) \right] }{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\\
-&+ \frac{(1-q) * P_{T_2}(V_{\ell_2}(s)) \left[\log_2 \left[\frac{(1-q) * P_{T_2}(V_{\ell_2}(s))}{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}\right] - H(V_{\ell_2}(s)) \right] }{P(V_{ \MergeLOf{\Lens_1}{\Lens_2}}(s))}
+&H(T_1 \; |_q \; T_2 \; | \; \MergeLOf{\Lens_1}{\Lens_2}, S) = \\
+&\sum_{s \in \mathcal{L}(S)}H \left(\frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}, \frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right)P_S(s)\\
+&+ \sum_{s \in \mathcal{L}(S)}\left(\frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right)P_S(s)H(V^{\rightarrow}_{\ell_1}(s))\\
+&+ \sum_{s \in \mathcal{L}(S)}\left(\frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right)P_S(s)H(V^{\rightarrow}_{\ell_2}(s))
 \end{align*}
-\fi
+Since
+\begin{align*}
+H \left(\frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}, \frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right) &\leq 1\\
+\left(\frac{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right) &\leq 1\\
+\left(\frac{(1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}{q * P_{T_1}V^{\rightarrow}_{\ell_1}(s) + (1-q) * P_{T_2}V^{\rightarrow}_{\ell_2}(s)}\right) &\leq 1
+\end{align*}
+Then
+\begin{align*}
+H(T_1 \; |_q \; T_2 \; | \; \MergeLOf{\Lens_1}{\Lens_2}, S) & \leq \sum_{s \in \mathcal{L}(s)}P_S(s) + \sum_{s \in \mathcal{L}(s)}P_S(s)H(V^{\rightarrow}_{\ell_1}(s)) + \sum_{s \in \mathcal{L}(s)}P_S(s)H(V^{\rightarrow}_{\ell_2})(s)\\
+&= H(T_1 \; | \; \ell_1, S) + H(T_2 \; | \; \ell_2, S)\\
+&\leq 1 + \mathbb{H}^{\rightarrow}(T_1 \; | \; \ell_1, S) + \mathbb{H}^{\rightarrow}(T_2 \; | \; \ell_2, S)
+\end{align*}
+\item
+($S = \REntropyOf{\Regex \Given \InvertOf{\Lens}, \RegexAlt}$)
+
+Observe that $$V^{\rightarrow}_{\InvertOf{\Lens}}(t) = \{s \in \mathcal{L}(S) \; | \; \InvertOf{\Lens}.\PutROf{s}{t} = t\} = \{s \in \mathcal{L}(S) \; | \; \ell.\PutLOf{t}{s} = s\} = V^{\leftarrow}_{\ell}(t)$$
+Consequently
+$$
+H(S \; | \; \InvertOf{\Lens}, T) = \sum_{t \in \mathcal{L}(T)}P_T(t) H(V^{\rightarrow}_{\InvertOf{\Lens}}(t))
+= \sum_{t \in \mathcal{L}(T)}P_T(t) H(V^{\leftarrow}_{\ell}(t))
+\leq \mathbb{H}^{\leftarrow}(S\; | \; \ell, T)
+$$
 \end{enumerate}
 
 \end{proof}
