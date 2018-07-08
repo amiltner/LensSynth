@@ -1699,8 +1699,7 @@ The cost of a lens between two SREs $c(\Lens, \Regex, \RegexAlt) =
 \MaxOf{\REntropyOf{\RegexAlt \Given \Lens, \Regex}}$ is the maximum sum of
 recovering the left format from the right, and the right from the left. We have
 proven theorems demonstrating the calculated entropy corresponds to the actual
-conditional entropy to recover the data.\bcp{Again, the proofs should be
-  included.}
+conditional entropy to recover the data.
 
 \begin{theorem}
   Let $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, where $\Lens$ does not
@@ -2297,7 +2296,7 @@ permissive \RXSearch{} is in accepting proposed lenses.
 
 \paragraph*{Open and Closed Regular Expressions} While GreedySynth acts
 relatively efficiently, it suffers from an exponential blowup when converting
-regular expressions to DNF form.\sam{Perhaps explain why this blowup arises?} This can be minimized by not converting
+regular expressions to DNF form. This can be minimized by not converting
 \emph{all} of the regular expression into DNF form, but only converting
 \emph{some} of it to DNF form. We add in an additional atom, where an atom can
 be an either an iteration of a DNF regular expression or it can be a regular
@@ -2329,11 +2328,9 @@ expressions by hash-consing them.
 \paragraph*{Compositional Synthesis} Compositional synthesis allows us to use
 previously defined lenses - whether they are previously defined by users or by
 synthesis. We alter \GreedySynth such that two regular expression atoms can be
-mapped to each other either if they are the same regular expression and have
-examples agreeing with the examples\bcp{What does ``have
-examples agreeing with the examples'' mean??}, or if there is a lens which is a
-composition of predefined lenses between them, where the lens alters the
-examples in a desired way.
+mapped to each other either if they are the same regular expression and agree
+with the examples, or if there is a lens which is a composition of predefined
+lenses between them, where the lens agrees with the examples.
 
 \paragraph*{\RXSearch Permissiveness Customization}\bcp{I don't follow this:}
 While the termination heuristic works for many situations, there are situations
@@ -2354,81 +2351,70 @@ extension to Boomerang. We added symmetric lens combinators to Boomerang, and
 implemented Boomerang's previous asymmetric lens combinators within the
 symmetric lens combinators.
 
-We have extended Optician\bcp{this is the first mention of the word
-  Optician!} with our symmetric synthesis algorithm. Users can 
-write synthesis tasks alongside lens combinators, use those synthesis results in
-the manual writing of new lenses, and use previously defined lenses in the
-synthesis of new lenses.
+We have extended the Optician synthesis plugin to Boomerang~\cite{?} with our
+symmetric synthesis algorithm. In doing so, users can write synthesis tasks
+alongside lens combinators, use those synthesis results in the manual writing of
+new lenses, and use previously defined lenses in the synthesis of new lenses.
 
-In this evaluation, we aim to answer two primary questions:
+In this evaluation, we aim to answer three primary questions:
 \begin{enumerate}
 \item Is our synthesis procedure efficient enough to be used in everyday
-  development?  In particular, can it be used in place of the existing
-  bijective lens synthesis algorithm integrated with Boomerang (which
-  \citet{miltner+:bijective-synthesis} have argued is reasonably fast in
-  practice)? 
-  \item Are the heuristics we have described useful for reducing the 
-  ``specification overhead'' for users?  \bcp{Maybe it would be better to
-    ask {\em which} heuristics are the most useful.  Also, are we talking
-    about reducing the number of examples needed?  It's not clear.  (And:
-    Don't the heuristics also make it faster??)}
+  development?
+
+\item How much slower do we perform on bijective lens synthesis benchmarks than
+  the existing Optician system customized for bijective lenses.
+  
+\item Which heuristics we have described useful for reducing the ``specification
+  overhead'' for users? In particular, which heuristics are useful in
+  synthesizing the desired lens, instead of merely a lens that satisfies the
+  specification.
 \end{enumerate}
 
 \subsection{Benchmark Suite}
-Our benchmarks are drawn from four different sources.\bcp{What makes this a good
-  set of benchmarks for present purposes?}
+Our benchmarks are drawn from three different sources.
 \begin{enumerate}
-\item We adapted \afm{8} data cleaning benchmarks from Flash Fill. In adopting
-  these benchmarks, we go beyond the data cleaning tasks\bcp{confusing: you
-    say these are data cleaning tasks, then immediately say we go beyond
-    data cleaning tasks.  (I know the next bit of the sentence makes it
-    (somewhat) clearer, but the reader is already lost right here.)}, and
-  synthesize 
-  synchronization functions\bcp{what is a ``synchronization function''}
-  between the ad-hoc data and their cleaned forms. 
-  \bcp{Clarify:}Optician also adopted benchmarks from Flash Fill, but required alterations to
-  be in bijective form\bcp{Mysterious}. With our symmetric enhancement, we
-  \bcp{words missing?} Optician's four 
-  benchmarks and 4 new Flash Fill benchmarks with no alterations.
-\item We adapted \afm{29} benchmarks from Augeas.  These benchmarks are the same
-  as those present in Optician.  \bcp{I (think I) understand what this
-    means, but readers will not.}While these benchmarks had to be slightly
-  adapted for bijectivity, previous work addressed this lack of bijectivity by
-  synthesizing quotient bijective lenses~\cite{?}.
+\item We adapted \afm{8} data cleaning benchmarks from Flash Fill. In these
+  benchmarks, we not only provide functions that clean the data, but we also
+  provide other synchronization functions: if the cleaned data is updated, those
+  changes are reflected in the original format.
+\item We adapted \afm{29} benchmarks from Augeas. These benchmarks turn the
+  ad-hoc data present in Linux configuration files into a structured, dictionary
+  representation.
 \item We used \afm{8} benchmarks from synchronization tasks on synchronizing a
   variety of real-life formats. These formats range from the synchronizing REST
   and JSON web resource descriptions to synchronizing BibTeX and EndNote
   citation descriptions.
 \end{enumerate}
 
-\bcp{Why is this a good set of benchmarks for the purposes described earlier
-in the section?}
+A realistic benchmarks suite is cretical in answering the first research
+question. To determine whether our algorithm is fast enough to be used in
+everyday development, we need to evaluate whether we can solve real-world
+problems efficiently. All three of our benchmark sources test real life
+problems: the data cleaning tasks presented in Flash Fill are either derived
+from online help forums or taken from the Excel product team; Augeas is a
+utility that transforms Linux configuration files into a manageable dictionary
+form; the many of the remaining benchmarks are from synchronizing real-life data
+formats, like BibTeX and EndNote.
 
-\subsection{Efficiency}
+\subsection{Useful in Everyday Development}
 
 To answer our first research question, we measure the runtime of our algorithm
-and compare it to the existing algorithm for synthesizing bijective
-lenses.\bcp{Note that this comparison doesn't, directly answer the question
-  ``Is it fast enough.''}
+on our benchmark suite.
 
-We synthesized lenses in 4 modes:
+We synthesized lenses in 2 modes:
 
 \begin{tabulary}{\linewidth}{rL}
   \SSOpt{}: & We synthesize lenses using our symmetric synthesis algorithm with all optimizations enabled.\\
   \SSNCOpt{}: & We synthesize lenses using our symmetric synthesis algorithm,
                 but compositional synthesis is not enabled.\\
-  \BSOpt{}: &  We synthesize lenses using the existing bijective lens synthesis
-              algorithm with all optimizations enabled\\
-  \BSNCOpt{}: & We synthesize lenses using the existing bijective lens synthesis
-                algorithm, but compositional synthesis is not enabled.\\
 \end{tabulary}\\
 
-We include running these algorithms without compositional synthesis to stress
-test the algorithms. While compositional synthesis makes the procedure easier,
-and demonstrates the potential to be used in arbitrarily hard problems, it is
-dependent on the user identifying important sublenses between subcomponents of
-the final formats. It is therefore interesting to see how many problems each
-algorithm can solve, when trying to synthesize ``in one go.''
+We include running the symmetric synthesis algorithm without compositional
+synthesis to stress test the algorithms. While compositional synthesis makes the
+procedure easier, and demonstrates the potential to be used in arbitrarily hard
+problems, it is dependent on the user identifying important sublenses between
+subcomponents of the final formats. It is therefore interesting to see how many
+problems each algorithm can solve, when trying to synthesize ``in one go.''
 
 \begin{figure}
   \includegraphics{generated-graphs/times}
@@ -2439,9 +2425,9 @@ algorithm can solve, when trying to synthesize ``in one go.''
     \BSNCOpt{} is the bijective synthesis algorithm without using a library of
     existing lenses. Our symmetric synthesis algorithm is able to complete all
     benchmarks in our benchmark suite in under 30 seconds, and is able to
-    complete most of the benchmarks without using compositional
-    synthesis. \bcp{The interesting part of the graph is all squished
-      against the Y axis.  Can we make the X axis logarithmic?}}
+    complete most of the benchmarks without using compositional synthesis.
+    \bcp{The interesting part of the graph is all squished against the Y axis.
+      Can we make the X axis logarithmic?}}
   \label{fig:times}
 \end{figure}
 
@@ -2451,14 +2437,36 @@ Figure~\ref{fig:times} summarizes the results of these tests. We find that our
 algorithm is able to synthesize all of the benchmarks in our benchmark suite in
 under 30 seconds.
 
-The slowest completed benchmark for both the bijective and symmetric synthesis
-algorithms is \texttt{xml\_to\_augeas.boom}, a benchmark that converts
-arbitrary XML up to depth 3 into a serialized version of the structured
-dictionary representation used in Augeas.  This benchmark takes 18.9 seconds for
-the symmetric synthesis algorithm to complete, and 9.3 seconds the bijective
-synthesis algorithm to complete.
+\subsection{Slowdown Compared to Bijective Synthesis}
 
-\subsection{The Effect of Our Heuristic}
+To compare to the existing bijective synthesis algorithm, we run our symmetric
+synthesis algorithm on the original Optician benchmark suite. \afm{8} of these
+benchmarks had to be slightly altered with tighter specifications or termination
+parameters, as we had to alter the original specifications to generate the
+correct lens.
+
+To perform this comparison, we synthesized lenses in 2 modes:
+
+\begin{tabulary}{\linewidth}{rL}
+  \SSOpt{}: & We synthesize lenses using our symmetric synthesis algorithm with all optimizations enabled.\\
+  \BSOpt{}: & We synthesize lenses using the existing bijective synthesis
+              algorithm with all optimizations enabled.\\
+\end{tabulary}\\
+
+For each benchmark in our benchmark suite, we ran every mode on it with a
+timeout of 30 seconds, and average the result over 5 runs.
+Figure~\ref{fig:comparison-times} summarizes the results of these tests. On
+average, \SSOpt{} took 2.1 times (\afm{3.5} seconds) longer to complete than
+\BSOpt{}.
+
+The slowest completed benchmark for both synthesis algorithms is
+\texttt{xml\_to\_augeas.boom}, a benchmark that converts arbitrary XML up to
+depth 3 into a serialized version of the structured dictionary representation
+used in Augeas. This benchmark takes 18.9 seconds for the symmetric synthesis
+algorithm to complete, and 9.3 seconds the bijective synthesis algorithm to
+complete. 
+
+\subsection{The Effects of Our Heuristics}
 We evaluate the usefulness of (1) our information theoretic metric, and (2) our
 termination heuristic.  To this end, we run our program in 3 different modes:\\
 \begin{tabulary}{\linewidth}{rL}
