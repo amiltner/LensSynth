@@ -788,20 +788,15 @@ regular expressions and two strings. The regular expressions specify the formats
 of the corresponding data on the two sides while the strings provide default
 values. On creates, the input values are thrown away, and default values are
 returned ($\CreateROf{\String} =
-\lstinline{"UNK"}$), and on puts, the second argument is used, and the first is
+\lstinline{"unk"}$), and on puts, the second argument is used, and the first is
 thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). In our extended
-example, the \lstinline{salary} and \lstinline{company} fields are independent,
-so we use the disconnect lens to relate them\bcp{Potentially confusing to
-  readers (and, even to me, hacky). Why not relate each of them to the constant
-  empty string?}\afm{I'm fine with the empty string.  I've seen sentinel values
-  like UNK used before in practice, but if it makes the example cleaner and more
-  comprehensible, sure.  Anybody else have thoughts on the matter?}\bcp{No,
-  I meant why not concatenate two disconnect lenses, one relating salary to
-  the empty string and one relating the empty string to company.}.
+example, the \lstinline{salary} field is only present in management files,
+so we use the disconnect lens to ensure salary edits do not cause updates to the
+HR file.
 The defaults are strings that indicate the information is missing.
 %
 \begin{lstlisting}
-disconnect(salary, company, "unk", "UNK") : salary $\Leftrightarrow$ company
+disconnect(salary, "", "unk", "") : salary $\Leftrightarrow$ company
 \end{lstlisting}
 %
 The insert \lstinline{ins} and delete \lstinline{del} lenses are
@@ -846,7 +841,8 @@ iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("
 \begin{figure}
 \begin{lstlisting}
 let name_lens = id(name) . ins(",") . id(name) . del(": ") . ins(",") in
-let employee_lens = name_lens . disconnect(salary,company,"unk","UNK") in
+let employee_lens = name_lens . disconnect(salary,"","unk","") 
+                                                    . disconnect("",company,"","UNK") in
 let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
 ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
@@ -1326,14 +1322,11 @@ share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
 We now provide the typing derivations and semantics for these lenses. For
-simplicity of presentation,\bcp{Is there any known issue with relaxing this
-  restriction? I've often found ti convenient to use id lenses with ambiguous
-  REs...}\afm{no known issues, I just didn't want to go into specifics about
-  ambiguity in an already-full paper}\bcp{OK, we can just comment that we
-  believe relaxing this restriction is unproblematic.}, we define the typing derivations and
-semantics only over unambiguous regular expressions, even though some lenses can
-be defined over ambiguous regular expressions (for example, the identity lens
-doesn't need any ambiguity constraints).
+simplicity of presentation, we define the typing derivations and semantics only
+over unambiguous regular expressions, even though some lenses can be defined
+over ambiguous regular expressions (for example, the identity lens doesn't need
+any ambiguity constraints). However, we believe relaxing this restriction is
+unproblematic.
 
 \[
   \centering
@@ -2788,17 +2781,16 @@ increases.
 %% lenses with this restriction, we feel the benefits outweigh the costs.
 
 \paragraph*{Relation with Simple Symmetric Lenses} To formalize how simple
-symmetric lenses work as synchronization tools, we define an $apply$
-function on them, much like one defines an $apply$ on classical symmetric lenses:
-Given a simple symmetric lens and an optional pair of 
-source and target strings,
-$apply$ is a function from sequences of put objects to sequences of
-put objects. If $apply(\Lens,\None,es) = es'$, then starting with no
-prior data, after edit $es_i$, the lens \Lens synchronizes the other data\dpw{Is the ``other data'' $es$? or is it something else? If it is $es$ then we can say ($es$) in the sentence.} to
-$es_i'$. \dpw{I wasn't sure what a ``put object'' was.  Is it a function? (If so, perhaps
-call it a function and give its type?)} If $apply(\Lens,\SomeOf{(x,y)},es) = es'$, then that means, starting with
-data $x$ and $y$ on the left and right, respectively, after edit $es_i$, the
-lens \Lens synchronizes the other data to $es_i'$.
+symmetric lenses work as synchronization tools, we define an $apply$ function on
+them, much like one defines an $apply$ on classical symmetric lenses: Given a
+simple symmetric lens and an optional pair of source and target strings, $apply$
+is a function from sequences of edits to sequences of edits. If
+$apply(\Lens,\None,es) = es'$, then starting with no prior data, after edit
+$es_i$, the lens \Lens synchronizes the updates the data in the non-edited
+format (the right format if $es_i = \InLOf{x}$, and the left format if $es_i =
+\InROf{y}$) to $es_i'$. If $apply(\Lens,\SomeOf{(x,y)},es) = es'$, then that
+means, starting with data $x$ and $y$ on the left and right, respectively, after
+edit $es_i$, the lens \Lens synchronizes the other data to $es_i'$.
 
 \[
   \inferrule
@@ -2902,7 +2894,12 @@ simple symmetric lenses.
 
 \bcp{I guess we could also show that equivalence of simple symmetric lenses
   is just the identity relation?}
-\sam{No; for example the identity lens of a concatenation of two regular expressions is the same as concatenating the two identity lenses on the respective regular expressions}
+\sam{No; for example the identity lens of a concatenation of two regular
+  expressions is the same as concatenating the two identity lenses on the
+  respective regular expressions}
+\afm{I think Benjamin likely means identity relation on the semantic meaning of
+  the lenses, which is true.  Would this be a useful thing to prove? It's a 2
+  liner.}
 
 \paragraph*{Asymmetric Lenses}
 Formally, an {\em asymmetric lens} $ \ell : S \Leftrightarrow V$ is a triple of functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : V \longrightarrow S \longrightarrow S$ and $\ell.\create : V \longrightarrow S$ satisfying the following laws \cite{Focal2005-long2}:
