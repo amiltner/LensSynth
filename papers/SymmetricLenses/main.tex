@@ -2644,27 +2644,37 @@ for finding the correct lens.
 % end evaluation
 
 % begin related-work
-\section{Relationship To Classical Symmetric Lenses}
+\section{Related Work}
+
+In this paper, we have designed and implemented a new, pragmatic
+formulation of symmetric lenses as well as new program synthesis
+techniques.  In this section, we consider the relationship with
+classical symmetric lenses in depth and also comment on related
+program synthesis techniques.
+
+\subsection{Relationship with Classical Symmetric Lenses}
 \label{sec:relationship}
-\paragraph*{Formalization} We have reformulated the problem addressed by classical
-symmetric lenses with simple symmetric lenses. A classical symmetric lens
+%\paragraph*{Formalization}
+%We have reformulated the problem addressed by classical
+%symmetric lenses with simple symmetric lenses.
+A classical symmetric lens
 $\Lens$ between $X$ and $Y$ consists of 4 components: a complement $C$, a
-designated element $init \in C$, and two functions for propagating changes in
-each format to the other:
+designated element $init \in C$, and two functions,
+$\PutRSym$ and $\PutLSym$, that propagate changes in one format to the other.
 \begin{enumerate}
 \item $\PutRSym \OfType X \times C \rightarrow Y \times C$
 \item $\PutLSym \OfType Y \times C \rightarrow X \times C$
 \end{enumerate}
-In this formulation, the components of each format that aren't shared with the
-other format are stored in the complement. When one format is edited, the \PutR
-or \PutL function stitches together that edited data with the data for the other
-side, stored in the complement.  The designated element, $init$, is used as the
-initial value of $C$, and specifies default behavior when there isn't existing
-data to stitch with.  In the example in Figure~\ref{fig:minimized-representations} the complement would consist of a list of pairs with each pair consisting of an integral salaray value and the name of a company.
+In this formulation, data unique to each side are stored in the complement.
+When one format is edited, the \PutR
+or \PutL function stitches together the edited data with data
+stored in the complement.  The  $init$ element is used as the
+initial value of $C$ and specifies default behavior when data is missing.
+For instance, to implement the
+scenario in Figure~\ref{fig:minimized-representations}, the complement
+would consist of a list of pairs of salary and company name.
 
-These components only make sense for synchronization when they satisfy
-round-tripping laws.  This guarantees that if an identity edit is propagated, no
-data gets changed.
+Classical symmetric lenses satisfy the following equational laws.
 \begin{equation}
   \tag{\PutRL}
   \frac{\PutRSymOf{(x,c)} = (y,c'')}{\PutLSymOf{(y,c'''')} = (x,c')}
@@ -2674,9 +2684,10 @@ data gets changed.
   \frac{\PutLSymOf{(y,c)} = (x,c')}{\PutRSymOf{(x,c')} = (y,c')}
 \end{equation}
 
-Furthermore, two classical symmetric lenses are equivalent if they always output the same
-formats on any sequence of edits. Formally, given a lens $\Lens \in X
-\leftrightarrow Y$, an \emph{edit} for $\Lens$ is a member of $X + Y$. Consider
+Two classical symmetric lenses are equivalent if they output the same
+formats given any sequence of edits. Formally, given a lens
+$\Lens \in X \leftrightarrow Y$,
+an \emph{edit} for $\Lens$ is a member of $X + Y$. Consider
 the function $apply$, which, given a lens and an element of that lens's
 complement, is a function from sequences of edits to sequences of edits. If
 $apply(\Lens,c,es) = es'$, then that means, starting with complement $c$, after
@@ -2896,63 +2907,115 @@ strictly more expressive than classical asymmetric lenses.
   \end{center}
 \end{theorem}
 
+\subsection{Data Transformation Synthesis}
+Over the past decade, the programming languages community has explored
+the synthesis of programs from a wide variety of angles.  One of
+the key ideas is typically to narrow the program search space by focusing
+on a specific domain, as we have done here.
+%, and as has been advocated
+%more generally under the rubric of syntax-guided synthesis~\cite{sygus}.
 
-\section{Related Work}
-\label{sec:related}
-There is related work in a number of directions. There is related work in string
-transformation synthesis and type-directed synthesis. We also refer the reader
-to a recent, general survey on synthesis~\ref{?}.
+Automation of string transformations, in particular, has been the focus
+of much prior attention.  For example, Gulwani and others work on FlashFill
+generates one-way spreadsheet transformations from input/output
+examples~\cite{flashfill,flashextract}.  On the one hand,
+FlashFill is easier to use because one need not specify the type of
+the data being transformed.  On the other hand, this type information
+makes it possible to transform more complex formats---Flash Fill
+does not synthesize programs with nested loops, for instance,
+and hence is incapable of synthesizing the majority of our
+benchmarks, even in one direction~\cite{flashfill}.
+%% Flashfill, designed
+%% for transformation of the cells of spreadsheets, does not scale to
+%% more complex formats
+%% While this provides an easier
+%% interaction model with the user than this work, it requires the algorithm to
+%% learn the data formats from the examples. This makes the task much more
+%% difficult for the synthesis algorithm, particularly in addressing iterations and
+%% disjunctions. Prior work has shown that learning from examples and data format
+%% descriptions enables synthesis of much more complex transformations than are
+%% permitted by examples alone. Recent work has gone into making these algorithms
+%% more robust by delaying the selection of program until seeing what further
+%% inputs the program is run on~\cite{?}. By doing this, the synthesis algorithm
+%% can learn additional information about the formats from the use of the program.
 
+All pragmatic synthesis algorithms use heuristics of one kind or another.  One of the
+goals of the current paper is to try to ground those heuristics in a broader theory,
+information theory,
+with the hope that this theory may inform future design decisions and help us understand
+heuristics crafted in other tools and possibly in other domains.  For instance, we
+speculate that some of the heuristics used in
+FlashFill (to take one well-documented example) may be connected to some of the principles
+laid out here.  For instance, FlashFill prioritizes the substring constructor over the
+constant string constructor when ranking possible programs. Such a choice may be understood
+in information-theoretic terms as the translation from target back to source would require
+more information.  Said another way, our information theoretic metrics measure injectivity
+(in both directions, in our case, to measure bijectivity) but applied in one direction, as
+is the case for FlashFill, would avoid the highly injective constant functions.  Beyond
+constants, another FlashFill heuristic prefers ``wider'' character classes (or token classes)
+over ``narrower'' ones.  Selecting a wider set of strings to copy from left-to-right, viewed
+in the reverse direction, from right-to-left, results in a function that is closer to being
+injective, as measured by information theory.  These are just a few of the heuristics used
+in Flashfill; more research would be required (and public disclosure of the details necessary)
+to understand the connections fully.
 
-\subsection{String Transformation Synthesis}
-Much of the research on string transformation synthesis is on synthesizing
-string transformations from input/output
-specifications~\cite{flashfill,flashextract,?}. While this provides an easier
-interaction model with the user than this work, it requires the algorithm to
-learn the data formats from the examples. This makes the task much more
-difficult for the synthesis algorithm, particularly in addressing iterations and
-disjunctions. Prior work has shown that learning from examples and data format
-descriptions enables synthesis of much more complex transformations than are
-permitted by examples alone. Recent work has gone into making these algorithms
-more robust by delaying the selection of program until seeing what further
-inputs the program is run on~\cite{?}. By doing this, the synthesis algorithm
-can learn additional information about the formats from the use of the program.
+%% In many of these synthesis algorithms the correct transformation is chosen by
+%% principals like ``minimize constants''~\cite{?,?,?} and ``most specific
+%% generalization''~\cite{?,?,?}. We are the first work to our knowledge to use an
+%% information-theoretic measure for finding the correct transformation. However,
+%% much of our metrics are compatible with existing metrics: avoiding \Disconnect
+%% lenses minimizes constants and creates more specfic transformations (\Disconnect
+%% lenses permit more synchronized data).
 
-In many of these synthesis algorithms the correct transformation is chosen by
-principals like ``minimize constants''~\cite{?,?,?} and ``most specific
-generalization''~\cite{?,?,?}. We are the first work to our knowledge to use an
-information-theoretic measure for finding the correct transformation. However,
-much of our metrics are compatible with existing metrics: avoiding \Disconnect
-lenses minimizes constants and creates more specfic transformations (\Disconnect
-lenses permit more synchronized data).
+As discussed in the introduction,
+the Optician tool~\cite{optician,maina+:quotient-synthesis} was a building block for
+our work.  Optician synthesized bijective transformations~\cite{optician} and
+bijections modulo quotients~\cite{maina+:quotient-synthesis}, but could
+not synthesize more complex bidirectional transformations where one format contains
+important information not present in the other---a common situation in the real
+world.  From a technical perspective, the first key novelty in our work involves the definition, theory,
+analysis, and implementation of a new class of simple symmetric lenses, designed
+for synthesis.  The second key technical innovation involves the use of stochastic
+regular expressions and information theory to guide the search for program transformations.
+As mentioned earlier, we believe such information theoretic techniques may have broad utility
+in helping us understand how to formulate a search for a data transformation function.
+%% The central contributions
+%% only synchronized transformations between formats in
+%% bijective correspondence, but few formats satisfy that constraint. Recent
+%% enhancements have permitted synthesis of more expressive lenses, quotient
+%% bijective lenses. These enhancements were made by strengthening the
+%% specifications from regular expressions to QREs, regular expressions annotated
+%% with information on normal forms of the language. This enhancement permits
+%% synthesizing transformations between formats whose normal forms are in bijective
+%% correspondence. While we have not integrated our system to permit QRE
+%% specifications, we see no reason the two systems cannot be integrated.
 
-Optician~\ref{?} synchronizes string transformation functions, but prior
-versions were very restrictive in which transformations were permitted.
-Originally, Optician only synchronized transformations between formats in
-bijective correspondence, but few formats satisfy that constraint. Recent
-enhancements have permitted synthesis of more expressive lenses, quotient
-bijective lenses. These enhancements were made by strengthening the
-specifications from regular expressions to QREs, regular expressions annotated
-with information on normal forms of the language. This enhancement permits
-synthesizing transformations between formats whose normal forms are in bijective
-correspondence. While we have not integrated our system to permit QRE
-specifications, we see no reason the two systems cannot be integrated.
+While our tool uses types and examples to specify invertable transformations, other
+tools have been shown to synthesize a backwards transformation from ordinary code designed
+to implement the forwards transformation.  For instance, Hu and
+D'Antoni~\cite{program-inversion-symbolic-transducers} show how to invert transformations
+using symbolic finite automata, and
+Voigtl\"{a}nder~\cite{bidirectionalization-for-free} demonstrates how to
+construct reverse transformations from forwards transformations
+by exploiting parametricity properties.  These kinds of tools are very useful, but in different
+circumstances from ours (namely, when one already has the code to implement one direction of
+the transformation).  
 
-Other work synthesizing invertible transformations was done by inverting a
-previously defined transformation.  This has been done by exploiting
-parametricity to invert transformations~\cite{?}, and by inverting symbolic
-finite automata~\cite{?}.
+%% Other work synthesizing invertible transformations was done by inverting a
+%% previously defined transformation.  This has been done by exploiting
+%% parametricity to invert transformations~\cite{}, and by inverting symbolic
+%% finite automata~\cite{?}.
 
-\subsection{Type-Directed Synthesis}
+%% \subsection{Type-Directed Synthesis}
 
-Type-directed synthesis uses type information to tighten specifications and
-reduce the number of possible programs. Typically, type-directed synthesis
-techniques use the types to orient the search space.  Our work interestingly
-deals with types with many semantic equivalences on them. InSynth~\cite{?}
-deals with the same problem when trying to synthesize transformations involving
-library functions. InSynth addresses this in a similar manner to this work: by
-normalizing the types we don't need to search through the equivalences on those
-types.
+%% Type-directed synthesis uses type information to tighten specifications and
+%% reduce the number of possible programs. Typically, type-directed synthesis
+%% techniques use the types to orient the search space.  Our work interestingly
+%% deals with types with many semantic equivalences on them. InSynth~\cite{?}
+%% deals with the same problem when trying to synthesize transformations involving
+%% library functions. InSynth addresses this in a similar manner to this work: by
+%% normalizing the types we don't need to search through the equivalences on those
+%% types.
 
 % end related-work
 
