@@ -2240,31 +2240,36 @@ First, \PCF{CannotMap} checks if there could possibly be a lens satisfying the
 examples. If there is not, \GreedySynth returns \None early. After this,
 \GreedySynth finds the best lenses between each sequence pair of the left and
 right DNF regular expressions, given the examples that match them. A priority
-queue containing these sequence lenses is initialized from these
-($\PCF{PQ.Create}$). The symmetric lens is built up iteratively from these
+queue containing these sequence lenses is then initialized with
+$\PCF{PQ.Create}$. The symmetric lens is built up iteratively from these
 sequence lenses, the state of this partial lens is tracked in the lens builder,
 $lb$.
 
 \GreedySynth then loops until there are no more sequence lenses in the priority
-queue. Within this loop, sequence lenses are popped. If a popped sequence lens
-maps between two sequences which aren't yet included in a sequence lens, then
-this sequence lens is added to the partial DNF lens. Furthermore, we update the
-priorities of our sequence lenses as the algorithm proceeds: if two sequence
-lenses have the same source, the second one to be popped gets a higher cost than
-it originally had, to address the information that needs to be stored for
-including that source of non-bijectivity.
+queue. Within this loop, sequence lenses are popped. If this sequence lens is
+``useful'', then that sequence lens is included in the final DNF lens. If the
+source or target of a popped sequence lens is not the source or target of
+another sequence lens, then this sequence lens is considered useful. If the
+examples require two sequences have a lens between them, then any sequence lens
+between them is considered useful. We update the priorities of our sequence
+lenses as the algorithm proceeds: if two sequence lenses have the same source,
+the second one to be popped gets a higher cost than it originally had, to
+address the information that needs to be stored for including that source of
+non-bijectivity.
 
 In our example, \GreedySynth may first pop the sequence pair \lstinline{""} and
-\lstinline{""}, as there is a bijective sequence lens between them. After this,
-the sequence lens between \lstinline{name.name*} and \lstinline{name} would be
-popped. While examples prevent lenses between the other sequence pairs, if there
-were other lenses, they would be popped, but not added to the ongoing state, as
-they would not be a useful addition to the state.
+\lstinline{""}, as there is a bijective sequence lens between them. As neither
+\lstinline{""} is involved in a sequence lens, this lens is considered useful.
+After this, the sequence lens between \lstinline{name.name*} and
+\lstinline{name} would be popped: while that lens is not bijective: it is still
+better than the alternatives. As all sequences are now involved in sequence lenses,
+and there are no examples to make other lenses useful, no further sequence
+lenses would be added to the lens builder.
 
-Finally, after all sequences have been
-popped, the partial DNF lens is converted into a symmetric DNF lens. This is
-only possible if all sequences are involved in some sequence lens: if they are
-not, \PCF{GreedyState.ToDNFLens} instead returns \None.
+Finally, after all sequences have been popped, the partial DNF lens $lb$ is
+converted into a symmetric DNF lens. This is only possible if all sequences are
+involved in some sequence lens: if they are not, \PCF{GreedyState.ToDNFLens}
+instead returns \None.
 
 \begin{algorithm}
   \caption{\GreedySynth}
@@ -2280,8 +2285,8 @@ not, \PCF{GreedyState.ToDNFLens} instead returns \None.
     \State $lb \gets \Call{LensBuilder.Empty}{}$
     \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
     \State $\SSQLens \gets
-    \Call{PQ.PopBest}{\GreedyState}$
-    \If{$\Call{LensBuilder.UsefulAdd}{lb,\SSQLens}$}
+    \Call{PQ.Pop}{\GreedyState}$
+    \If{$\Call{LensBuilder.UsefulAdd}{lb,\SSQLens,\Examples}$}
     \State $lb \gets \Call{GreedyState.AddSeq}{lb,\SSQLens}$
     \EndIf
     \EndWhile
@@ -2300,37 +2305,24 @@ examples. First, \PCF{CannotMap} checks if there is a possibility of a lens
 between the given sequences regular expressions that is consistent with the
 examples. If there is not, \GreedySeqSynth returns \None early. After this,
 \GreedySeqSynth finds the best lenses between each atom pair of the left and
-right sequences. An internal state for the algorithm is initialized from these.
-This state consists of two things: an intermediate sequence lens and a priority
-queue consisting of potential sequence lenses. On initialization,
-\GreedySeqSynth throws all the atom lenses into the priority queue, and the
-intermediate sequence lens is one that projects all the atoms.
-
-For example, if trying to find a sequence lens between \lstinline{name.name*}
-and \lstinline{name}, lenses are found between \lstinline{name} and
-\lstinline{name}, and \lstinline{name} and \lstinline{name*}, and added to the
-queue.
+right sequences. A priority queue containing these lenses is then initialized
+with \PCF{PQ.Create}. The symmetric sequence lens is built up iteratively from
+these atom lenses, the state of the partial lens is tracked in the sequence lens
+builder, $slb$.
 
 \GreedySeqSynth then loops until there are no more atom lenses in the priority
 queue. Within this loop, atom lenses are popped. The atom lens is then added if
-it is either necessary, or useful. Within a sequence lens, each atom can either
-be projected or be synchronized with exactly one atom in the other sequence, and
-examples can show that certain atoms \emph{need} to be mapped. In such
-situations, that atom lens is necessary. A useful atom lens is where adding that
-lens reduces the overall cost of the partial lens. If both atoms are not
-involved in an atom lens, the lens will always be useful, but sometimes adding
-that lens requires removing another lens. If the cost added by removing that
-other lens is more than is removed by adding the proposed lens, then this atom
-lens is not included in the sequence lens. For example, the bijective lens
-between \lstinline{name} and \lstinline{name} would first be found, and added to
-the state.  Next, the disconnect lens between \lstinline{name} and
-\lstinline{name*} would be popped.  Because this lens is not useful, it is not
-added to the state.
+it is useful. An atom lens is useful if adding it will lower the cost of the
+generated sequence lens, or if examples show that one of the atoms must be
+connected to another lens. The priorities of these lenses change over time, as
+each atom can only be involved in one lens. Adding a lens may necessitate
+removing another, so not all popped atom lenses will lower the cost of the
+generated sequence lens.
 
-Finally, after all atoms have been
-popped, the sequence lens is validated and returned. The sequence lens is
-validated if all atoms that need to be mapped, are: if they are not,
-\PCF{GreedySeqState.ToDNFLens} instead returns \None.
+Finally, after all atoms have been popped, the sequence lens is validated and
+returned. The algorithm confirms that all atoms that need to be connected with
+an atom lens, are. If they are not, \PCF{SLensBuilder.ToDNFLens} instead returns
+\None.
 
 \begin{algorithm}
   \caption{\GreedySeqSynth}
@@ -2350,16 +2342,16 @@ validated if all atoms that need to be mapped, are: if they are not,
     \EndIf
     \State $\ALS \gets
     \Call{\CartesianMap}{\AtomSynth(\Examples),\ListOf{\Atom_1;\ldots;\Atom_n},\ListOf{\AtomAlt_1;\ldots;\AtomAlt_m}}$
-    \State $\GreedyState \gets \Call{GreedySeqState.Init}{\ALS}$
-    \While{$\Call{GreedySeqState.Continue}{\GreedyState}$}
-    \State $(\GreedyState,\SAtomLens) \gets
-    \Call{GreedySeqState.PopBest}{\GreedyState}$
-    \If{$\Call{GreedySeqState.UsefulAdd}{\GreedyState,\SAtomLens}
-      \BooleanOr \Call{NecessaryAdd}{\Examples,\SAtomLens}$}
-    \State $\GreedyState \gets \Call{GreedySeqState.AddAtom}{\GreedyState,\SAtomLens}$
+    \State $\GreedyState \gets \Call{PQ.Init}{\ALS}$
+    \State $slb \gets \Call{SLensBuilder.Empty}{}$
+    \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
+    \State $\SAtomLens \gets
+    \Call{PQ.Pop}{\GreedyState}$
+    \If{$\Call{SLensBuilder.UsefulAdd}{slb,\SAtomLens,\Examples}$}
+    \State $\GreedyState \gets \Call{SLensBuilder.AddAtom}{\GreedyState,\SAtomLens}$
     \EndIf
     \EndWhile
-    \State \ReturnVal{\Call{GreedySeqState.ToDNFLens}{\GreedyState}}
+    \State \ReturnVal{\Call{SLensBuilder.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
