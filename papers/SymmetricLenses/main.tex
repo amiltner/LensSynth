@@ -1775,24 +1775,26 @@ they do not contain instances of composition.
 \label{sec:synthesis}
 Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a high
 level of abstraction. The input regular expressions are first converted into
-stochastic regular expressions with \ToStochastic. Once that conversion has
-taken place, the we begin searching for the most likely lens. This search
-itself is defined via five functions: (1) $\PCF{\PQ.Create}$, (2)
-$\PCF{\PQ.Pop}$, (3) $\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5)
-$\PCF{\Continue}$. First, $\PCF{\PQ.Create}$ creates a priority queue ($pq$)
-containing a single element: the initial pair of stochastic regular expressions.
-Next, $\PCF{SynthSymLens}$ enters a loop that searches for likely lenses. The
-loop terminates when the algorithm believes it is unlikely to find a better lens
-than the best one it has found so far (a termination condition defined by
-$\PCF{\Continue}$). Within each iteration of the loop, it:
+stochastic regular expressions with \ToStochastic.  
+%Once that conversion has
+%taken place, the $\RXSearch$ algorithm executes. This algorithm itself is
+%defined via five functions: (1) $\PCF{\PQ.Create}$, (2) $\PCF{\PQ.Pop}$, (3)
+%$\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5) $\PCF{\Continue}$. First,
+This pair of SREs are used to initialize a priority queue ($pq$).
+Next, $\PCF{SynthSymLens}$
+enters a loop that searches for likely lenses. The loop terminates when the
+algorithm believes it is unlikely to find a better lens than the best one it has
+found so far (a termination condition defined by $\PCF{\Continue}$). Within each
+iteration of the loop, it:
 \begin{itemize}
-\item generates the next class ($S$, $T$) of lenses to
-search ($\PCF{\PQ.Pop}$),
+\item pops the next class ($S$, $T$) of lenses to
+search of the priority queue ($\PCF{\PQ.Pop}$),
 \item executes $\GreedySynth$ to find a best lens in that class if
 one exists ($\LC$),
 using the examples $exs$ to filter out potential lenses that do not satisfy
 the specification,
-\item replaces $best$ with $\LC$, if $\LC$ has lower cost, and
+\item replaces $best$ with $\LC$, if $\LC$ has lower cost according
+to our information theoretic metric, and
 \item adds all of the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
   to the priority queue with $\PCF{\PQ.Push}$
 \end{itemize}
@@ -3980,11 +3982,11 @@ By definition $\Downarrow (S_1 \; |_p \; S_2) = (\Downarrow S_1) \oplus_p (\Down
   which is what we wanted to show. This completes the proof.
 \end{enumerate}
 \end{proof}
-\begin{theorem*}
-  \label{thm:correct_entropy}
+\begin{theorem}
+  \label{CorrectEntropy}
   If $\Regex$ is unambiguous and contains no empty subcomponents,
   $\EntropyOf{\Regex}$ is the entropy of $\mathcal{L}(\Regex)$.
-\end{theorem*}
+\end{theorem}
 \begin{proof}
 Given a discrete set $X$ and a probability distribution $P$ on $X$, we define the entropy $H(X)$ of $X$ by
 $$H(X) = -\sum_{x \in X}P(x)\log_2{P(x)}$$
@@ -4273,6 +4275,36 @@ H(S \; | \; \InvertOf{\Lens}, T) = \sum_{t \in \mathcal{L}(T)}P_T(t) H(V^{\right
 $$
 \end{enumerate}
 
+\end{proof}
+\begin{theorem}
+If $DS$ is unambiguous, then $\EntropyOf{\DNFRegex}$ is the entropy of $P_{\DNFRegex}$.
+\end{theorem}
+\begin{proof}
+By mutual induction over $DS$, $SQ$ and $A$ (the computations of the entropies follow the same pattern as the respective computations in \cref{CorrectEntropy}).
+\begin{enumerate}
+\item
+($A = DS^{*p}$)
+
+By the induction hypothesis $H(DS) = \mathbb{H}(DS)$, from which it follows that
+$$H(DS^{*p}) = \frac{p}{1-p}(H(DS) - \log_2 p) - \log_2 (1-p) = \mathbb{H}(DS^{*p})$$
+\item
+($SQ = [s_0 \cdot A_1 \cdot \ldots \cdot A_n \cdot s_n]$)
+
+By the induction hypothesis, hence by unambiguity $H(A_i) = \mathbb{H}(A_i)$, thus
+$$H([s_0 \cdot A_1 \cdot \ldots \cdot A_n \cdot s_n]) = \sum_{i=1}^n H(A_i) = \sum_{i=1}^n \mathbb{H}(A_i) = \mathbb{H}([s_0 \cdot A_1 \cdot \ldots \cdot A_n \cdot s_n])$$
+\item
+$(DS = \langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)$
+
+By the induction hypothesis, $H(SQ_i, p_i) = \mathbb{H}(SQ_i, p_i)$. Using the formula
+$$H(P) = H(m(P_1), \ldots m(P_n)) + \sum_{i=1}^n m(P_i)H(P_i)$$
+if $P$ is a measure space satisfying $P = P_1 + \ldots + P_n$, then
+\begin{align*}
+H(\langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)
+&= H(p_1, \ldots, p_n) + \sum_{i=1}^n p_i H(SQ_i, p_i)\\
+&= \sum_{i=1}^n p_i \mathbb{H}(SQ_i, p_i) + p_i * \log_2 p_i\\
+&= \mathbb{H}(\langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)
+\end{align*}
+\end{enumerate}
 \end{proof}
 \end{document}
 
