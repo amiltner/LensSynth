@@ -2648,15 +2648,19 @@ for finding the correct lens.
 
 In this paper, we have designed and implemented a new, pragmatic
 formulation of symmetric lenses as well as new program synthesis
-techniques.  In this section, we consider the relationship with
-classical symmetric lenses in depth and also comment on related
+techniques.  In this section, we analyze the relationship
+between our simple symmetric
+lenses and two previous lens languages:  classical symmetric lenses
+and asymmetric lenses.  We also comment on related
 program synthesis techniques.
 
-\subsection{Relationship with Classical Symmetric Lenses}
+\subsection{Relationship with Classical Lens Languages}
 \label{sec:relationship}
 %\paragraph*{Formalization}
 %We have reformulated the problem addressed by classical
 %symmetric lenses with simple symmetric lenses.
+
+\paragraph*{Symmetric Lenses}
 A classical symmetric lens
 $\Lens$ between $X$ and $Y$ consists of 4 components: a complement $C$, a
 designated element $init \in C$, and two functions,
@@ -2720,18 +2724,18 @@ edit $es_i$, the lens $\Lens$ synchronizes the other data to $es'_i$.
     apply(\Lens,c,(\InROf{y})::es) = (\InLOf{x})::es'
   }
 \]
-
+\noindent
 Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
 $apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
 sequences $es$.
 
-By describing our lenses in this complement style, we can express an incredibly
-wide class\bcp{where is the evidence that this class of lenses is {\em
-    usefully} wider than simple symmetric lenses?} of lenses, as these complements permit storing any amount of
-information in them.  However, they pose problems when implementing them in
-real-world systems and in synthesizing them.
+%% By describing our lenses in this complement style, we can express an incredibly
+%% wide class\bcp{where is the evidence that this class of lenses is {\em
+%%     usefully} wider than simple symmetric lenses?} of lenses, as these complements permit storing any amount of
+%% information in them.  However, they pose problems when implementing them in
+%% real-world systems and in synthesizing them.
 
-\paragraph*{Issues with Classical Symmetric Lenses}
+%\paragraph*{Issues with Classical Symmetric Lenses}
 \iffalse
 Using symmetric lenses for
 synchronization forces us to maintain not just two files that we aim to
@@ -2755,29 +2759,43 @@ done is maintain the files. Using those for synchronization, edits can be sent
 over the wire, and the appropriate function can stitch together those edits, no
 additional state needed.
 \fi
-For one, using classical symmetric lenses for synchronization forces us to maintain three files instead of two, which requires more engineering.
-The more significant issues with classical symmetric lenses arise in synthesis.
-Firstly, because each lens has a custom complement, we can no longer
-specify the put functions though mere input/output examples.  Instead, we have
-to specify the behavior through the observable behavior of edit sequences.
-Furthermore, there are lenses that require arbitrarily long edit sequences to
-differentiate between: consider the lens that keeps two formats equal for the
-first $k$ non-identity edits, then keeps them completely unsynchronized for all
-future edits.  This requires an edit sequence of $k$ edits to differentiate
-between this lens and the identity lens.  Simple symmetric lenses avoid this
-problem by not allowing such lenses: we can't keep track of the number of
-non-identity edits performed unless there are explicit fields in the data
-formats keeping track of them.  While we are reducing the expressivity of our
-lenses with this restriction, we feel the benefits outweigh the costs.
+While classical symmetric are more expressive than simple symmetric
+lenses, it is unclear whether this additional expressiveness is useful in
+practice.  Moreover, classic symmetric lenses come with 
+some disadvantages.
+For one, an implementation of classical symmetric lenses
+would need to squirrel away the complement in
+an auxiliary file somwhere, which likely requires more engineering.
+However, more significant issues arise in synthesis.
+First, because each lens has a custom complement, one can no longer
+specify the put functions through input/output examples alone.  One
+alternative would be to enrich specifications with edit sequentials;
+another would be to specify the structure of complements explicitly
+(though the latter would be somewhat akin to specifying the internal
+state of a program).  In either case, the complexity of the specifications
+increases.
+%% addition, users would have to specify some auxilary 
+%% to specify the behavior through the observable behavior of edit sequences.
+%% Second, there are lenses that require arbitrarily long edit sequences to
+%% differentiate between: consider the lens that keeps two formats equal for the
+%% first $k$ non-identity edits, then keeps them completely unsynchronized for all
+%% future edits.  This requires an edit sequence of $k$ edits to differentiate
+%% between this lens and the identity lens.  Simple symmetric lenses avoid this
+%% problem by disallowing such lenses: we can't keep track of the number of
+%% non-identity edits performed unless there are explicit fields in the data
+%% formats keeping track of them.  While we are reducing the expressivity of our
+%% lenses with this restriction, we feel the benefits outweigh the costs.
 
 \paragraph*{Relation with Simple Symmetric Lenses} To formalize how simple
 symmetric lenses work as synchronization tools, we define an $apply$
-function on them, much like we define an $apply$ on classical symmetric lenses. The
-function $apply$, given a simple symmetric lens and an optional pair of elements of the
-source and target, is a function from sequences of put objects to sequences of
-put objects. If $apply(\Lens,\None,es) = es'$, then that means, starting with no
-prior data, after edit $es_i$, the lens \Lens synchronizes the other data to
-$es_i'$. If $apply(\Lens,\SomeOf{(x,y)},es) = es'$, then that means, starting with
+function on them, much like one defines an $apply$ on classical symmetric lenses:
+Given a simple symmetric lens and an optional pair of 
+source and target strings,
+$apply$ is a function from sequences of put objects to sequences of
+put objects. If $apply(\Lens,\None,es) = es'$, then starting with no
+prior data, after edit $es_i$, the lens \Lens synchronizes the other data\dpw{Is the ``other data'' $es$? or is it something else? If it is $es$ then we can say ($es$) in the sentence.} to
+$es_i'$. \dpw{I wasn't sure what a ``put object'' was.  Is it a function? (If so, perhaps
+call it a function and give its type?)} If $apply(\Lens,\SomeOf{(x,y)},es) = es'$, then that means, starting with
 data $x$ and $y$ on the left and right, respectively, after edit $es_i$, the
 lens \Lens synchronizes the other data to $es_i'$.
 
@@ -2830,11 +2848,11 @@ lens \Lens synchronizes the other data to $es_i'$.
   }
 \]
 
-We've reformulated symmetric lenses in a style similar to existing asymmetric
+We have reformulated symmetric lenses in a style similar to existing asymmetric
 lens formulations. However, some symmetric lenses certainly are inexpressible in
 the simple symmetric lens formulation. We formalize which are expressible
 with a restriction on symmetric lenses. We define \emph{forgetful symmetric
-  lenses} to be symmetric lenses which satisfy the following additional laws:
+  lenses} to be symmetric lenses that satisfy the following additional laws.
 \begin{equation}
   \tag{\ForgetfulRL}
   \begin{mathprooftree}
@@ -2868,8 +2886,9 @@ with a restriction on symmetric lenses. We define \emph{forgetful symmetric
   \end{mathprooftree}
 \end{equation}
 
-Intuitively, this says that the complements are uniquely determined by the most
-recently input $x$ and $y$. This corresponds closely with simple symmetric
+Intuitively, these equations state that complements are uniquely determined by the most
+recently input $x$ and $y$. Hence, such lenses correspond closely \dpw{replace ``closely'' with
+``exactly''?} with simple symmetric
 lenses, where all state is maintained by the current state of the $x$ and $y$
 data. Forgetful symmetric lenses express exactly the same $apply$ function as
 simple symmetric lenses.
@@ -2884,7 +2903,7 @@ simple symmetric lenses.
   is just the identity relation?}
 \sam{No; for example the identity lens of a concatenation of two regular expressions is the same as concatenating the two identity lenses on the respective regular expressions}
 
-\paragraph*{Relationship with Asymmetric Lenses}
+\paragraph*{Asymmetric Lenses}
 Formally, an {\em asymmetric lens} $ \ell : S \Leftrightarrow V$ is a triple of functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : V \longrightarrow S \longrightarrow S$ and $\ell.\create : V \longrightarrow S$ satisfying the following laws \cite{Focal2005-long2}:
 \begin{align*}
 \ell.\get \; (\ell.\pput \; s \; v) &= v \tag{PUTGET}\\
@@ -2911,7 +2930,8 @@ strictly more expressive than classical asymmetric lenses.
 Over the past decade, the programming languages community has explored
 the synthesis of programs from a wide variety of angles.  One of
 the key ideas is typically to narrow the program search space by focusing
-on a specific domain, as we have done here.
+on a specific domain, and imposing constraints on syntax~\cite{sygus} or
+typing~\cite{augustsson-2004,gvero-pldi-2013,osera+:pldi15,feser-pldi-2015,scherer-icfp-2015,frankle+:popl16,}, or both.
 %, and as has been advocated
 %more generally under the rubric of syntax-guided synthesis~\cite{sygus}.
 
