@@ -1890,12 +1890,19 @@ rewrites first. Only when there are no more proposed regular expressions derived
 from $n$ rewrites will \PCF{\PQ.Pop} propose regular expressions derived from
 $n+1$ rewrites.
 
-The procedure \PCF{\Continue} terminates when the sum of the number of regular expressions of the
-smallest unproposed size with the distance of those regular expressions from the
-originals exceeds the cost of the current best lens. At this point, \RXSearch
-stops proposing regular expression pairs, and instead returns to the user the
-best lens found thus far. Note this means that if \RXSearch finds a bijective
-lens, which has zero cost it will immediately return.
+The procedure \PCF{\Continue} returns false based on the how long the search has
+been going, and how hard it expects the next class of problems to be. In
+particular, if $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at
+distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
+current best lens has cost $c$:
+\begin{gather*}
+  \Call{Continue}{pq} := c >= d + \Log_2(n)
+\end{gather*}
+
+When $\Call{Continue}{pq}$ returns $\False$, \RXSearch stops proposing regular
+expression pairs, and instead returns to the user the best lens found thus far.
+Note this means that if \RXSearch finds a bijective lens, which has zero cost it
+will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
 Stochastic DNF regular expressions (\SDNFREabbrev) are a pseudo-normal form
@@ -2369,8 +2376,8 @@ an atom lens, are. If they are not, \PCF{SLensBuilder.ToDNFLens} instead returns
 We included a number of optimizations in our algorithm. We added ``open'' and
 ``closed'' annotations to regular expressions, an expansion inference algorithm,
 hash-consing and memoization, and compositional synthesis to our algorithm. We
-also enable an additional parameter in our specifications that customizes how
-permissive \RXSearch{} is in accepting proposed lenses.
+also enable an additional parameter in our specifications that customizes the
+termination condition for our procedure.
 
 \paragraph*{Open and Closed Regular Expressions} While GreedySynth acts
 relatively efficiently, it suffers from an exponential blowup when converting
@@ -2410,7 +2417,7 @@ mapped to each other either if they are the same regular expression and agree
 with the examples, or if there is a lens which is a composition of predefined
 lenses between them, where the lens agrees with the examples.
 
-\paragraph*{\RXSearch Permissiveness Customization}
+\paragraph*{Termination Customization}
 In this work, we are constrained by three competing constraints. (1) We want to
 return lenses quickly to users, (2) we want to return good lenses, and (3) we
 don't want to require users to write a large number of examples in the
@@ -2429,11 +2436,24 @@ a particularly high cost, the algorithm may spend a long time searching in vain
 for lenses with lower cost. By tuning \RXSearch to me more permissive in the
 lenses it accepts, this search can be short-circuited.
 
+For these types of situations, users can input a custom number, $t$, to
+customize the strictness of the termination condition. In particular, if
+$\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at distance $d$, the
+number of pairs in $pq$ at distance $d$ is $n$, and the current best lens has
+cost $c$:
+\begin{gather*}
+  \Call{Continue}{pq} := c >= \Min(d + \Log_2(n) - t, 0)
+\end{gather*}
+With a positive $t$, the termination condition is more strict, and the algorithm
+will spend longer searching for more likely lenses. With a negative $t$ the
+termination condition is less strict, and the algorithm will spend less time
+searching for more likely lenses.  Our default $t$ is set to $0$.
+
 While our defaults termination condition quickly finds the correct lens for
 \afm{35} of our \afm{45} benchmarks, our termination condition is not
 one-size-fits all. Particularly complex lenses, or lenses that project a
-particularly large amount of data, can be synthesized more easily and more
-quickly by customizing how permissive \RXSearch is in returning lenses.
+particularly large amount of data, can be synthesized more easily and quickly by
+customizing how permissive \RXSearch is in returning lenses.
 % end synthesis
 
 % begin evaluation
