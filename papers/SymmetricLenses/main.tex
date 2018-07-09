@@ -9,6 +9,7 @@
 \settopmatter{}
 
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[capitalise]{cleveref}
 \usepackage{amsmath}
 \usepackage{nccmath}
 \usepackage{mathtools}
@@ -3711,14 +3712,177 @@ then if $s = \epsilon$, the terms $(1-p) * P_{\epsilon}(s)$ and $(1-p) * \mathbb
 Similar to the previous case.
 \end{enumerate}
 \end{proof}
+\begin{mylemma}[Equivalence of \ConcatSequence{} and \Concat{}]
+  If $\LanguageOf{\Regex}=\LanguageOf{\Sequence}$,
+  and $\LanguageOf{\RegexAlt}=\LanguageOf{\SequenceAlt}$,
+  then $\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}=\LanguageOf{\ConcatSequenceOf{\Sequence}{\SequenceAlt}}$.
+\end{mylemma}
+\begin{proof}
+  Let $\Sequence=\SequenceOf{\String_0\SeqSep\Atom_1\SeqSep\ldots
+    \SeqSep\Atom_n\SeqSep\String_n}$, and
+  let $\SequenceAlt=[\StringAlt_0\SeqSep\AtomAlt_1\SeqSep\ldots
+  \SeqSep\AtomAlt_m\SeqSep\StringAlt_m]$. Then
+  \begin{align*}  
+    \LanguageOf{\ConcatSequenceOf{\Sequence}{\SequenceAlt}} & = 
+                                                              \LanguageOf{\SequenceOf{\String_0\SeqSep\Atom_1\SeqSep\ldots
+                                                              \SeqSep\Atom_n\SeqSep\String_n\Concat\StringAlt_0\SeqSep{}
+                                                              \AtomAlt_1\SeqSep\ldots\SeqSep\AtomAlt_m\SeqSep\StringAlt_m}} \\
+                                                            & = 
+                                                              \{\String_0\Concat\String_1'\Concat\ldots\Concat\String_n'\Concat\String_n
+                                                              \Concat\StringAlt_0\Concat\StringAlt_1'\Concat\ldots
+                                                              \Concat\StringAlt_m'\Concat\StringAlt_m\SuchThat{} \String_i'\in\LanguageOf{\Atom_i} \BooleanAnd{}
+                                                              \StringAlt_i'\in\LanguageOf{\AtomAlt_i}\}\\
+                                                            & = 
+                                                              \{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Sequence}
+                                                              \BooleanAnd{} \StringAlt\in\LanguageOf{\SequenceAlt}\}\\
+                                                            & =
+                                                              \{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Regex}
+                                                              \BooleanAnd{} \StringAlt\in\LanguageOf{\RegexAlt}\}\\
+                                                            & =
+                                                              \LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}
+\end{align*}
+\end{proof}
 
+\begin{mylemma}[Equivalence of \ConcatDNF{} and \Concat{}]
+  \label{lem:cdnfeq}
+  If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
+  and $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$,
+  then $\LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}=
+  \LanguageOf{\ConcatDNFOf{\DNFRegex}{\DNFRegexAlt}}$.
+\end{mylemma}
+\begin{proof}
+  Let $\DNFRegex=\DNFOf{\Sequence_0\DNFSep\ldots\DNFSep\Sequence_n}$, and
+  let $\DNFRegexAlt=\DNFOf{\SequenceAlt_0\DNFSep\ldots\DNFSep\SequenceAlt_m}$
+  \begin{align*}
+    \LanguageOf{\ConcatDNFOf{\DNFRegex}{\DNFRegexAlt}} & = 
+                                                         \LanguageOf{\DNFOf{\ConcatSequenceOf{\Sequence_i}{\SequenceAlt_j}
+                                                         \text{ for $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}}} \\
+                                                       & = 
+                                                         \{\String\SuchThat \String\in\ConcatSequenceOf{\Sequence_i}{\SequenceAlt_j} \text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
+                                                       & = 
+                                                         \{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Sequence_i}
+                                                         \BooleanAnd{} \StringAlt\in\LanguageOf{\SequenceAlt_j}\} \text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
+                                                       & =
+                                                         \{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\DNFRegex}
+                                                         \BooleanAnd{} \StringAlt\in\LanguageOf{\DNFRegexAlt}\}\\
+                                                       & =
+                                                         \{\String\Concat\StringAlt{} \SuchThat{} \String\in\LanguageOf{\Regex}
+                                                         \BooleanAnd{} \StringAlt\in\LanguageOf{\RegexAlt}\}\\
+                                                       & =
+                                                         \LanguageOf{\RegexConcat{\Regex}{\RegexAlt}}
+\end{align*}
+\end{proof}
+
+\begin{mylemma}[Equivalence of $\Atom$ and $\AtomToDNFOf{\Atom}$]
+  \label{lem:atomtodnfeq}
+  $\LanguageOf{\Atom} = \LanguageOf{\AtomToDNFOf{\Atom}}$
+\end{mylemma}
+\begin{proof}
+\begin{align*}
+  \LanguageOf{\AtomToDNFOf{\Atom}} &=
+  \LanguageOf{\DNFOf{\SequenceOf{\EmptyString \SeqSep \Atom \SeqSep \EmptyString}}}\\
+  & =
+  \SetOf{\String \SuchThat \String \in
+    \LanguageOf{\SequenceOf{\EmptyString \SeqSep \Atom \SeqSep \EmptyString}}} \\
+  & =
+  \SetOf{\EmptyString\Concat\String\Concat\EmptyString \SuchThat \String \in
+    \LanguageOf{\Atom}} \\
+   & = \SetOf{\String \SuchThat \String \in
+    \LanguageOf{\Atom}} \\
+    &= \LanguageOf{\Atom}
+    \end{align*}
+\end{proof}
+
+\begin{mylemma}[Equivalence of \OrDNF{} and \Or{}]
+  \label{lem:odnfeq}
+  If $\LanguageOf{\Regex}=\LanguageOf{\DNFRegex}$,
+  and $\LanguageOf{\RegexAlt}=\LanguageOf{\DNFRegexAlt}$,
+  then $\LanguageOf{\RegexOr{\Regex}{\RegexAlt}}=
+  \LanguageOf{\OrDNFOf{\DNFRegex}{\DNFRegexAlt}}$.
+\end{mylemma}
+\begin{proof}
+  Let $\DNFRegex=\DNFOf{\Sequence_0\DNFSep\ldots\DNFSep\Sequence_n}$, and
+  let $\DNFRegexAlt=\DNFOf{\SequenceAlt_0\DNFSep\ldots\DNFSep\SequenceAlt_m}$
+  
+  \begin{align*}
+    \mathcal{L}(DS \oplus DT)& = 
+                                                     \LanguageOf{\DNFOf{\Sequence_0\DNFSep\ldots\DNFSep\Sequence_n\DNFSep
+                                                     \SequenceAlt_1\DNFSep\ldots\DNFSep\SequenceAlt_m}}\\
+                                                   & = 
+                                                     \{\String\SuchThat{} \String\in\Sequence_i\vee\String\in\SequenceAlt_j \text{ where $i\in\RangeIncInc{1}{n}$, $j\in\RangeIncInc{1}{m}$}\}\\
+                                                   & = 
+                                                     \{\String{} \SuchThat{} \String\in\LanguageOf{\DNFRegex}
+                                                     \BooleanOr{} \String\in\LanguageOf{\DNFRegexAlt}\}\\
+                                                   & =
+                                                     \{\String \SuchThat{} \String\in\LanguageOf{\Regex}
+                                                     \BooleanOr{} \String\in\LanguageOf{\RegexAlt}\}\\
+                                                   & =
+                                                     \LanguageOf{\RegexOr{\Regex}{\RegexAlt}}
+  \end{align*}
+\end{proof}
+
+\begin{theorem}\label{ConversionPreservesSemantics}
+  For all regular expressions \Regex{},
+  $\LanguageOf{\ToDNFRegexOf{\Regex}}=\LanguageOf{\Regex{}}$.
+\end{theorem}
+\begin{proof}
+  By structural induction.
+
+  Let $\Regex=\String$.
+  $\LanguageOf{\ToDNFRegex(\String)}=\LanguageOf{\DNFOf{\SequenceOf{\String}}}=
+  \{\String\}=\LanguageOf{\String}$
+
+  Let $\Regex=\emptyset$.
+  $\LanguageOf{\ToDNFRegex(\emptyset)}=\LanguageOf{\DNFOf{}} =
+  \{\} = \LanguageOf{\emptyset}$.
+
+  Let $\Regex=\StarOf{\Regex'}$.
+  By induction assumption, $\LanguageOf{\ToDNFRegex(\Regex')}=
+  \LanguageOf{\Regex'}$.
+  \begin{align*}
+    \LanguageOf{\ToDNFRegex(\StarOf{\DNFRegex'})} & =
+                                                    \LanguageOf{\DNFOf{\SequenceOf{\StarOf{\ToDNFRegex(\Regex')}}}}\\
+                                                  & =
+                                                    \{\String\SuchThat\String\in
+                                                    \LanguageOf{\SequenceOf{\StarOf{\ToDNFRegex(\Regex')}}}\}\\
+                                                  & = 
+                                                    \{\String\SuchThat{} \String\in\LanguageOf{\StarOf{\ToDNFRegex(\Regex')}}\}\\
+                                                  & =
+                                                    \{\String_1\Concat\ldots\Concat\String_n\SuchThat{}
+                                                    n\in\Nats \BooleanAnd\String_i\in\LanguageOf{\ToDNFRegex(\Regex')}\}\\
+                                                  & =
+                                                    \{\String_1\Concat\ldots\Concat\String_n\SuchThat{}
+                                                    n\in\Nats\BooleanAnd\String_i\in\LanguageOf{\Regex'}\}\\
+                                                  & = \LanguageOf{\StarOf{\Regex'}}
+  \end{align*}
+
+  Let $\Regex=\RegexConcat{\Regex_1}{\Regex_2}$.
+  By induction assumption,
+  $\LanguageOf{\ToDNFRegex(\Regex_1)}=\LanguageOf{\Regex_1}$, and
+  $\LanguageOf{\ToDNFRegex(\Regex_2)}=\LanguageOf{\Regex_2}$.
+  $\ToDNFRegex(\RegexConcat{\Regex_1}{\Regex_2})=
+  \ConcatDNFOf{\ToDNFRegex(\Regex_1)}{\ToDNFRegex(\Regex_2)}$.
+  By Lemma~\ref{lem:cdnfeq},
+  $\RegexConcat{\Regex_1}{\Regex_2}=
+  \ConcatDNFOf{\ToDNFRegex(\Regex_1)}{\ToDNFRegex(\Regex_2)}$.
+
+
+  Let $\Regex=\RegexOr{\Regex_1}{\Regex_2}$.
+  By induction assumption,
+  $\LanguageOf{\ToDNFRegex(\Regex_1)}=\LanguageOf{\Regex_1}$, and
+  $\LanguageOf{\ToDNFRegex(\Regex_2)}=\LanguageOf{\Regex_2}$.
+
+  $\Downarrow(S \; | \; T) = (\Downarrow S) \oplus (\Downarrow T)$. By Lemma~\ref{lem:odnfeq},
+  $\mathcal{L}(S \; | \; T) = \mathcal{L}((\Downarrow S) \oplus (\Downarrow T))$.
+  
+\end{proof}
 \begin{theorem*}
   $\ProbabilityOf{\Regex}{\String} = \ProbabilityOf{\ToDNFRegex
     \Regex}{\String}$ and $\LanguageOf{\Regex} =
   \LanguageOf{\ToDNFRegexOf{\Regex}}$
 \end{theorem*}
 \begin{proof}
-By \sam{COPY PASTE PROOF FROM BIJECTIVE LENS PAPER} $\LanguageOf{\Regex} =
+By \cref{ConversionPreservesSemantics}, $\LanguageOf{\Regex} =
   \LanguageOf{\ToDNFRegexOf{\Regex}}$, so we will prove the result $\ProbabilityOf{\Regex}{\String} = \ProbabilityOf{\ToDNFRegex
     \Regex}{\String}$.
 \begin{enumerate}
