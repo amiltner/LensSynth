@@ -58,7 +58,9 @@
 \usepackage{bbm}
 
 \newtheorem*{theorem*}{Theorem}
-
+\newenvironment{centermath}
+ {\begin{center}$\displaystyle}
+ {$\end{center}}
 
 \lstset{ language=Caml, basicstyle=\upshape\sffamily,
 keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
@@ -1144,16 +1146,7 @@ jointly express a language and a probability distribution over that language. In
 the following grammar, $\String$ ranges over strings, and $\Probability$ ranges
 over real numbers between 0 and 1, exclusive.
 
-\begin{center}
-  \begin{tabular}{rcl}
-    \Regex{},\RegexAlt{}
-    & \GEq{} & $\String$ \\
-    & \GBar{} & $\emptyset$ \\
-    & \GBar{} & $\PRegexStar{\Regex}{p}$ \\
-    & \GBar{} & $\RegexConcat{\Regex_1}{\Regex_2}$ \\
-    & \GBar{} & $\PRegexOr{\Regex_1}{\Regex_2}{p}$
-  \end{tabular}
-\end{center}
+$$\Regex{},\RegexAlt{} \GEq{}  \String  \; | \; \emptyset \; | \; \PRegexStar{\Regex}{p} \; | \; \RegexConcat{\Regex_1}{\Regex_2} \; | \; \PRegexOr{\Regex_1}{\Regex_2}{p}$$
 
 In the stochastic regular expression
 $\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation $\Probability$
@@ -1280,7 +1273,6 @@ themselves nonempty by traversing the correct star-semiring equivalences (\EG,
 % \caption{Regular Expression Equivalences}
 % \label{fig:regex-equivalence-rules}
 
-% begin ssl
 \section{Simple Symmetric String Lenses}
 \label{sec:ssl}
 We now give a formal description of all the combinators in our symmetric lens
@@ -1294,21 +1286,10 @@ expression by deleting probability annotations.  In a slight abuse of notation,
 if $\Regex$ is a stochastic regular expression, $\BRegex$ is the regular
 expression obtained by removing probability annotations.
 
-\begin{center}
-  \begin{tabular}{l@{\ }l@{\ }l@{\ }l}
-    % REGEX
-    \Lens{} & \GEq{} & & $\IdentityLensOf{\BRegex}$\\
-            & & \GBar{} & $\DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt}$ \\
-            & & \GBar{} & $\IterateLensOf{\Lens}$ \\
-            & & \GBar{} & $\ConcatLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\SwapLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\OrLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\ComposeLensOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\MergeROf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\MergeLOf{\Lens_1}{\Lens_2}$ \\
-            & & \GBar{} & $\InvertOf{\Lens}$ \\
-  \end{tabular}
-\end{center}
+\begin{align*}
+\ell ::= &\IdentityLensOf{\BRegex} \; | \; \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt} \; | \; \IterateLensOf{\Lens} \; | \; \ConcatLensOf{\Lens_1}{\Lens_2} \; | \; \SwapLensOf{\Lens_1}{\Lens_2} \; | \; \OrLensOf{\Lens_1}{\Lens_2} \; | \; \ComposeLensOf{\Lens_1}{\Lens_2} \; |\\
+&\MergeROf{\Lens_1}{\Lens_2} \; | \; \MergeLOf{\Lens_1}{\Lens_2} \; | \; \InvertOf{\Lens}
+\end{align*}
 
 We have already described a number of these lenses in \S\ref{sec:overview}.
 The compose lens $\Lens_1 ; \Lens_2$ composes two lenses sequentially, it
@@ -1322,36 +1303,43 @@ share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
 We now provide the typing derivations and semantics for these lenses. For
-simplicity of presentation, we define the typing derivations and semantics only
-over unambiguous regular expressions, even though some lenses can be defined
-over ambiguous regular expressions (for example, the identity lens doesn't need
-any ambiguity constraints). However, we believe relaxing this restriction is
-unproblematic.
+simplicity of presentation,\bcp{Is there any known issue with relaxing this
+  restriction? I've often found ti convenient to use id lenses with ambiguous
+  REs...}\afm{no known issues, I just didn't want to go into specifics about
+  ambiguity in an already-full paper}\bcp{OK, we can just comment that we
+  believe relaxing this restriction is unproblematic.}, we define the typing derivations and
+semantics only over unambiguous regular expressions, even though some lenses can
+be defined over ambiguous regular expressions (for example, the identity lens
+doesn't need any ambiguity constraints).
 
-\[
-  \centering
+\begin{centermath}
+\begin{array}[b]{l@{\qquad \; \qquad}l}
+\begin{array}[b]{c}
+\quad\\
   \inferrule*
   {
   }
   {
     \IdentityLensOf{\BRegex} \OfType \BRegex \Leftrightarrow \BRegex
   }
-\]
-\begin{center}
-  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
-    $\CreateR{} \App s$ & = & $s$\\
-    $\CreateL{} \App s$ & = & $s$\\
-    $\PutR{} \App s_1 \App s_2$ & = & $s_1$\\
-    $\PutL{} \App s_1 \App s_2$ & = & $s_1$
-  \end{tabular}
-\end{center}
-
+  \\
+  \quad
+  \end{array}
+&
+\begin{array}[b]{r@{\ }c@{\ }l}
+    \CreateR{} \App s & = & s\\
+    \CreateL{} \App s & = & s\\
+    \PutR{} \App s_1 \App s_2 & = & s_1\\
+    \PutL{} \App s_1 \App s_2 & = & s_1
+  \end{array}
+\end{array}
+\end{centermath}
 Note that the identity lens ignores the second argument in the put functions.
 Because the two formats are fully synchronized, no knowledge of the prior data
 is needed.
 
-\[
-  \centering
+\begin{centermath}
+\begin{array}[b]{l@{\qquad \; \qquad}l}
   \inferrule*
   {
     \String \in \LanguageOf{\BRegex}\\
@@ -1361,15 +1349,16 @@ is needed.
     \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt}
     \OfType \BRegex \Leftrightarrow \BRegexAlt
   }
-\]
-\begin{center}
-  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+&
+  \begin{array}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String'$ & = & $\StringAlt$\\
     $\CreateL{} \App \StringAlt'''''$ & = & $\String$\\
     $\PutR{} \App \String''' \App \StringAlt'$ & = & $\StringAlt'$\\
     $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
-  \end{tabular}
-\end{center}
+  \end{array}
+\end{array}
+\end{centermath}
+
 Just as the identity lens ignores the second argument in puts, disconnect lenses
 ignore the first in both puts and creates.  The data is unsynchronized in these
 two formats, information from one format doesn't impact the other.
@@ -1424,8 +1413,9 @@ readers to existing work.
 The swap combinator is similar to concat, though the second regular expression
 is swapped.
 
-\[
-  \centering
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
   \inferrule*
   {
     \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
@@ -1437,8 +1427,8 @@ is swapped.
     \Leftrightarrow
     \RegexOr{\BRegexAlt_1}{\BRegexAlt_2}
   }
-\]
-\begin{center}
+  $
+&
   \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String$
     & =
@@ -1472,7 +1462,8 @@ is swapped.
         \Lens_2.\CreateLOf{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2} \BooleanAnd \String\in\LanguageOf{\BRegex_1}$
       \end{cases*}$\\
   \end{tabular}
-\end{center}
+\end{tabular}
+\end{centermath}
 The \OrLens lens deals with data that can come in one form or another. If the
 data gets changed from one format to the other, information in the old format is
 lost.
@@ -1518,7 +1509,9 @@ lost.
 %\end{center}
 The \IterateLens lens deals with iterated data.
 
-\[
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
   \centering
   \inferrule*
   {
@@ -1531,8 +1524,8 @@ The \IterateLens lens deals with iterated data.
     \Leftrightarrow
     \BRegexAlt
   }
-\]
-\begin{center}
+$
+&
   \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String$
     & =
@@ -1559,15 +1552,18 @@ The \IterateLens lens deals with iterated data.
         \Lens_2.\PutLOf{\StringAlt}{\String} & if $\String\in\LanguageOf{\BRegex_2}$
       \end{cases*}$\\
   \end{tabular}
-\end{center}
+\end{tabular}
+\end{centermath}
+
 The \MergeR lens is interesting because it merges data where one data can be in
 two formats, and one data has only one format. In previous work~\cite{?}, this
 was combined into \OrLens{}, where \OrLens{} could have ambiguous types, but we
 find it more clear to have explicit merge operators: it is easier to see what
 lens the synthesis algorithm is creating.
 
-\[
-  \centering
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
   \inferrule*
   {
     \Lens_1 \OfType \BRegex \Leftrightarrow \BRegexAlt_1\\
@@ -1579,8 +1575,8 @@ lens the synthesis algorithm is creating.
     \Leftrightarrow
     \RegexOr{\BRegexAlt_1}{\BRegexAlt_2}
   }
-\]
-\begin{center}
+$
+&
   \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String$
     & =
@@ -1607,11 +1603,13 @@ lens the synthesis algorithm is creating.
         \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
       \end{cases*}$\\
   \end{tabular}
-\end{center}
+\end{tabular}
+\end{centermath}
 The \MergeL lens is symmetric to \MergeR.
 
-\[
-  \centering
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+  $
   \inferrule*
   {
     \Lens_1 \OfType \BRegex \Leftrightarrow \BRegexAlt\\
@@ -1621,15 +1619,16 @@ The \MergeL lens is symmetric to \MergeR.
     \ComposeLensOf{\Lens_1}{\Lens_2} \OfType
     \BRegex \Leftrightarrow \BRegexAltAlt
   }
-\]
-\begin{center}
+$
+&
   \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String$ & = & $\Lens_2.\CreateROf{(\Lens_1.\CreateROf{\String})}$\\
     $\CreateL{} \App \StringAlt$ & = & $\Lens_1.\CreateLOf{(\Lens_2.\CreateLOf{\StringAlt})}$\\
     $\PutR{} \App \String \App \StringAltAlt$ & = & $\Lens_2.\PutROf{(\Lens_1.\PutROf{\String}{(\Lens_2.\CreateLOf{\StringAltAlt})})}{\StringAltAlt}$\\
     $\PutL{} \App \StringAltAlt \App \String$ & = & $\Lens_1.\PutLOf{(\Lens_2.\PutLOf{\StringAltAlt}{(\Lens_2.\CreateROf{\String})})}{\String}$
   \end{tabular}
-\end{center}
+\end{tabular}
+\end{centermath}
 Composing is interesting in the put functions. Because puts require intermediary
 data, we recreate that intermediary data with creates.
 
