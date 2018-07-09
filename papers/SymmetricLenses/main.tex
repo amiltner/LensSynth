@@ -471,19 +471,19 @@ $T$.
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
   \caption{Schematic Diagram for our symmetric lens synthesis algorithm. Regular
     expressions \Regex and \RegexAlt, and a set of examples \Examples, are
-    provided as input. \RXSearch searches through stochastic regular expression
+    provided as input. \Expand searches through stochastic regular expression
     pairs, equivalent to the originals, and proposes them to \GreedySynth.
     \GreedySynth finds a lens, typed between the generated equivalent pairs.
-    When \RXSearch determines it has an optimal lens, it returns that lens.}
+    When the algorithm determines it has an optimal lens, it returns that lens.}
   \label{fig:high-level-algorithm}
 \end{figure}
 
 With simple symmetric lenses and SREs in hand, we develop a new algorithm for
 synthesizing likely lenses, based on the previous algorithm for synthesizing
-bijective lenses. This algorithm is constructed from \RXSearch and \GreedySynth,
+bijective lenses. This algorithm is constructed from \Expand and \GreedySynth,
 a pair of collaborating search procedures, shown in
 Figure~\ref{fig:high-level-algorithm}. Given source and target SREs $S$ and $T$,
-the \RXSearch searches for two \emph{related} SREs $S'$ and $T'$ that are
+the \Expand searches for two \emph{related} SREs $S'$ and $T'$ that are
 \emph{compatible} (a heuristic that estimates the likelihood our second
 algorithm will succeed). $S'$ and $T'$ are related in the sense that they define
 the same regular sets as $S$ and $T$ (respectively) and the distribution of
@@ -496,9 +496,9 @@ Given the two compatible SREs, \GreedySynth uses a greedy, type-directed
 algorithm find a likely lens between them. If algorithm estimates that the lens
 it has discovered is more likely than any future lens it can possibly find, the
 search terminates. Otherwise, this lens is stored away (if it is the best found
-so far) and the search continues with \RXSearch again.
+so far) and the search continues with \Expand again.
 
-We implemented the \GreedySynth and \RXSearch algorithms and evaluated their
+We implemented the \GreedySynth and \Expand algorithms and evaluated their
 effectiveness of synthesizing synchronization functions on a range of
 benchmarks, including data cleaning tasks taken from Flash Fill, information
 extraction tasks taken from Augeas, and ad-hoc format synchronization tasks
@@ -959,15 +959,19 @@ entropy of the SRE.
 This infrastructure gives us what we need to find likely satisfying lenses from
 a collection of satisfying lenses. All such lenses must synchronize data between
 the same two SREs $\Regex$ and $\RegexAlt$. For any such lens $\Lens$, we can
-calculate the expected number of bits required to recover a string $s$ in
-$\LanguageOf{\Regex}$ from a synchronized string $t$ in
-$\LanguageOf{\RegexAlt}$. This expected number of bits is just the conditional
-entropy of $\Regex$ given $\RegexAlt$ and $\Lens$. To ensure symmetry, the
-likelihood we assign to $\Lens$ is the sum of the conditional entropy of
-$\Regex$ given $\RegexAlt$ and $\Lens$, \bcp{Am I supposed to know what this
-  means?} and the conditional entropy of $\RegexAlt$ given $\Regex$ and
-$\Lens$.\bcp{Why is this the right (or a sensible) thing to do, besides the fact
-  that it ensures symmetry?}
+calculate the expected number of bits required to recover a string $t$ in
+$\LanguageOf{\RegexAlt}$ from a synchronized string $s$ in
+$\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
+  $\Regex$ given $\RegexAlt$ and $\Lens$}, formally $\sum_{s \in
+  \Regex}\ProbabilityOf{\Regex}{s}*\EntropyOf{\SetOf{t \SuchThat
+    \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
+of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
+conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
+assigns higher cost to lenses where knowing the string present in \Regex
+provides little information about what string is present in \RegexAlt. With this
+metric, bijections have zero cost -- given a string $s \in \Regex$, we know
+exactly what string is present in $\RegexAlt$, as exactly one string is
+synchronized to it.
 
 To obtain SREs from the plain regular expressions that we expect users to
 supply, we use a heurstic that attempts to assign probability annotations that
@@ -985,10 +989,10 @@ which come with a rich algebraic structure that makes each regular expression
 semantically equal to infinitely many others. To tame that search space and
 leverage the benefits of type-directed synthesis, we split our algorithm into
 two communicating synthesizers following earlier
-work~\cite{quotient-lens-synthesis}. The first synthesizer, \RXSearch, navigates
-the space of semantically equivalent regular expressions by iteratively applying
-rewrite rules that preserve both the semantics and the probability distributions
-of those stochastic regular expressions. \RXSearch ranks pairs of stochastic
+work~\cite{quotient-lens-synthesis}. The first synthesizer, \Expand, navigates
+the space of semantically equivalent regular expressions by applying rewrite
+rules that preserve both the semantics and the probability distributions of
+those stochastic regular expressions. Our algorithm ranks pairs of stochastic
 regular expressions by the number of rewrite rule applications required to
 obtain the pair from the stochastic regular expressions given as input. It
 passes the pairs off to the second synthesizer, \GreedySynth, in rank order with
@@ -997,7 +1001,7 @@ the smallest first.
 At a high level, \GreedySynth looks for lenses between a given pair of
 stochastic regular expressions $\Regex$ and $\RegexAlt$ that have the highest
 likelihood by performing a type-directed search. In more detail, \GreedySynth
-first normalizes the stochastic regular expressions provided by \RXSearch into
+first normalizes the stochastic regular expressions provided by \Expand into
 \emph{stochastic DNF regular expressions}. These stochastic DNF regular
 expressions are, intuitively, stochastic regular expressions with disjunctions
 distributed over concatenations, where associativity information has been
@@ -1015,9 +1019,9 @@ names to first names and last names to last names). Finally, \GreedySynth
 converts this lens back into a simple symmetric lens by converting the n-ary
 forms into the binary forms provided in the surface language.
 
-As an example of the partnership between \RXSearch and \GreedySynth,
+As an example of the partnership between \Expand and \GreedySynth,
 consider the lens shown in Figure~\ref{fig:example_lens}. 
-Inferring this lens requires \RXSearch to use a star semiring axiom to
+Inferring this lens requires \Expand to use a star semiring axiom to
 rewrite the regular expression \lstinline{("\n" . emp_salary)$^*$} within
 \lstinline{emp_salaries} into 
 \lstinline{"" | (("\n" . emp_salary). ("\n" . emp_salary)$^*$)} 
@@ -1040,12 +1044,12 @@ result.  For example, if the algorithm has already found the lens in
 Figure~\ref{fig:example_lens}, we don't want to spend a lot of time
 searching for an even better lens.
 
-To resolve this tension, \RXSearch uses heuristics to judge whether to
+To resolve this tension, our algorithm uses heuristics to judge whether to
 return the current best satisfying lens to the user or to pass the
 next set of unrollings to \GreedySynth.
 The heuristics favor stopping if the current best satisfying
 lens has relatively high likelihood, indicating the lens is very promising.
-The heuristics also favor stopping if \RXSearch 
+The heuristics also favor stopping if \Expand
 has delievered to \GreedySynth all pairs of stochastic regular
 expressions at a given rank and there is a large number of pairs at the next
 rank because searching through all such pairs will take a long time.
@@ -1173,10 +1177,10 @@ defined by the function $P$ below.
 \end{center}
 
 \subsection{Stochastic Regular Expression Equivalences}
-$\RXSearch$ needs to be able to find equivalent stochastic regular expressions.
-However, existing work does not reason about stochastic regular expression
-equivalence. We extend the \emph{star-semiring}~\cite{?} equivalences to
-stochastic regular expressions.\bcp{Why these?}
+$\Expand$ needs to be able to find equivalent stochastic regular expressions.
+However, existing work does not provide a means to reason about stochastic
+regular expression equivalence. We extend the \emph{star-semiring}~\cite{?}
+equivalences to stochastic regular expressions.
 
 \begin{center}
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
@@ -1204,6 +1208,10 @@ stochastic regular expressions.\bcp{Why these?}
   the appendix present in the full version of the paper accompanying this
   submission.
 \end{proof}
+
+We prove these star-semiring equivalences sound, as those are the equivalences
+we either traverse (with \Expand), or normalize across (as part of
+\GreedySynth).
 
 \subsection{Stochastic Regular Expression Entropy}
 The entropy of a data source $S$ is the expected number of bits required to
@@ -1240,20 +1248,21 @@ stochastic regular expression.
   $\EntropyOf{\Regex}$ is the entropy of $\Regex$.
 \end{theorem}
 
-Without unambiguity constraints it is not easy to calculate the entropy. For
-example, consider the SRE $\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$.
-Using the above computation, this SRE has an entropy of $1$, but the entropy
-should be $0$.\bcp{This doesn't show that it's not easy---it just shows that
-one particular way of computing it is wrong.} Similar issues occur\bcp{Can we at least hint what they are?} when trying to find the entropy when
-$\emptyset$ is a subterm, so we do not define the entropy on $\emptyset$.
+Without unambiguity constraints it is not easy to calculate the entropy. This
+method is certainly incorrect without unambiguity constraints: consider the SRE
+$\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$. Using the above computation,s
+this SRE has an entropy of $1$, but the entropy should be $0$. These
+difficulties become particularlly complex when the languages are ambiguous in
+subtle ways, the algorithm must be correct when only some of the two languages
+overlap. Similar issues occur when trying to find the entropy when $\emptyset$
+is a subterm (what should the entropy of $\PRegexStar{\emptyset}{.5}$ be), so we
+do not define the entropy on $\emptyset$.
 
-In our work, we do not find this to be a problem\bcp{Why might one expect
-  it to be a problem, rather than just a technicality?}: we require
-unambiguous regular 
-expressions as input to our synthesis procedure, and we can easily preprocess
-emptysets out of the stochastic regular expressions that are themselves nonempty
-by traversing the correct star-semiring equivalences
-(\EG, \PRegexOr{\emptyset}{\lstinline{"s"}}{.5} \SSREquiv \lstinline{"s"}).
+In our work, these conditions are merely a technicality, we require unambiguous
+regular expressions as input to our synthesis procedure, and we can easily
+preprocess emptysets out of the stochastic regular expressions that are
+themselves nonempty by traversing the correct star-semiring equivalences (\EG,
+\PRegexOr{\emptyset}{\lstinline{"s"}}{.5} \SSREquiv \lstinline{"s"}).
 
 % \caption{Regular Expression Equivalences}
 % \label{fig:regex-equivalence-rules}
@@ -1300,11 +1309,13 @@ share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
 We now provide the typing derivations and semantics for these lenses. For
-simplicity\bcp{Is there any known issue with relaxing this restriction?
-  I've often found ti convenient to use id lenses with ambiguous REs...}, we define the typing derivations and semantics only over unambiguous
-regular expressions, even though some lenses can be defined over ambiguous
-regular expressions (for example, the identity lens doesn't need any ambiguity
-constraints).
+simplicity of presentation,\bcp{Is there any known issue with relaxing this
+  restriction? I've often found ti convenient to use id lenses with ambiguous
+  REs...}\afm{no known issues, I just didn't want to go into specifics about
+  ambiguity in an already-full paper}, we define the typing derivations and
+semantics only over unambiguous regular expressions, even though some lenses can
+be defined over ambiguous regular expressions (for example, the identity lens
+doesn't need any ambiguity constraints).
 
 \[
   \centering
@@ -1651,15 +1662,12 @@ annotations, and for making well-typed compositions.
 \subsection{Lens Costs}
 Our cost metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
-$\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to bound\bcp{``bound'' or
-  ``calculate''?  I.e., is what we calculate correct, or is it only known to
-be an upper bound?  If (as it seems) the answer is the latter, then why?}
-the expected amount of 
-information required to recover a string in $\RegexAlt$ from a string in
-$\Regex$, synchronized by $\Lens$. We use the function $\LEntropyOf{\Regex
-  \Given \Lens, \RegexAlt}$ to bound the expected amount of information required
-to recover a string in $\Regex$ from a string in $\RegexAlt$, synchronized by
-$\Lens$.
+$\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds of the
+expected amount of information required to recover a string in $\RegexAlt$ from
+a string in $\Regex$, synchronized by $\Lens$. We use the function
+$\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate bounds of the
+expected amount of information required to recover a string in $\Regex$ from a
+string in $\RegexAlt$, synchronized by $\Lens$.
 \begin{center}
   \begin{tabular}{rcl}
     $\REntropyOf{\RegexAlt \Given \IdentityLensOf{\RegexAlt}, \RegexAlt}$
@@ -1701,17 +1709,16 @@ $\Lens$.
 \end{center}
 $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ is defined symmetrically. These
 functions bound the expected number of bits to recover one data format from a
-synchronized string in the other format. Notice, we would be able to calculate
-the exact entropy, were it not for \MergeL. If $\MergeLOf{\Lens_1}{\Lens_2}
-\OfType \Regex \Leftrightarrow
+synchronized string in the other format. Notice, we would be able to exactly
+calculate the conditional entropy, were it not for \MergeL. If
+$\MergeLOf{\Lens_1}{\Lens_2} \OfType \Regex \Leftrightarrow
 \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}$, given a string in $s$, we
 need to determine if the synchronized string is in $\Regex$ or $\RegexAlt$.
 However, this information content is dependent on the how likely the
-synchronized string is to be in $\Regex$ or $\RegexAlt$. In the worst case, the
-expected information content to encode this choice is
-$-\Log_2(\ProbabilityAlt)*\ProbabilityAlt -\Log_2(1 -
-\ProbabilityAlt)*(1-\ProbabilityAlt)$, but the expected information content
-could be arbitrarily small.
+synchronized string is to be in $\Regex$ or $\RegexAlt$. Furthermore, we
+typically calculate the conditional entropy exactly, as merges are relatively
+uncommon on practice; only \afm{2} of the lenses sythesized in our benchmarks
+include merges.
 
 The cost of a lens between two SREs $cost(\Lens, \Regex, \RegexAlt) =
 \MaxOf{\LEntropyOf{\Regex \Given \Lens, \RegexAlt}} +
@@ -1769,15 +1776,15 @@ they do not contain instances of composition.
 Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a high
 level of abstraction. The input regular expressions are first converted into
 stochastic regular expressions with \ToStochastic. Once that conversion has
-taken place, the $\RXSearch$ algorithm executes. This algorithm itself is
-defined via five functions: (1) $\PCF{\PQ.Create}$, (2) $\PCF{\PQ.Pop}$, (3)
-$\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5) $\PCF{\Continue}$. First,
-$\PCF{\PQ.Create}$ creates a priority queue ($pq$) containing a single element:
-the initial pair of stochastic regular expressions. Next, $\PCF{SynthSymLens}$
-enters a loop that searches for likely lenses. The loop terminates when the
-algorithm believes it is unlikely to find a better lens than the best one it has
-found so far (a termination condition defined by $\PCF{\Continue}$). Within each
-iteration of the loop, it:
+taken place, the we begin searching for the most likely lens. This search
+itself is defined via five functions: (1) $\PCF{\PQ.Create}$, (2)
+$\PCF{\PQ.Pop}$, (3) $\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5)
+$\PCF{\Continue}$. First, $\PCF{\PQ.Create}$ creates a priority queue ($pq$)
+containing a single element: the initial pair of stochastic regular expressions.
+Next, $\PCF{SynthSymLens}$ enters a loop that searches for likely lenses. The
+loop terminates when the algorithm believes it is unlikely to find a better lens
+than the best one it has found so far (a termination condition defined by
+$\PCF{\Continue}$). Within each iteration of the loop, it:
 \begin{itemize}
 \item generates the next class ($S$, $T$) of lenses to
 search ($\PCF{\PQ.Pop}$),
@@ -1790,7 +1797,7 @@ the specification,
   to the priority queue with $\PCF{\PQ.Push}$
 \end{itemize}
 When the loop terminates, the search returns the globally best lens found
-($\PCF{\RXSearch.Best}$).  Each element of this algorithm will be explained in
+($best$).  Each element of this algorithm will be explained in
 further depth in the following subsections.
 
 \begin{algorithm}
