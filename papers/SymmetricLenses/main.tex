@@ -1691,7 +1691,7 @@ $\Lens$.
     
     $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \MergeLOf{\Lens_1}{\Lens_2}, \Regex}$
     & =
-    & $(0,1+\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1}+\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2})$\\
+    & $(0,\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1}+\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2}+1)$\\
     
     $\REntropyOf{\Regex \Given \InvertOf{\Lens}, \RegexAlt}$
     & =
@@ -1712,7 +1712,7 @@ $-\Log_2(\ProbabilityAlt)*\ProbabilityAlt -\Log_2(1 -
 \ProbabilityAlt)*(1-\ProbabilityAlt)$, but the expected information content
 could be arbitrarily small.
 
-The cost of a lens between two SREs $c(\Lens, \Regex, \RegexAlt) =
+The cost of a lens between two SREs $cost(\Lens, \Regex, \RegexAlt) =
 \MaxOf{\LEntropyOf{\Regex \Given \Lens, \RegexAlt}} +
 \MaxOf{\REntropyOf{\RegexAlt \Given \Lens, \Regex}}$ is the maximum sum of
 recovering the left format from the right, and the right from the left. We have
@@ -1765,42 +1765,33 @@ they do not contain instances of composition.
 % begin synthesis
 \section{Synthesis}
 \label{sec:synthesis}
-Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a
-high level of abstraction. The
-input regular expressions are first converted into stochastic regular
-expressions with \ToStochastic. Once that conversion has taken place,
-the $\RXSearch$ algorithm executes.
-This algorithm itself is defined via
-five functions:
-(1) $\PCF{\RXSearch.Create}$,
-(2) $\PCF{\RXSearch.Continue}$,
-(3) $\PCF{\RXSearch.Propose}$,
-(4) $\PCF{\RXSearch.Enqueue}$, and
-(5) $\PCF{\RXSearch.Best}$.
-First, $\PCF{\RXSearch.Create}$ creates a priority queue ($rxs$)
-containing a single element:  the initial pair of stochastic regular
-expressions.  Next, 
-$\RXSearch$ enters a loop that searches for likely lenses.  The loop
-terminates when the algorithm believes it is unlikely
-to find a better lens than the best one it has found so far (a
-termination condition defined by $\PCF{\RXSearch.Continue}$).
-Within each iteration of the loop, it:
+Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a high
+level of abstraction. The input regular expressions are first converted into
+stochastic regular expressions with \ToStochastic. Once that conversion has
+taken place, the $\RXSearch$ algorithm executes. This algorithm itself is
+defined via five functions: (1) $\PCF{\PQ.Create}$, (2) $\PCF{\PQ.Pop}$, (3)
+$\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5) $\PCF{\Continue}$. First,
+$\PCF{\PQ.Create}$ creates a priority queue ($pq$) containing a single element:
+the initial pair of stochastic regular expressions. Next, $\PCF{SynthSymLens}$
+enters a loop that searches for likely lenses. The loop terminates when the
+algorithm believes it is unlikely to find a better lens than the best one it has
+found so far (a termination condition defined by $\PCF{\Continue}$). Within each
+iteration of the loop, it:
 \begin{itemize}
 \item generates the next class ($S$, $T$) of lenses to
-search ($\PCF{\RXSearch.Propose}$),
+search ($\PCF{\PQ.Pop}$),
 \item executes $\GreedySynth$ to find a best lens in that class if
-one exists ($lco$),
+one exists ($\LC$),
 using the examples $exs$ to filter out potential lenses that do not satisfy
-the specification, and
-\item adds this best lens to the set of possibilities
-under consideration $\PCF{\RXSearch.Add}$
+the specification,
+\item replaces $best$ with $\LC$, if $\LC$ has lower cost, and
+\item adds all of the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
+  to the priority queue with $\PCF{\PQ.Push}$
 \end{itemize}
 When the loop terminates, the search returns the globally best lens found
 ($\PCF{\RXSearch.Best}$).  Each element of this algorithm will be explained in
 further depth in the following subsections.
 
-\dpw{Note: I added overbars to regexps in Algorithm 1 below ... double check me
-for correctness.}
 \begin{algorithm}
   \caption{\SynthSymLens}
   \label{alg:synth-sym-lens}
@@ -1808,13 +1799,17 @@ for correctness.}
     \Function{SynthSymLens}{$\BRegex,\BRegexAlt,\Examples$}
     \State $\Regex \gets \Call{\ToStochastic}{\BRegex}$
     \State $\RegexAlt \gets \Call{\ToStochastic}{\BRegexAlt}$
-    \State $\RXSearchState \gets \Call{\RXSearch.Create}{\Regex,\RegexAlt}$
-    \While{$\Call{\RXSearch.Continue}{\RXSearchState}$}
-    \State $(\Regex,\RegexAlt,\RXSearchState) \gets \Call{\RXSearch.Propose}{\RXSearchState}$
-    \State $\LCO \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
-    \State $\RXSearchState \gets \Call{\RXSearch.Add}{\RXSearchState,\LCO}$
+    \State $\RXSearchState \gets \Call{\PQ.Create}{\Regex,\RegexAlt}$
+    \State $\Best \gets \None$
+    \While{$\Call{\Continue}{\RXSearchState,\Best}$}
+    \State $(\Regex,\RegexAlt) \gets \Call{\PQ.Pop}{\RXSearchState}$
+    \State $\LC \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
+    \If{$\Call{Cost}{\LC} < \Call{Cost}{\Best}$}
+    \State $\Best \gets \LC$
+    \EndIf
+    \State $\Call{\PQ.Push}{\RXSearchState,\Expand(\Regex,\RegexAlt)}$
     \EndWhile
-    \State \ReturnVal{\Call{RXSearch.Best}{\RXSearchState}}
+    \State \ReturnVal{best}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -1861,11 +1856,11 @@ for correctness.}
 %language of Symmetric DNF lenses. After finding such a symmetric DNF lens, that
 %symmetric DNF lens is converted into a simple symmetric lens.
 
-\subsection{\PCF{\RXSearch.Propose}}
+\subsection{Search Through Types}
 The first synthesizer is one that searches through regular expression pairs.
-This synthesizer, \RXSearch, proposes regular expressions, semantically but not
-syntactically equivalent to the originals.  In particular, this synthesizer
-performs the following rewrites:
+This synthesizer, comprising \Expand, \PQ, and \RXSearch, proposes regular
+expressions, semantically but not syntactically equivalent to the originals. In
+particular, this synthesizer performs the following rewrites:
 \begin{center}
   \begin{tabular}{rcl}
     $\PRegexStar{\Regex}{\Probability}$
@@ -1880,12 +1875,12 @@ performs the following rewrites:
 As well as the congruence rules that allow these rewrites to be applied on
 subexpressions.
 
-\RXSearch proposes rewrites incrementally, where it proposes regular expression
-pairs with the smallest number of rewrites first. When there are no more
-proposed regular expressions derived from $n$ rewrites, \RXSearch proposes
-regular expressions derived from $n+1$ rewrites.
+Our priority queue proposes stochastic regular expressions generated from fewer
+rewrites first. Only when there are no more proposed regular expressions derived
+from $n$ rewrites will \PCF{\PQ.Pop} propose regular expressions derived from
+$n+1$ rewrites.
 
-\RXSearch terminates when the sum of the number of regular expressions of the
+The procedure \PCF{\Continue} terminates when the sum of the number of regular expressions of the
 smallest unproposed size with the distance of those regular expressions from the
 originals exceeds the cost of the current best lens. At this point, \RXSearch
 stops proposing regular expression pairs, and instead returns to the user the
@@ -1938,7 +1933,10 @@ regular expressions with all concatenations fully distributed over all
 disjunctions. As such, the language of a stochastic DNF regular expression is a
 union of its subcomponents, the language of a stochastic sequence is the
 concatenation of its subcomponents, and the language of a stochastic atom is the
-iteration of its subcomponent.
+iteration of its subcomponent. For
+$\DNFOf{(\Sequence_1,\Probability_1)\DNFSep\ldots\DNFSep(\Sequence_n,\Probability_n)}$
+to be a valid stochastic DNF regular expression, the probabilities must sum to
+one ($\sum_{i=0}^n\Probability_i = 1$).
 
 \begin{trivlist}
   \centering
@@ -1964,7 +1962,7 @@ iteration of its subcomponent.
 \end{trivlist}
 
 As these DNF regular expressions are \emph{stochastic}, they are annotated with
-probabilities to express a probability distribution, in addition to a language.
+probabilities to express a probability distribution, in addition to a language. 
 \begin{center}
   \begin{tabular}{rcl}
     $\ProbabilityOf{\PRegexStar{\DNFRegex}{\Probability}}{\String}$
@@ -2014,7 +2012,7 @@ probabilities to express a probability distribution, in addition to a language.
   \ArrowTypeOf{\AtomType{}}{\DNFRegexType{}}\\
   $\AtomToDNFOf{\Atom} = \DNFOf{(\SequenceOf{\EmptyString \SeqSep \Atom \SeqSep
       \EmptyString},1)}$
-  \caption{DNF Regular Expression Functions}
+  \caption{Stochastic DNF Regular Expression Functions}
   \label{fig:dnf-regex-functions}
 \end{figure}
 
@@ -2183,9 +2181,8 @@ synchronized string in $\DNFRegexAlt$.
       ,\ListOf{d_1;\ldots;d_r})\\
     & \hspace*{1.21em},~\DNFOf{\SequenceAlt_1 \DNFSep \ldots \DNFSep \SequenceAlt_m}}\\
     = & \frac{\Sigma_{j=1}^m(H_j)}{m}\\
-    & \text{where } H_j = \frac{\Sigma_{k\SuchThat j_k = j}
-      \REntropyOf{\Sequence_{i_k}\Given\SequenceLens_k,\SequenceAlt_j}}{\SizeOf{\SetOf{k\SuchThat
-      j_k = j}}} + log_2\SizeOf{\SetOf{k\SuchThat j_k = j}}
+    & \text{where } H_j = (0,\Sigma_{\SetOf{k\SuchThat j_k = j}}
+      \REntropyOf{\Sequence_{i_k}\Given\SequenceLens_k,\SequenceAlt_j})
   \end{array}
 \]
 
