@@ -2103,16 +2103,11 @@ possible lenses with type $\overline{\DNFRegex} \Leftrightarrow
 synthesizing such lenses can be driven primarily by the type of the lenses.
 
 \paragraph*{Syntax}
-Like stochastic DNF regular expressions, symmetric DNF Lenses are hierarchically
-structured. Symmetric DNF lenses, which provide lens functions between DNF
-regular expressions, consist of a list of symmetric sequence lenses, as well as
-some additional information. Symmetric sequence lenses, which provide lens
-functions betwen sequences, consist of a list of symmetric atom lenses, as well
-as some additional information. Symmetric atom lenses, which provide lens
-functions between atoms, are merely iterations of symmetric DNF lenses. In the
-following syntax, the nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all
-represent natural numbers. The nonterminals $\String$ and $\StringAlt$ represent
-strings.
+Roughly speaking, symmetric DNF lenses are an n-ary union of symmetric sequence
+lenses, which are, in turn, an n-ary sequence of atomic lenses. Atomic lenses
+are iterations of symmetric DNF lenses. In the following syntax, the
+nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all represent natural
+numbers. The nonterminals $\String$ and $\StringAlt$ represent strings.
 \begin{center}
   \begin{tabular}{@{}r@{\ }c@{}l@{}}
     % REGEX
@@ -2121,7 +2116,7 @@ strings.
                           \ldots\SeqLSep
                           (i_p,j_p,\SAtomLens_p)}
                           ,\ListOf{(\String_1,\Atom_1);\ldots;(\String_q,\Atom_q)}
-                          ,\ListOf{\StringAlt_1;\ldots;\StringAlt_r})$ \\
+                          ,\ListOf{(\StringAlt_1,\AtomAlt_1);\ldots;(\StringAlt_r,\AtomAlt_r)})$ \\
     \SDNFLens{} & \GEq{} & $(\SDNFLensOf{(i_1,j_1,\SSQLens_1)\DNFLSep
                            \ldots\DNFLSep
                            (i_p,j_p,\SSQLens_p)}
@@ -2130,49 +2125,57 @@ strings.
   \end{tabular}
 \end{center}
 
-In greater detail, a symmetric DNF Lens \SDNFLens{} consists of three
-components. First is the mapping component. The mapping component is a list of
-triples $(i,j,\SSQLens)$. In this, $i$ and $j$ refer to sequence $i$ and
+As an example, consider the symmetric DNF lens:
+$(\SDNFLensOf{(1,1,\SSQLens_1)\DNFLSep (1,2,\SSQLens_2)}
+,\ListOf{2},\ListOf{1;2})$, synchronizing data between $\DNFOf{\Sequence_1}$ and
+$\DNFOf{\SequenceAlt_1 \DNFSep \SequenceAlt_2}$. This lens merges both
+$\SequenceAlt_1$ and $\SequenceAlt_2$ into $\Sequence_1$, as they both are
+involved in a lens with $\Sequence_1$. When performing a \CreateR, $\SSQLens_2$
+is used. When performing a \CreateL on a string in $\Sequence_1$, $\SSQLens_1$
+is used, and when performing a \CreateL on a string in $\Sequence_2$,
+$\SSQLens_2$ is used. More generally, a symmetric DNF Lens \SDNFLens{} consists
+of three components. First is the mapping component. The mapping component is a
+list of triples $(i,j,\SSQLens)$. In this, $i$ and $j$ refer to sequence $i$ and
 sequence $j$ in the left and right DNF regular expressions, respectively. The
-third component of the triple, \SSQLens{}, is a sequence lens that maps between the two
-sequences specified by $i$ and $j$. The second component is a list of integers
-$c$. The integer, $c_i$ at position $i$ states that when performing a $\CreateR$
-on a string matching sequence $\Sequence_i$, it will use the sequence lens that
-maps it to sequence $\SequenceAlt_{c_i}$ on the right. The third component is a
-list of integers $d$, and follows the same pattern as the second component, but
-maps from right to left.
+third component of the triple, \SSQLens{}, is a sequence lens that maps between
+the two sequences specified by $i$ and $j$. The second component is a list of
+integers $c$. The integer, $c_i$ at position $i$ states that when performing a
+$\CreateR$ on a string matching sequence $\Sequence_i$, it will use the sequence
+lens that maps it to sequence $\SequenceAlt_{c_i}$ on the right. The third
+component is a list of integers $d$, and follows the same pattern as the second
+component, but maps from right to left.
 
-A Sequence lens \SSQLens{} consists of three components. First is the mapping
-component. The mapping component is a list of triples $(i,j,\SAtomLens)$. In
-this, $i$ and $j$ refer to atom $i$ and atom $j$ on the left and right
-sequences, respectively. The third component of the triple, \SAtomLens{}, is an atom lens that
-maps between the two atoms specified by $i$ and $j$. The second component is a
-list of strings, $\String$. The string, $s_i$ at position $i$ states that when
-performing a $\CreateL$ on a string matching atom $\Atom_i$, it will do one of
-two things. If $\Atom_i$ is mapped to in the mapping component, then performing
-the atom's $\CreateL$ will actually $\PutL$ into that string. If $\Atom_i$ is
-not mapped to, then $\String_i$ will be created as a representative of
-$\Atom_i$.
+As an example, consider the symmetric sequence lens:
+$(\SSQLensOf{(1,2,\SAtomLens_1)} ,\ListOf{}
+,\ListOf{(\StringAlt_1',\AtomAlt_1)})$, synchronizing data between
+$\SequenceOf{\String_0 \SeqSep \Atom_1 \SeqSep \String_1}$ and
+$\SequenceOf{\StringAlt_0 \SeqSep \AtomAlt_1 \SeqSep \StringAlt_1 \SeqSep
+  \AtomAlt_2 \SeqSep \StringAlt_2}$. This lens maps $\Sequence_1$ to
+$\SequenceAlt_2$, and leaves $\AtomAlt_1$ disconnected. On a \CreateR, the
+string created is a concatenation of $\StringAlt_1'$ with the default from
+$\SAtomLens_1$. More generally, a sequence lens \SSQLens{} consists of three
+components. First is the mapping component. The mapping component is a list of
+triples $(i,j,\SAtomLens)$. In this, $i$ and $j$ refer to atom $i$ and atom $j$
+on the left and right sequences, respectively. The third component of the
+triple, \SAtomLens{}, is an atom lens that maps between the two atoms specified
+by $i$ and $j$. The second component is a list of strings, $\String$. The
+string, $s_i$ at position $i$ states that when performing a $\CreateL$ on a
+string matching atom $\Atom_i$, it will do one of two things. If $\Atom_i$ is
+mapped to in the mapping component, then performing the atom's $\CreateL$ will
+actually $\PutL$ into that string. If $\Atom_i$ is not mapped to, then
+$\String_i$ will be created as a representative of $\Atom_i$.
 
 While DNF lenses are useful because they permit an efficient greedy synthesis
 procedure, the particulars of their typing and semantics are not the primary
-intellectual contributions to our work. The details of the typing and semantics
+intellectual contributions of our work. The details of the typing and semantics
 are included in the supplementary material present in the appendix.
 
 \paragraph*{Information-Theoretic Cost Metric}
-Instead of searching for \emph{any} term that satisfies the specification, we
-search for the \emph{best} term that satisfies the specification. This begs the
-question: what metric should we use to determine which term is best?
-Intuitively, we aim to synthesize the lens which is ``closest'' to being a
-bijection. Somewhat more formally, we aim to synthesize a lens which minimizes
-the expected number of bits which must be used to recover the source from the
-target, and the target from the source.
-
 Much like we defined a syntactic means to find the expected number of bits to
 recover string from a synchronized string in another format for simple symmetric
-string lenses, we do the same for symmetric DNF lenses.  Unlike simple symmetric
+string lenses, we do the same for symmetric DNF lenses. Unlike simple symmetric
 string lenses, DNF lenses do not have composition, so the entropy can be defined
-over all terms.  $\REntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ is the
+over all terms. $\REntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ is the
 expected number of bits required to recover a string in $\DNFRegex$ from a
 synchronized string in $\DNFRegexAlt$.
 
@@ -2438,7 +2441,10 @@ quickly by customizing how permissive \RXSearch is in returning lenses.
 \label{sec:evaluation}
 We have implemented our symmetric DNF lenses and the synthesis of them as an
 extension to Boomerang. We added symmetric lens combinators to Boomerang, and
-implemented Boomerang's asymmetric lens combinators \sam{all of Boomerang's combinators?} using the symmetric lens combinators.
+implemented all Boomerang's asymmetric lens combinators using a combination of
+the symmetric lens combinators, as well as other symmetric lens combinators for
+the asymmetric theory extensions present in Boomerang, like matching lenses and
+quotient lenses.
 
 We have extended the Optician synthesis plugin to Boomerang~\cite{?} with our
 symmetric synthesis algorithm. In doing so, users can write synthesis tasks
@@ -2468,7 +2474,7 @@ Our benchmarks are drawn from three different sources.
   changes are reflected in the original format.
 \item We adapted \afm{29} benchmarks from Augeas. These benchmarks turn the
   ad-hoc data present in Linux configuration files into a structured, dictionary
-  representation. \sam{What does data cleaning mean?}
+  representation.
 \item We used \afm{8} benchmarks from synchronization tasks between a
   variety of real-life formats. These tasks range from synchronizing REST
   and JSON web resource descriptions to synchronizing BibTeX and EndNote
