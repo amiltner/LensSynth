@@ -2227,10 +2227,9 @@ a synchronized string in $\DNFRegex$, $\REntropyOf{\DNFRegexAlt \Given
 \label{subsec:greedy-synth}
 The greedy algorithm is actually two greedy algorithms, one that greedily finds
 symmetric DNF lenses (\GreedySynth) and one that greedily finds symmetric
-sequence lenses (\GreedySeqSynth).
-We describe this synthesis algorithm in the context of trying to find a lens
-between \lstinline{"" | name.name*} and \lstinline{"" | name}, with the example
-\lstinline{creater "John Doe" = "John"}.
+sequence lenses (\GreedySeqSynth). We describe this synthesis algorithm in the
+context of trying to find a lens between \lstinline{"" | name.name*} and
+\lstinline{"" | name}.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
 \GreedySynth, a means to synthesize symmetric DNF lenses. The inputs to
@@ -2240,10 +2239,11 @@ input-output examples.
 First, \PCF{CannotMap} checks if there could possibly be a lens satisfying the
 examples. If there is not, \GreedySynth returns \None early. After this,
 \GreedySynth finds the best lenses between each sequence pair of the left and
-right DNF regular expressions, given the examples that match them. An internal
-state for the algorithm is initialized from these. This state consists of two
-things: an intermediate partial DNF Lens and a priority queue consisting of
-potential sequence lenses.
+right DNF regular expressions, given the examples that match them. A priority
+queue containing these sequence lenses is initialized from these
+($\PCF{PQ.Create}$). The symmetric lens is built up iteratively from these
+sequence lenses, the state of this partial lens is tracked in the lens builder,
+$lb$.
 
 \GreedySynth then loops until there are no more sequence lenses in the priority
 queue. Within this loop, sequence lenses are popped. If a popped sequence lens
@@ -2276,15 +2276,16 @@ not, \PCF{GreedyState.ToDNFLens} instead returns \None.
     \EndIf
     \State $\SLS \gets
     \Call{\CartesianMap}{\GreedySeqSynth(\Examples),\ListOf{\Sequence_1;\ldots;\Sequence_n},\ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}}$
-    \State $\GreedyState \gets \Call{GreedyState.Init}{\SLS}$
-    \While{$\Call{GreedyState.Continue}{\GreedyState}$}
-    \State $(\GreedyState,\SSQLens) \gets
-    \Call{GreedyState.PopBest}{\GreedyState}$
-    \If{$\Call{GreedyState.UsefulAdd}{\GreedyState,\SSQLens}$}
-    \State $\GreedyState \gets \Call{GreedyState.AddSeq}{\GreedyState,\SSQLens}$
+    \State $\GreedyState \gets \Call{PQ.Create}{\SLS}$
+    \State $lb \gets \Call{LensBuilder.Empty}{}$
+    \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
+    \State $\SSQLens \gets
+    \Call{PQ.PopBest}{\GreedyState}$
+    \If{$\Call{LensBuilder.UsefulAdd}{lb,\SSQLens}$}
+    \State $lb \gets \Call{GreedyState.AddSeq}{lb,\SSQLens}$
     \EndIf
     \EndWhile
-    \State \ReturnVal{\Call{GreedyState.ToDNFLens}{\GreedyState}}
+    \State \ReturnVal{\Call{LensBuilder.ToDNFLens}{\GreedyState}}
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -2339,7 +2340,7 @@ validated if all atoms that need to be mapped, are: if they are not,
     \If{$\Call{CannotMap}{\Examples,\PRegexStar{\DNFRegex}{\Probability},\PRegexStar{\DNFRegexAlt}{\ProbabilityAlt}}$}
     \State $\ReturnVal{\None}$
     \Else
-    \State $\ReturnVal{\Call{Map}{\PCF{Iterate},\GreedySynth(\Examples,\DNFRegex,\DNFRegexAlt)}}$
+    \State $\ReturnVal{\IterateLensOf{\GreedySynth(\Examples,\DNFRegex,\DNFRegexAlt)}}$
     \EndIf
     \EndFunction
 
