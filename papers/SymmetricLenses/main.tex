@@ -2179,145 +2179,28 @@ a stochastic regular expression.
 
 \subsection{Symmetric DNF Lenses}
 Symmetric DNF lenses are an intermediate synthesis target for \GreedySynth.
-Because of the lack of a type equivalence rule or a composition lens, the set of
-possible lenses with type $\overline{\DNFRegex} \Leftrightarrow
-\overline{\DNFRegexAlt}$ is quite small. Consequently, an algorithm for
-synthesizing such lenses can be driven primarily by the type of the lenses.
+There are many fewer symmetric DNF lenses than symmetric regular lenses. In
+fact, if one does not use the star-unrolling axioms, there are only finitely
+many DNF lenses of a given type (though there are still many more symmetric DNF
+lenses than there are DNF bijective lenses).
 
-\paragraph*{Syntax}
-Roughly speaking, symmetric DNF lenses are an n-ary union of symmetric sequence
-lenses, which are, in turn, an n-ary sequence of atomic lenses. Atomic lenses
-are iterations of symmetric DNF lenses. In the following syntax, the
-nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all represent natural
-numbers. The nonterminals $\String$ and $\StringAlt$ represent strings.
-\begin{center}
-  \begin{tabular}{@{}r@{\ }c@{}l@{}}
-    % REGEX
-    \SAtomLens{} & \GEq{} & $\StarOf{\SDNFLens}$ \\
-    \SSQLens{} & \GEq{} & $(\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
-                          \ldots\SeqLSep
-                          (i_p,j_p,\SAtomLens_p)}
-                          ,\ListOf{(\String_1,\Atom_1);\ldots;(\String_q,\Atom_q)}
-                          ,\ListOf{(\StringAlt_1,\AtomAlt_1);\ldots;(\StringAlt_r,\AtomAlt_r)})$ \\
-    \SDNFLens{} & \GEq{} & $(\SDNFLensOf{(i_1,j_1,\SSQLens_1)\DNFLSep
-                           \ldots\DNFLSep
-                           (i_p,j_p,\SSQLens_p)}
-                           ,\ListOf{c_1;\ldots;c_q}
-                           ,\ListOf{d_1;\ldots;d_r})$ \\
-  \end{tabular}
-\end{center}
+Intuitively, a symmetric DNF lens $sdl$ is a union of symmetric sequence lenses,
+$ssql_1 \ldots ssql_p$, a symmetric DNF sequence lens is a concatenation of
+symmetric atom lenses, $sal_1 \ldots sal_n$, and a symmetric atom lens $sal$ is
+an iteration of a symmetric DNF lens.
 
-\saz{The following two paragraphs are pretty similar (was there a bad merge at
-  some point?) and very low level.  I also
-  could not really follow either of the examples at all.  If we
-  are looking for things to cut, I would propose dropping most of the content of
-  the next two paragraphs, merging the remainder, and skipping pretty directly to the paragraph
-  that starts with ``While DNF lenses...''}
-As an example, consider the symmetric DNF lens:
-$(\SDNFLensOf{(1,1,\SSQLens_1)\DNFLSep (1,2,\SSQLens_2)}
-,\ListOf{2},\ListOf{1;2})$, synchronizing data between $\DNFOf{\Sequence_1}$ and
-$\DNFOf{\SequenceAlt_1 \DNFSep \SequenceAlt_2}$. This lens merges both
-$\SequenceAlt_1$ and $\SequenceAlt_2$ into $\Sequence_1$, as they both are
-involved in a lens with $\Sequence_1$. When performing a \CreateR, $\SSQLens_2$
-is used. When performing a \CreateL on a string in $\Sequence_1$, $\SSQLens_1$
-is used, and when performing a \CreateL on a string in $\Sequence_2$,
-$\SSQLens_2$ is used. More generally, a symmetric DNF Lens \SDNFLens{} consists
-of three components. First is the mapping component. The mapping component is a
-list of triples $(i,j,\SSQLens)$. In this, $i$ and $j$ refer to sequence $i$ and
-sequence $j$ in the left and right DNF regular expressions, respectively. The
-third component of the triple, \SSQLens{}, is a sequence lens that maps between
-the two sequences specified by $i$ and $j$. The second component is a list of
-integers $c$. The integer, $c_i$ at position $i$ states that when performing a
-$\CreateR$ on a string matching sequence $\Sequence_i$, it will use the sequence
-lens that maps it to sequence $\SequenceAlt_{c_i}$ on the right. The third
-component is a list of integers $d$ that follows the same pattern as the second
-component, but maps from right to left.
+Just as we analyzed the information content of ordinary regular expressions, we
+can analyze the information content of DNF regular expressions. As before, we
+use $\REntropyOf{\DNFRegexAlt \Given \SDNFLens, \DNFRegex}$ to calculate bounds
+of the expected amount of information required to recover a string in
+$\DNFRegexAlt$ from a string in $\DNFRegex$, synchronized by $\SDNFLens$. We use
+the function $\LEntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ to
+calculate bounds of the expected amount of information required to recover a
+string in $\DNFRegex$ from a string in $\DNFRegexAlt$, synchronized by
+$\SDNFLens$.
 
-As an example, consider the symmetric sequence lens:
-$(\SSQLensOf{(1,2,\SAtomLens_1)} ,\ListOf{}
-,\ListOf{(\StringAlt_1',\AtomAlt_1)})$, synchronizing data between
-$\SequenceOf{\String_0 \SeqSep \Atom_1 \SeqSep \String_1}$ and
-$\SequenceOf{\StringAlt_0 \SeqSep \AtomAlt_1 \SeqSep \StringAlt_1 \SeqSep
-  \AtomAlt_2 \SeqSep \StringAlt_2}$. This lens maps $\Sequence_1$ to
-$\SequenceAlt_2$, and leaves $\AtomAlt_1$ disconnected. On a \CreateR, the
-string created is a concatenation of $\StringAlt_1'$ with the default from
-$\SAtomLens_1$. More generally, a sequence lens \SSQLens{} consists of three
-components. First is the mapping component. The mapping component is a list of
-triples $(i,j,\SAtomLens)$. In this, $i$ and $j$ refer to atom $i$ and atom $j$
-on the left and right sequences, respectively. The third component of the
-triple, \SAtomLens{}, is an atom lens that maps between the two atoms specified
-by $i$ and $j$. The second component is a list of strings, $\String$. The
-string, $s_i$ at position $i$ states that when performing a $\CreateL$ on a
-string matching atom $\Atom_i$, it will do one of two things. If $\Atom_i$ is
-mapped to in the mapping component, then performing the atom's $\CreateL$ will
-actually $\PutL$ into that string. If $\Atom_i$ is not mapped to, then
-$\String_i$ will be created as a representative of $\Atom_i$.
-
-While DNF lenses are useful because they permit an efficient greedy synthesis
-procedure, the particulars of their typing and semantics are not the primary
-intellectual contributions of our work. The details of the typing and semantics
-are included in the supplementary material present in the appendix.
-
-\paragraph*{Information-Theoretic Cost Metric}
-Much like we defined a syntactic means to find the expected number of bits to
-recover string from a synchronized string in another format for simple symmetric
-string lenses, we do the same for symmetric DNF lenses. Unlike simple symmetric
-string lenses, DNF lenses do not have composition, so the entropy can be defined
-over all terms. $\REntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ is the
-expected number of bits required to recover a string in $\DNFRegex$ from a
-synchronized string in $\DNFRegexAlt$.
-
-\[
-  \begin{array}{rl}
-    & \REntropyOf{\DNFOf{\Sequence_1 \DNFSep \ldots \DNFSep \Sequence_n}\\
-    & \hspace*{1.21em}\Given
-      (\SDNFLensOf{(i_1,j_1,\SSQLens_1)\DNFLSep
-      \ldots\DNFLSep
-      (i_p,j_p,\SSQLens_p)}
-      ,\ListOf{c_1;\ldots;c_q}
-      ,\ListOf{d_1;\ldots;d_r})\\
-    & \hspace*{1.21em},~\DNFOf{\SequenceAlt_1 \DNFSep \ldots \DNFSep \SequenceAlt_m}}\\
-    = & \frac{\Sigma_{j=1}^m(H_j)}{m}\\
-    & \text{where } H_j = (0,\Sigma_{\SetOf{k\SuchThat j_k = j}}
-      \REntropyOf{\Sequence_{i_k}\Given\SequenceLens_k,\SequenceAlt_j})
-  \end{array}
-\]
-
-This entropy calculation for symmetric DNF lenses requires a similar entropy
-calculation for symmetric sequence lenses and symmetric atom lenses.
-
-\[
-  \begin{array}{rl}
-      & \REntropyOf{
-        \SequenceOf{\String_0,\Atom_1,\ldots,\Atom_n,\String_n}\\
-      & \hspace*{1em}\Given
-        (\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
-        \ldots\SeqLSep
-        (i_p,j_p,\SAtomLens_p)}
-        ,\ListOf{(k_1,\String_1);\ldots;(k_q,\String_q)}
-        ,\ListOf{(l_1,\StringAlt_1);\ldots;(l_r,\StringAlt_r)})\\
-      & \hspace*{1.21em},~
-        \SequenceOf{\StringAlt_0,\AtomAlt_1,\ldots,\AtomAlt_m,\StringAlt_m}}\\
-      =
-      & \Sigma_{x=1}^p\REntropyOf{\Atom_{i_x} \Given \AtomAlt_{i_x},\AtomLens_x} +
-        \Sigma_{x=1}^q\REntropyOf{\Atom_{k_x}}
-  \end{array}
-\]
-
-The entropy calculation for symmetric sequence lenses requires a similar entropy
-calculation for symmetric atom lenses, which in turn relies on the entropy
-calculation for symmetric DNF lenses.
-
-\[\begin{array}{rl}
-      & \REntropyOf{\PRegexStar{\DNFRegexAlt}{\ProbabilityAlt} \Given \PRegexStar{\DNFRegex}{\Probability},\StarOf{\SDNFLens}}\\
-      =
-      & \frac{\Probability}{1-\Probability}\REntropyOf{\DNFRegexAlt\Given\DNFRegex,\SDNFLens}
-  \end{array}
-\]
-The expected number of bits required to recover a string in $\DNFRegexAlt$ from
-a synchronized string in $\DNFRegex$, $\REntropyOf{\DNFRegexAlt \Given
-  \SDNFLens, \DNFRegex}$ is defined symmetrically.
-
+The details of these definitions are syntactically tedious, but not
+intellectually difficult. We elide them here but include them in the appendix.
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
@@ -2744,14 +2627,19 @@ of $C$ and specifies default behavior when data is missing. For instance, to
 implement the scenario in Figure~\ref{fig:minimized-representations}, the
 complement would consist of a list of pairs of salary and company name.
 Classical symmetric lenses satisfy the following equational laws.
-\begin{equation}
-  \tag{\PutRL}
-  \frac{\PutRSymOf{(x,c)} = (y,c'')}{\PutLSymOf{(y,c'''')} = (x,c')}
-\end{equation}
-\begin{equation}
-  \tag{\PutLR}
-  \frac{\PutLSymOf{(y,c)} = (x,c')}{\PutRSymOf{(x,c'')} = (y,c')}
-\end{equation}
+\begin{centermath}
+\begin{array}[b]{l@{\qquad \; \qquad}l}
+  \begin{mathprooftree}
+    \AxiomC{$\PutRSymOf{(x,c)} = (y,c')$}
+    \UnaryInfC{$\PutLSymOf{(y,c')} = (x,c')$}
+  \end{mathprooftree}
+&
+  \begin{mathprooftree}
+    \AxiomC{$\PutLSymOf{(y,c)} = (x,c')$}
+    \UnaryInfC{$\PutRSymOf{(x,c')} = (y,c')$}
+  \end{mathprooftree}
+\end{array}
+\end{centermath}
 
 Two classical symmetric lenses are equivalent if they output the same
 formats given any sequence of edits. Formally, given a lens
@@ -3161,7 +3049,92 @@ our heuristic makes finding the correct lens require fewer specifications.
 \onecolumn
 
 
-\paragraph*{Symmetric DNF Lenses: Typing and Semantics}
+\paragraph*{Symmetric DNF Lenses: Syntax, Cost, Typing, and Semantics}
+
+\paragraph*{Syntax}
+Roughly speaking, symmetric DNF lenses are an n-ary union of symmetric sequence
+lenses, which are, in turn, an n-ary sequence of atomic lenses. Atomic lenses
+are iterations of symmetric DNF lenses. In the following syntax, the
+nonterminals $i$, $j$, $p$, $q$, $r$, $c$, and $d$ all represent natural
+numbers. The nonterminals $\String$ and $\StringAlt$ represent strings.
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{}l@{}}
+    % REGEX
+    \SAtomLens{} & \GEq{} & $\StarOf{\SDNFLens}$ \\
+    \SSQLens{} & \GEq{} & $(\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
+                          \ldots\SeqLSep
+                          (i_p,j_p,\SAtomLens_p)}
+                          ,\ListOf{(\String_1,\Atom_1);\ldots;(\String_q,\Atom_q)}
+                          ,\ListOf{(\StringAlt_1,\AtomAlt_1);\ldots;(\StringAlt_r,\AtomAlt_r)})$ \\
+    \SDNFLens{} & \GEq{} & $(\SDNFLensOf{(i_1,j_1,\SSQLens_1)\DNFLSep
+                           \ldots\DNFLSep
+                           (i_p,j_p,\SSQLens_p)}
+                           ,\ListOf{c_1;\ldots;c_q}
+                           ,\ListOf{d_1;\ldots;d_r})$ \\
+  \end{tabular}
+\end{center}
+
+\paragraph*{Information-Theoretic Cost Metric}
+Much like we defined a syntactic means to find the expected number of bits to
+recover string from a synchronized string in another format for simple symmetric
+string lenses, we do the same for symmetric DNF lenses. Unlike simple symmetric
+string lenses, DNF lenses do not have composition, so the entropy can be defined
+over all terms. $\LEntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ is the
+expected number of bits required to recover a string in $\DNFRegex$ from a
+synchronized string in $\DNFRegexAlt$.
+
+\[
+  \begin{array}{rl}
+    & \LEntropyOf{\DNFOf{\Sequence_1 \DNFSep \ldots \DNFSep \Sequence_n}\\
+    & \hspace*{1.21em}\Given
+      (\SDNFLensOf{(i_1,j_1,\SSQLens_1)\DNFLSep
+      \ldots\DNFLSep
+      (i_p,j_p,\SSQLens_p)}
+      ,\ListOf{c_1;\ldots;c_q}
+      ,\ListOf{d_1;\ldots;d_r})\\
+    & \hspace*{1.21em},~\DNFOf{\SequenceAlt_1 \DNFSep \ldots \DNFSep \SequenceAlt_m}}\\
+    = & \frac{\Sigma_{j=1}^m(H_j)}{m}\\
+    & \text{where } H_j = (0,\Sigma_{\SetOf{k\SuchThat j_k = j}}
+      \LEntropyOf{\Sequence_{i_k}\Given\SequenceLens_k,\SequenceAlt_j})
+  \end{array}
+\]
+
+This entropy calculation for symmetric DNF lenses requires a similar entropy
+calculation for symmetric sequence lenses and symmetric atom lenses.
+
+\[
+  \begin{array}{rl}
+      & \REntropyOf{
+        \SequenceOf{\String_0,\Atom_1,\ldots,\Atom_n,\String_n}\\
+      & \hspace*{1em}\Given
+        (\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
+        \ldots\SeqLSep
+        (i_p,j_p,\SAtomLens_p)}
+        ,\ListOf{(k_1,\String_1);\ldots;(k_q,\String_q)}
+        ,\ListOf{(l_1,\StringAlt_1);\ldots;(l_r,\StringAlt_r)})\\
+      & \hspace*{1.21em},~
+        \SequenceOf{\StringAlt_0,\AtomAlt_1,\ldots,\AtomAlt_m,\StringAlt_m}}\\
+      =
+      & \Sigma_{x=1}^p\REntropyOf{\Atom_{i_x} \Given \AtomAlt_{i_x},\AtomLens_x} +
+        \Sigma_{x=1}^q\REntropyOf{\Atom_{k_x}}
+  \end{array}
+\]
+
+The entropy calculation for symmetric sequence lenses requires a similar entropy
+calculation for symmetric atom lenses, which in turn relies on the entropy
+calculation for symmetric DNF lenses.
+
+\[\begin{array}{rl}
+      & \REntropyOf{\PRegexStar{\DNFRegexAlt}{\ProbabilityAlt} \Given \PRegexStar{\DNFRegex}{\Probability},\StarOf{\SDNFLens}}\\
+      =
+      & \frac{\Probability}{1-\Probability}\REntropyOf{\DNFRegexAlt\Given\DNFRegex,\SDNFLens}
+  \end{array}
+\]
+The expected number of bits required to recover a string in $\DNFRegexAlt$ from
+a synchronized string in $\DNFRegex$, $\REntropyOf{\DNFRegexAlt \Given
+  \SDNFLens, \DNFRegex}$ is defined symmetrically.
+
+
 The typing judgment is a 3-ary relation over a single DNF lens, and two DNF
 regular expressions. If $\SDNFLens \OfType \DNFRegex \Leftrightarrow
 \DNFRegexAlt$, then the $\SDNFLens.\CreateR$, $\SDNFLens.\CreateL$,
@@ -3241,32 +3214,26 @@ the same for strings and atoms on the right, with \CreateL.  The last guarantees
 that each atom is mapped by at most one atom lens.
 
 \[
-  \inferrule*
-  {
+  \inferrule* {
     \SAtomLens_1 \OfType \Atom_{i_1} \Leftrightarrow \AtomAlt_{j_1}\\
     \ldots\\
     \SAtomLens_p \OfType \Atom_{i_p} \Leftrightarrow \AtomAlt_{j_p}\\\\
-    \String_1 \in \Atom_1\\
+    \String_{c_1} \in \Atom_{c_1}\\
     \ldots\\
-    \String_q \in \Atom_q\\\\
-    \StringAlt_1 \in \AtomAlt_1\\
+    \String_{c_{q'}} \in \Atom_{c_{q'}}\\\\
+    \StringAlt_{d_1} \in \AtomAlt_{d_1}\\
     \ldots\\
-    \StringAlt_r \in \AtomAlt_r\\\\
+    \StringAlt_{d_{r'}} \in \AtomAlt_{d_{r'}}\\\\
     i_x = i_y \BooleanImplies x = y\\
-    j_x = j_y \BooleanImplies x = y
-  }
-  {
-    (\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep
-      \ldots\SeqLSep
+    j_x = j_y \BooleanImplies x = y } {
+    (\SSQLensOf{(i_1,j_1,\SAtomLens_1)\SeqLSep \ldots\SeqLSep
       (i_p,j_p,\SAtomLens_p)}
-    ,\ListOf{\String_1;\ldots;\String_q}
-    ,\ListOf{\StringAlt_1;\ldots;\StringAlt_r})\\
-    \OfType
-    \SequenceOf{\String_0'''' \SeqSep \Atom_1 \SeqSep \ldots \SeqSep \Atom_q
-      \SeqSep \String_q'}
-    \Leftrightarrow
-    \SequenceOf{\StringAlt_0' \SeqSep \AtomAlt_1 \SeqSep \ldots \SeqSep \AtomAlt_r \SeqSep \StringAlt_r'}
-  }
+    ,\ListOf{(\String_{c_1},\Atom_{c_1});\ldots;(\String_{c_{q'}},\Atom_{c_{q'}})}
+    ,\ListOf{(\StringAlt_{d_1},\Atom_{d_1});\ldots;(\StringAlt_{d_r},\Atom_{d_r})})\\
+    \OfType \SequenceOf{\String_0'''' \SeqSep \Atom_1 \SeqSep \ldots \SeqSep
+      \Atom_{q'} \SeqSep \String_{q}'} \Leftrightarrow \SequenceOf{\StringAlt_0'
+      \SeqSep \AtomAlt_1 \SeqSep \ldots \SeqSep \AtomAlt_r \SeqSep
+      \StringAlt_{r}'} }
 \]
 
 For each component of the string matching an atom, the \CreateR function looks
