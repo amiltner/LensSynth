@@ -1367,11 +1367,14 @@ $\Lens_2$.  The \MergeL lens is symmetric to \MergeR, the two sublenses must
 share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
-We now provide the typing derivations and semantics for these lenses. For
-simplicity of presentation, we define the typing derivations and semantics only
-over unambiguous regular expressions, even though some lenses can be defined
-over ambiguous regular expressions (for example, the identity lens doesn't need
-any ambiguity constraints). We believe relaxing this restriction is
+We now provide the typing derivations and semantics for these lenses. We do not
+include the semantics for combinators equivalent to those presented in prior
+work~\cite{symmetric-lenses,boomerang}. Furthermore, we only present \CreateR
+and \PutR when \CreateL and \PutL are symmetric. Full details are present in the
+appendix. For simplicity of presentation, we define the typing derivations and
+semantics only over unambiguous regular expressions, even though some lenses can
+be defined over ambiguous regular expressions (for example, the identity lens
+doesn't need any ambiguity constraints). We believe relaxing this restriction is
 unproblematic.
 
 \begin{centermath}
@@ -1390,9 +1393,7 @@ unproblematic.
 &
 \begin{array}[b]{r@{\ }c@{\ }l}
     \CreateR{} \App s & = & s\\
-    \CreateL{} \App s & = & s\\
     \PutR{} \App s_1 \App s_2 & = & s_1\\
-    \PutL{} \App s_1 \App s_2 & = & s_1
   \end{array}
 \end{array}
 \end{centermath}
@@ -1414,9 +1415,7 @@ is needed.
 &
   \begin{array}{@{}r@{\ }c@{\ }l@{}}
     $\CreateR{} \App \String'$ & = & $\StringAlt$\\
-    $\CreateL{} \App \StringAlt'''''$ & = & $\String$\\
     $\PutR{} \App \String''' \App \StringAlt'$ & = & $\StringAlt'$\\
-    $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
   \end{array}
 \end{array}
 \end{centermath}
@@ -1498,13 +1497,6 @@ $
       \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_2}$
       \end{cases*}$\\
     
-    $\CreateL{} \App \StringAlt$
-    & =
-    & $\begin{cases*}
-      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
-      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
-      \end{cases*}$\\
-    
     $\PutR{} \App \String \App \StringAlt$
     & =
     & $\begin{cases*}
@@ -1512,15 +1504,6 @@ $
         \Lens_2.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\BRegex_2} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_2}$\\
         \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_1} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_2}$\\
         \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_2} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_1}$
-      \end{cases*}$\\
-    
-    $\PutL{} \App \StringAlt \App \String$
-    & =
-    & $\begin{cases*}
-        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1} \BooleanAnd \String\in\LanguageOf{\BRegex_1}$\\
-        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2} \BooleanAnd \String\in\LanguageOf{\BRegex_2}$\\
-        \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1} \BooleanAnd \String\in\LanguageOf{\BRegex_2}$\\
-        \Lens_2.\CreateLOf{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2} \BooleanAnd \String\in\LanguageOf{\BRegex_1}$
       \end{cases*}$\\
   \end{tabular}
 \end{tabular}
@@ -1608,8 +1591,6 @@ merge operators: it is easier to see what lens the synthesis algorithm is
 creating.
 
 \begin{centermath}
-\begin{tabular}[b]{l@{\qquad}l}
-$
   \inferrule*
   {
     \Lens_1 \OfType \BRegex \Leftrightarrow \BRegexAlt_1\\
@@ -1621,35 +1602,6 @@ $
     \Leftrightarrow
     \RegexOr{\BRegexAlt_1}{\BRegexAlt_2}
   }
-$
-&
-  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
-    $\CreateR{} \App \String$
-    & =
-    & $\Lens_1.\CreateROf{\String}$\\
-    
-    $\CreateL{} \App \StringAlt$
-    & =
-    & $\begin{cases*}
-      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
-      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
-      \end{cases*}$\\
-    
-    $\PutR{} \App \String \App \StringAlt$
-    & =
-    & $\begin{cases*}
-      \Lens_1.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
-      \Lens_2.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
-    \end{cases*}$\\
-    
-    $\PutL{} \App \StringAlt \App \String$
-    & =
-    & $\begin{cases*}
-        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
-        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
-      \end{cases*}$\\
-  \end{tabular}
-\end{tabular}
 \end{centermath}
 The \MergeL lens is symmetric to \MergeR.
 
@@ -3048,6 +3000,363 @@ our heuristic makes finding the correct lens require fewer specifications.
 
 \onecolumn
 
+\paragraph*{Symmetric Lenses full Detail}
+\begin{centermath}
+\begin{array}[b]{l@{\qquad \; \qquad}l}
+\begin{array}[b]{c}
+\quad\\
+  \inferrule*
+  {
+  }
+  {
+    \IdentityLensOf{\BRegex} \OfType \BRegex \Leftrightarrow \BRegex
+  }
+  \\
+  \quad
+  \end{array}
+&
+\begin{array}[b]{r@{\ }c@{\ }l}
+    \CreateR{} \App s & = & s\\
+    \CreateL{} \App s & = & s\\
+    \PutR{} \App s_1 \App s_2 & = & s_1\\
+    \PutL{} \App s_1 \App s_2 & = & s_1\\
+  \end{array}
+\end{array}
+\end{centermath}
+Note that the identity lens ignores the second argument in the put functions.
+Because the two formats are fully synchronized, no knowledge of the prior data
+is needed.
+
+\begin{centermath}
+\begin{array}[b]{l@{\qquad \; \qquad}l}
+  \inferrule*
+  {
+    \String \in \LanguageOf{\BRegex}\\
+    \StringAlt \in \LanguageOf{\BRegexAlt}
+  }
+  {
+    \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt}
+    \OfType \BRegex \Leftrightarrow \BRegexAlt
+  }
+&
+  \begin{array}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String'$ & = & $\StringAlt$\\
+    $\CreateL{} \App \StringAlt'''''$ & = & $\String$\\
+    $\PutR{} \App \String''' \App \StringAlt'$ & = & $\StringAlt'$\\
+    $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
+  \end{array}
+\end{array}
+\end{centermath}
+
+Just as the identity lens ignores the second argument in puts, disconnect lenses
+ignore the first in both puts and creates.  The data is unsynchronized in these
+two formats, information from one format doesn't impact the other.
+
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad \; \qquad}l}
+$
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
+    \Lens_2 \OfType \BRegex_2 \Leftrightarrow \BRegexAlt_2
+  }
+  {
+    \ConcatLensOf{\Lens_1}{\Lens_2} \OfType \BRegex_1 \Concat \BRegex_2
+    \Leftrightarrow
+    \BRegexAlt_1 \Concat \BRegexAlt_2
+  }
+$
+&
+$
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
+    \Lens_2 \OfType \BRegex_2 \Leftrightarrow \BRegexAlt_2
+  }
+  {
+    \SwapLensOf{\Lens_1}{\Lens_2} \OfType \BRegex_1 \Concat \BRegex_2
+    \Leftrightarrow
+    \BRegexAlt_2 \Concat \BRegexAlt_1
+  }
+$
+\end{tabular}
+\end{centermath}
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1 \String_2$ & = & $(\Lens_1.\CreateROf{\String_1})(\Lens_2.\CreateROf{\String_2})$\\
+    $\CreateL{} \App \StringAlt_1 \StringAlt_2$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
+    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_1\StringAlt_2)$ & = & $(\Lens_1.\PutROf{\String_1}{\StringAlt_1})(\Lens_2.\PutROf{\String_2}{\StringAlt_2})$\\
+    $\PutL{} \App (\StringAlt_1\StringAlt_2) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
+  \end{tabular}
+\end{center}
+
+Concat is similar to concatenation in existing string lens languages like
+Boomerang.  For such terms, we do not provide the semantics, and merely refer readers to existing work. The swap combinator is similar to concat, though the second regular expression
+is swapped.
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1\String_2$ & = & $(\Lens_2.\CreateROf{\String_2})(\Lens_1.\CreateROf{\String_1})$\\
+    $\CreateL{} \App \StringAlt_2\StringAlt_1$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
+    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_2\StringAlt_1)$ & = & $(\Lens_2.\PutROf{\String_2}{\StringAlt_2})(\Lens_1.\PutROf{\String_1}{\StringAlt_1})$\\
+    $\PutL{} \App (\StringAlt_2\StringAlt_1) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
+  \end{tabular}
+\end{center}
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
+    \Lens_2 \OfType \BRegex_2 \Leftrightarrow \BRegexAlt_2
+  }
+  {
+    \OrLensOf{\Lens_1}{\Lens_2} \OfType
+    \RegexOr{\BRegex_1}{\BRegex_2}
+    \Leftrightarrow
+    \RegexOr{\BRegexAlt_1}{\BRegexAlt_2}
+  }
+  $
+&
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_1}$\\
+      \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_2}$
+      \end{cases*}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
+      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
+      \end{cases*}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\BRegex_1} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
+        \Lens_2.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\BRegex_2} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_2}$\\
+        \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_1} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_2}$\\
+        \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_2} \BooleanAnd \StringAlt\in\LanguageOf{\BRegexAlt_1}$
+      \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1} \BooleanAnd \String\in\LanguageOf{\BRegex_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2} \BooleanAnd \String\in\LanguageOf{\BRegex_2}$\\
+        \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1} \BooleanAnd \String\in\LanguageOf{\BRegex_2}$\\
+        \Lens_2.\CreateLOf{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2} \BooleanAnd \String\in\LanguageOf{\BRegex_1}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{tabular}
+\end{centermath}
+The \OrLens lens deals with data that can come in one form or another. If the
+data gets changed from one format to the other, information in the old format is
+lost.
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String_1\ldots\String_n$
+    & =
+    & $(\Lens.\CreateROf{\String_1})\ldots(\Lens.\CreateROf{\String_n})$\\
+    
+    $\CreateL{} \App \StringAlt_1\ldots\StringAlt_n$
+    & =
+    & $(\Lens.\CreateLOf{\StringAlt_1})\ldots(\Lens.\CreateLOf{\StringAlt_n})$\\
+    
+    $\PutR{} \App (\String_1\ldots\String_n) \App (\StringAlt_1\ldots\StringAlt_m)$
+    & =
+    & $\StringAlt_1'\ldots\StringAlt_n'$ where $\StringAlt_i' =
+      \begin{cases*}
+        \Lens.\PutROf{\String_i}{\StringAlt_i} & if $i \leq m$\\
+        \Lens.\CreateROf{\String_i} & otherwise
+      \end{cases*}$\\
+    $\PutL{} \App (\StringAlt_1\ldots\StringAlt_m) \App (\String_1\ldots\String_n)$
+    & =
+    & $\String_1'\ldots\String_n'$ where $\String_i' =
+      \begin{cases*}
+        \Lens.\PutROf{\StringAlt_i}{\String_i} & if $i \leq n$\\
+        \Lens.\CreateROf{\StringAlt_i} & otherwise
+      \end{cases*}$
+  \end{tabular}
+\end{center}
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
+  \centering
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt\\
+    \Lens_2 \OfType \BRegex_2 \Leftrightarrow \BRegexAlt
+  }
+  {
+    \MergeROf{\Lens_1}{\Lens_2} \OfType
+    \RegexOr{\BRegex_1}{\BRegex_2}
+    \Leftrightarrow
+    \BRegexAlt
+  }
+$
+&
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_1}$\\
+      \Lens_2.\CreateROf{\String} & if $\String\in\LanguageOf{\BRegex_2}$
+      \end{cases*}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\Lens_1.\CreateLOf{\StringAlt}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\BRegex_1}$\\
+      \Lens_2.\PutROf{\String}{\StringAlt} & if $\String\in\LanguageOf{\BRegex_2}$
+    \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\String\in\LanguageOf{\BRegex_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\String\in\LanguageOf{\BRegex_2}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{tabular}
+\end{centermath}
+
+The \MergeR lens is interesting because it merges data where one data can be in
+two formats, and one data has only one format. In previous
+work~\cite{Boomerang}, this was combined into \OrLens{}, where
+\OrLens{} could have ambiguous types, but we find it more clear to have explicit
+merge operators: it is easier to see what lens the synthesis algorithm is
+creating.
+
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex \Leftrightarrow \BRegexAlt_1\\
+    \Lens_2 \OfType \BRegex \Leftrightarrow \BRegexAlt_2
+  }
+  {
+    \MergeLOf{\Lens_1}{\Lens_2} \OfType
+    \BRegex
+    \Leftrightarrow
+    \RegexOr{\BRegexAlt_1}{\BRegexAlt_2}
+  }
+$
+&
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$
+    & =
+    & $\Lens_1.\CreateROf{\String}$\\
+    
+    $\CreateL{} \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
+      \Lens_2.\CreateLOf{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
+      \end{cases*}$\\
+    
+    $\PutR{} \App \String \App \StringAlt$
+    & =
+    & $\begin{cases*}
+      \Lens_1.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
+      \Lens_2.\PutROf{\String}{\StringAlt} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
+    \end{cases*}$\\
+    
+    $\PutL{} \App \StringAlt \App \String$
+    & =
+    & $\begin{cases*}
+        \Lens_1.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_1}$\\
+        \Lens_2.\PutLOf{\StringAlt}{\String} & if $\StringAlt\in\LanguageOf{\BRegexAlt_2}$
+      \end{cases*}$\\
+  \end{tabular}
+\end{tabular}
+\end{centermath}
+The \MergeL lens is symmetric to \MergeR.
+
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+  $
+  \inferrule*
+  {
+    \Lens_1 \OfType \BRegex \Leftrightarrow \BRegexAlt\\
+    \Lens_2 \OfType \BRegexAlt \Leftrightarrow \BRegexAltAlt\\
+  }
+  {
+    \ComposeLensOf{\Lens_1}{\Lens_2} \OfType
+    \BRegex \Leftrightarrow \BRegexAltAlt
+  }
+$
+&
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \String$ & = & $\Lens_2.\CreateROf{(\Lens_1.\CreateROf{\String})}$\\
+    $\CreateL{} \App \StringAlt$ & = & $\Lens_1.\CreateLOf{(\Lens_2.\CreateLOf{\StringAlt})}$\\
+    $\PutR{} \App \String \App \StringAltAlt$ & = & $\Lens_2.\PutROf{(\Lens_1.\PutROf{\String}{(\Lens_2.\CreateLOf{\StringAltAlt})})}{\StringAltAlt}$\\
+    $\PutL{} \App \StringAltAlt \App \String$ & = & $\Lens_1.\PutLOf{(\Lens_2.\PutLOf{\StringAltAlt}{(\Lens_2.\CreateROf{\String})})}{\String}$
+  \end{tabular}
+\end{tabular}
+\end{centermath}
+Composing is interesting in the put functions. Because puts require intermediary
+data, we recreate that intermediary data with creates.
+
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
+\inferrule*
+  {
+    \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt
+  }
+  {
+    \IterateLensOf{\Lens} \OfType
+    \StarOf{\BRegex}
+    \Leftrightarrow
+    \StarOf{\BRegexAlt}
+  }
+  $
+  &
+  $
+  \inferrule*
+  {
+    \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt
+  }
+  {
+    \InvertOf{\Lens} \OfType \BRegexAlt \Leftrightarrow \BRegex
+  }
+  $
+\end{tabular}
+\end{centermath}
+\begin{center}
+  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+    $\CreateR{} \App \StringAlt$ & = & $\Lens.\CreateLOf{\StringAlt}$\\
+    $\CreateL{} \App \String$ & = & $\Lens.\CreateROf{\String}$\\
+    $\PutR{} \App \StringAlt \App \String$ & = & $\Lens.\PutLOf{\StringAlt}{\String}$\\
+    $\PutL{} \App \String \App \StringAlt$ & = & $\Lens.\PutROf{\String}{\StringAlt}$
+  \end{tabular}
+\end{center}
+The \IterateLens lens deals with iterated data, while inverting reverses the direction of a lens: creating on the right becomes creating on the left and vice versa, and putting on the right becomes putting on the left and vice versa. The invert combonator is particularly useful when chaining many compositions together, as it can be used to align the central types.
+\[
+  \centering
+  \inferrule*
+  {
+    \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt\\
+    \BRegex \SSREquiv \BRegex'\\
+    \BRegexAlt \SSREquiv \BRegexAlt'
+  }
+  {
+    \Lens \OfType \BRegex' \Leftrightarrow \BRegexAlt'
+  }
+\]
+
+Type equivalence enables a lens of type $S \Leftrightarrow T$ to be used as a
+lens of type $S' \Leftrightarrow T'$ if $S$ equivalent to $S'$ and $T$ is
+equivalent to $T'$. Type equivalence is useful both for addressing type
+annotations, and for making well-typed compositions.
 
 \paragraph*{Symmetric DNF Lenses: Syntax, Cost, Typing, and Semantics}
 
