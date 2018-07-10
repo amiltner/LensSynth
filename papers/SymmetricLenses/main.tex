@@ -324,8 +324,8 @@ as well as a rich subset of the full-blown ``symmetric lenses'' studied by
 \section{Introduction}
 
 \noindent
-In a big-data world, one will often find similar data stored in a variety of
-different formats. For instance, electronic calendars come in iCalendar,
+In a big-data world, similar data is often stored in a variety of
+formats. For instance, electronic calendars come in iCalendar,
 vCalendar and h-event formats~\cite{calendar-formats}; US taxation data can be
 transmitted via Tax XML (used by the US government for e-filing) or TXF (used by
 TurboTax)~\cite{tax-formats}; and sewing machines can read embroidery files
@@ -333,15 +333,17 @@ transmitted as PES formats, DST formats or several
 others~\cite{embroidery-formats}.
 
 One way to interconvert between these varied data formats is to use a
-\emph{lens}~\cite{?}---a bi-directional
+\emph{lens}~\cite{Focal2005}---a bi-directional
 program that can transform data represented in a format $S$ to a format $T$,
-and vice versa.  There are a wide variety of different kinds of lenses, but well-defined lens
-languages typically come with guarantees that help ensure data is
+and vice versa.  There are many different kinds of lenses, but well-defined lens
+languages typically provide guarantees that help ensure data is
 not lost or corrupted as it is transformed back and forth between different representations.
 
-Lens languages, like any domain-specific language, also cut down the space of
-possible programs one can write, and the smaller the space of programs,
-the easier it is to find the program one is looking for.  
+While lenses facilitate writing principled data
+transformations, \textit{synthesizing} lenses 
+can make the task even easier.  Lens languages are a ripe target for
+synthesis because lens languages, like many domain-specific languages,
+reduce the space of possible programs, making search-based synthesis easier. 
 %This feature can be a negative, if the desired transformation
 %falls outside of the scope provided by the language, but can also be positive, as complex
 %properties (like invertability) can be enforced automatically.
@@ -349,15 +351,17 @@ the easier it is to find the program one is looking for.
 %set of programs is that doing so can facilitate program synthesis, which is essentially
 %a search through the space of possible computations that can be expressed as a lens.
 Recent research~\cite{optician, maina+:quotient-synthesis} has exploited this
-fact by demonstrating that it is possible to synthesize relatively large,
+observation by demonstrating that it is possible to synthesize relatively large,
 complex lenses from specifications. In particular, given types that describe
-source and target formats, the bijective synthesis algorithm presented in this
-research will find bijective lenses
+source and target formats and optional examples of corresponding data, the
+bijective synthesis algorithm presented in these 
+papers will find bijective lenses to convert between data
 % ~\cite{optician}
-for files in ad-hoc formats, such as those housing linux application
-configurations. Oftentimes, these algorithms find such lenses in less than a
-second, and without the aid of any examples at all, with just types describing
-the source and target formats.
+in ad hoc formats, such as linux 
+configuration files that represent the same data in different ways. 
+Often, these algorithms can find an appropriate lens
+in less than a second without requiring any examples.
+%, with just types describing the source and target formats.
 % \dpw{I would cite the ICFP paper (cite string:
 %   maina+:quotient-synthesis) as to appear but I'm not sure how to do that
 %   without possibly violating the spirit of double-blind reviewing. ie, if it
@@ -369,22 +373,28 @@ the source and target formats.
 %   by SIGPLAN is not to reduce the quality of the paper; omitting this citation
 %   would have that affect.}\bcp{+1}\saz{Stephanie says we should cite it in the
 %   third person, even if that's a bit awkward, but otherwise citing it is OK.}
+One reason that bijective lens synthesis is so effective, even relative to successful
+synthesis projects in other domains, is that there are simply not very
+many different bijections between related data formats (unless the
+same kind of data appears in the two formats many times). 
+Hence, if the synthesis algorithm can
+find any bijection at all, then it is very likely to be the one the
+user wants.
 
-One of reasons these algorithms are so effective, even relative to successful
-synthesis projects in other domains, is because unless the same kind of data
-appears in a format many times, there simply are not very many different
-bijections between related data formats. Hence, if the synthesis algorithm can
-find any bijection at all, then it is very likely to be the one the user wants.
-However, there is also a price for narrowing the synthesis domain so
-dramatically: Many real data formats are almost, but not quite, bijections. More
-often two related data formats have some data in common, but also contain some
-differences. For instance, two related tables might share four of five columns,
-but not the last. Alternately, one ad hoc configuration file might host some
-format-specific meta data, such as a date, a time or reference number, whereas
-the other does not. Indeed, all of our benchmarks taken from Flash
-Fill~\cite{flashfill} and all of our benchmarks that synchronize between two
-ad-hoc file formats. Consequently, past tools that search for strict bijections
-will rarely be applicable in practice.
+
+However, there is a price for narrowing the synthesis domain so
+dramatically: Many real data formats are almost, but not quite,
+bijections. More often two related data formats have some data in
+common, but also contain some differences. For instance, two related
+tables might share four of five columns, but each have a different
+fifth column. Alternately, one ad hoc configuration file might include
+some file-specific meta data, such as a date, a time or reference
+number, whereas the other does not. Indeed, all of our benchmarks
+taken from Flash Fill~\cite{flashfill} and all of our benchmarks that
+synchronize between two ad hoc file formats described in
+Section \ref{sec:evaluation} \ksf{is this right?} have this 
+characteristic. Consequently, past tools that search for strict
+bijections will rarely be applicable in practice.
 
 A natural way to expand the scope of such tools is to consider a more
 powerful language of lenses.  In particular, \emph{symmetric
@@ -486,12 +496,15 @@ $T$.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
-  \caption{Schematic Diagram for our symmetric lens synthesis algorithm. Regular
+  \caption{Schematic diagram for our symmetric lens synthesis algorithm. Regular
     expressions \Regex and \RegexAlt, and a set of examples \Examples, are
     provided as input. \Expand searches through stochastic regular expression
     pairs, equivalent to the originals, and proposes them to \GreedySynth.
     \GreedySynth finds a lens, typed between the generated equivalent pairs.
-    When the algorithm determines it has an optimal lens, it returns that lens.}
+    When the algorithm determines it has an optimal lens, it returns
+  that lens. \ksf{Figure needs to be changed to call first search
+  Expand; Are the S and T regular expressions (which should have bars)
+  or stochastic regular expressions (which should be called such)?}}
   \label{fig:high-level-algorithm}
 \end{figure}
 
@@ -631,12 +644,7 @@ let emp_insurance = header . ("\n" . emp_ins)*
   }
   \caption{Hypothetical example data files and corresponding regular expressions
   used by management and HR at a US company to represent employee salaries and health
-  insurance providers, respectively. \ksf{Why
-  is \lstinline{emp_salaries} written with an or instead of just using
-  the star operator? Can we simplify?}\afm{It does require the or operator, if
-  we don't want it to have trailing or preceding newlines.  Howevever, I
-  intentionally had this as not having those to force a discussion about
-  rewrites and searching through rewrites.} }  
+  insurance providers, respectively. }  
   \label{fig:minimized-representations}
 \end{figure}
 
@@ -1360,8 +1368,9 @@ Just as the identity lens ignores the second argument in puts, disconnect lenses
 ignore the first in both puts and creates.  The data is unsynchronized in these
 two formats, information from one format doesn't impact the other.
 
-\[
-  \centering
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad \; \qquad}l}
+$
   \inferrule*
   {
     \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
@@ -1372,22 +1381,9 @@ two formats, information from one format doesn't impact the other.
     \Leftrightarrow
     \BRegexAlt_1 \Concat \BRegexAlt_2
   }
-\]
-%\begin{center}
-%  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
-%    $\CreateR{} \App \String_1 \String_2$ & = & $(\Lens_1.\CreateROf{\String_1})(\Lens_2.\CreateROf{\String_2})$\\
-%    $\CreateL{} \App \StringAlt_1 \StringAlt_2$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
-%    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_1\StringAlt_2)$ & = & $(\Lens_1.\PutROf{\String_1}{\StringAlt_1})(\Lens_2.\PutROf{\String_2}{\StringAlt_2})$\\
-%    $\PutL{} \App (\StringAlt_1\StringAlt_2) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
-%  \end{tabular}
-%\end{center}
-
-Concat is similar to concatenation in existing string lens languages like
-Boomerang.  For such terms, we do not provide the semantics, and merely refer
-readers to existing work.
-
-\[
-  \centering
+$
+&
+$
   \inferrule*
   {
     \Lens_1 \OfType \BRegex_1 \Leftrightarrow \BRegexAlt_1\\
@@ -1398,7 +1394,21 @@ readers to existing work.
     \Leftrightarrow
     \BRegexAlt_2 \Concat \BRegexAlt_1
   }
-\]
+$
+\end{tabular}
+\end{centermath}
+%\begin{center}
+%  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
+%    $\CreateR{} \App \String_1 \String_2$ & = & $(\Lens_1.\CreateROf{\String_1})(\Lens_2.\CreateROf{\String_2})$\\
+%    $\CreateL{} \App \StringAlt_1 \StringAlt_2$ & = & $(\Lens_1.\CreateLOf{\StringAlt_1})(\Lens_2.\CreateLOf{\StringAlt_2})$\\
+%    $\PutR{} \App (\String_1\String_2) \App (\StringAlt_1\StringAlt_2)$ & = & $(\Lens_1.\PutROf{\String_1}{\StringAlt_1})(\Lens_2.\PutROf{\String_2}{\StringAlt_2})$\\
+%    $\PutL{} \App (\StringAlt_1\StringAlt_2) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
+%  \end{tabular}
+%\end{center}
+
+Concat is similar to concatenation in existing string lens languages like
+Boomerang.  For such terms, we do not provide the semantics, and merely refer readers to existing work. The swap combinator is similar to concat, though the second regular expression
+is swapped.
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
 %    $\CreateR{} \App \String_1\String_2$ & = & $(\Lens_2.\CreateROf{\String_2})(\Lens_1.\CreateROf{\String_1})$\\
@@ -1407,9 +1417,6 @@ readers to existing work.
 %    $\PutL{} \App (\StringAlt_2\StringAlt_1) \App (\String_1\String_2)$ & = & $(\Lens_1.\PutLOf{\StringAlt_1}{\String_1})(\Lens_2.\PutLOf{\StringAlt_2}{\String_2})$\\
 %  \end{tabular}
 %\end{center}
-The swap combinator is similar to concat, though the second regular expression
-is swapped.
-
 \begin{centermath}
 \begin{tabular}[b]{l@{\qquad}l}
 $
@@ -1464,20 +1471,6 @@ $
 The \OrLens lens deals with data that can come in one form or another. If the
 data gets changed from one format to the other, information in the old format is
 lost.
-
-\[
-  \centering
-  \inferrule*
-  {
-    \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt
-  }
-  {
-    \IterateLensOf{\Lens} \OfType
-    \StarOf{\BRegex}
-    \Leftrightarrow
-    \StarOf{\BRegexAlt}
-  }
-\]
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
 %    $\CreateR{} \App \String_1\ldots\String_n$
@@ -1504,8 +1497,6 @@ lost.
 %      \end{cases*}$
 %  \end{tabular}
 %\end{center}
-The \IterateLens lens deals with iterated data.
-
 \begin{centermath}
 \begin{tabular}[b]{l@{\qquad}l}
 $
@@ -1629,8 +1620,22 @@ $
 Composing is interesting in the put functions. Because puts require intermediary
 data, we recreate that intermediary data with creates.
 
-\[
-  \centering
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad}l}
+$
+\inferrule*
+  {
+    \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt
+  }
+  {
+    \IterateLensOf{\Lens} \OfType
+    \StarOf{\BRegex}
+    \Leftrightarrow
+    \StarOf{\BRegexAlt}
+  }
+  $
+  &
+  $
   \inferrule*
   {
     \Lens \OfType \BRegex \Leftrightarrow \BRegexAlt
@@ -1638,7 +1643,9 @@ data, we recreate that intermediary data with creates.
   {
     \InvertOf{\Lens} \OfType \BRegexAlt \Leftrightarrow \BRegex
   }
-\]
+  $
+\end{tabular}
+\end{centermath}
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
 %    $\CreateR{} \App \StringAlt$ & = & $\Lens.\CreateLOf{\StringAlt}$\\
@@ -1647,8 +1654,7 @@ data, we recreate that intermediary data with creates.
 %    $\PutL{} \App \String \App \StringAlt$ & = & $\Lens.\PutROf{\String}{\StringAlt}$
 %  \end{tabular}
 %\end{center}
-Inverting reverses the direction of a lens: creating on the right becomes creating on the left and vice versa, and putting on the right becomes putting on the left and vice versa. The invert combonator is particularly useful when chaining many compositions together, as it can be used to align the central types.
-
+The \IterateLens lens deals with iterated data, while inverting reverses the direction of a lens: creating on the right becomes creating on the left and vice versa, and putting on the right becomes putting on the left and vice versa. The invert combonator is particularly useful when chaining many compositions together, as it can be used to align the central types.
 \[
   \centering
   \inferrule*
@@ -1661,6 +1667,7 @@ Inverting reverses the direction of a lens: creating on the right becomes creati
     \Lens \OfType \BRegex' \Leftrightarrow \BRegexAlt'
   }
 \]
+
 Type equivalence enables a lens of type $S \Leftrightarrow T$ to be used as a
 lens of type $S' \Leftrightarrow T'$ if $S$ equivalent to $S'$ and $T$ is
 equivalent to $T'$. Type equivalence is useful both for addressing type
