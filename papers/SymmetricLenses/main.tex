@@ -222,22 +222,34 @@ stringstyle=\sffamily\color{dkblue},
 %%   suites consisting of synchronizing file formats from configuration files,
 %%   application-specific data storage files, and data cleaning tasks.
 
-(The idea of lenses.  Their usefulness and popularity.)
+A {\em lens} is a program that can be run both ``front to back'' and ``back
+to front,'' allowing data to be transformed in two directions.  Since their
+introduction by~\citet{Focal2005-long2}, lenses have been extensively
+studied and applied.  Recent work~\cite{optician} has also demonstrated how
+techniques from {\em type-directed program synthesis} can be used to
+efficiently synthesize a very simple class of lenses---so-called {\em
+  bijective lenses} over string data---given a pair of types (regular
+expressions) and a small number of examples.
 
-Recent work by~\citet{optician} has also demonstrated
-how techniques from {\em type-directed program synthesis} can be used to
-efficiently synthesize the simplest class of lenses: so-called {\em
-  bijective lenses}, where no information is discarded when transforming
-data in either direction.
+We show how to extend this synthesis algorithm to a much richer class of
+lenses, which we call {\em simple symmetric lenses}, including both
+bijective lenses and the more widely used ``asymmetric''
+lenses~\cite{Focal2005-long2}, as well as a rich subset of the full-blown
+``symmetric lenses'' proposed by \citet{symmetric-lenses}.  Simple symmetric
+lenses are of independent theoretical interest, being the largest class of
+symmetric lenses that do not rely on persistent internal state.
 
-We show here how to extend this algorithm to a much richer class of lenses,
-which we call {\em simple symmetric lenses}; this class includes all
-bijective and standard ``asymmetric'' lenses~\cite{OriginalFosterPOPLpaper},
-as well as a rich subset of the full-blown ``symmetric lenses'' studied by
-\citet{symmetric-lenses}.
+Synthesizing simple symmetric lenses is substantially more challenging that
+synthesizing bijective lenses: since some of the information on each side
+can be ``disconnected'' from the other side, there will in general be {\em
+  many} lenses that agree with a given example.  To guide the search
+process, we use {\em stochastic regular expressions} and ideas from
+information theory to estimate the amount of information propagated by a
+candidate lens.
 
-(why our algorithm is harder; how we use information theory to help)
-
+We describe an implementation of simple symmetric lenses and our synthesis
+procedure as extensions to the Boomerang language~\cite{Boomerang} and
+evaluate its performance on a range of benchmark examples.
 \end{abstract}
 
 %\begin{CCSXML}
@@ -355,10 +367,10 @@ observation by demonstrating that it is possible to synthesize relatively large,
 complex lenses from specifications. In particular, given types that describe
 source and target formats and optional examples of corresponding data, the
 bijective synthesis algorithm presented in these 
-papers will find bijective lenses to convert between data
+papers will find bijective lenses to convert between data stored
 % ~\cite{optician}
-in ad hoc formats, such as linux 
-configuration files that represent the same data in different ways. 
+in different formats,
+such as linux configuration files from different systems that represent the same data in different ways.  
 Often, these algorithms can find an appropriate lens
 in less than a second without requiring any examples.
 %, with just types describing the source and target formats.
@@ -374,8 +386,8 @@ in less than a second without requiring any examples.
 %   would have that affect.}\bcp{+1}\saz{Stephanie says we should cite it in the
 %   third person, even if that's a bit awkward, but otherwise citing it is OK.}
 One reason that bijective lens synthesis is so effective, even relative to successful
-synthesis projects in other domains, is that there are simply not very
-many different bijections between related data formats (unless the
+synthesis projects in other domains, is that there are not very
+many bijections between related data formats (unless the
 same kind of data appears in the two formats many times). 
 Hence, if the synthesis algorithm can
 find any bijection at all, then it is very likely to be the one the
@@ -397,28 +409,33 @@ characteristic. Consequently, past tools that search for strict
 bijections will rarely be applicable in practice.
 
 A natural way to expand the scope of such tools is to consider a more
-powerful language of lenses.  In particular, \emph{symmetric
+exrpressive language of lenses.  For example, \emph{symmetric
 lenses}~\cite{symmetric-lenses} encompass a broad collection of bidirectional
-transformations and include bijections as well as transformations that
-allow each side of the transaction to retain information not present
-in the other side.  If $\ell$ is a symmetric lens between formats $S$ and $T$, one can
-use it to transform data from $S$ to $T$, or vice versa equally well.  A user would typically
-run $\ell$ in the forwards direction (from $S$ to $T$) on a string $s$ when a user updates
-$s$---executing $\ell$ in this direction will propagate those updates to $T$.
-However, because data in format $T$ may contain some information not present in format $T$,
-the $S \rightarrow T$ transformation will take
-both a string $s \in S$ and a string $t \in T$ as arguments.
-Inuitively, the lens should extract the data ``shared'' between the two formats from $s$
-as it generates an output $t'$.  If $s$ is missing information, the transformation should
-extract the missing components from $t$.
+transformations that include bijections as well as more flexibile transformations that
+allow each side to retain information not present
+in the other.  If $\ell$ is a symmetric lens between formats $S$ and
+$T$, then $\ell$  can transform data from $S$ to $T$ or vice versa
+equally well.  A user would typically 
+run $\ell$ in the forwards direction (from $S$ to $T$) when a user updates
+a string $s \in S$ to propagate those updates to $T$.
+However, because data in format $S$ may contain some information not present in format $T$,
+the $S \rightarrow T$ transformation takes
+\emph{both} the edited string $s \in S$ and a string $t \in T$ as arguments.
+Inuitively, the lens extracts the data ``shared'' between the two
+formats from $s$
+and uses $t$ to supply any missing information.
+% required by $T$ that is missing
+%as it generates an output $t'$.  If $s$ is missing information, the transformation should
+%extract the missing components from $t$.
 
 Initially, we hypothesized that extending the synthesis algorithms
-of Miltner \ETAL~\cite{optician} to operate over symmetric lenses
-as opposed to bijective lenses 
-would be relatively straightforward:  Simply replace one set of combinators with another
-and execute a search with similar heuristics.  However, in our early,
-naive attempts to do so, we ran
-into two different kinds of difficulties. \dpw{I got into the weeds a little bit there.
+of Miltner \ETAL~\cite{optician} to operate over symmetric rather than
+bijective lenses
+would be relatively straightforward:  Simply replace the bijective
+combinators with symmetric ones 
+and search using similar heuristics.  However, 
+this naive approach runs into two difficulties. \dpw{I got into the
+weeds a little bit there. 
 The goal was to set up the idea that there are ``two parts'' to a symmetric
 lens transformation: the information from $s$ and the information from $t$.  In
 a future paragraph in the intro we are going to explain that the central heuristic
