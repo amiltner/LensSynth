@@ -1283,16 +1283,20 @@ themselves nonempty by traversing the correct star-semiring equivalences (\EG,
 
 \section{Simple Symmetric String Lenses}
 \label{sec:ssl}
+\saz{This paragraph used to say that lenses are typed between stochastic REs
+  and it also says that lenses are typed between REs.  I think its should just
+  be REs? Double check that this is correct} 
+
 We now give a formal description of all the combinators in our symmetric lens
-language. These lens terms are typed between pairs of stochastic regular
-expressions: the typing judgment $\Lens \OfType \BRegex \Leftrightarrow
-\BRegexAlt$ means that $\Lens$ is a well typed lens between
-$\LanguageOf{\BRegex}$ and $\LanguageOf{\BRegexAlt}$. While we are performing
-synthesis on stochastic regular expressions, lenses are typed between regular
-expressions.  We can recover a regular expression from a stochastic regular
-expression by deleting probability annotations.  In a slight abuse of notation,
-if $\Regex$ is a stochastic regular expression, $\BRegex$ is the regular
-expression obtained by removing probability annotations.
+language.  While our algorithms perform synthesis on stochastic regular
+expressions, lenses themselves are typed between regular expressions.  We can
+recover a regular expression from a stochastic regular expression by deleting
+probability annotations.  In a slight abuse of notation\saz{Why is this an
+  abuse?}, if $\Regex$ is a stochastic regular expression, $\BRegex$ is the
+regular expression obtained by removing probability annotations. The typing
+judgment $\Lens \OfType \BRegex \Leftrightarrow \BRegexAlt$ means that $\Lens$
+is a well typed lens between $\LanguageOf{\BRegex}$ and
+$\LanguageOf{\BRegexAlt}$.
 
 \begin{align*}
 \ell ::= &\IdentityLensOf{\BRegex} \; | \; \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt} \; | \; \IterateLensOf{\Lens} \; | \; \ConcatLensOf{\Lens_1}{\Lens_2} \; | \; \SwapLensOf{\Lens_1}{\Lens_2} \; | \; \OrLensOf{\Lens_1}{\Lens_2} \; | \; \ComposeLensOf{\Lens_1}{\Lens_2} \; |\\
@@ -1723,13 +1727,13 @@ string in $\RegexAlt$, synchronized by $\Lens$.
 \end{center}
 $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ is defined symmetrically. These
 functions bound the expected number of bits to recover one data format from a
-synchronized string in the other format. Notice, we would be able to exactly
+synchronized string in the other format. Note that we would be able to exactly
 calculate the conditional entropy, were it not for \MergeL. If
 $\MergeLOf{\Lens_1}{\Lens_2} \OfType \Regex \Leftrightarrow
 \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}$, given a string in $s$, we
-need to determine if the synchronized string is in $\Regex$ or $\RegexAlt$.
+need to determine if the synchronized string is in $\RegexAlt_1$ or $\RegexAlt_2$.
 However, this information content is dependent on the how likely the
-synchronized string is to be in $\Regex$ or $\RegexAlt$. Furthermore, we
+synchronized string is to be in $\RegexAlt_1$ or $\RegexAlt_2$. Nevertheless, we
 typically calculate the conditional entropy exactly, as merges are relatively
 uncommon on practice; only \afm{2} of the lenses sythesized in our benchmarks
 include merges.
@@ -1743,7 +1747,7 @@ conditional entropy to recover the data.
 
 \begin{theorem}
   Let $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, where $\Lens$ does not
-  include composition, $\Regex$ and $\RegexAlt$ and unambiguous, and neither
+  include composition, $\Regex$ and $\RegexAlt$ are unambiguous, and neither
   $\Regex$ nor $\RegexAlt$ contain any empty subcomponents.
   \begin{enumerate}
   \item $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ bounds the entropy of
@@ -1755,24 +1759,26 @@ conditional entropy to recover the data.
   \end{enumerate}
 \end{theorem}
 
-Note we have not defined entropy for lens compositions. Consider the lens
-$\Lens_1 ; \Lens_2$, where both $\Lens_1$ and $\Lens_2$ are non-bijective.
-However, their composition could actually be bijective, for example if the
-intermediary format contains information not present in either the source nor
-the target. While this composition may be a bijection (and should have zero
-cost), it is difficult to see this looking merely at the syntax.
+% SAZ: This looks like a bad merge, since the paragraph below is better
+% Note we have not defined entropy for lens compositions. Consider the lens
+% $\Lens_1 ; \Lens_2$, where both $\Lens_1$ and $\Lens_2$ are non-bijective.
+% However, their composition could actually be bijective, for example if the
+% intermediary format contains information not present in either the source nor
+% the target. While this composition may be a bijection (and should have zero
+% cost), it is difficult to see this looking merely at the syntax.
 
-Notice that our definition of $\Entropy$ contains no case for sequential
+Note that our definition of $\Entropy$ contains no case for sequential
 composition $\Lens_1 ; \Lens_2$ and our theorem excludes lenses that contain
 such compositions. Unfortunately, defining the entropy of lenses involving
 composition is challenging because $\Lens_1$ might, for instance, add some
 information that is subsequently projected away in $\Lens_2$. Such operations
-can cancel, leaving us with a zero-entropy bijection. However, detecting such
-cancellations directly is complicated. Fortunately, we are able to avoid such
-complications by synthesizing \emph{DNF lenses} — simple symmetric lenses that
-inhabit a disjunctive normal form. DNF lenses have a number of properties that
-facilitate synthesis: they cut down the program search space dramatically and
-they do not contain instances of composition.
+can cancel, leaving a zero-entropy bijection composed from two non-zero entropy
+transformations. However, detecting such cancellations directly is complicated and
+this property is difficult to determine merely from syntax. Fortunately, we are able to
+avoid such complication altogether by synthesizing \emph{DNF lenses}---simple symmetric
+lenses that inhabit a disjunctive normal form. DNF lenses have a number of
+properties that facilitate synthesis: they cut down the program search space
+dramatically and they do not contain instances of composition.
 
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
