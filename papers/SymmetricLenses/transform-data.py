@@ -53,28 +53,32 @@ def write_to_filename(filename, s):
 
 def generate_examples_required_graph(input_csv):
     nm_count = count_real_vals(input_csv,"NM")
-    nmcc_count = count_real_vals(input_csv,"NMCC")
     fc_count = count_real_vals(input_csv,"FC")
     notp_count = count_real_vals(input_csv,"NoTP")
+    tc25_count = count_real_vals(input_csv,"TC25")
+    tcn25_count = count_real_vals(input_csv,"TCN25")
+    constcostcc_count = count_real_vals(input_csv,"ConstCostCC")
     print(nm_count)
-    print(nmcc_count)
     print(fc_count)
+    print(tcn25_count)
     print(notp_count)
+    print(tc25_count)
+    print(constcostcc_count)
 
-    ind = np.arange(4)
+    ind = np.arange(6)
     width = 0.35
 
     fig, ax = plt.subplots()
 
-    rects1 = ax.bar(ind, [nm_count,nmcc_count,fc_count,notp_count], width, color='#ffffb3', align='center')
+    rects1 = ax.bar(ind, [nm_count,fc_count,constcostcc_count,notp_count,tc25_count,tcn25_count], width, color='#ffffb3', align='center')
 
     ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Run Mode')
     ax.set_xticks(ind)
-    ax.set_xticklabels(["\\textbf{NM}","\\textbf{NMCC}","\\textbf{FC}","\\textbf{NoTP}"])
+    ax.set_xticklabels(["\\textbf{Any}","\\textbf{FL}","\\textbf{DC}","\\textbf{t=0}","\\textbf{t=25}","\\textbf{t=-25}"])
 
-    fig = plt.figure(2,tight_layout=True)
-    ax.step([-.5,3.5],[45.1,45.1],label="Benchmark Count",linestyle=":",
+    fig = plt.figure(3,tight_layout=True)
+    ax.step([-.5,5.5],[45.1,45.1],label="Benchmark Count",linestyle=":",
             linewidth=1, dashes=(1,1))
 
     plt.tick_params(
@@ -83,7 +87,7 @@ def generate_examples_required_graph(input_csv):
                         bottom='off',      # ticks along the bottom edge are off
                             top='off') # labels along the bottom edge are off
     fig.set_figheight(1)
-    fig.set_figwidth(3)
+    fig.set_figwidth(4)
 
     fig.savefig(generated_graphs_base + "metrics_importance.eps", bbox_inches='tight')
 
@@ -290,12 +294,12 @@ def generate_specsize_vs_tasks_graph(input_csv):
        
     fig.savefig(generated_graphs_base + "specsizes.eps", bbox_inches='tight')
 
-def generate_time_vs_tasks_graph(input_csv):
+def generate_time_vs_tasks_graph_vs_bijective(input_csv):
     fig, ax = plt.subplots()
 
     def create_step_plot(colname, outputname,style,width):
         col_vals = [float(x)/1000.0 for x in project_column_from_csv(input_csv, colname) if x != "[-1]"]
-        col_vals_and_endpoints = col_vals + [0,30]
+        col_vals_and_endpoints = col_vals + [0,60]
         x_vals = sorted([x for x in set(col_vals_and_endpoints)])
         x_count_dict = {key: 0 for key in x_vals}
         for val in col_vals:
@@ -314,12 +318,10 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    ax.step([0,30],[45.1,45.1],label="Benchmark Count",linestyle=":",
+    ax.step([0,60],[39.1,39.1],label="Benchmark Count",linestyle=":",
             linewidth=1, dashes=(1,1))
     create_step_plot("SS","\\textbf{SS}",'-',normal_size)
-    create_step_plot("BS","\\textbf{BS}",'-',normal_size)
-    create_step_plot("SSNC","\\textbf{SSNC}",':',normal_size)
-    create_step_plot("BSNC","\\textbf{BSNC}",':',normal_size)
+    create_step_plot("BS","\\textbf{BS}",':',normal_size)
 
     ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Time (s)')
@@ -327,13 +329,59 @@ def generate_time_vs_tasks_graph(input_csv):
     l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
     plt.setp(l.texts) 
 
-    plt.xticks(np.arange(0, 30.1, 10))
+    plt.xscale('log')
+    plt.xlim(0,60)
+    plt.yticks(np.arange(0, 40.1, 10))
+
+    fig = plt.figure(2,tight_layout=True)
+    fig.set_figheight(2)
+    fig.set_figwidth(4)
+
+    fig.savefig(generated_graphs_base + "times_bijective.eps", bbox_inches='tight')
+
+def generate_time_vs_tasks_graph(input_csv):
+    fig, ax = plt.subplots()
+
+    def create_step_plot(colname, outputname,style,width):
+        col_vals = [float(x)/1000.0 for x in project_column_from_csv(input_csv, colname) if x != "[-1]"]
+        col_vals_and_endpoints = col_vals + [0,60]
+        x_vals = sorted([x for x in set(col_vals_and_endpoints)])
+        x_count_dict = {key: 0 for key in x_vals}
+        for val in col_vals:
+            x_count_dict[val] = x_count_dict[val]+1
+        x_completed_counts = []
+        acc = 0
+        for val in x_vals:
+            acc = acc + x_count_dict[val]
+            x_completed_counts.append(acc)
+        x_completed_counts = [0] + x_completed_counts[:len(x_completed_counts)-1]
+        if (style != '-'):
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
+        else:
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
+
+    normal_size = 2
+    full_size = 3
+
+    ax.step([0,60],[45.1,45.1],label="Benchmark Count",linestyle=":",
+            linewidth=1, dashes=(1,1))
+    create_step_plot("SS","\\textbf{SS}",'-',normal_size)
+    create_step_plot("SSNC","\\textbf{SSNC}",':',normal_size)
+
+    ax.set_ylabel('Benchmarks\nCompleted')
+    ax.set_xlabel('Time (s)')
+
+    l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
+    plt.setp(l.texts) 
+
+    plt.xscale('log')
+    plt.xlim(0,60)
     plt.yticks(np.arange(0, 50.1, 10))
 
     fig = plt.figure(1,tight_layout=True)
     fig.set_figheight(2)
     fig.set_figwidth(4)
-       
+
     fig.savefig(generated_graphs_base + "times.eps", bbox_inches='tight')
 
 def generate_benchmark_count(input_csv):
@@ -373,15 +421,18 @@ def generate_maximum_expands_forced(input_csv):
     write_to_filename(transformed_data_base + "maximum_expansions_forced.txt", str(int(max(exps))))
 
 def main(args):
-    if len(args) == 2:
-        input_filepath = args[1]
-        input_csv = retrieve_csv(input_filepath)
+    if len(args) == 3:
+        bijective_filepath = args[1]
+        symmetric_filepath = args[2]
+        bijective_csv = retrieve_csv(bijective_filepath)
+        symmetric_csv = retrieve_csv(symmetric_filepath)
         #ensure_dir(generated_graphs_base)
         #ensure_dir(transformed_data_base)
         #generate_uninferred_expansions_graph(input_csv)
         #generate_compositional_lenses_graph(input_csv)
-        generate_time_vs_tasks_graph(input_csv)
-        generate_examples_required_graph(input_csv)
+        generate_time_vs_tasks_graph(symmetric_csv)
+        generate_time_vs_tasks_graph_vs_bijective(bijective_csv)
+        generate_examples_required_graph(symmetric_csv)
         #generate_benchmark_count(input_csv)
         #generate_multiple_of_five_number_of_seconds_synthesized_under(input_csv)
         #generate_number_augeas(input_csv)
