@@ -1311,14 +1311,11 @@ share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
 We now provide the typing derivations and semantics for these lenses. For
-simplicity of presentation,\bcp{Is there any known issue with relaxing this
-  restriction? I've often found ti convenient to use id lenses with ambiguous
-  REs...}\afm{no known issues, I just didn't want to go into specifics about
-  ambiguity in an already-full paper}\bcp{OK, we can just comment that we
-  believe relaxing this restriction is unproblematic.}, we define the typing derivations and
-semantics only over unambiguous regular expressions, even though some lenses can
-be defined over ambiguous regular expressions (for example, the identity lens
-doesn't need any ambiguity constraints).
+simplicity of presentation, we define the typing derivations and semantics only
+over unambiguous regular expressions, even though some lenses can be defined
+over ambiguous regular expressions (for example, the identity lens doesn't need
+any ambiguity constraints). We believe relaxing this restriction is
+unproblematic.
 
 \begin{centermath}
 \begin{array}[b]{l@{\qquad \; \qquad}l}
@@ -2569,9 +2566,8 @@ problems each algorithm can solve, when trying to synthesize ``in one go.''
     \BSNCOpt{} is the bijective synthesis algorithm without using a library of
     existing lenses. Our symmetric synthesis algorithm is able to complete all
     benchmarks in our benchmark suite in under 30 seconds, and is able to
-    complete most of the benchmarks without using compositional synthesis.
-    \bcp{The interesting part of the graph is all squished against the Y axis.
-      Can we make the X axis logarithmic?}}
+    complete a majority of the benchmarks without using compositional
+    synthesis.}
   \label{fig:times}
 \end{figure}
 
@@ -2579,7 +2575,8 @@ For each benchmark in our benchmark suite, we ran every mode on it with a
 timeout of 30 seconds, and average the result over 5 runs.
 Figure~\ref{fig:times} summarizes the results of these tests. We find that our
 algorithm is able to synthesize all of the benchmarks in our benchmark suite in
-under 30 seconds.
+under 30 seconds. Without compositional synthesis, the synthesis algorithm is
+able to solve 26 problem instances.
 
 \subsection{Slowdown Compared to Bijective Synthesis}
 
@@ -2599,9 +2596,22 @@ To perform this comparison, we synthesized lenses in 2 modes:
 
 For each benchmark in our benchmark suite, we ran every mode on it with a
 timeout of 30 seconds, and average the result over 5 runs.
-Figure~\ref{fig:comparison-times} summarizes the results of these tests. On
+Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
 average, \SSOpt{} took 2.1 times (\afm{3.5} seconds) longer to complete than
 \BSOpt{}.
+
+\begin{figure}
+  \includegraphics{generated-graphs/times_bijective}
+  \caption{Number of benchmarks that can be solved by a given algorithm in a
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \BSOpt{} is the full bijective lens synthesis algorithm. \SSNCOpt{} is the
+    symmetric synthesis algorithm without using a library of existing lenses.
+    \BSNCOpt{} is the bijective synthesis algorithm without using a library of
+    existing lenses. Our symmetric synthesis algorithm is able to complete all
+    benchmarks in our benchmark suite in under 30 seconds, and is able to
+    complete most of the benchmarks without using compositional synthesis.}
+  \label{fig:times_bijective}
+\end{figure}
 
 The slowest completed benchmark for both synthesis algorithms is
 \texttt{xml\_to\_augeas.boom}, a benchmark that converts arbitrary XML up to
@@ -2614,44 +2624,52 @@ complete.
 We evaluate the usefulness of (1) our information theoretic metric, and (2) our
 termination heuristic.  To this end, we run our program in 3 different modes:\\
 \begin{tabulary}{\linewidth}{rL}
-  \NoTPOpt{}: & We synthesize lenses using our symmetric synthesis algorithm,
-                but users cannot tune when \RXSearch returns using a termination parameter.\\
-  \FCOpt{}: &  The first time \GreedySynth finds a lens, it returns that lens.\\
-  \NMCCOpt{}: & The lens cluster that contains is identified through \SSOpt{}. \GreedySynth is then called on that pair of SREs. \\
-  \NMOpt{}: & Neither \GreedySynth nor \RXSearch have any notion of cost; they
-              both merely search for
-              any lens that satisfies the specification. 
+  \AnyOpt{}: & We synthesize any lens that satisfies the specification, with no
+               notion of cost.\\
+  \FLOpt{}: &  The first time \GreedySynth finds a lens, the synthesis procedure
+              returns that lens.\\
+  \CCOpt{}: & We replace our information theoretic cost metric with one where
+              the cost of the lens is the number of disonnects plus the number
+              of merges.\\
+  \ZTOpt{}: & \ZTOpt{} runs the algorithm with the termination parameter
+    universally set to 0 (default). \\
+  \TFTOpt{}: & \TFTOpt{} runs the algorithm with the
+    termination parameter universally set to 25. \\
+  \NTFTOpt{}: & \NTFTOpt{} runs the algorithm with the
+    termination parameter universally set to -25. \\
 \end{tabulary}
 
 \begin{figure}
   \includegraphics{generated-graphs/metrics_importance}
   \caption{Number of benchmarks that synthesize the correct lens by a given
-    algorithm. \NoTPOpt{} is the full symmetric synthesis algorithm, but
-    termination parameters are ignored. \FCOpt{} provides a notion of cost to
-    \GreedySynth, but once a satisfying lens is greedily found, that lens is
-    returned. \NMCCOpt{} identifies the lens cluster in which the desired 
-    lens lies.  \GreedySynth{} is then run on that cluster with no notion of
-    cost. \NMOpt{} removes all notion of cost, and merely finds the first
-    satisfying lens.\bcp{Am I reading this wrong, or does even the best
-      algorithm fail to find the correct lens something like 20\% of the
-      time?!?!?!}} 
+    algorithm. \AnyOpt{} provides no notion of cost, and merely returns the
+    first lens it finds that satisfies the specification. \FLOpt{} provides a
+    notion of cost to \GreedySynth, but once a satisfying lens is greedily
+    found, that lens is returned. \CCOpt{} synthesizes lenses, where the cost of
+    a lens is the number of disconnects plus the number of merges. \ZTOpt{} runs
+    the algorithm with the termination parameter universally set to 0 (default).
+    \TFTOpt{} runs the algorithm with the termination parameter universally set
+    to 25. \NTFTOpt{} runs the algorithm with the termination parameter
+    universally set to -25.}
   \label{fig:metric}
 \end{figure}
 
 Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
 our metrics are very important for finding the correct lens. Our
 information-theoretic metric is critical for finding the correct lens. Indeed,
-even when provided with the correct lens cluster, without a notion of cost, we
-would need constrain our search space more with additional examples to find the
-correct lens.
+only \afm{10} of our benchmarks succeeded when running in \CCOpt{} mode.
 
-Our termination condition is also quite important. When running in \FCOpt{},
-only 5 lenses are found. The first cluster in which a lens is found is rarely
-the correct cluster. However, our termination condition is not perfect.
+Our termination condition is also quite important. When running in \FLOpt{},
+only \afm{5} lenses are found. The first cluster in which a lens is found is
+rarely the correct cluster. However, our termination condition is not perfect.
 Sometimes users must tell the algorithm to ``keep going'' or ``stop early.''
 Without termination parameters, our algorithm finds the correct lens for 36 of
 our 45 benchmarks, 9 of them need help in the form of a termination parameter
-for finding the correct lens.
+for finding the correct lens. That being said, our default parameter finds a
+good middle-ground. Both \TFTOpt{} and \NTFTOpt{} synthesized the correct lens
+less often than \ZTOpt.  \TFTOpt{} necessitates too good a lens, so the search
+procedure keeps spinning, and \NTFTOpt{} terminates early, not finding the
+correct lens.
 % end evaluation
 
 % begin related-work
