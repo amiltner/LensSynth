@@ -410,7 +410,7 @@ characteristic. Consequently, past tools that search for strict
 bijections will rarely be applicable in practice.
 
 A natural way to expand the scope of such tools is to consider a more
-exrpressive language of lenses.  For example, \emph{symmetric
+expressive language of lenses.  For example, \emph{symmetric
 lenses}~\cite{symmetric-lenses} encompass a broad collection of bidirectional
 transformations that include bijections as well as more flexibile transformations that
 allow each side to retain information not present
@@ -467,47 +467,40 @@ lenses and matching lenses.
 
 The second difficulty with synthesizing symmetric lenses is more
 fundamental: While the number of bijective lenses between two
-related formats is often tiny, the number of symmetric lenses is often large. In
+related formats is often tiny, the number of simple symmetric lenses is much larger. In
 practice, the difference in cardinality means that when a search algorithm
-selects the first bijective lens it finds, that lens has a good chance of being
-the one a user wants. In contrast, and to our surprise, our experiments show
-that if our search algorithm selects the first symmetric lens it finds, it
-typically fails to find the lens the user wants. The flexibity these lenses
-admit when it comes to eliding information generates an explosion of possible
-transformations. To disambiguate between the many possible lenses, we need new
-principles for identifying the ``likely'' ones, and we need new algorithms to
-search the space of program transformations using these principles.
+returns the first bijective lens it finds, that lens has a good chance of being
+the desired lens. In contrast, and to our initial surprise, experiments showed
+that if a naive search algorithm selects the first simple symmetric lens it
+finds, it is typically \emph{not} the desired lens.  The flexibility
+that such lenses provide in eliding information 
+generates an explosion of possible transformations. To disambiguate
+between the many possible lenses, we need new 
+principles for identifying the ``likely'' ones, and we need new
+algorithms guided by those principles to
+search the space of program transformations.
 
-To overcome this second difficulty, we turned to information theory to try to
-find a way to characterize the likely and unlikely lenses. Intuitively, a
-``likely'' lens is one that propagates a lot of information from source to
-target and also from target back to source. Conversely, given the source, the
-target is ``unlikely'' to require very much additional information in order to
-reconstruct it, under the assumption that users typically want to synchronize
-formats with a large amount of shared information. In order to implement this
+
+To overcome this second difficulty, we turn to information theory 
+to characterize the likely and unlikely lenses. 
+We consider a ``likely'' lens to be one that propagates a lot of
+information from source to 
+target and vice versa. Conversely, an ``unlikely'' lens requires a
+large amount of additional information to recover the target given a
+source and vice versa.  
+This categorization follows from the intuition
+that users will typically want to synchronise formats with lots
+of shared information, and so lenses that preserve 
+more information are preferable.
+
+
+To implement this
 intuition, we turn to \emph{stochastic regular expressions} (SREs). Stochastic
 regular expressions define a set of strings, as do ordinary regular expressions,
 but they also provide the expected distribution of strings within that set. Such
 distributions allow us to compute the amount of information gained when
-presented an element of the set. For example, the language of the SRE
-$\lstinline{"a"} |_{0.5}
-\lstinline{"b"}$ contains two elements (the strings \lstinline{"a"} and \lstinline{"b"}).
-The probability 0.5 annotating the union indicates that both elements are
-equally likely to appear. Consequently, if we observe an element of that
-language (either \lstinline{"a"} or
-\lstinline{"b"}), we will gain one bit of information. Said another way, one bit, together with
-the SRE, suffices to recover the string in question. Interestingly, if the
-probability annotation were anything but 0.5, the expected information content
-(or entropy) would actually be less than 1 (given a stream of such choices, on
-average we could encode the the contents of stream in fewer bits than the the
-number of choices present). On the other hand, consider the language of the SRE
-\lstinline{c}. It contains just one element (the string $c$). If we observe that
-our algorithm generates $\lstinline{"c"}$, we gain zero bits of information ---
-the string was already determined. Using this foundation, a lens $\Lens$ that
-synchronizes data between $\Regex$ and $\RegexAlt$ is ``likely,''
-in a technical sense, if given a string $s$ in the source $S$, very little information
-is needed to determine which synchronized string $t$ is present in the target
-$T$.
+presented an element of the set. 
+
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -992,6 +985,34 @@ probability.  A stochastic regular expression
 specifies both a set of strings and a probability
 distribution over it.  From this information, we can calculate the
 entropy of the SRE. 
+
+\ksf{Consider integrating more detailed discussion of SREs that was
+formerly in the intro.  Commented out here for now.}
+%%To implement this intuition, we turn to \emph{stochastic regular
+%%expressions} (SREs). Stochastic 
+%%regular expressions define a set of strings, as do ordinary regular expressions,
+%%but they also provide the expected distribution of strings within that set. Such
+%%distributions allow us to compute the amount of information gained when
+%%presented an element of the set. For example, the language of the SRE
+%%$\lstinline{"a"} |_{0.5}
+%%\lstinline{"b"}$ contains two elements (the strings \lstinline{"a"} and \lstinline{"b"}).
+%%The probability 0.5 annotating the union indicates that both elements are
+%%equally likely to appear. Consequently, if we observe an element of that
+%%language (either \lstinline{"a"} or
+%%\lstinline{"b"}), we will gain one bit of information. Said another way, one bit, together with
+%%the SRE, suffices to recover the string in question. Interestingly, if the
+%%probability annotation were anything but 0.5, the expected information content
+%%(or entropy) would actually be less than 1 (given a stream of such choices, on
+%%average we could encode the the contents of stream in fewer bits than the the
+%%number of choices present). On the other hand, consider the language of the SRE
+%%\lstinline{c}. It contains just one element (the string $c$). If we observe that
+%%our algorithm generates $\lstinline{"c"}$, we gain zero bits of information ---
+%%the string was already determined. Using this foundation, a lens $\Lens$ that
+%%synchronizes data between $\Regex$ and $\RegexAlt$ is ``likely,''
+%%in a technical sense, if given a string $s$ in the source $S$, very little information
+%%is needed to determine which synchronized string $t$ is present in the target
+%%$T$.
+
 
 This infrastructure gives us what we need to find likely satisfying lenses from
 a collection of satisfying lenses. All such lenses must synchronize data between
@@ -2410,6 +2431,7 @@ instead returns \None.
 \end{algorithm}
 
 \subsection{Optimizations}
+\label{subsec:optimizations}
 
 Our implementation includes a number of optimizations to this algorithm. We
 added ``closed'' annotations to regular expressions \saz{what do these mean? I
@@ -2503,10 +2525,7 @@ extension to Boomerang. We added symmetric lens combinators to Boomerang, and
 implemented all Boomerang's asymmetric lens combinators using a combination of
 the symmetric lens combinators, as well as other symmetric lens combinators for
 the asymmetric theory extensions present in Boomerang, like matching lenses and
-quotient lenses.
-
-We have extended the Optician synthesis plugin to Boomerang~\cite{?} with our
-symmetric synthesis algorithm. In doing so, users can write synthesis tasks
+quotient lenses. We also integrated our synthesis engine into Boomerang. It allows users to write synthesis tasks
 alongside lens combinators, use those synthesis results in the manual writing of
 new lenses, and use previously defined lenses in the synthesis of new lenses.
 
@@ -2515,7 +2534,7 @@ In this evaluation, we aim to answer three primary questions:
 \item Is our synthesis procedure efficient enough to be used in everyday
   development?
 
-\item How much slower do we perform on bijective lens synthesis benchmarks than
+\item How much slower is our tool on bijective lens synthesis benchmarks than
   the existing Optician system customized for bijective lenses?
   
 \item Which heuristics are useful for reducing the ``specification
@@ -2527,10 +2546,7 @@ In this evaluation, we aim to answer three primary questions:
 \subsection{Benchmark Suite}
 Our benchmarks are drawn from three different sources.
 \begin{enumerate}
-\item We adapted \afm{8} data cleaning benchmarks from Flash Fill. In these
-  benchmarks, we not only provide functions that clean the data, but we also
-  provide other synchronization functions: if the cleaned data is updated, those
-  changes are reflected in the original format.
+\item We adapted \afm{8} data cleaning benchmarks from Flash Fill, though, of course, our tool produces bidirectional transformations rather than one-way transformers like Flash Fill.
 \item We adapted \afm{29} benchmarks from Augeas. These benchmarks turn the
   ad-hoc data present in Linux configuration files into a structured, dictionary
   representation.
@@ -2552,23 +2568,14 @@ formats, like BibTeX and EndNote.
 
 \subsection{Useful in Everyday Development}
 
-To answer our first research question, we measure the runtime of our algorithm
-on our benchmark suite.
-
-We synthesized lenses in 2 modes:
+To begin, we measure the run time of our algorithm in 2 modes:
 
 \begin{tabulary}{\linewidth}{rL}
-  \SSOpt{}: & We synthesize lenses using our symmetric synthesis algorithm with all optimizations enabled.\\
-  \SSNCOpt{}: & We synthesize lenses using our symmetric synthesis algorithm,
-                but compositional synthesis is not enabled.\\
+  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
+  \SSNCOpt{}: & The symmetric synthesis algorithm, but compositional synthesis not enabled.\\
 \end{tabulary}\\
 
-We include running the symmetric synthesis algorithm without compositional
-synthesis to stress test the algorithms. While compositional synthesis makes the
-procedure easier, and demonstrates the potential to be used in arbitrarily hard
-problems, it is dependent on the user identifying important sublenses between
-subcomponents of the final formats. It is therefore interesting to see how many
-problems each algorithm can solve, when trying to synthesize ``in one go.''
+Recall that compositional synthesis exploits user annotations to break a benchmark into a series of smaller synthesis steps. In our experience, compositional synthesis (SS mode) allows our system to scale to arbitrarily large and complex formats. However, SSNC mode, which uses no such annotations and synthesizes a complete lens all at once provides a useful experimental stress test for the system. Recall from Section
 
 \begin{figure}
   \includegraphics{generated-graphs/times}
@@ -2589,21 +2596,21 @@ timeout of 30 seconds, and average the result over 5 runs.
 Figure~\ref{fig:times} summarizes the results of these tests. We find that our
 algorithm is able to synthesize all of the benchmarks in our benchmark suite in
 under 30 seconds. Without compositional synthesis, the synthesis algorithm is
-able to solve 26 problem instances.
+able to solve 26 problem instances. Recall from Section~\ref{subsec:optimizations} that users may tune the termination metric. Success on this set of benchmarks requires we tune that termination codition (e.g. for some benchmarks, allowing the system flexibility to spend more time considering more of the search space). In Section~\ref{subsec:effect-of-heuristics}, we will consider the effect of fixing the termination metric.
 
 \subsection{Slowdown Compared to Bijective Synthesis}
 
 To compare to the existing bijective synthesis algorithm, we run our symmetric
 synthesis algorithm on the original Optician benchmark suite. \afm{8} of these
 benchmarks had to be slightly altered with tighter specifications or termination
-parameters, as we had to alter the original specifications to generate the
+parameters\dpw{What does that mean? You had to alter it to get the system to work?}, as we had to alter the original specifications to generate the
 correct lens.
 
 To perform this comparison, we synthesized lenses in 2 modes:
 
 \begin{tabulary}{\linewidth}{rL}
-  \SSOpt{}: & We synthesize lenses using our symmetric synthesis algorithm with all optimizations enabled.\\
-  \BSOpt{}: & We synthesize lenses using the existing bijective synthesis
+  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
+  \BSOpt{}: & The existing bijective synthesis
               algorithm with all optimizations enabled.\\
 \end{tabulary}\\
 
@@ -2611,36 +2618,30 @@ For each benchmark in our benchmark suite, we ran every mode on it with a
 timeout of 30 seconds, and average the result over 5 runs.
 Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
 average, \SSOpt{} took 2.1 times (\afm{3.5} seconds) longer to complete than
-\BSOpt{}.
-
-\begin{figure}
-  \includegraphics{generated-graphs/times_bijective}
-  \caption{Number of benchmarks that can be solved by a given algorithm in a
-    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
-    \BSOpt{} is the full bijective lens synthesis algorithm. \SSNCOpt{} is the
-    symmetric synthesis algorithm without using a library of existing lenses.
-    \BSNCOpt{} is the bijective synthesis algorithm without using a library of
-    existing lenses. Our symmetric synthesis algorithm is able to complete all
-    benchmarks in our benchmark suite in under 30 seconds, and is able to
-    complete most of the benchmarks without using compositional synthesis.}
-  \label{fig:times_bijective}
-\end{figure}
-
-The slowest completed benchmark for both synthesis algorithms is
+\BSOpt{}. The slowest completed benchmark for both synthesis algorithms is
 \texttt{xml\_to\_augeas.boom}, a benchmark that converts arbitrary XML up to
 depth 3 into a serialized version of the structured dictionary representation
 used in Augeas. This benchmark takes 18.9 seconds for the symmetric synthesis
 algorithm to complete, and 9.3 seconds the bijective synthesis algorithm to
 complete. 
 
+\begin{figure}
+  \includegraphics{generated-graphs/times_bijective}
+  \caption{Number of benchmarks that can be solved by a given algorithm in a
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \BSOpt{} is the full bijective lens synthesis algorithm.}
+  \label{fig:times_bijective}
+\end{figure}
+
 \subsection{The Effects of Our Heuristics}
+\label{subsec:effect-of-heuristics}
 We evaluate the usefulness of (1) our information theoretic metric, and (2) our
 termination heuristic.  To this end, we run our program in 3 different modes:\\
 \begin{tabulary}{\linewidth}{rL}
-  \AnyOpt{}: & We synthesize any lens that satisfies the specification, with no
+  \AnyOpt{}: & We synthesize any lens \dpw{Did you mean the following? But is the order truly arbitrary? Is size or anything else a driver?:] We synthesize lenses in an arbitrary order (i.e. without use of the information theoretic preference metric)} that satisfies the specification, with no
                notion of cost.\\
   \FLOpt{}: &  The first time \GreedySynth finds a lens, the synthesis procedure
-              returns that lens.\\
+              returns that lens.\dpw{What controls the ``greediness''? Say a little something else to more clearly differentiate from Any.}\\
   \CCOpt{}: & We replace our information theoretic cost metric with one where
               the cost of the lens is the number of disonnects plus the number
               of merges.\\
@@ -2667,7 +2668,7 @@ termination heuristic.  To this end, we run our program in 3 different modes:\\
   \label{fig:metric}
 \end{figure}
 
-Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
+We experimented with the \CCOpt{} mode to determine whether the complexity of the information theoretic measure was really needed. Related work on string transformations has often used simpler measures such as ``avoid constants'' which align with, but are simpler than our measures. The \CCOpt{} mode is an example of such a simple measure --- it operates by counting disconnects, which put a complete stop to information transfer, like constants, and merges, which eliminate the information in a union. Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
 our metrics are very important for finding the correct lens. Our
 information-theoretic metric is critical for finding the correct lens. Indeed,
 only \afm{10} of our benchmarks succeeded when running in \CCOpt{} mode.
