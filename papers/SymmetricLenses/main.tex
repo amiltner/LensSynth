@@ -1818,12 +1818,12 @@ stochastic regular expressions with \ToStochastic.
 %taken place, the $\RXSearch$ algorithm executes. This algorithm itself is
 %defined via five functions: (1) $\PCF{\PQ.Create}$, (2) $\PCF{\PQ.Pop}$, (3)
 %$\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5) $\PCF{\Continue}$. First,
-This pair of SREs is used to initialize a priority queue ($pq$).
-Next, $\PCF{SynthSymLens}$
-enters a loop that searches for likely lenses. The loop terminates when the
-algorithm believes it is unlikely to find a better lens than the best one it has
-found so far (a termination condition defined by $\PCF{\Continue}$). Within each
-iteration of the loop, it:
+This pair of SREs is used to initialize a priority queue ($pq$). The priority of
+a SRE pair is the number of rewrites needed to derive the pair from the
+originals. Next, $\PCF{SynthSymLens}$ enters a loop that searches for likely
+lenses. The loop terminates when the algorithm believes it is unlikely to find a
+better lens than the best one it has found so far (a termination condition
+defined by $\PCF{\Continue}$). Within each iteration of the loop, it:
 \begin{itemize}
 \item pops the next class ($S$, $T$) of lenses to
 search off of the priority queue ($\PCF{\PQ.Pop}$),
@@ -1834,12 +1834,26 @@ the specification,
 \item replaces $best$ with $\LC$, if $\LC$ has lower cost according
 to our information theoretic metric, and
 \item adds the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
-  to the priority queue.  The priority of a SRE pair is the
-  number of rewrites needed to derive the pair from the originals.
+  to the priority queue.
 \end{itemize}
 When the loop terminates, the search returns the globally best lens found
 ($best$).  Each subroutine of this algorithm will be explained in
 further depth in the following subsections.
+
+\emph{Stochastic DNF regular expressions} are critical to the success of our
+algorithm. Stochastic DNF regular expressions (\SDNFREabbrev{}s) are a
+pseudo-normal form for stochastic regular expressions. Of all the star-semiring
+equations required to relate two \SDNFREabbrevs, only those relating to Kleene
+star (\EG, \emph{Unrollstar$_L$} and \emph{Unrollstar$_R$}) are needed to relate
+two \SDNFREabbrevs; other axioms, like associativity, commutativity or
+distributivity, are unneeded. This important property makes it possible to
+construct an efficient algorithm ($\GreedySynth$), directed by the syntax of two
+\SDNFREabbrevs, to synthesize any lenses in the same ``class'' (\IE, any lenses
+that have the same type when the Kleene star axioms are unused). This property,
+and the resulting efficiency of $\GreedySynth$ is key to the effectiveness of
+our core algorithms.
+
+
 
 \begin{algorithm}[t]
   \caption{\SynthSymLens}
@@ -1905,11 +1919,10 @@ further depth in the following subsections.
 %language of Symmetric DNF lenses. After finding such a symmetric DNF lens, that
 %symmetric DNF lens is converted into a simple symmetric lens.
 
-\subsection{Search Through Types}
-The first synthesizer is one that searches through regular expression pairs.
-This synthesizer comprises \Expand, \PQ, and \Continue. It proposes regular
-expressions that are semantically, but not syntactically, equivalent to the
-originals by performing the following rewrites:
+\subsection{Searching for $(\Regex,\RegexAlt)$ Candidate Classes}
+The first phase of the synthesis algorithm looks for pairs of SREs
+$(\Regex,\RegexAlt)$ to drive the \GreedySynth algorithm.  These pairs are
+generated using the star unrolling axioms:
 \begin{center}
   \begin{tabular}{rcl}
     $\PRegexStar{\Regex}{\Probability}$
@@ -1921,9 +1934,8 @@ originals by performing the following rewrites:
     & \PRegexOr{\EmptyString{}}{(\RegexConcat{\PRegexStar{\Regex{}}{\Probability}}{\Regex{}})}{\Probability}
   \end{tabular}
 \end{center}
-As well as the congruence rules that allow these rewrites to be applied on
+as well as the congruence rules that allow these rewrites to be applied on
 subexpressions.
-
 The priority queue yields stochastic regular expressions generated using fewer
 rewrites first. Only when there are no more proposed regular expressions derived
 from $n$ rewrites will \PCF{\PQ.Pop} propose regular expressions derived from
@@ -1933,31 +1945,17 @@ The procedure \PCF{\Continue} returns false based on the how long the search has
 been going, and how hard it expects the next class of problems to be. In
 particular, if $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at
 distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
-current best lens has cost $c$:
+current best lens has cost $c$, then:
 \begin{gather*}
   \Call{Continue}{pq} := c > d + \Log_2(n)
 \end{gather*}
 
-When $\Call{Continue}{pq}$ returns $\False$, \Expand stops proposing regular
-expression pairs, and instead returns to the user the best lens found thus far.
-Note this means that if the algorithm finds a bijective lens, which has zero cost, it
-will immediately return.
+When $\Call{Continue}{pq}$ returns $\False$, the algorithm stops proposing
+regular expression pairs, and instead returns to the user the best lens found
+thus far. If the algorithm finds a bijective lens, which
+has zero cost, it will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
-Stochastic DNF regular expressions (\SDNFREabbrev) are a pseudo-normal form
-for stochastic regular expressions.  Of all the star-semiring equations
-required to relate two \SDNFREabbrevs, only those relating to Kleene star
-(\EG, \emph{Unrollstar$_L$} and \emph{Unrollstar$_R$}) are needed to relate
-two \SDNFREabbrevs; other axioms, like associativity, commutativity
-or distributivity, are unneeded.  This important property makes it possible to
-construct an efficient algorithm ($\GreedySynth$), directed
-by the syntax of two \SDNFREabbrevs, to synthesize any lenses in the
-same ``class'' (\IE, any lenses that have the same type when the
-Kleene star axioms are unused).  This property, and the resulting
-efficiency of $\GreedySynth$ is key to the effectiveness of our
-core algorithms.
-
-
 Just as SREs are REs with probability annotations,
 \SDNFREabbrevs are \DNFREabbrevs with probability annotations.
 As with SREs and regular
@@ -2161,7 +2159,7 @@ use $\REntropyOf{\DNFRegexAlt \Given \SDNFLens, \DNFRegex}$ to calculate bounds
 of the expected amount of information required to recover a string in
 $\DNFRegexAlt$ from a string in $\DNFRegex$, synchronized by $\SDNFLens$. We use
 the function $\LEntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ to
-calculate bounds of the expected amount of information required to recover a
+calculate bounds on the expected amount of information required to recover a
 string in $\DNFRegex$ from a string in $\DNFRegexAlt$, synchronized by
 $\SDNFLens$.
 
@@ -2176,9 +2174,7 @@ lenses (\GreedySeqSynth), and one that finds symmetric atom lenses
 (\AtomSynth{}). These three algorithms are hierarchically structured:
 \GreedySynth relies on \GreedySeqSynth, \GreedySeqSynth relies on \AtomSynth,
 and \AtomSynth rlies on \GreedySynth. The structure of the algorithms mirrors
-the structure of symmetric DNF lenses and \SDNFREabbrevs. We describe this
-synthesis algorithm using the running example of searching for a lens between
-\lstinline{"" | name.name$^*$} and \lstinline{"" | name}.
+the structure of symmetric DNF lenses and \SDNFREabbrevs.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
 \GreedySynth, which synthesizes symmetric DNF lenses. Its inputs 
@@ -2195,7 +2191,7 @@ iteratively from these sequence lenses, where the state of the partially
 constructed lens is tracked in the lens builder, $lb$.
 
 \GreedySynth loops until there are no more sequence lenses in the priority
-queue. Within this loop, a sequence lense is popped from the queue and, if it is
+queue. Within this loop, a sequence lens is popped from the queue and, if it is
 ``useful,'' it is included in the final DNF lens. The lens is considered to
 be useful when its source (or target) is \textit{not} already the source (or target) of
 an already chosen sequence lens. If the examples require that two sequences have a
@@ -2205,14 +2201,14 @@ sequence lenses have the same source, the second one to be popped gets a higher
 cost than it originally had, to account for the information that needs to be stored
 for including that source of non-bijectivity.
 
-In our example, \GreedySynth might first pop the sequence pair \lstinline{""} and
-\lstinline{""}, because there is a bijective sequence lens between them. As neither
-\lstinline{""} is involved in a sequence lens, this lens is considered useful.
-Next, the sequence lens between \lstinline{name.name$^*$} and
-\lstinline{name} would be popped: while that lens is not bijective: it is still
-better than the alternatives. As all sequences are now involved in sequence lenses,
-and there are no examples to make other lenses useful, no further sequence
-lenses would be added to the lens builder.
+As an example, consider searching for a lens between \lstinline{"" | name.name$^*$} and \lstinline{"" | name}. \GreedySynth might first pop the
+sequence pair \lstinline{""} and \lstinline{""}, because there is a bijective
+sequence lens between them. As neither \lstinline{""} is involved in a sequence
+lens, this lens is considered useful. Next, the sequence lens between
+\lstinline{name.name$^*$} and \lstinline{name} would be popped: while that lens
+is not bijective: it is still better than the alternatives. As all sequences are
+now involved in sequence lenses, and there are no examples to make other lenses
+useful, no further sequence lenses would be added to the lens builder.
 
 Finally, after all sequences have been popped, the partial DNF lens $lb$ is
 converted into a symmetric DNF lens. This is only possible if all sequences are
@@ -2348,6 +2344,7 @@ fast equality checks and saves memory.\dpw{we could probably cut this paragraph.
 %quite large and so hashing them is computationally intensive.  We use less
 %memory and allow for quick comparisons and hashing of these DNF regular
 %expressions by 
+
 
 \paragraph*{Compositional Synthesis} Compositional synthesis allows us to use
 previously defined lenses, whether they are previously defined by users or by
@@ -3001,9 +2998,9 @@ synthesis.
 
 \bibliography{local,bcp}
 
+\ifappendices
 \appendix
 
-\ifappendices
 
 \onecolumn
 
@@ -4103,7 +4100,6 @@ The \CreateL{} and \PutL{} functions are defined symmetrically.
     
 \end{proof}
 
-\fi
 \section{Forgetful Symmetric Lenses}
 \begin{theorem*}
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
@@ -4802,6 +4798,10 @@ H(\langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)
 \end{align*}
 \end{enumerate}
 \end{proof}
+
+
+
+\fi
 \end{document}
 
 
@@ -4968,7 +4968,7 @@ H(\langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)
 %  file formats from configuration files, application-specific data storage
 %  files, and data cleaning tasks (\S\ref{sec:evaluation}).  \bcp{... and
 %    conclude what?}
-%\end{enumerate}
+%  \end{enumerate}
 
 %%% Local Variables:
 %%% TeX-master: "main"
