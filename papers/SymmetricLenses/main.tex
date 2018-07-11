@@ -344,13 +344,14 @@ implementation can synthesize all these lenses in under
 \noindent
 In the big-data world, similar information is often stored or transmitted in
 different formats. For instance, electronic calendars come in iCalendar,
-vCalendar, and h-event formats~\cite{calendar-formats}; US taxation data can
-be transmitted via Tax XML (used by the US government for e-filing) or TXF
-(used by TurboTax)~\cite{tax-formats}; and sewing machines can use
-embroidery files in formats with names like PES, DST, and several
-others~\cite{embroidery-formats}.  \bcp{It would be nice to be able to give
-  a quick example of a truly symmetric case---do any of these examples work
-  for that?}
+vCalendar, and h-event formats~\cite{calendar-formats}; US taxation data can be
+transmitted via Tax XML (used by the US government for e-filing) or TXF (used by
+TurboTax)~\cite{tax-formats}; and sewing machines can use embroidery files in
+formats with names like PES, DST, and several others~\cite{embroidery-formats}.
+\bcp{It would be nice to be able to give a quick example of a truly symmetric
+  case---do any of these examples work for that?}\afm{h-event and vCalendar are
+  truly symmetric. Even the fields related to location alone are truly
+  symmetric (though it is subtle to see this).}
 
 One convenient way to interconvert between these varied data formats is to
 use a \emph{lens}~\cite{Focal2005}---a bidirectional program that can
@@ -467,7 +468,7 @@ We extend Boomerang~\cite{Boomerang} with simple symmetric lenses and
 successfully use them on a range of real-world applications, showing
 in the process that simple symmetric lenses integrate smoothly with 
 other advanced lenses in Boomerang, including quotient
-lenses and matching lenses. 
+lenses~\cite{quotientlenses} and matching lenses~\cite{matchinglenses}. 
 
 The second difficulty with synthesizing symmetric lenses is more
 fundamental: While the number of bijective lenses between two
@@ -529,7 +530,7 @@ original pair, and the lens returned by a type-directed search depends
 upon the chosen representation. 
 To tame this complexity, we divide the synthesis algorithm into two communicating
 search procedures (Figure~\ref{fig:high-level-algorithm}), following
-earlier work~\cite{maina+:quotient-synthesis}\bcp{Is this the right citation?}.
+earlier work~\cite{optician}.
 The first algorithm, \Expand, uses rewriting rules to iteratively
 propose new pairs of stochastic regular expressions equivalent to the
 original pair.
@@ -568,7 +569,8 @@ synchronization tasks taken from a variety of other locations\footnote{The
 In summary, our contributions are:\bcp{The section references do not proceed
   in order, so this doesn't work very well as an outline of the paper.
   Should we try to reorder the contributions?  Write a separate outline?
-  Live with it as-is?}
+  Live with it as-is?}\afm{Personally, I don't see it as a problem.  It's nice
+  when the contributions mimic the paper, I am not jarred when they don't.}
 \begin{itemize}
 \item We define {\em simple symmetric lenses}, with the
   the useful property that they do not maintain any hidden state
@@ -592,8 +594,8 @@ In summary, our contributions are:\bcp{The section references do not proceed
   (\S\ref{sec:sre}).
 \item We extend the Boomerang implementation with simple symmetric lenses,
   demonstrating that they integrate smoothly with 
-  other lens extensions such as quotient lenses~\bcp{citation} and matching
-  lenses~\bcp{citation}.  We evaluate our
+  other lens extensions such as quotient lenses~\cite{quotientlenses} and matching
+  lenses~\cite{matchinglenses}.  We evaluate our
   implementation on a set of 48 lens synthesis benchmarks drawn from
   data cleaning, view maintenance, 
   and file synchronization tasks.  We demonstrate that we can
@@ -1085,19 +1087,17 @@ calculated or inferred from a large dataset. We found our heuristic
 works well in practice, so we have not explored these options.
 
 Now that we have a way to calculate likelihood, we need a way to search for
-likely lenses. Previous work on synthesis~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,frankle+:popl16} has shown that we can use
-types to dramatically restrict the search space and improve the effectiveness of
-synthesis. In our setting, types are pairs of stochastic regular expressions,
-which come with a rich algebraic structure that makes each regular expression
-semantically equal to infinitely many others. To tame that search space and
-leverage the benefits of type-directed synthesis, we split our algorithm into
-two communicating synthesizers following earlier
-work~\cite{maina+:quotient-synthesis}\bcp{Some of this text seems to be
-  identical to text in the intro.  That will annoy careful readers.}. The
-first synthesizer, \Expand, navigates 
-the space of semantically equivalent regular expressions by applying rewrite
-rules that preserve both the semantics and the probability distributions of
-those stochastic regular expressions. Our algorithm ranks pairs of stochastic
+likely lenses. Previous work on
+synthesis~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,frankle+:popl16}
+has shown that we can use types to dramatically restrict the search space and
+improve the effectiveness of synthesis. In our setting, types are pairs of
+stochastic regular expressions where each regular expression is semantically
+equal to infinitely many others. We follow existing work on bidirectional
+program synthesis, and split our algorithm into two communicating
+synthesizers~\cite{maina+:quotient-synthesis}. The first synthesizer, \Expand,
+navigates the space of semantically equivalent regular expressions by applying
+rewrite rules that preserve both the semantics and the probability distributions
+of those stochastic regular expressions. Our algorithm ranks pairs of stochastic
 regular expressions by the number of rewrite rule applications required to
 obtain the pair from the stochastic regular expressions given as input. It
 passes the pairs off to the second synthesizer, \GreedySynth, in rank order with
@@ -1263,7 +1263,8 @@ defined by the function $P$ below.
 \end{center}
 
 \begin{figure}
-  \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
+  \setlength\extrarowheight{3pt}
+  \begin{tabular}{@{\hspace*{5em}}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
     \PRegexOr{\Regex}{\emptyset}{1} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} \\
     $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
     $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
@@ -1277,10 +1278,7 @@ defined by the function $P$ below.
     \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\PRegexStar{\Regex{}}{\Probability}})}{1-\Probability} & \UnrollstarLeftRule{} \\
     \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\PRegexStar{{\Regex{}}}{\Probability}}{\Regex{}})}{1-\Probability} & \UnrollstarRightRule{} 
   \end{tabular}
-  \caption{Stochastic Regular Expression Star-Semiring Equivalence\bcp{Can
-      we make the skips between the separate sections of the definition a
-      bit larger, and increase the margin on the left?  It looks (even)
-      denser than it is, at the moment.}}
+  \caption{Stochastic Regular Expression Star-Semiring Equivalence}
   \label{fig:ssr-sre}
 \end{figure}
 
@@ -1365,10 +1363,9 @@ We now give a formal description of all the combinators in our symmetric lens
 language. While our algorithms perform synthesis on stochastic regular
 expressions, lenses themselves are typed between regular expressions. We can
 recover a regular expression from a stochastic regular expression by deleting
-probability annotations. In a slight abuse of notation\saz{Why is this an
-  abuse?}\afm{We also use \BRegex{},\BRegexAlt{} as nonterminals}, if $\Regex$
-is a stochastic regular expression, $\BRegex$ is the regular expression obtained
-by removing probability annotations. The typing judgment $\Lens \OfType \BRegex
+probability annotations. In a slight abuse of notation, if $\Regex$ is a
+stochastic regular expression, $\BRegex$ is the regular expression obtained by
+removing probability annotations. The typing judgment $\Lens \OfType \BRegex
 \Leftrightarrow \BRegexAlt$ means that $\Lens$ is a well typed lens between
 $\LanguageOf{\BRegex}$ and $\LanguageOf{\BRegexAlt}$.
 
@@ -2347,7 +2344,7 @@ opened.
 
 \paragraph*{Hash-consing and Memoization} We further improve \GreedySynth by
 hash-consing stochastic DNF regular expressions.  This optimization enables
-fast equality checks and saves memory.\dpw{we could probably cut this paragraph.}
+fast equality checks and saves memory.
 %memoizing its results.  However, our stochastic DNF regular expressions are
 %quite large and so hashing them is computationally intensive.  We use less
 %memory and allow for quick comparisons and hashing of these DNF regular
@@ -2394,14 +2391,6 @@ With a positive $t$, the termination condition is stricter, and the algorithm
 will spend longer searching for more likely lenses. With a negative $t$, the
 termination condition is less strict, and the algorithm will spend less time
 searching for more likely lenses.  Our default $t$ is $0$.
-
-As discussed in the following section,
-while our default termination condition quickly finds the correct lens for
-39 of our 48 benchmarks, our termination condition is not
-one-size-fits all. Complex lenses, or lenses that project a
-large amount of data, can be synthesized more easily and quickly by
-adjusting $t$. \dpw{should this paragraph be cut and its content left for the
-next section?}
 % end synthesis
 
 % begin evaluation
@@ -2685,25 +2674,27 @@ $apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all $es$.
 %% real-world systems and in synthesizing them.
 
 %\paragraph*{Issues with Classical Symmetric Lenses}
-\iffalse Using symmetric lenses for synchronization forces us to maintain not
-just two files that we aim to sycnrhonize, but three. \bcp{I don't find it
-  unintuitive, and I think we should be careful not to oversell the difficulty
-  of storing the complements. It requires more engineering, but it's not rocket
-  science.}This is unintuitive, and creates many problems in practice. For
-example, consider the situation where I am synchronizing a crontab and job
-manager file. I am synchronizing across computers, so I must either maintain a
-copy of the complement on each computer, and keep them synchronized, or figure
-out a computer to hold the complement, and make sure all edits go through that
-complement. Furthermore, if I want to change the synchronization to a different
-computer, I don't need to merely make sure that my files are moved to the
-computer, I also have to make sure that I correctly move the complement, and
-hook up that complement to be used for that synchronization task. This is a huge
-divergence from other synchronization utilities\bcp{No. For example, Unison
-  maintains a database on each replica recording, for each file, what its hash
-  was after the last time the two replicas were synchronized.}, where all that
-needs to be done is maintain the files. Using those for synchronization, edits
-can be sent over the wire, and the appropriate function can stitch together
-those edits, no additional state needed. \fi While classical symmetric lenses
+%\iffalse Using symmetric lenses for synchronization forces us to maintain not
+%just two files that we aim to sycnrhonize, but three. \bcp{I don't find it
+%  unintuitive, and I think we should be careful not to oversell the difficulty
+%  of storing the complements. It requires more engineering, but it's not rocket
+%  science.}This is unintuitive, and creates many problems in practice. For
+%example, consider the situation where I am synchronizing a crontab and job
+%manager file. I am synchronizing across computers, so I must either maintain a
+%copy of the complement on each computer, and keep them synchronized, or figure
+%out a computer to hold the complement, and make sure all edits go through that
+%complement. Furthermore, if I want to change the synchronization to a different
+%computer, I don't need to merely make sure that my files are moved to the
+%computer, I also have to make sure that I correctly move the complement, and
+%hook up that complement to be used for that synchronization task. This is a huge
+%divergence from other synchronization utilities\bcp{No. For example, Unison
+%  maintains a database on each replica recording, for each file, what its hash
+%  was after the last time the two replicas were synchronized.}, where all that
+%needs to be done is maintain the files. Using those for synchronization, edits
+%can be sent over the wire, and the appropriate function can stitch together
+%those edits, no additional state needed. \fi
+
+While classical symmetric lenses
 are technically more expressive than simple symmetric lenses, it is unclear
 whether this additional expressiveness is useful in practice. In our judgement,
 the complications they introduce into synthesis did not justify the potential
