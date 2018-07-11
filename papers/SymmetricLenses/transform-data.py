@@ -78,7 +78,7 @@ def generate_examples_required_graph(input_csv):
     ax.set_xticklabels(["\\textbf{Any}","\\textbf{FL}","\\textbf{DC}","\\textbf{t=0}","\\textbf{t=25}","\\textbf{t=-25}"])
 
     fig = plt.figure(3,tight_layout=True)
-    ax.step([-.5,5.5],[45.1,45.1],label="Benchmark Count",linestyle=":",
+    ax.step([-.5,5.5],[48.1,48.1],label="Benchmark Count",linestyle=":",
             linewidth=1, dashes=(1,1))
 
     plt.tick_params(
@@ -363,7 +363,7 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    ax.step([0,60],[45.1,45.1],label="Benchmark Count",linestyle=":",
+    ax.step([0,60],[48.1,48.1],label="Benchmark Count",linestyle=":",
             linewidth=1, dashes=(1,1))
     create_step_plot("SS","\\textbf{SS}",'-',normal_size)
     create_step_plot("SSNC","\\textbf{SSNC}",':',normal_size)
