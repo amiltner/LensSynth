@@ -645,7 +645,7 @@ John Public,Insurance Co.
 \begin{lstlisting}
 let salary = number | "unk"
 let emp_salary = name . " " . name . ": " salary
-let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
+let emp_salaries = "" | emp_salary . ("\n" emp_salary)$^*$
 \end{lstlisting}
     \end{minipage}
   }
@@ -657,7 +657,7 @@ let emp_salaries = "" | emp_salary . ("\n" emp_salary)*
 let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
 let emp_ins = name . " " . name "," company in
 let header = "Name,Company" in
-let emp_insurance = header . ("\n" . emp_ins)*
+let emp_insurance = header . ("\n" . emp_ins)$^*$
 \end{lstlisting}
     \end{minipage}
   }
@@ -1049,7 +1049,7 @@ calculate the expected number of bits required to recover a string $t$ in
 $\LanguageOf{\RegexAlt}$ from a synchronized string $s$ in
 $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
   $\Regex$ given $\RegexAlt$ and $\Lens$}, formally $\sum_{s \in
-  \Regex}\ProbabilityOf{\Regex}{s}*\EntropyOf{\SetOf{t \SuchThat
+  \Regex}\ProbabilityOf{\Regex}{s}\EntropyOf{\SetOf{t \SuchThat
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
@@ -1245,16 +1245,16 @@ defined by the function $P$ below.
     $\ProbabilityOf{\RegexConcat{\Regex_1}{\Regex_2}}{s}$
 
     & =
-    & $\Sigma_{\String = \String_1\String_2}\ProbabilityOf{\Regex_1}{\String_1}*\ProbabilityOf{\Regex_2}{\String_2}$ \\
+    & $\Sigma_{\String = \String_1\String_2}\ProbabilityOf{\Regex_1}{\String_1}\ProbabilityOf{\Regex_2}{\String_2}$ \\
     
     $\ProbabilityOf{\PRegexOr{\Regex_1}{\Regex_2}{\Probability}}{\String}$
     & =
-    & $\Probability * \ProbabilityOf{\Regex_1}{\String} +
-      (1-\Probability) * \ProbabilityOf{\Regex_2}{\String}$\\
+    & $\Probability\ProbabilityOf{\Regex_1}{\String} +
+      (1-\Probability)\ProbabilityOf{\Regex_2}{\String}$\\
     
     $\ProbabilityOf{\PRegexStar{\Regex}{\Probability}}{\String}$
     & =
-    & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n*(1-\Probability)*\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
+    & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n(1-\Probability)\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
   \end{tabular}
 \end{center}
 
@@ -1264,7 +1264,7 @@ defined by the function $P$ below.
     $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
     $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
-    \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)*\Probability_2}{1 - \Probability_1 * \Probability_2}})}{\Probability_1*\Probability_2} & \OrAssociativityRule{}  \\
+    \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)\Probability_2}{1 - \Probability_1\Probability_2}})}{\Probability_1\Probability_2} & \OrAssociativityRule{}  \\
     \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
     \RegexConcat{\Regex{}}{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})}{\Probability} & \DistributivityLeftRule{} \\
     \RegexConcat{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})}{\Regex{}} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})}{\Probability} & \DistributivityRightRule{} \\
@@ -1321,7 +1321,7 @@ subcomponents.
     
     $\EntropyOf{\PRegexOr{\Regex}{\RegexAlt}{\Probability}}$
     & =
-    & $\Probability*(\EntropyOf{\Regex} - \Log_2(\Probability)) + (1-\Probability)*(\EntropyOf{\RegexAlt} - \Log_2(1-\Probability))$\\
+    & $\Probability(\EntropyOf{\Regex} - \Log_2(\Probability)) + (1-\Probability)(\EntropyOf{\RegexAlt} - \Log_2(1-\Probability))$\\
   \end{tabular}
 \end{center}
 We have proven that this syntactic computation corresponds to the entropy of the
@@ -1716,7 +1716,7 @@ string in $\RegexAlt$, synchronized by $\Lens$.
 
     $\REntropyOf{\PRegexStar{\RegexAlt}{\ProbabilityAlt} \Given \IterateLensOf{\Lens}, \PRegexStar{\Regex}{\Probability}}$
     & =
-    & $\frac{\Probability}{1-\Probability}(\REntropyOf{\RegexAlt \Given \Lens, \Regex})$\\
+    & $\frac{\Probability}{1-\Probability}\REntropyOf{\RegexAlt \Given \Lens, \Regex}$\\
     
     $\REntropyOf{\RegexAlt_1 \Concat \RegexAlt_2 \Given \ConcatLensOf{\Lens_1}{\Lens_2}, \Regex_1 \Concat \Regex_2}$
     & =
@@ -1728,11 +1728,11 @@ string in $\RegexAlt$, synchronized by $\Lens$.
     
     $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \OrLensOf{\Lens_1}{\Lens_2}, \PRegexOr{\Regex_1}{\Regex_2}{\Probability}}$
     & =
-    & $\Probability*(\REntropyOf{\Regex_1 \Given \Lens_1, \RegexAlt_1} ) + (1-\Probability)*(\REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt_2})$\\
+    & $\Probability\REntropyOf{\Regex_1 \Given \Lens_1, \RegexAlt_1} + (1-\Probability)\REntropyOf{\Regex_2 \Given \Lens_2, \RegexAlt_2}$\\
     
     $\REntropyOf{\RegexAlt \Given \MergeROf{\Lens_1}{\Lens_2}, \PRegexOr{\Regex_1}{\Regex_2}{\Probability}}$
     & =
-    & $\Probability*(\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1}) + (1-\Probability)*(\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2})$\\
+    & $\Probability\REntropyOf{\RegexAlt \Given \Lens_1, \Regex_1} + (1-\Probability)\REntropyOf{\RegexAlt \Given \Lens_2, \Regex_2}$\\
     
     $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \MergeLOf{\Lens_1}{\Lens_2}, \Regex}$
     & =
@@ -2019,13 +2019,12 @@ one ($\sum_{i=0}^n\Probability_i = 1$).
 
 As these DNF regular expressions are \emph{stochastic}, they are annotated with
 probabilities to express a probability distribution, in addition to a
-language. \saz{I find the use of asterisk for the $\times$ or $\cdot$ or maybe
-  just juxtaposition slightly jarring.}
+language.
 \begin{center}
   \begin{tabular}{rcl}
     $\ProbabilityOf{\PRegexStar{\DNFRegex}{\Probability}}{\String}$
     & =
-    & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n*(1-\Probability)*\Pi_{i=1}^n\ProbabilityOf{\DNFRegex}{\String_i}$\\
+    & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n(1-\Probability)\Pi_{i=1}^n\ProbabilityOf{\DNFRegex}{\String_i}$\\
     
     $\ProbabilityOf{\SequenceOf{\String_0 \SeqSep \Atom_1 \SeqSep \ldots \SeqSep \Atom_n \SeqSep \String_n}}{\String'}$
     & =
@@ -2033,7 +2032,7 @@ language. \saz{I find the use of asterisk for the $\times$ or $\cdot$ or maybe
     
     $\ProbabilityOf{\DNFOf{(\Sequence_1,\Probability_1) \DNFSep \ldots \DNFSep (\Sequence_n,\Probability_n)}}{\String}$
     & =
-    & $\Sigma_{i=1}^n\Probability_i * \ProbabilityOf{\Sequence_i}{\String}$\\
+    & $\Sigma_{i=1}^n\Probability_i\ProbabilityOf{\Sequence_i}{\String}$\\
   \end{tabular}
 \end{center}
 
@@ -2047,14 +2046,14 @@ language. \saz{I find the use of asterisk for the $\times$ or $\cdot$ or maybe
   
   $\ConcatDNF{} \OfType{} \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}}$\\
   $\ConcatDNFOf{\DNFOf{(\Sequence_1,\Probability_1)\DNFSep\ldots\DNFSep(\Sequence_n,\Probability_n)}}{\DNFOf{(\SequenceAlt_1,\ProbabilityAlt_1)\DNFSep\ldots\DNFSep(\SequenceAlt_m,\ProbabilityAlt_m)}}=$\\
-      $\DNFLeft (\ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1},\Probability_1*\ProbabilityAlt_1)\DNFSep \ldots
+      $\DNFLeft (\ConcatSequenceOf{\Sequence_1}{\SequenceAlt_1},\Probability_1\ProbabilityAlt_1)\DNFSep \ldots
       \DNFSep
-      (\ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m},\Probability_1*\ProbabilityAlt_m)\DNFSep
+      (\ConcatSequenceOf{\Sequence_1}{\SequenceAlt_m},\Probability_1\ProbabilityAlt_m)\DNFSep
       \ldots$\\
       $\DNFSep
-      (\ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1},\Probability_n*\ProbabilityAlt_1)\DNFSep
+      (\ConcatSequenceOf{\Sequence_n}{\SequenceAlt_1},\Probability_n\ProbabilityAlt_1)\DNFSep
       \ldots \DNFSep
-      (\ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m},\Probability_n * \ProbabilityAlt_m) \DNFRight$
+      (\ConcatSequenceOf{\Sequence_n}{\SequenceAlt_m},\Probability_n\ProbabilityAlt_m) \DNFRight$
   
   \medskip
   
@@ -2062,7 +2061,7 @@ language. \saz{I find the use of asterisk for the $\times$ or $\cdot$ or maybe
   \ArrowTypeOf{\DNFRegexType{}}{\ArrowTypeOf{\DNFRegexType{}}{\DNFRegexType{}}
   }$ \\
   $\OrDNFOf{\DNFOf{(\Sequence_1,\Probability_1)\DNFSep\ldots\DNFSep(\Sequence_n,\Probability_n)}}{\DNFOf{(\SequenceAlt_1,\ProbabilityAlt_1)\DNFSep\ldots\DNFSep(\SequenceAlt_m,\ProbabilityAlt_m)}}{\Probability} =$\\
-  $\DNFOf{(\Sequence_1,\Probability_1*\Probability)\DNFSep\ldots\DNFSep(\Sequence_n,\Probability_n*\Probability)\DNFSep(\SequenceAlt_1,\ProbabilityAlt_1*(1-\Probability))\DNFSep\ldots\DNFSep(\SequenceAlt_m,\ProbabilityAlt_m*(1-\Probability))}$
+  $\DNFOf{(\Sequence_1,\Probability_1\Probability)\DNFSep\ldots\DNFSep(\Sequence_n,\Probability_n\Probability)\DNFSep(\SequenceAlt_1,\ProbabilityAlt_1(1-\Probability))\DNFSep\ldots\DNFSep(\SequenceAlt_m,\ProbabilityAlt_m(1-\Probability))}$
   
   \medskip
   
@@ -2179,7 +2178,7 @@ lenses (\GreedySeqSynth), and one that finds symmetric atom lenses
 and \AtomSynth rlies on \GreedySynth. The structure of the algorithms mirrors
 the structure of symmetric DNF lenses and \SDNFREabbrevs. We describe this
 synthesis algorithm using the running example of searching for a lens between
-\lstinline{"" | name.name*} and \lstinline{"" | name}.
+\lstinline{"" | name.name$^*$} and \lstinline{"" | name}.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
 \GreedySynth, which synthesizes symmetric DNF lenses. Its inputs 
@@ -2209,7 +2208,7 @@ for including that source of non-bijectivity.
 In our example, \GreedySynth might first pop the sequence pair \lstinline{""} and
 \lstinline{""}, because there is a bijective sequence lens between them. As neither
 \lstinline{""} is involved in a sequence lens, this lens is considered useful.
-Next, the sequence lens between \lstinline{name.name*} and
+Next, the sequence lens between \lstinline{name.name$^*$} and
 \lstinline{name} would be popped: while that lens is not bijective: it is still
 better than the alternatives. As all sequences are now involved in sequence lenses,
 and there are no examples to make other lenses useful, no further sequence
