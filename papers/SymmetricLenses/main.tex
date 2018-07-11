@@ -404,12 +404,12 @@ common, but also contain some differences. For instance, two related
 tables might share four of five columns, but each has a different
 fifth column. Alternately, one ad hoc configuration file might include
 some file-specific meta data, such as a date, a time or a reference
-number, whereas the other does not. Indeed, all of our benchmarks
-taken from Flash Fill~\cite{flashfill} and all of our benchmarks that
-synchronize between two ad hoc file formats described in
-Section \ref{sec:evaluation} \ksf{is this right?} have this 
-characteristic. Consequently, past tools that search for strict
-bijections will rarely be applicable in practice.
+number, whereas the other does not. Indeed of the 45 benchmark problems
+described in Section \ref{sec:evaluation}, all of the benchmarks
+taken from Flash Fill~\cite{flashfill} and all of the benchmarks that
+synchronize between two ad hoc file formats have this 
+characteristic, \afm{num} benchmarks in total. Consequently, tools that search
+only for strict bijections will rarely be applicable in practice.
 
 A natural way to expand the scope of such tools is to consider a more
 expressive language of lenses.  For example, \emph{symmetric
@@ -562,9 +562,8 @@ suggests that further searching is unlikely to be fruitful.
 We implemented the \GreedySynth and \Expand algorithms and evaluated their
 effectiveness at synthesizing lenses on a 
 benchmark suite of 45 problems, including data cleaning tasks taken
-from Flash Fill~\cite{gulwani-popl-2014}, information 
-extraction tasks \ksf{Dave wants to change information extraction to
-soemthing else.} taken from Augeas~\cite{Augeas}, and ad-hoc format synchronization tasks
+from Flash Fill~\cite{gulwani-popl-2014}, view maintenance
+tasks taken from Augeas~\cite{Augeas}, and ad hoc format synchronization tasks
 taken from a variety of other locations\footnote{The majority of these format
   synchronization tasks were found from the following index:
   \url{http://fileformats.archiveteam.org/wiki/Electronic_File_Formats}}.
@@ -595,9 +594,8 @@ In summary, our main contributions are:
   other lens extensions such as quotient lenses and matching
   lenses.  We evaluate our
   implementation on a set of 45 lens synthesis benchmarks drawn from
-  data cleaning, \ksf{Dave wants to change information extraction to
-soemthing else.} information 
-  extraction, and file synchronization tasks.  We demonstrate that we can
+  data cleaning, view maintenance, 
+  and file synchronization tasks.  We demonstrate that we can
   synthesize simple symmetric lenses for all of the benchmarks in
   under 30 seconds (\S\ref{sec:evaluation}). 
 \end{itemize}
@@ -730,7 +728,7 @@ synchronized because the files have a mix of shared and unshared information.
 
 \subsection{Simple Symmetric Lenses}
 A simple symmetric lens between formats described by types $X$ and $Y$ is
-defined by four functions.
+defined by four functions that collectively satisfy four ``round-tripping'' laws: 
 
 %\begin{enumerate}
 %\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
@@ -738,7 +736,8 @@ defined by four functions.
 %\item $\PutR \OfType \Regex \rightarrow \RegexAlt \rightarrow \RegexAlt$
 %\item $\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$
 %\end{enumerate}
-
+\vskip 1.5ex
+\begin{minipage}[c]{.3\textwidth}
 \begin{gather}
  \tag{1}
  \mbox{$\CreateR \OfType X \rightarrow Y$}\\
@@ -748,11 +747,10 @@ defined by four functions.
  \mbox{$\PutR \OfType X \rightarrow Y \rightarrow Y$}\\
  \tag{4}
  \mbox{$\PutL \OfType Y \rightarrow X \rightarrow X$}
-\end{gather}
-
-\noindent
-that collectively satisfy four ``round-tripping'' laws: 
-\begin{gather}
+\end{gather} 
+\end{minipage} 
+\begin{minipage}[c]{.6\textwidth}
+\begin{align}
   \tag{\CreatePutRL}
   \PutLOf{(\CreateROf{x})}{x} = x\\
   \tag{\CreatePutLR}
@@ -761,21 +759,23 @@ that collectively satisfy four ``round-tripping'' laws:
   \PutLOf{(\PutROf{x}{y})}{x} = x\\
   \tag{\PutLR}
   \PutROf{(\PutLOf{y}{x})}{y} = y
-\end{gather}
+\end{align}
+\end{minipage} 
+\vskip 1ex
 \noindent
-The two {\sc Create} functions propagate shared information and fill in default
+The two \KW{create} functions propagate shared information and fill in default
 values when introducing new data. (\EG, the ``unk'' salary entry is added
 alongside the name to the management file when HR inserts a new employee). The
-two {\sc Put} functions propagate edits from one format to the other by
+two \KW{put} functions propagate edits from one format to the other by
 combining the change from one file with the previous value from the other file.
-The roundtripping laws guarantee that if two formats are already synchronized,
-{\sc Put}s merely return the second argument, unchanged.
+The round-tripping laws guarantee that if two formats are already synchronized,
+\KW{put}s merely return the second argument, unchanged.
 
-This definition differs from previous formulations of simple symmetric lenses,
-as previous formulations required a \emph{complement}. Instead of comprising
-four functions, existing formulations merely comprised two functions, which
-combined complements with edited formats to create updated complements and
-synchronized data. We provide a detailed comparison to classic symmetric lenses
+This definition differs from formulations of classic symmetric lenses,
+which require a \emph{complement} but only two functions.  These two
+functions combine complements with edited data to create updated
+complements and synchronized data, one function for each direction.
+We provide a detailed comparison to classic symmetric lenses
 in \S\ref{sec:relationship}.
 
 %%For synchronization, when the original company.hr or company.mgmt
@@ -792,9 +792,9 @@ in \S\ref{sec:relationship}.
 
 
 Generally, we do not expect programmers to define simple symmetric lenses by
-writing the four functions by hand and showing they satisfy the roundtripping
+writing the four functions by hand and showing they satisfy the round-tripping
 laws. Instead, we provide simple symmetric lens combinators to build up the
-requisite lenses from simpler ones, and focus our combinators on providing
+requisite lenses from simpler ones. We focus on combinators for defining
 lenses between string data formats.
 
 We use regular expressions to denote the types of data formats, and we impose a
@@ -959,7 +959,7 @@ disconnect(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
 is another valid lens (where \lstinline{rep($\BRegex$)} denotes some string in the
 language of $\BRegex$). Furthermore, adding the input-output example in
 Figure~\ref{fig:minimized-representations} 
-helps, but only a little: it may, in general, require {\em many} examples to rule
+helps, but only a little: It may, in general, require {\em many} examples to rule
 out all possible occurrences of nested \Disconnect lenses,
 particularly in complex formats. 
 %\ksf{I don't understand the following.  We shouldn't explain the issue in
@@ -978,7 +978,7 @@ choose a lens despite the underspecification. Instead of merely finding
 likely to please the user.
 
 But what is a ``likely'' satisfying lens? We propose the following
-heuristic: a satisfying
+heuristic: A satisfying
 lens is more likely if it connects more data between the two
 formats, \EG, by using an identity rather than a disconnect lens.  The
 likeliest satisfying lenses would connect as much data as
@@ -1018,8 +1018,8 @@ specifies both a set of strings and a probability
 distribution over it.  From this information, we can calculate the
 entropy of the SRE. 
 
-\ksf{Consider integrating more detailed discussion of SREs that was
-formerly in the intro.  Commented out here for now.}
+%% \ksf{Consider integrating more detailed discussion of SREs that was
+%%formerly in the intro.  Commented out here for now.}
 %%To implement this intuition, we turn to \emph{stochastic regular
 %%expressions} (SREs). Stochastic 
 %%regular expressions define a set of strings, as do ordinary regular expressions,
@@ -1057,19 +1057,22 @@ $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
-assigns higher cost to lenses where knowing the string present in \Regex
-provides little information about what string is present in \RegexAlt. With this
-metric, bijections have zero cost---given a string $s \in \Regex$, we know
-exactly what string is present in $\RegexAlt$, as exactly one string is
-synchronized to it.
+assigns higher entropy (or cost) to lenses where knowing the string
+on one side 
+provides little information about the string on the other side. 
+It assigns zero entropy to bijections because given a string $s \in \Regex$,
+the bijection exactly determines
+the corresponding string in 
+$\RegexAlt$.
 
 To obtain SREs from the plain regular expressions that we expect users to
-supply, we use a heurstic that attempts to assign probability annotations that
+supply, we use a heuristic that attempts to assign probability annotations that
 give each string in the language equal probablity. Our algorithm could also take
-as input a stochastic regular expression rather than a plain one, which allows
+as input a stochastic regular expression rather than a plain one,
+which would allow
 the user to specify a data-specific probability distribution, either manually
-written or inferred from a large dataset. We found our heuristically chosen
-distribution works well in practice.
+calculated or inferred from a large dataset. We found our heuristic
+works well in practice, so we have not explored these options.
 
 Now that we have a way to calculate likelihood, we need a way to search for
 likely lenses. Previous work on synthesis~\cite{augustsson-2004,osera+:pldi15,feser-pldi-2015,frankle+:popl16} has shown that we can use
@@ -1379,7 +1382,7 @@ becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
 We now provide the typing derivations and semantics for these lenses. We do not
 include the semantics for combinators equivalent to those presented in prior
-work~\cite{symmetric-lenses,boomerang}. Furthermore, we only present \CreateR
+work~\cite{symmetric-lenses,Boomerang}. Furthermore, we only present \CreateR
 and \PutR when \CreateL and \PutL are symmetric. Full details are present in the
 appendix. For simplicity of presentation, we define the typing derivations and
 semantics only over unambiguous regular expressions, even though some lenses can
@@ -2417,7 +2420,7 @@ Our benchmarks are drawn from three different sources.
 \begin{enumerate}
 \item We adapted \afm{8} data cleaning benchmarks from Flash Fill, though, of course, our tool produces bidirectional transformations rather than one-way transformers like Flash Fill.
 \item We adapted \afm{29} benchmarks from Augeas. These benchmarks turn the
-  ad-hoc data present in Linux configuration files into a structured, dictionary
+  ad hoc data present in Linux configuration files into a structured, dictionary
   representation.
 \item We used \afm{8} benchmarks from synchronization tasks between a
   variety of real-life formats. These tasks range from synchronizing REST
@@ -2612,15 +2615,18 @@ the function $apply$, which, given a lens and an element of that lens's
 complement, is a function from sequences of edits to sequences of edits. If
 $apply(\Lens,c,es) = es'$, then that means, starting with complement $c$, after
 edit $es_i$, the lens $\Lens$ synchronizes the other data to $es'_i$.
-\[
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad \; \qquad}l}
+$
   \inferrule
   {
   }
   {
     apply(\Lens,c,[]) = []
   }
-\]
-\[
+$
+&
+$
   \inferrule
   {
     \Lens.putr(x,c) = (y,c')\\
@@ -2629,7 +2635,9 @@ edit $es_i$, the lens $\Lens$ synchronizes the other data to $es'_i$.
   {
     apply(\Lens,c,(\InLOf{x})::es) = (\InROf{y})::es'
   }
-\]
+$
+\end{tabular}
+\end{centermath}
 \[
   \inferrule
   {
@@ -2714,15 +2722,18 @@ format (the right format if $es_i = \InLOf{x}$, and the left format if $es_i =
 means, starting with data $x$ and $y$ on the left and right, respectively, after
 edit $es_i$, the lens \Lens synchronizes the other data to $es_i'$.
 
-\[
+\begin{centermath}
+\begin{tabular}[b]{l@{\qquad \; \qquad}l}
+$
   \inferrule
   {
   }
   {
     apply(\Lens,xyo,[]) = []
   }
-\]
-\[
+$
+&
+$
   \inferrule
   {
     \Lens.\CreateROf{x} = y\\
@@ -2731,7 +2742,9 @@ edit $es_i$, the lens \Lens synchronizes the other data to $es_i'$.
   {
     apply(l,\None,\InLOf{x}::es) = \InROf{y}::es'
   }
-\]
+$
+\end{tabular}
+\end{centermath}
 \[
   \inferrule
   {
