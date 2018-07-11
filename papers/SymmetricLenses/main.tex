@@ -893,11 +893,11 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
 %\ksf{I don't think this is necesssary.}
 %let emp_lens = or(id(""),employees_lens) in
-  \caption{A lens, written in our language for building simple symmetric lenses
+  \caption{A lens, written in our language for defining simple symmetric lenses
     on string data, that synchronizes management and HR employee files.
-    Note that we can annotate our lenses with types, to confirm the lens
-    operates on the languages of the regular expressions. In this work, we
-    synthesize the lens itself from such regular expressions.}
+    Note that we can annotate lenses with types, ensuring that the lens
+    operates on strings that match the regular expressions. In this work, we
+    \textit{synthesize} the lens itself from such regular expressions.}
   \label{fig:example_lens}
 \end{figure}
 
@@ -997,22 +997,21 @@ information.  This calculation shows that if both \IdentityLens{}
 and \Disconnect{} are satisfying lenses, then \IdentityLens{} is more
 likely.
 
-The expected number of bits required to recover data is a well-known concept in
-information theory: it is the \emph{entropy} of the data~\cite{Shannon1948}.
-Calculating the entropy of data requires a probability distribution over the
+The expected number of bits required to recover data is the well-known information-theoretic concept 
+of the \emph{entropy} of the data~\cite{Shannon1948}.
+Calculating entropy requires a probability distribution over the
 space of possible values for the data. Specifically, given a set $S$ and a
-probability distribution over that set $P \OfType S \rightarrow \Reals$, the
-entropy of $S$ with probability distribution $P$ is $-\Sigma_{s\in
-  S}P(s)\Log_2P(s)$.
+probability distribution $P \OfType S \rightarrow \Reals$ over $S$, the
+entropy is $-\Sigma_{s\in  S}P(s)\Log_2P(s)$.
 
 In our setting, we already have a way of expressing sets of data:
 regular expressions.  What we need is a way to express probability
 distributions over that data.
 To that end, we adopt \emph{stochastic regular expressions}~\cite{stoch-def,stoch-rnn} (SREs), 
-which are regular expressions where each operator is annotated with a
+which are regular expressions in which each operator is annotated with a
 probability.  A stochastic regular expression
 specifies both a set of strings and a probability
-distribution over it.  From this information, we can calculate the
+distribution over that set, enabling us to calculate the
 entropy of the SRE. 
 
 %% \ksf{Consider integrating more detailed discussion of SREs that was
@@ -1116,8 +1115,8 @@ expressions is finite. The variations that \GreedySynth considers include
 choosing between \IdentityLens{} and \Disconnect lenses and deciding how to
 match multiple occurrences of the same kind of data, \EG, the two occurrences of
 \lstinline{name} in the management and HR data formats (we want to map first
-names to first names and last names to last names). Finally, \GreedySynth
-converts this lens back into a simple symmetric lens by converting the n-ary
+names to first names and last names to last names). \GreedySynth
+converts yields a simple symmetric lens by converting the n-ary
 forms into the binary forms provided in the surface language.
 
 As an example of the partnership between \Expand and \GreedySynth,
@@ -1834,15 +1833,15 @@ using the examples $exs$ to filter out potential lenses that do not satisfy
 the specification,
 \item replaces $best$ with $\LC$, if $\LC$ has lower cost according
 to our information theoretic metric, and
-\item adds all of the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
-  to the priority queue with $\PCF{\PQ.Push}$. The priority of a SRE pair is the
+\item adds the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
+  to the priority queue.  The priority of a SRE pair is the
   number of rewrites needed to derive the pair from the originals.
 \end{itemize}
 When the loop terminates, the search returns the globally best lens found
-($best$).  Each element of this algorithm will be explained in
+($best$).  Each subroutine of this algorithm will be explained in
 further depth in the following subsections.
 
-\begin{algorithm}
+\begin{algorithm}[t]
   \caption{\SynthSymLens}
   \label{alg:synth-sym-lens}
   \begin{algorithmic}[1]
@@ -1910,7 +1909,7 @@ further depth in the following subsections.
 The first synthesizer is one that searches through regular expression pairs.
 This synthesizer comprises \Expand, \PQ, and \Continue. It proposes regular
 expressions that are semantically, but not syntactically, equivalent to the
-originals. In particular, this synthesizer performs the following rewrites:
+originals by performing the following rewrites:
 \begin{center}
   \begin{tabular}{rcl}
     $\PRegexStar{\Regex}{\Probability}$
@@ -1925,7 +1924,7 @@ originals. In particular, this synthesizer performs the following rewrites:
 As well as the congruence rules that allow these rewrites to be applied on
 subexpressions.
 
-Our priority queue proposes stochastic regular expressions generated from fewer
+The priority queue yields stochastic regular expressions generated using fewer
 rewrites first. Only when there are no more proposed regular expressions derived
 from $n$ rewrites will \PCF{\PQ.Pop} propose regular expressions derived from
 $n+1$ rewrites.
@@ -1939,9 +1938,9 @@ current best lens has cost $c$:
   \Call{Continue}{pq} := c > d + \Log_2(n)
 \end{gather*}
 
-When $\Call{Continue}{pq}$ returns $\False$, \RXSearch stops proposing regular
+When $\Call{Continue}{pq}$ returns $\False$, \Expand stops proposing regular
 expression pairs, and instead returns to the user the best lens found thus far.
-Note this means that if \RXSearch finds a bijective lens, which has zero cost it
+Note this means that if the algorithm finds a bijective lens, which has zero cost, it
 will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
@@ -1949,7 +1948,7 @@ Stochastic DNF regular expressions (\SDNFREabbrev) are a pseudo-normal form
 for stochastic regular expressions.  Of all the star-semiring equations
 required to relate two \SDNFREabbrevs, only those relating to Kleene star
 (\EG, \emph{Unrollstar$_L$} and \emph{Unrollstar$_R$}) are needed to relate
-two \SDNFREabbrevs, other axioms, like associativity, commutativity
+two \SDNFREabbrevs; other axioms, like associativity, commutativity
 or distributivity, are unneeded.  This important property makes it possible to
 construct an efficient algorithm ($\GreedySynth$), directed
 by the syntax of two \SDNFREabbrevs, to synthesize any lenses in the
@@ -1985,7 +1984,7 @@ atoms (\Atom,\AtomAlt) are iterated stochastic DNF regular expressions.
   \end{tabular}
 \end{center}
 
-Intuitively, stochastic DNF regular expressions are essentially stochastic
+Intuitively, stochastic DNF regular expressions are stochastic
 regular expressions with all concatenations fully distributed over all
 disjunctions. As such, the language of a stochastic DNF regular expression is a
 union of its subcomponents, the language of a stochastic sequence is the
@@ -2019,7 +2018,9 @@ one ($\sum_{i=0}^n\Probability_i = 1$).
 \end{trivlist}
 
 As these DNF regular expressions are \emph{stochastic}, they are annotated with
-probabilities to express a probability distribution, in addition to a language. 
+probabilities to express a probability distribution, in addition to a
+language. \saz{I find the use of asterisk for the $\times$ or $\cdot$ or maybe
+  just juxtaposition slightly jarring.}
 \begin{center}
   \begin{tabular}{rcl}
     $\ProbabilityOf{\PRegexStar{\DNFRegex}{\Probability}}{\String}$
@@ -2073,8 +2074,8 @@ probabilities to express a probability distribution, in addition to a language.
   \label{fig:dnf-regex-functions}
 \end{figure}
 
-We have a means of turning stochastic regular expressions into stochastic DNF
-regular expressions. The conversion algorithm itself, written
+The algorithm for converting a stochastic regular expressions into its
+corresponding stochastic DNF regular expressions, written
 $\ToDNFRegexOf{\Regex}$, is defined below.
 \[
   \begin{array}{rcl}
@@ -2085,7 +2086,7 @@ $\ToDNFRegexOf{\Regex}$, is defined below.
     \ToDNFRegexOf{(\PRegexOr{\Regex_1}{\Regex_2}{\Probability})} & = & \ToDNFRegexOf{\Regex_1} \OrDNF_{\Probability} \ToDNFRegexOf{\Regex_2}\\
   \end{array}
 \]
-This conversion utilizes operators defined in
+This conversion relies on operators defined in
 Figure~\ref{fig:dnf-regex-functions}. We have proved that this conversion
 respects languages and probability distributions.
 
@@ -2096,9 +2097,9 @@ respects languages and probability distributions.
 \end{theorem}
 
 \paragraph*{\ToStochastic} With stochastic DNF regular expressions and
-\ToDNFRegex defined, it is easier to explain the function that converts regular
-expressions into stochastic regular expressions, \ToStochastic. If users
-specified stochastic regular expressions themselves (perhaps inferred from
+\ToDNFRegex defined, it is easier to explain \ToStochastic, the function that converts regular
+expressions into stochastic regular expressions. If users
+provided stochastic regular expressions themselves (perhaps inferred from
 example data), this step could be skipped,
 though our implementation does not (yet) permit users to provide such
 stochastic regular expressions. If $\Regex$ is a stochastic DNF regular
@@ -2170,22 +2171,22 @@ intellectually difficult. We elide them here but include them in the appendix.
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
-The greedy algorithm is actually three algorithms, one that greedily finds
+The synthesis procedure comprises three algorithms: one that greedily finds
 symmetric DNF lenses (\GreedySynth), one that greedily finds symmetric sequence
 lenses (\GreedySeqSynth), and one that finds symmetric atom lenses
 (\AtomSynth{}). These three algorithms are hierarchically structured:
 \GreedySynth relies on \GreedySeqSynth, \GreedySeqSynth relies on \AtomSynth,
 and \AtomSynth rlies on \GreedySynth. The structure of the algorithms mirrors
 the structure of symmetric DNF lenses and \SDNFREabbrevs. We describe this
-synthesis algorithm in the context of trying to find a lens between
+synthesis algorithm using the running example of searching for a lens between
 \lstinline{"" | name.name*} and \lstinline{"" | name}.
 
 \paragraph*{Symmetric DNF Lenses} Algorithm~\ref{alg:greedysynth} presents
-\GreedySynth, a means to synthesize symmetric DNF lenses. The inputs to
-\GreedySynth are a suite of input-output examples and a pair of stochastic DNF regular expressions.
-
-First, \PCF{CannotMap} checks whether there is no possible lens satisfying the
-examples. If so, \GreedySynth returns \None early. Otherwise, \GreedySynth finds
+\GreedySynth, which synthesizes symmetric DNF lenses. Its inputs 
+are a suite of input-output examples and a pair of stochastic DNF regular expressions.
+%
+First, \PCF{CannotMap} determines whether there is no lens satisfying the
+examples, and if so, \GreedySynth returns \None immediately. Otherwise, \GreedySynth finds
 the best lenses (given the examples that match them) between all sequence pairs
 $(SQ_i, TQ_j)$ drawn from the left and right DNF regular expressions. (The
 function \CartesianMap maps its argument across the cross product of the input
@@ -2196,8 +2197,8 @@ constructed lens is tracked in the lens builder, $lb$.
 
 \GreedySynth loops until there are no more sequence lenses in the priority
 queue. Within this loop, a sequence lense is popped from the queue and, if it is
-``useful'', then it is included in the final DNF lens. The lens is considered to
-be useful when its source (or target) is not already the source (or target) of
+``useful,'' it is included in the final DNF lens. The lens is considered to
+be useful when its source (or target) is \textit{not} already the source (or target) of
 an already chosen sequence lens. If the examples require that two sequences have a
 lens between them, then any sequence lens between them is considered useful. We
 update the priorities of the sequence lenses as the algorithm proceeds: if two
@@ -2219,7 +2220,7 @@ converted into a symmetric DNF lens. This is only possible if all sequences are
 involved in some sequence lens: if they are not, \PCF{LensBuilder.ToDNFLens}
 instead returns \None.
 
-\begin{algorithm}
+\begin{algorithm}[t]
   \caption{\GreedySynth}
   \label{alg:greedysynth}
   \begin{algorithmic}[1]
@@ -2245,8 +2246,8 @@ instead returns \None.
 
 \paragraph*{Symmetric Sequence lenses} Algorithm~\ref{alg:greedyseqsynth}
 presents \GreedySeqSynth, which synthesizes symmetric sequence lenses using an
-algorithm whose structure is similar to \GreedySynth{}'s.  It calls \PCF{AtomSynth}, a
-function that synthesizes atom lenses by iterating a DNF lens between
+algorithm whose structure is similar to \GreedySynth{}'s.  It calls \PCF{AtomSynth}, 
+which synthesizes atom lenses by iterating a DNF lens between
 its subcomponents. 
 
 The inputs to \GreedySeqSynth are a suite of input-output examples and a pair of
@@ -2258,19 +2259,18 @@ lens is built up iteratively from these atom lenses, where the state of the
 partially built lens is tracked in the sequence lens builder, $slb$.
 
 \GreedySeqSynth then loops until there are no more atom lenses in the priority
-queue. Within this loop, atom lenses are popped from the queue and the
-``useful'' ones are kept. An atom lens is useful if adding it will lower the
-cost of the generated sequence lens, or if examples show that one of the atoms
-must not be disconnected. Each atom can only be part of one lens at a time, so
-the algorithm must at times disconnect previously connected atoms to connect an
+queue. Within the loop, a popped atom lens is considered 
+``useful'' if adding it to the sequence will lower the
+cost of the generated sequence lens, or if examples show that one of its atoms
+must not be disconnected. Each atom can be part of only one lens at a time, so
+the algorithm must sometimes a previously chosen atom lens in order to connect an
 atom that must not be disconnected.
+After all atoms have been popped, the sequence lens is validated and
+returned. The algorithm succeeds when all atoms that must not be disconnected
+are involved in an atom lens, but \PCF{SLensBuilder.ToDNFLens}
+returns \None otherwise.
 
-Finally, after all atoms have been popped, the sequence lens is validated and
-returned. The algorithm confirms that all atoms that must not be disconnected
-are involved in an atom lens. If they are not, \PCF{SLensBuilder.ToDNFLens}
-instead returns \None.
-
-\begin{algorithm}
+\begin{algorithm}[t]
   \caption{\GreedySeqSynth}
   \label{alg:greedyseqsynth}
   \begin{algorithmic}[1]
@@ -2305,39 +2305,36 @@ instead returns \None.
 \subsection{Optimizations}
 \label{subsec:optimizations}
 
-Our implementation includes a number of optimizations to this algorithm. We
-added ``closed'' annotations to regular expressions \saz{what do these mean? I
-  guess ``open'' means ``subject to DNF conversion'' and ``closed'' means
-  not?}\afm{I describe in greater detail below, should I add in additional info
-  here too?}, an expansion inference algorithm, hash-consing and memoization,
-along with compositional synthesis. The implementation also allows an additional
-parameter in specifications that customizes the termination condition for the
-synthesis procedure.
+Our implementation includes a number of optimizations not described above:
+annotations that guide DNF conversion; an expansion inference
+algorithm; hash-consing and memoization; and compositional synthesis. The
+implementation also provides for an additional specification parameter that
+customizes the termination condition for the synthesis procedure.
 
 \paragraph*{Open and Closed Regular Expressions} While \GreedySynth acts
 relatively efficiently, it suffers from an exponential blowup when converting
-regular expressions to DNF form. This can be minimized by not converting
-\emph{all} of the regular expression into DNF form, but only converting
-\emph{some} of it to DNF form, and doing so incrementally. This change is easy
-to make by adding non-DNF stochastic regular expressions as a new type of
+regular expressions to DNF form. This can be mitigated by not converting
+\emph{all} of the regular expression to DNF form, but only converting
+\emph{some} of it, and doing so incrementally. This change is easy
+to support by adding non-DNF stochastic regular expressions as a new type of
 ``closed'' atom. When converted into a DNF regular expression, if $\Regex$ is
 annotated as ``closed'', then $\ToDNFRegexOf{\Regex} = \AtomToDNFOf{\Regex}$.
 Regular expressions that are not annotated as closed, are considered ``open.''
 
-At the start of synthesis, all regular expressions are closed. \RXSearch is
+At the start of synthesis, all regular expressions are closed. \Expand is
 modified so that it is now permitted to rewrite closed regular expressions to
 open ones (thereby triggering DNF normalization). \GreedySynth is allowed to to
-map closed regular expressions to each other, but only using the identity
+map closed regular expressions to each other, but only by using the identity
 lens---they must parse the same string components in all examples.
 
-\paragraph*{Expansion Inference} The prior optimization helped \GreedySynth, but
-it made \RXSearch have the harder job of determining when to open closed
-expressions.  To alleviate this difficulty, we added in expansion inference,
-which identifies when a regular expression cannot possibly map by any means
-other than the disconnect lens.  Expansion inference opens those regular
-expressions to allow for further exploration.
+\paragraph*{Expansion Inference} Distinguishing open and closed regular
+expressions helps \GreedySynth, but doing so means that \Expand has the harder job of
+determining when to open closed expressions.  To that end,
+expansion inference identifies when a regular expression cannot
+possibly map by any means other than the ``trivial'' disconnect lens. Expansion inference
+opens those regular expressions to allow for further exploration.
 
-\paragraph*{Hash-consing and Memoization} We further help \GreedySynth by
+\paragraph*{Hash-consing and Memoization} We further improve \GreedySynth by
 memoizing its results.  However, our stochastic DNF regular expressions are
 quite large and so hashing them is computationally intensive.  We use less
 memory and allow for quick comparisons and hashing of these DNF regular
@@ -2347,46 +2344,42 @@ expressions by hash-consing them.
 previously defined lenses---whether they are previously defined by users or by
 synthesis. We alter \GreedySynth such that two regular expression atoms can be
 mapped to each other either if they are the same regular expression and agree
-with the examples, or if there is a lens which is a composition of predefined
-lenses between them, where the lens agrees with the examples.
+with the examples, or if there is an existing lens (which is a composition of predefined
+lenses) that already agrees with the examples.
 
 \paragraph*{Termination Customization}
-In this work, we are constrained by three competing constraints. (1) We want to
-return lenses quickly to users, (2) we want to return good lenses, and (3) we
-don't want to require users to write a large number of examples in the
+In this work, there are three competing constraints. (1) We want to return
+lenses quickly to users, (2) we want to return good lenses, and (3) we don't
+want to require users to write a large number of examples in their
 specifications. Our termination heuristic works well for most situations, but
-there are situations where a large number of expansions must be performed to
-find the correct lens.
+there are cases where a large number of expansions must be performed to find the
+correct lens.  Users could work around that problem by providing a large number
+of examples, but it can be difficult to write a large number of informative
+examples for complex formats. We find it simpler to instead let the users
+specify that \SynthSymLens should be more restrictive in which lenses it
+accepts.  Conversely, if the user's desired transformation has a particularly
+high cost, the algorithm may spend a long time searching in vain for lenses with
+lower cost. By tuning \SynthSymLens to be more permissive, such a search can be
+short-circuited.
 
-Users could prevent incorrect lenses with a large number of examples, but it can
-be quite difficult to write a large number of examples for complex formats. We
-find it simpler to let the users specify that \RXSearch should be more
-restrictive in which lenses it accepts, so users do not have to write a lot of
-examples.
-
-This constraint goes the other way too. If the user's desired transformation has
-a particularly high cost, the algorithm may spend a long time searching in vain
-for lenses with lower cost. By tuning \RXSearch to me more permissive in the
-lenses it accepts, this search can be short-circuited.
-
-For these types of situations, users can input a custom number, $t$, to
-customize the strictness of the termination condition. In particular, if
-$\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at distance $d$, the
-number of pairs in $pq$ at distance $d$ is $n$, and the current best lens has
-cost $c$:
+For these situations, users can provide a number, $t$, which affects
+the strictness of the termination condition, adjusting the \Continue formula
+as follows. When $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at
+distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
+current best lens has cost $c$:
 \begin{gather*}
   \Call{Continue}{pq} := c > \Min(d + \Log_2(n) - t, 0)
 \end{gather*}
-With a positive $t$, the termination condition is more strict, and the algorithm
+With a positive $t$, the termination condition is stricter, and the algorithm
 will spend longer searching for more likely lenses. With a negative $t$ the
 termination condition is less strict, and the algorithm will spend less time
-searching for more likely lenses.  Our default $t$ is set to $0$.
+searching for more likely lenses.  Our default $t$ is $0$.
 
 While our defaults termination condition quickly finds the correct lens for
 39 of our 48 benchmarks, our termination condition is not
-one-size-fits all. Particularly complex lenses, or lenses that project a
-particularly large amount of data, can be synthesized more easily and quickly by
-customizing how permissive \RXSearch is in returning lenses.
+one-size-fits all. Complex lenses, or lenses that project a
+large amount of data, can be synthesized more easily and quickly by
+adjusting $t$.
 % end synthesis
 
 % begin evaluation
@@ -2394,7 +2387,7 @@ customizing how permissive \RXSearch is in returning lenses.
 \label{sec:evaluation}
 We have implemented our symmetric DNF lenses and the synthesis of them as an
 extension to Boomerang. We added symmetric lens combinators to Boomerang, and
-implemented all Boomerang's asymmetric lens combinators using a combination of
+implemented all of Boomerang's asymmetric lens combinators using a combination of
 the symmetric lens combinators, as well as other symmetric lens combinators for
 the asymmetric theory extensions present in Boomerang, like matching lenses and
 quotient lenses. We also integrated our synthesis engine into Boomerang. It allows users to write synthesis tasks
@@ -2447,15 +2440,20 @@ To begin, we measure the run time of our algorithm in 2 modes:
   \SSNCOpt{}: & The symmetric synthesis algorithm, but compositional synthesis not enabled.\\
 \end{tabulary}\\
 
-Recall that compositional synthesis exploits user annotations to break a benchmark into a series of smaller synthesis steps. In our experience, compositional synthesis (SS mode) allows our system to scale to arbitrarily large and complex formats. However, SSNC mode, which uses no such annotations and synthesizes a complete lens all at once provides a useful experimental stress test for the system. Recall from Section
+Recall that compositional synthesis exploits user annotations to break a
+benchmark into a series of smaller synthesis steps. In our experience,
+compositional synthesis (SS mode) allows our system to scale to arbitrarily
+large and complex formats. However, SSNC mode, which uses no such annotations
+and synthesizes a complete lens all at once provides a useful experimental
+stress test for the system. 
 
 \begin{figure}
   \includegraphics{generated-graphs/times}
   \caption{Number of benchmarks that can be solved by a given algorithm in a
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
-    \BSOpt{} is the full bijective lens synthesis algorithm. \SSNCOpt{} is the
+    \saz{BS isn't in the figure}\BSOpt{} is the full bijective lens synthesis algorithm. \SSNCOpt{} is the
     symmetric synthesis algorithm without using a library of existing lenses.
-    \BSNCOpt{} is the bijective synthesis algorithm without using a library of
+    \saz{BSNC isn't in the figure}\BSNCOpt{} is the bijective synthesis algorithm without using a library of
     existing lenses. Our symmetric synthesis algorithm is able to complete all
     benchmarks in our benchmark suite in under 30 seconds, and is able to
     complete a majority of the benchmarks without using compositional
@@ -2464,20 +2462,26 @@ Recall that compositional synthesis exploits user annotations to break a benchma
 \end{figure}
 
 For each benchmark in our benchmark suite, we ran every mode on it with a
-timeout of 30 seconds, and average the result over 5 runs.
+timeout of 30 seconds, and averaged the result over 5 runs.
 Figure~\ref{fig:times} summarizes the results of these tests. We find that our
 algorithm is able to synthesize all of the benchmarks in our benchmark suite in
 under 30 seconds. Without compositional synthesis, the synthesis algorithm is
-able to solve 26 problem instances. Recall from Section~\ref{subsec:optimizations} that users may tune the termination metric. Success on this set of benchmarks requires we tune that termination codition (e.g. for some benchmarks, allowing the system flexibility to spend more time considering more of the search space). In Section~\ref{subsec:effect-of-heuristics}, we will consider the effect of fixing the termination metric.
+able to solve 26 problem instances. Recall from
+Section~\ref{subsec:optimizations} that users may tune the termination
+metric. Success on this set of benchmarks requires we tune that termination
+codition (e.g. for some benchmarks, allowing the system flexibility to spend
+more time considering more of the search space). In
+Section~\ref{subsec:effect-of-heuristics}, we will consider the effect of fixing
+the termination metric. \saz{If there's space: Maybe say something about how hard it was to tune?}
 
 \subsection{Slowdown Compared to Bijective Synthesis}
 
 To compare to the existing bijective synthesis algorithm, we run our symmetric
 synthesis algorithm on the original Optician benchmark suite. 4 of these
 benchmarks had to be slightly altered to work with our new system. We altered
-these benchmarks by either providing additional examples termination parameters.
-Without these alterations, the symmetric synthesis synthesized a lens that fit
-the specification but not the intended lens.
+these benchmarks by either providing additional examples or tuning termination parameters.
+Without these alterations, the symmetric synthesis yielded a lens that fit
+the specification but that was not the desired lens.
 
 To perform this comparison, we synthesized lenses in 2 modes:
 
@@ -2488,7 +2492,7 @@ To perform this comparison, we synthesized lenses in 2 modes:
 \end{tabulary}\\
 
 For each benchmark in our benchmark suite, we ran every mode on it with a
-timeout of 60 seconds, and average the result over 5 runs.
+timeout of 60 seconds, and averaged the result over 5 runs.
 Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
 average, \SSOpt{} took 1.3 times (0.5 seconds) longer to complete than
 \BSOpt{}. The slowest completed benchmark for both synthesis algorithms is
@@ -2509,7 +2513,7 @@ complete.
 \subsection{The Effects of Our Heuristics}
 \label{subsec:effect-of-heuristics}
 We evaluate the usefulness of (1) our information theoretic metric, and (2) our
-termination heuristic.  To this end, we run our program in 3 different modes:\\
+termination heuristic.  To this end, we run our program in several different modes:\\
 \begin{tabulary}{\linewidth}{rL}
   \AnyOpt{}: & We synthesize lenses without use of the information
                theoretic preference metric.  Once \GreedySynth finds a lens, the
@@ -2543,7 +2547,7 @@ termination heuristic.  To this end, we run our program in 3 different modes:\\
   \label{fig:metric}
 \end{figure}
 
-We experimented with the \CCOpt{} mode to determine whether the complexity of the information theoretic measure was really needed. Related work on string transformations has often used simpler measures such as ``avoid constants'' which align with, but are simpler than our measures. The \CCOpt{} mode is an example of such a simple measure --- it operates by counting disconnects, which put a complete stop to information transfer, like constants, and merges, which eliminate the information in a union. Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
+We experimented with the \CCOpt{} mode to determine whether the complexity of the information theoretic measure was really needed. Related work on string transformations has often used simpler measures such as ``avoid constants'' which align with, but are simpler than our measures. The \CCOpt{} mode is an example of such a simple measure---it operates by counting disconnects, which put a complete stop to information transfer, like constants, and merges, which eliminate the information in a union. Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
 our metrics are very important for finding the correct lens. Our
 information-theoretic metric is critical for finding the correct lens. Indeed,
 only 10 of our benchmarks succeeded when running in \CCOpt{} mode.
