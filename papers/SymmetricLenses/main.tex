@@ -2607,14 +2607,13 @@ Classical symmetric lenses satisfy the following equational laws.
 \end{array}
 \end{centermath}
 
-Two classical symmetric lenses are equivalent if they output the same
-formats given any sequence of edits. Formally, given a lens
-$\Lens \in X \leftrightarrow Y$,
-an \emph{edit} for $\Lens$ is a member of $X + Y$. Consider
-the function $apply$, which, given a lens and an element of that lens's
-complement, is a function from sequences of edits to sequences of edits. If
-$apply(\Lens,c,es) = es'$, then that means, starting with complement $c$, after
-edit $es_i$, the lens $\Lens$ synchronizes the other data to $es'_i$.
+Two classical symmetric lenses are equivalent if they output the same formats
+given any sequence of edits. Formally, given a lens $\Lens \in X \leftrightarrow
+Y$, an \emph{edit} for $\Lens$ is a member of $X + Y$. Consider the function
+$apply$, which, given a lens and an element of that lens's complement, is a
+function from sequences of edits to sequences of edits. If $apply(\Lens,c,es) =
+es'$, then given complement $c$ and edits $es_i$, the lens $\Lens$ generates
+$es'_i$.
 \begin{centermath}
 \begin{tabular}[b]{l@{\qquad \; \qquad}l}
 $
@@ -2650,8 +2649,7 @@ $
 \]
 \noindent
 Two lenses, $\Lens_1$ and $\Lens_2$, are equivalent if
-$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all edit
-sequences $es$.
+$apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all $es$.
 
 %% By describing our lenses in this complement style, we can express an incredibly
 %% wide class\bcp{where is the evidence that this class of lenses is {\em
@@ -2660,44 +2658,34 @@ sequences $es$.
 %% real-world systems and in synthesizing them.
 
 %\paragraph*{Issues with Classical Symmetric Lenses}
-\iffalse
-Using symmetric lenses for
-synchronization forces us to maintain not just two files that we aim to
-sycnrhonize, but three. \bcp{I don't find it unintuitive, and I think we
-  should be careful not to oversell the difficulty of storing the
-  complements.  It requires more engineering, but it's not rocket
-  science.}This is unintuitive, and creates many problems in 
-practice. For example, consider the situation where I am synchronizing a crontab
-and job manager file. I am synchronizing across computers, so I must either
-maintain a copy of the complement on each computer, and keep them synchronized,
-or figure out a computer to hold the complement, and make sure all edits go
-through that complement. Furthermore, if I want to change the synchronization to
-a different computer, I don't need to merely make sure that my files are moved
-to the computer, I also have to make sure that I correctly move the complement,
-and hook up that complement to be used for that synchronization task. This is a
-huge divergence from other synchronization utilities\bcp{No.  For example,
-  Unison maintains a database on each replica recording, for each file, what
-its hash was after the last time the two replicas were synchronized.}, where all
-that needs to be 
-done is maintain the files. Using those for synchronization, edits can be sent
-over the wire, and the appropriate function can stitch together those edits, no
-additional state needed.
-\fi
-While classical symmetric are more expressive than simple symmetric
-lenses, it is unclear whether this additional expressiveness is useful in
-practice.  Moreover, classic symmetric lenses come with 
-some disadvantages.
-For one, an implementation of classical symmetric lenses
-would need to squirrel away the complement in
-an auxiliary file somwhere, which likely requires more engineering.
-However, more significant issues arise in synthesis.
-First, because each lens has a custom complement, one can no longer
-specify the put functions through input/output examples alone.  One
-alternative would be to enrich specifications with edit sequentials;
-another would be to specify the structure of complements explicitly
-(though the latter would be somewhat akin to specifying the internal
-state of a program).  In either case, the complexity of the specifications
-increases.
+\iffalse Using symmetric lenses for synchronization forces us to maintain not
+just two files that we aim to sycnrhonize, but three. \bcp{I don't find it
+  unintuitive, and I think we should be careful not to oversell the difficulty
+  of storing the complements. It requires more engineering, but it's not rocket
+  science.}This is unintuitive, and creates many problems in practice. For
+example, consider the situation where I am synchronizing a crontab and job
+manager file. I am synchronizing across computers, so I must either maintain a
+copy of the complement on each computer, and keep them synchronized, or figure
+out a computer to hold the complement, and make sure all edits go through that
+complement. Furthermore, if I want to change the synchronization to a different
+computer, I don't need to merely make sure that my files are moved to the
+computer, I also have to make sure that I correctly move the complement, and
+hook up that complement to be used for that synchronization task. This is a huge
+divergence from other synchronization utilities\bcp{No. For example, Unison
+  maintains a database on each replica recording, for each file, what its hash
+  was after the last time the two replicas were synchronized.}, where all that
+needs to be done is maintain the files. Using those for synchronization, edits
+can be sent over the wire, and the appropriate function can stitch together
+those edits, no additional state needed. \fi While classical symmetric lenses
+are technically more expressive than simple symmetric lenses, it is unclear
+whether this additional expressiveness is useful in practice. In our judgement,
+the complications they introduce into synthesis did not justify the potential
+additional expressiveness: because each lens has a custom
+complement, one can no longer specify the put functions through input/output
+examples alone. One alternative would be to enrich specifications with edit
+sequentials; another would be to specify the structure of complements explicitly
+(though the latter would be somewhat akin to specifying the internal state of a
+program). In either case, the complexity of the specifications increases.
 %% addition, users would have to specify some auxilary 
 %% to specify the behavior through the observable behavior of edit sequences.
 %% Second, there are lenses that require arbitrarily long edit sequences to
@@ -2710,17 +2698,14 @@ increases.
 %% formats keeping track of them.  While we are reducing the expressivity of our
 %% lenses with this restriction, we feel the benefits outweigh the costs.
 
-\paragraph*{Relation with Simple Symmetric Lenses} To formalize how simple
-symmetric lenses work as synchronization tools, we define an $apply$ function on
-them, much like one defines an $apply$ on classical symmetric lenses: Given a
-simple symmetric lens and an optional pair of source and target strings, $apply$
-is a function from sequences of edits to sequences of edits. If
+\paragraph*{Relation with Simple Symmetric Lenses} To compare classic and simple
+symmetric lenses, we define an $apply$ function on simple lenses as well. If
 $apply(\Lens,\None,es) = es'$, then starting with no prior data, after edit
-$es_i$, the lens \Lens synchronizes the updates the data in the non-edited
-format (the right format if $es_i = \InLOf{x}$, and the left format if $es_i =
-\InROf{y}$) to $es_i'$. If $apply(\Lens,\SomeOf{(x,y)},es) = es'$, then that
-means, starting with data $x$ and $y$ on the left and right, respectively, after
-edit $es_i$, the lens \Lens synchronizes the other data to $es_i'$.
+$es_i$, the lens \Lens generates $es_i'$ (the right format if $es_i =
+\InLOf{x}$, and the left format if $es_i = \InROf{y}$). If
+$apply(\Lens,\SomeOf{(x,y)},es) = es'$, then starting with data $x$
+and $y$ on the left and right, respectively, after edit $es_i$, the lens \Lens
+generates $es_i'$.
 
 \begin{centermath}
 \begin{tabular}[b]{l@{\qquad \; \qquad}l}
@@ -2776,10 +2761,7 @@ $
   }
 \]
 
-We have reformulated symmetric lenses in a style similar to existing asymmetric
-lens formulations. However, some symmetric lenses certainly are inexpressible in
-the simple symmetric lens formulation. We formalize which are expressible
-with a restriction on symmetric lenses. We define \emph{forgetful symmetric
+Next, we define \emph{forgetful symmetric
   lenses} to be symmetric lenses that satisfy the following additional laws.
 \begin{equation}
   \tag{\ForgetfulRL}
@@ -2814,27 +2796,17 @@ with a restriction on symmetric lenses. We define \emph{forgetful symmetric
   \end{mathprooftree}
 \end{equation}
 
-Intuitively, these equations state that complements are uniquely determined by the most
-recently input $x$ and $y$. Hence, such lenses correspond closely \dpw{replace ``closely'' with
-``exactly''?} with simple symmetric
-lenses, where all state is maintained by the current state of the $x$ and $y$
-data. Forgetful symmetric lenses express exactly the same $apply$ function as
-simple symmetric lenses.
+Intuitively, these equations state that complements are uniquely determined by
+the most recently input $x$ and $y$. Hence, such lenses correspond exactly with
+simple symmetric lenses, where all state is maintained by the current state of
+the $x$ and $y$ data. Forgetful symmetric lenses express exactly the same
+$apply$ function as simple symmetric lenses.
 
 \begin{theorem}
   Let $\Lens$ be a classical symmetric lens. The lens $\Lens$ is equivalent to a forgetful
   lens if, and only if, there exists a simple symmetric lens $\Lens'$ where
   $apply(\Lens,\Lens.init,es) = apply(\Lens',\None,es)$, for all put sequences $es$.
 \end{theorem}
-
-\bcp{I guess we could also show that equivalence of simple symmetric lenses
-  is just the identity relation?}
-\sam{No; for example the identity lens of a concatenation of two regular
-  expressions is the same as concatenating the two identity lenses on the
-  respective regular expressions}
-\afm{I think Benjamin likely means identity relation on the semantic meaning of
-  the lenses, which is true.  Would this be a useful thing to prove? It's a 2
-  liner.}
 
 \paragraph*{Asymmetric Lenses}
 Formally, an {\em asymmetric lens} $ \ell : S \Leftrightarrow V$ is a triple of functions $\ell.\get : S \longrightarrow V$, $\ell.\pput : V \longrightarrow S \longrightarrow S$ and $\ell.\create : V \longrightarrow S$ satisfying the following laws \cite{Focal2005-long2}:
@@ -2899,18 +2871,15 @@ with the hope that this theory may inform future design decisions and help us un
 heuristics crafted in other tools and possibly in other domains.  For instance, we
 speculate that some of the heuristics used in
 FlashFill (to take one well-documented example) may be connected to some of the principles
-laid out here.  For instance, FlashFill prioritizes the substring constructor over the
-constant string constructor when ranking possible programs. Such a choice may be understood
-in information-theoretic terms as the translation from target back to source would require
-more information.  Said another way, our information theoretic metrics measure injectivity
-(in both directions, in our case, to measure bijectivity) but applied in one direction, as
-is the case for FlashFill, would avoid the highly injective constant functions.  Beyond
-constants, another FlashFill heuristic prefers ``wider'' character classes (or token classes)
-over ``narrower'' ones.  Selecting a wider set of strings to copy from left-to-right, viewed
-in the reverse direction, from right-to-left, results in a function that is closer to being
-injective, as measured by information theory.  These are just a few of the heuristics used
-in Flashfill; more research would be required (and public disclosure of the details necessary)
-to understand the connections fully.
+laid out here.  For instance, Flash Fill prioritizes the substring constructor over the
+constant string constructor when ranking possible programs. Such a choice is
+consistent with our information-theoretic viewpoint as the constant function
+throws away a great deal of information about the source string being
+transformed. Likewise, Flash Fill prefers ``wider'' character classes over
+``narrower'' ones. Again such a choice is implied by information theory -- the
+wider class preserves more information during translation.  More broadly, we
+hope our information theoretic analysis provides a principle that can be
+used to understand the heuristic choices made in related work.
 
 %% In many of these synthesis algorithms the correct transformation is chosen by
 %% principals like ``minimize constants''~\cite{?,?,?} and ``most specific
@@ -2954,17 +2923,15 @@ by exploiting parametricity properties.  These kinds of tools are very useful, b
 circumstances from ours (namely, when one already has the code to implement one direction of
 the transformation).
 
-More broadly, information theory and probabilistic languages are common tools
-in natural language understanding,  machine translation, information retrieval,
-data extraction and grammatical inference (see Pereira~\cite{pereira:info-theory},
-for an introduction).  Indeed, our work was inspired, in part, by the PADS format
-inference tool~\cite{pads:synthesis}, which was in turn inspired by earlier work on
-probabilistic gramatical inference
-and information extraction~\cite{kushmerick-thesis,arasu:extracting}.  More specifically, PADS
-used an information-theoretic metric to help judge the quality of inferred grammars
-for ad hoc data formats.  However, PADS did not synthesize data transformers, and
-we are not aware of the use of information-theoretic principles in type-directed or syntax-guided
-synthesis of DSL programs. 
+More broadly, information theory and probabilistic languages are common tools in
+natural language understanding, machine translation, information retrieval, data
+extraction and grammatical inference (see Pereira~\cite{pereira:info-theory},
+for an introduction). Indeed, our work was inspired, in part, by the PADS format
+inference tool~\cite{pads:synthesis}, which was in turn inspired by earlier work
+on probabilistic gramatical inference and information
+extraction~\cite{kushmerick-thesis,arasu:extracting}. PADS did not synthesize
+data transformers, and we are not aware of the use of information-theoretic
+principles in type-directed or syntax-guided synthesis of DSL programs.
 
 %% Other work synthesizing invertible transformations was done by inverting a
 %% previously defined transformation.  This has been done by exploiting
@@ -2988,19 +2955,13 @@ synthesis of DSL programs.
 \section{Conclusion}
 \label{sec:conc}
 We have developed a synthesis algorithm for synthesizing synchronization
-functions between data formats that may not be in bijective correspondence. We
-do this by synthesizing symmetric lenses. However, existing symmetric lens
-formulations use complex complements to store external state. We identify a
-restriction on symmetric lenses, simple symmetric lenses. We develop combinators
-for simple symmetric lenses on string data. We show how to synthesize these
-lenses from regular expression specifications. Prior work could return
-\emph{any} satisfying lens, as the type system was restrictive enough that any
-satisfying lens would typically be the correct satisfying lens. Because of the
-increased flexibility of the symmetric lens language, we identify an
-information-theoretic heuristic for finding a likely satisfying lens. We
-developed a greedy synthesis algorithm that aims to find the lens of lowest
-cost. We demonstrate empiraclly that our algorithm can find lenses quickly, and
-our heuristic makes finding the correct lens require fewer specifications.
+functions between data formats that may not be in bijective correspondence. More
+specifically, we identify a subset of symmetric lenses, simple symmetric lenses,
+develop new combinators for them, and show how to synthesize them from regular
+expression specifications. In order to guide the search for ``likely'' lenses,
+we introduce new search principles based on information theory. Based on these
+principles, we designed, implemented, and evaluated a new tool for lens
+synthesis.
 
 % end conclusion
 
@@ -3064,7 +3025,7 @@ is needed.
   }
 &
   \begin{array}{@{}r@{\ }c@{\ }l@{}}
-    $\CreateR{} \App \String'$ & = & $\StringAlt$\\
+    $\CreateR{} \App \String''''$ & = & $\StringAlt$\\
     $\CreateL{} \App \StringAlt'''''$ & = & $\String$\\
     $\PutR{} \App \String''' \App \StringAlt'$ & = & $\StringAlt'$\\
     $\PutL{} \App \StringAlt' \App \String'$ & = & $\String'$
