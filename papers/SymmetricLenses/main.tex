@@ -2312,57 +2312,69 @@ implementation also provides for an additional specification parameter that
 customizes the termination condition for the synthesis procedure.
 
 \paragraph*{Open and Closed Regular Expressions} While \GreedySynth acts
-relatively efficiently, it suffers from an exponential blowup when converting
-regular expressions to DNF form. This can be mitigated by not converting
-\emph{all} of the regular expression to DNF form, but only converting
-\emph{some} of it, and doing so incrementally. This change is easy
-to support by adding non-DNF stochastic regular expressions as a new type of
-``closed'' atom. When converted into a DNF regular expression, if $\Regex$ is
-annotated as ``closed'', then $\ToDNFRegexOf{\Regex} = \AtomToDNFOf{\Regex}$.
-Regular expressions that are not annotated as closed, are considered ``open.''
+relatively efficiently, it can suffer from an exponential blowup when converting
+regular expressions to DNF form. This problem can be mitigated by avoiding the conversion
+of some REs to DNF form and by performing the conversion lazily when necessarily.
+More specifically, \Expand labels some uncoverted REs as ``closed,'' which means the
+type-directed \GreedySynth algorithm treats them as DNF atoms and does not dig into
+them recursively.  In other words,
+given a pair of closed REs, \GreedySynth can either construct
+the identity lens between them (it will do this if they are the same RE), or it can
+construct a disconnect lens between them.
+Regular expressions that are not annotated as closed are considered ``open.''
+%is allowed to to
+%map closed regular expressions to each other, but only by using the identity
+%lens---they must parse the same string components in all examples.
+%This change is easy
+%to support by adding non-DNF stochastic regular expressions as a new type of
+%``closed'' atom. When converted into a DNF regular expression, if $\Regex$ is
+%annotated as ``closed'', then $\ToDNFRegexOf{\Regex} = \AtomToDNFOf{\Regex}$.
 
-At the start of synthesis, all regular expressions are closed. \Expand is
-modified so that it is now permitted to rewrite closed regular expressions to
-open ones (thereby triggering DNF normalization). \GreedySynth is allowed to to
-map closed regular expressions to each other, but only by using the identity
-lens---they must parse the same string components in all examples.
-
-\paragraph*{Expansion Inference} Distinguishing open and closed regular
-expressions helps \GreedySynth, but doing so means that \Expand has the harder job of
-determining when to open closed expressions.  To that end,
-expansion inference identifies when a regular expression cannot
-possibly map by any means other than the ``trivial'' disconnect lens. Expansion inference
-opens those regular expressions to allow for further exploration.
+\paragraph*{Expansion Inference} Distinguishing between open and closed regular
+expressions improves the efficiency of \GreedySynth, but forces \Expand to decide
+which closed expressions to open.
+At the start of synthesis, all regular expressions are closed. \Expand 
+rewrites selected closed regular expressions to
+open ones (thereby triggering DNF normalization)
+when the disconnect lens is the only lens that will ever apply.
 
 \paragraph*{Hash-consing and Memoization} We further improve \GreedySynth by
-memoizing its results.  However, our stochastic DNF regular expressions are
-quite large and so hashing them is computationally intensive.  We use less
-memory and allow for quick comparisons and hashing of these DNF regular
-expressions by hash-consing them.
+hash-consing stochastic DNF regular expressions.  This optimization enables
+fast equality checks and saves memory.\dpw{we could probably cut this paragraph.}
+%memoizing its results.  However, our stochastic DNF regular expressions are
+%quite large and so hashing them is computationally intensive.  We use less
+%memory and allow for quick comparisons and hashing of these DNF regular
+%expressions by 
 
 \paragraph*{Compositional Synthesis} Compositional synthesis allows us to use
-previously defined lenses---whether they are previously defined by users or by
-synthesis. We alter \GreedySynth such that two regular expression atoms can be
-mapped to each other either if they are the same regular expression and agree
-with the examples, or if there is an existing lens (which is a composition of predefined
-lenses) that already agrees with the examples.
+previously defined lenses, whether they are previously defined by users or by
+synthesis. As the synthesizer processes a Boomerang file, it accumulates
+lens definitions and their types.  It tackles synthesis problems one after another
+and there may be many such problems in a given program.
+During synthesis, if an existing lens has the right type and agrees with the examples.
+\GreedySynth will use it.  Consequently, if a large synthesis problem cannot be solved all
+at once, a user can first generate subproblems for parts of a data format, and the
+larger problem can subsequently use solutions to those subproblems.  In our experience,
+this is a very powerful tool that allows synthesis to tackle problems of arbitrary
+complexity.
 
 \paragraph*{Termination Customization}
-In this work, there are three competing constraints. (1) We want to return
-lenses quickly to users, (2) we want to return good lenses, and (3) we don't
-want to require users to write a large number of examples in their
-specifications. Our termination heuristic works well for most situations, but
+In this work, there are three competing constraints. The tool should (1) return
+lenses quickly to users, (2) return the highest quality lenses, and (3)
+not require users to write a large number of examples.
+Our termination heuristic works well for most situations, but
 there are cases where a large number of expansions must be performed to find the
-correct lens.  Users could work around that problem by providing a large number
-of examples, but it can be difficult to write a large number of informative
-examples for complex formats. We find it simpler to instead let the users
-specify that \SynthSymLens should be more restrictive in which lenses it
-accepts.  Conversely, if the user's desired transformation has a particularly
+correct lens.  Users can work around such a problem by providing a large number
+of examples, but constructing examples is a chore, especially when formats are
+complicated.  We have often found it simpler to allow users to change the
+synthesis termination condition to demand \SynthSymLens be more judgemental
+when it comes to deciding it has found a ``good enough'' lens.  
+Conversely, if the user's desired transformation has a particularly
 high cost, the algorithm may spend a long time searching in vain for lenses with
 lower cost. By tuning \SynthSymLens to be more permissive, such a search can be
 short-circuited.
 
-For these situations, users can provide a number, $t$, which affects
+For these situations, users can provide a number, $t$, that affects
 the strictness of the termination condition, adjusting the \Continue formula
 as follows. When $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at
 distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
@@ -2371,15 +2383,17 @@ current best lens has cost $c$:
   \Call{Continue}{pq} := c > \Min(d + \Log_2(n) - t, 0)
 \end{gather*}
 With a positive $t$, the termination condition is stricter, and the algorithm
-will spend longer searching for more likely lenses. With a negative $t$ the
+will spend longer searching for more likely lenses. With a negative $t$, the
 termination condition is less strict, and the algorithm will spend less time
 searching for more likely lenses.  Our default $t$ is $0$.
 
-While our defaults termination condition quickly finds the correct lens for
+As discussed in the following section,
+while our default termination condition quickly finds the correct lens for
 39 of our 48 benchmarks, our termination condition is not
 one-size-fits all. Complex lenses, or lenses that project a
 large amount of data, can be synthesized more easily and quickly by
-adjusting $t$.
+adjusting $t$. \dpw{should this paragraph be cut and its content left for the
+next section?}
 % end synthesis
 
 % begin evaluation
@@ -2431,7 +2445,7 @@ utility that transforms Linux configuration files into a manageable dictionary
 form; the many of the remaining benchmarks are from synchronizing real-life data
 formats, like BibTeX and EndNote.
 
-\subsection{Useful in Everyday Development}
+\subsection{Usefulness in Everyday Development}
 
 To begin, we measure the run time of our algorithm in 2 modes:
 
