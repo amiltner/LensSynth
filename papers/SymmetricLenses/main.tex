@@ -1149,19 +1149,19 @@ Figure~\ref{fig:example_lens}, we don't want to spend a lot of time
 searching for an even better lens.
 
 To resolve this tension, our algorithm uses heuristics to judge whether to
-return the current best satisfying lens to the user or to pass the
-next set of unrollings to \GreedySynth.
-The heuristics favor stopping if the current best satisfying
-lens has relatively high likelihood, indicating the lens is very promising.
-The heuristics also favor stopping if \Expand
-has delievered to \GreedySynth all pairs of stochastic regular
-expressions at a given rank and there is a large number of pairs at the next
-rank because searching through all such pairs will take a long time.
-With this approach, the algorithm can quickly respond with a satisfying
-lens with relatively high likelihood.  If users are unhappy with the result, they can refine the
-search by supplying additional examples, which serve both to rule out
-the previously proposed lens(es) and to reduce the size of the search
-space by cutting down on the number of satisfying lenses.
+return the current best satisfying lens to the user or to pass the next set of
+unrollings to \GreedySynth.  The heuristics favor stopping if the current best
+satisfying lens has relatively high likelihood, indicating the lens is very
+promising.  The heuristics also favor stopping if \Expand has delivered to
+\GreedySynth all pairs of stochastic regular expressions at a given rank and
+there is a large number of pairs at the next rank because searching through all
+such pairs will take a long time.  With this approach, the algorithm can quickly
+respond with a satisfying lens with relatively high likelihood.  If users are
+unhappy with the result, they can either refine the search by supplying
+additional examples, which serve both to rule out the previously proposed
+lens(es) and to reduce the size of the search space by cutting down on the
+number of satisfying lenses, or supply a tuning parameter (discussed in 
+\S\ref{subsec:optimizations}) that adjusts how much effort is put into the search.
 
 
 %Consider the trivial lens
@@ -2313,14 +2313,17 @@ returns \None otherwise.
   \end{algorithmic}
 \end{algorithm}
 
-\subsection{Optimizations}
+\subsection{Optimizations and Termination Tuning}
 \label{subsec:optimizations}
 
 Our implementation includes a number of optimizations not described above:
 annotations that guide DNF conversion; an expansion inference
 algorithm; hash-consing and memoization; and compositional synthesis. The
 implementation also provides for an additional specification parameter that
-customizes the termination condition for the synthesis procedure.
+customizes the termination condition for the synthesis procedure.  The
+optimizations make the system performant enough for interactive use, and the
+tuning parameter gives the user a ``knob'' by which the algorithm can be
+directed to try harder to find a good lens.
 
 \paragraph*{Open and Closed Regular Expressions} While \GreedySynth acts
 relatively efficiently, it can suffer from an exponential blowup when converting
@@ -2411,8 +2414,8 @@ We have implemented symmetric DNF lenses as an extension to
 Boomerang. Specifically, we added symmetric lens combinators to
 Boomerang, and implemented all of Boomerang's asymmetric lens
 combinators  using a combination of the symmetric lens combinators presented in this
-paper and symmetric versions of the asymmetric extensions
-already present in Boomerang, like matching lenses and quotient lenses.
+paper and symmetric versions of the asymmetric extensions (like matching lenses and quotient lenses)
+already present in Boomerang.
 We also integrated our synthesis engine into Boomerang. This
 integration allows users to write synthesis tasks 
 alongside lens combinators, incorporate synthesis results into 
@@ -2421,18 +2424,16 @@ the synthesis of new lenses.
 
 In this evaluation, we aim to answer four primary questions:
 \begin{enumerate}
-\item Does the synthesis algorithm find the correct lens?
+\item Can the algorithm (with suitable examples and termination
+  tuning) find the correct lens?
 \item Is the synthesis procedure efficient enough to be used in everyday
   development?
 \item How much slower is our tool on bijective lens synthesis benchmarks than
   the existing Optician system customized for bijective lenses?
-  
-\item Which heuristics are useful
-for reducing the ``specification 
-  overhead'' for users? In particular, which heuristics are useful in
-  synthesizing the desired lens instead of merely a lens that satisfies the
-  specification?
+\item How much termination tuning is necessary and how does the heuristic affect the
+  results?
 \end{enumerate}
+
 
 \subsection{Benchmark Suite}
 Our benchmarks are drawn from three different sources.
@@ -2448,44 +2449,66 @@ than one-way transformers like Flash Fill.
   literature. These tasks range from synchronizing REST and JSON web resource
   descriptions to synchronizing BibTeX and EndNote citation descriptions.
 \end{enumerate}
-Each benchmark comprises a source and target regular expression, a
-collection of examples, and an optional termination condition
-parameter. 
+
+All three sources for our benchmarks provide realistic problems suitable for
+answering the research questions: Flash Fill data cleaning tasks are either
+derived from online help forums or taken from the Excel product team; Augeas is
+a utility that transforms Linux configuration files into a manageable dictionary
+form; and many of the remaining benchmarks arise from synchronizing real-world
+data formats such as BibTeX and EndNote.  Each task consists of a source and
+target regular expression.\saz{Do we want to say anything about the sizes of these?}
+
+\subsection{Synthesizing Correct Lenses}
+
+Because our tool is intended to be interactive---the user typically starts with
+zero or one examples, runs the tools, determines whether the output is the
+desired one and, if not, either adds an example or adjusts the termination
+metric and then tries again---it is hard to cleanly evaluate the net user
+experience.  The primary concern is whether it is usable to generate
+synthesize correct lenses.
+
+To determine whether the system can synthesize the desired lenses, we ran the
+symmetric synthesis algorithm interactively on all 48 tasks,
+working with the system to create sufficient examples and adjust the termination
+tuning.  In all cases, the desired lens was obtained, which we verified by
+manually inspecting the generated lens programs.
+%
+The majority of the tasks required only a single example and none required
+more than three examples in order to synthesize the desired lens.\footnote{In
+  one benchmark, we supplied a fourth example that was later discovered to 
+  be unnecessary.}  
+
+Adjusting the tuning parameter was needed in only 9 of the 48 tasks. In practice, we
+found that customizing the termination metric to be quite easy: if manual
+inspection of the lens showed there were too few bijections, we would increase
+the termination parameter. If synthesis took too long, we would decrease it.
+Section~\ref{subsec:effect-of-heuristics}, studies the effect of fixing the
+termination metric.
+
 %%A realistic benchmarks suite is critical in answering the first research
 %%question. To determine whether our algorithm is fast enough to be used in
 %%everyday development, we need to evaluate whether we can solve real-world
 %%problems efficiently. 
 
-All three sources for our benchmarks provide realistic problems
-suitable for answering the research questions:
-Flash Fill  data cleaning tasks are either derived from online help
-forums or taken from the Excel product team;  
-Augeas is a utility that transforms Linux configuration files into a manageable dictionary
-form; and
-many of the remaining benchmarks arise from synchronizing real-world
-data formats such as BibTeX and EndNote. 
 
-\subsection{Lens correctness}
-To determine whether the synthesized lenses were the desired ones,
-we ran the symmetric synthesis algorithm on the 48 benchmarks and then
-manually inspected the generated lenses.  In all 48 cases, the
-synthesized benchmark was correct.
+\subsection{Effectiveness of Compositional Synthesis}
 
-\subsection{Usefulness in Everyday Development}
-
-We measured the run time of our algorithm in two modes:
+Having determined appropriate examples and timing parameters for the 48
+benchmarks, we evaluate the performance of the system by 
+measuring the running time of our algorithm in two modes:
 
 \begin{tabulary}{\linewidth}{rL}
   \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
-  \SSNCOpt{}: & The symmetric synthesis algorithm, but compositional synthesis not enabled.\\
+  \SSNCOpt{}: & The symmetric synthesis algorithm, with no compositional synthesis enabled.\\
 \end{tabulary}\\
 
 Recall that compositional synthesis exploits user annotations to break a
 benchmark into a series of smaller synthesis steps. In our experience,
 compositional synthesis (SS mode) allows our system to scale to arbitrarily
-large and complex formats. However, SSNC mode, which uses no such annotations
-and synthesizes a complete lens all at once provides a useful experimental
-stress test for the system. 
+large and complex formats; measuring it provides an estimate of the
+responsiveness of the system when used as intended.\saz{Anders check this!} However, SSNC mode, which
+uses no such annotations and synthesizes a complete lens all at once provides a
+useful experimental stress test for the system.
 
 \begin{figure}
   \includegraphics{generated-graphs/times}
@@ -2493,38 +2516,35 @@ stress test for the system.
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
     \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
     existing lenses. The symmetric synthesis algorithm is able to complete all
-    benchmarks in under 30 seconds elapsed total time. In addition, it is able to
-    complete a majority of the benchmarks in that timeframe without
-  using compositional 
-    synthesis.}
+    benchmarks in under 30 seconds elapsed total time. Without compositional
+    synthesis it is able to complete 26. Each benchmark specification includes
+    source and target regular expressions, between one and three sufficient
+    examples, and, if necessary, the timing parameter determined to be
+    sufficient for correctness during a prior interactive session.}
   \label{fig:times}
 \end{figure}
 
 
-For each benchmark in our benchmark suite, we ran it in both modes with a
-timeout of 60 seconds, and averaged the result over 5 runs.
-Figure~\ref{fig:times} summarizes the results of these tests. We find that our
-algorithm is able to synthesize all of the benchmarks in our benchmark suite in
-under 30 seconds. Without compositional synthesis, the synthesis algorithm is
-able to solve 26 problem instances. Recall from
-Section~\ref{subsec:optimizations} that users may tune the termination metric.
-Success on this set of benchmarks requires we tune that termination condition
-(e.g. for some benchmarks, allowing the system flexibility to spend more time
-considering more of the search space). In
-Section~\ref{subsec:effect-of-heuristics}, we will consider the effect of fixing
-the termination metric. In practice, we found customizing the termination metric
-to be quite easy: if manual inspection of the lens showed there were too few
-bijections, we would increase the termination parameter. If synthesis took too
-long, we would decrease it.
+For each benchmark in the suite and each mode, we ran the system with a timeout
+of 60 seconds, averaging the result over 5 runs.  Figure~\ref{fig:times}
+summarizes the results of these tests. We find that our algorithm is able to
+synthesize all of the benchmarks in under 30 seconds. Without compositional
+synthesis, the synthesis algorithm is able to solve only 26 problem
+instances. 
+
+% Section~\ref{subsec:optimizations} that users may tune the termination metric.
+% Success on this set of benchmarks requires we tune that termination condition
+% (e.g. for some benchmarks, allowing the system flexibility to spend more time
+% considering more of the search space). In
 
 \subsection{Slowdown Compared to Bijective Synthesis}
 
 To compare to the existing bijective synthesis algorithm, we run our symmetric
 synthesis algorithm on the original Optician benchmarks, comprised of
-39 bijective synthesis tasks. We had to slightly alter four of these
+39 bijective synthesis tasks.\footnote{We had to slightly alter four of these
 benchmarks, either by providing additional examples or by tuning termination parameters.
 Without these alterations, symmetric synthesis yielded a lens that fit
-the specification but that was not the desired lens.
+the specification but that was undesired.}
 
 To perform this comparison, we synthesized lenses in two modes:
 
@@ -2607,9 +2627,9 @@ in \FLOpt{} mode, the algorithm only discovers 5 lenses, which shows
 that the first cluster that contains a satisfying lens is rarely the
 correct cluster.  However, our termination condition is not perfect.
 Sometimes users must tell the algorithm to ``keep going'' or ``stop early.''
-Without termination parameters, our algorithm finds the correct lens for 36 of
-our 48 benchmarks.  Nine of them need help in the form of a termination parameter
-for finding the correct lens. That being said, our default parameter finds a
+Without termination parameters, our algorithm finds the correct lens for 39 of
+our 48 benchmarks; nine required tuning 
+to find the correct lens. Nevertheless, our default parameter sits in a
 good middle-ground. Both \TFTOpt{} and \NTFTOpt{} synthesized the correct lens
 less often than \ZTOpt.  \TFTOpt{} demands too good a lens, so the search
 procedure keeps spinning, while \NTFTOpt{} terminates early, not
