@@ -334,7 +334,7 @@ def generate_time_vs_tasks_graph_vs_bijective(input_csv):
     plt.yticks(np.arange(0, 40.1, 10))
 
     fig = plt.figure(2,tight_layout=True)
-    fig.set_figheight(2)
+    fig.set_figheight(1.75)
     fig.set_figwidth(4)
 
     fig.savefig(generated_graphs_base + "times_bijective.eps", bbox_inches='tight')
@@ -379,7 +379,7 @@ def generate_time_vs_tasks_graph(input_csv):
     plt.yticks(np.arange(0, 50.1, 10))
 
     fig = plt.figure(1,tight_layout=True)
-    fig.set_figheight(2)
+    fig.set_figheight(1.75)
     fig.set_figwidth(4)
 
     fig.savefig(generated_graphs_base + "times.eps", bbox_inches='tight')
