@@ -2404,56 +2404,73 @@ searching for more likely lenses.  Our default $t$ is $0$.
 % begin evaluation
 \section{Evaluation}
 \label{sec:evaluation}
-We have implemented our symmetric DNF lenses and the synthesis of them as an
-extension to Boomerang. We added symmetric lens combinators to Boomerang, and
-implemented all of Boomerang's asymmetric lens combinators 
-using a combination of the symmetric lens combinators presented in this
-paper and symmetric versions of the asymmetric theory extensions
+We have implemented symmetric DNF lenses as an extension to
+Boomerang. Specifically, we added symmetric lens combinators to
+Boomerang, and implemented all of Boomerang's asymmetric lens
+combinators  using a combination of the symmetric lens combinators presented in this
+paper and symmetric versions of the asymmetric extensions
 already present in Boomerang, like matching lenses and quotient lenses.
-We also integrated our synthesis engine into Boomerang. It allows users to write synthesis tasks
-alongside lens combinators, use those synthesis results in the manual writing of
-new lenses, and use previously defined lenses in the synthesis of new lenses.
+We also integrated our synthesis engine into Boomerang. This
+integration allows users to write synthesis tasks 
+alongside lens combinators, incorporate synthesis results into 
+manually-written lenses, and reference previously defined lenses in
+the synthesis of new lenses. 
 
 In this evaluation, we aim to answer three primary questions:
 \begin{enumerate}
-\item Is our synthesis procedure efficient enough to be used in everyday
+\item Does the synthesis algorithm find the correct lens?
+\item Is the synthesis procedure efficient enough to be used in everyday
   development?
-
 \item How much slower is our tool on bijective lens synthesis benchmarks than
   the existing Optician system customized for bijective lenses?
   
-\item Which heuristics are useful for reducing the ``specification
+\item Which heuristics are useful
+for reducing the ``specification 
   overhead'' for users? In particular, which heuristics are useful in
-  synthesizing the desired lens, instead of merely a lens that satisfies the
+  synthesizing the desired lens instead of merely a lens that satisfies the
   specification?
 \end{enumerate}
 
 \subsection{Benchmark Suite}
 Our benchmarks are drawn from three different sources.
 \begin{enumerate}
-\item We adapted 8 data cleaning benchmarks from Flash Fill, though, of course, our tool produces bidirectional transformations rather than one-way transformers like Flash Fill.
+\item We adapted 8 data cleaning benchmarks from Flash Fill. Note
+that our tool produces bidirectional transformations rather
+than one-way transformers like Flash Fill. 
 \item We adapted 29 benchmarks from Augeas. These benchmarks turn the
-  ad hoc data present in Linux configuration files into a structured, dictionary
+  ad hoc data present in Linux configuration files into a structured dictionary
   representation.
-\item We used 11 benchmarks from synchronization tasks between a variety of
-  formats derived from real-world examples and the bidirectional programming
+\item We created 11 additional benchmarks 
+  derived from real-world examples and/or the bidirectional programming
   literature. These tasks range from synchronizing REST and JSON web resource
   descriptions to synchronizing BibTeX and EndNote citation descriptions.
 \end{enumerate}
+Each benchmark comprises a source and target regular expression, a
+collection of examples, and an optional termination condition
+parameter. 
+%%A realistic benchmarks suite is critical in answering the first research
+%%question. To determine whether our algorithm is fast enough to be used in
+%%everyday development, we need to evaluate whether we can solve real-world
+%%problems efficiently. 
 
-A realistic benchmarks suite is critical in answering the first research
-question. To determine whether our algorithm is fast enough to be used in
-everyday development, we need to evaluate whether we can solve real-world
-problems efficiently. All three of our benchmark sources test real life
-problems: the data cleaning tasks presented in Flash Fill are either derived
-from online help forums or taken from the Excel product team; Augeas is a
-utility that transforms Linux configuration files into a manageable dictionary
-form; the many of the remaining benchmarks are from synchronizing real-life data
-formats, like BibTeX and EndNote.
+All three sources for our benchmarks provide realistic problems
+suitable for answering the research questions:
+Flash Fill  data cleaning tasks are either derived from online help
+forums or taken from the Excel product team;  
+Augeas is a utility that transforms Linux configuration files into a manageable dictionary
+form; and
+many of the remaining benchmarks arise from synchronizing real-world
+data formats such as BibTeX and EndNote. 
+
+\subsection{Lens correctness}
+To determine whether the synthesized lenses were the desired ones,
+we ran the symmetric synthesis algorithm on the 48 benchmarks and then
+manually inspected the generated lenses.  In all 48 cases, the
+synthesized benchmark was correct.
 
 \subsection{Usefulness in Everyday Development}
 
-To begin, we measure the run time of our algorithm in 2 modes:
+We measured the run time of our algorithm in two modes:
 
 \begin{tabulary}{\linewidth}{rL}
   \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
@@ -2472,21 +2489,23 @@ stress test for the system.
   \caption{Number of benchmarks that can be solved by a given algorithm in a
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
     \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
-    existing lenses. Our symmetric synthesis algorithm is able to complete all
-    benchmarks in our benchmark suite in under 30 seconds, and is able to
-    complete a majority of the benchmarks without using compositional
+    existing lenses. The symmetric synthesis algorithm is able to complete all
+    benchmarks in under 30 seconds elapsed total time. In addition, it is able to
+    complete a majority of the benchmarks in that timeframe without
+  using compositional 
     synthesis.}
   \label{fig:times}
 \end{figure}
 
-For each benchmark in our benchmark suite, we ran every mode on it with a
+
+For each benchmark in our benchmark suite, we ran it in both modes with a
 timeout of 60 seconds, and averaged the result over 5 runs.
 Figure~\ref{fig:times} summarizes the results of these tests. We find that our
 algorithm is able to synthesize all of the benchmarks in our benchmark suite in
 under 30 seconds. Without compositional synthesis, the synthesis algorithm is
 able to solve 26 problem instances. Recall from
 Section~\ref{subsec:optimizations} that users may tune the termination metric.
-Success on this set of benchmarks requires we tune that termination codition
+Success on this set of benchmarks requires we tune that termination condition
 (e.g. for some benchmarks, allowing the system flexibility to spend more time
 considering more of the search space). In
 Section~\ref{subsec:effect-of-heuristics}, we will consider the effect of fixing
@@ -2498,13 +2517,13 @@ long, we would decrease it.
 \subsection{Slowdown Compared to Bijective Synthesis}
 
 To compare to the existing bijective synthesis algorithm, we run our symmetric
-synthesis algorithm on the original Optician benchmark suite. 4 of these
-benchmarks had to be slightly altered to work with our new system. We altered
-these benchmarks by either providing additional examples or tuning termination parameters.
-Without these alterations, the symmetric synthesis yielded a lens that fit
+synthesis algorithm on the original Optician benchmarks, comprised of
+39 bijective synthesis tasks. We had to slightly alter four of these
+benchmarks, either by providing additional examples or by tuning termination parameters.
+Without these alterations, symmetric synthesis yielded a lens that fit
 the specification but that was not the desired lens.
 
-To perform this comparison, we synthesized lenses in 2 modes:
+To perform this comparison, we synthesized lenses in two modes:
 
 \begin{tabulary}{\linewidth}{rL}
   \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
@@ -2512,8 +2531,8 @@ To perform this comparison, we synthesized lenses in 2 modes:
               algorithm with all optimizations enabled.\\
 \end{tabulary}\\
 
-For each benchmark in our benchmark suite, we ran every mode on it with a
-timeout of 60 seconds, and averaged the result over 5 runs.
+For each benchmark, we ran it in both modes with a
+timeout of 60 seconds and averaged the result over 5 runs.
 Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
 average, \SSOpt{} took 1.3 times (0.5 seconds) longer to complete than
 \BSOpt{}. The slowest completed benchmark for both synthesis algorithms is
@@ -2534,15 +2553,13 @@ complete.
 \subsection{The Effects of Our Heuristics}
 \label{subsec:effect-of-heuristics}
 We evaluate the usefulness of (1) our information-theoretic metric, and (2) our
-termination heuristic.  To this end, we run our program in several different
-modes:\\
+termination heuristic.  To this end, we run our program in several different modes:\\[1ex]
 \begin{tabulary}{\linewidth}{rL}
-  \AnyOpt{}: & We synthesize lenses without use of the information-theoretic
-  preference metric.  Once \GreedySynth finds a lens, the 
-  synthesis procedure returns that lens.\\
-  \FLOpt{}: &  The first time \GreedySynth finds a lens, the synthesis procedure
-              returns that lens. However, \GreedySynth uses the
-              information-theoretic preference metric to choose a lens.\\ 
+  \AnyOpt{}: & We ignore the information-theoretic preference metric entirely,
+  returning the first lens \GreedySynth finds without using this information. \\ 
+  \FLOpt{}: &  \GreedySynth uses the information-theoretic preference
+  metric to find a lens, but only the original pair of stochastic
+  regular expressions are considered as end-points.  \\
   \CCOpt{}: & We replace our information-theoretic cost metric with one where
               the cost of the lens is the number of disonnects plus the number
               of merges.\\
@@ -2569,22 +2586,31 @@ modes:\\
   \label{fig:metric}
 \end{figure}
 
-We experimented with the \CCOpt{} mode to determine whether the complexity of the information-theoretic measure was really needed. Related work on string transformations has often used simpler measures such as ``avoid constants'' which align with, but are simpler than our measures. The \CCOpt{} mode is an example of such a simple measure---it operates by counting disconnects, which put a complete stop to information transfer, like constants, and merges, which eliminate the information in a union. Figure~\ref{fig:metric} summarizes the result of this experiment. We find that
-our metrics are very important for finding the correct lens. Our
-information-theoretic metric is critical for finding the correct lens. Indeed,
-only 10 of our benchmarks succeeded when running in \CCOpt{} mode.
+We experimented with the \CCOpt{} mode to determine whether the
+complexity of the information-theoretic measure was really
+needed. Related work on string transformations has often used simpler
+measures such as ``avoid constants'' which align with, but are simpler
+than our measures. The \CCOpt{} mode is an example of such a simple
+measure---it operates by counting disconnects, which put a complete
+stop to information transfer, and merges, which
+eliminate the information in a union. 
 
-Our termination condition is also quite important. When running in \FLOpt{},
-only 5 lenses are found. The first cluster in which a lens is found is
-rarely the correct cluster. However, our termination condition is not perfect.
+Figure~\ref{fig:metric}
+summarizes the result of these experiments. The data reveal that 
+the information-theoretic metric is critical for finding the correct
+lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode.
+The termination condition is also quite important. When running
+in \FLOpt{} mode, the algorithm only discovers 5 lenses, which shows
+that the first cluster that contains a satisfying lens is rarely the
+correct cluster.  However, our termination condition is not perfect.
 Sometimes users must tell the algorithm to ``keep going'' or ``stop early.''
 Without termination parameters, our algorithm finds the correct lens for 36 of
-our 48 benchmarks, 9 of them need help in the form of a termination parameter
+our 48 benchmarks.  Nine of them need help in the form of a termination parameter
 for finding the correct lens. That being said, our default parameter finds a
 good middle-ground. Both \TFTOpt{} and \NTFTOpt{} synthesized the correct lens
-less often than \ZTOpt.  \TFTOpt{} necessitates too good a lens, so the search
-procedure keeps spinning, and \NTFTOpt{} terminates early, not finding the
-correct lens.
+less often than \ZTOpt.  \TFTOpt{} demands too good a lens, so the search
+procedure keeps spinning, while \NTFTOpt{} terminates early, not
+always trying hard enough to find the correct lens.
 % end evaluation
 
 % begin related-work
