@@ -14,12 +14,10 @@ should be synchronized to another requires knowledge of the formats. If there
 were a example large suite of synchronized files of these formats, we could use
 this example suite as a ground truth. Unfortunately, such a suite does not
 exist, and we then must take it upon ourselves to recognize which components of
-the file should be synchronized to which, and validate that the lenses
-corresponded to our internal notion of correctness.
+the file should be synchronized to which.
 
 In validating that the synthesized lenses were correct, we applied the types of
-approaches we use in validating that our code is correct in everyday
-development.
+approaches we use in validating our code is correct in everyday development.
 1.  We manually inspected the code. This is certainly a nontrivial task, as
     these generated lenses are quite large. However, this task is easier than it
     may initially sound. Much of lenses maintain a rigid structure:
