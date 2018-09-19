@@ -10,32 +10,31 @@ We begin with brief responses to the most significant concerns, followed by a
      - How do we determine what a "correct" lens is? Can we make this process a 
        bit more automatic and objective?
        
-Beyond the format specifications and examples, we do not have
-specifications that define the conversion functions.  Hence, we do not
-have an automated way to measure the correctness of our lenses (beyond
-checking that each synthesized lens does indeed transform the given examples
-correctly).  In this way, our work is similar to other published
-synthesis-from-examples research, such as Gulwani's work on FlashFill and related projects.
+Beyond the format specifications and examples, we do not have specifications
+that define the conversion functions. Hence, we do not have an automated way to
+measure the correctness of our lenses (beyond checking that each synthesized
+lens does indeed transform the given examples correctly). In this way, our work
+is similar to other published synthesis-from-examples research, such as
+Gulwani's work on FlashFill and related projects.
 
 To check the correctness of our tool on our benchmarks, we did what
 programmers usually do:
 
 1.  We manually inspected the code. This was certainly a nontrivial task, as
-    these generated lenses are quite large, but perhaps easier than it
-    may initially sound. Some of the lenses' structure follows from the
-	structure of the regular expressions that describe source and
-    target format --- this is relatively easy to validate. However, it
-    can be more difficult to check the interactions of the complex
-    combinators: Are the swaps in the right place? Are the
-    correct components disconnected? Are lenses merged in the correct
-    way?  These complex combinators often occupied a few dozen lines
-    of code rather than a few hundred, making our task easier.   (Certainly, checking
-    the code is easier than creating it de novo.)
+    these generated lenses are quite large, but perhaps easier than it may
+    initially sound. Some of the lenses' structure follows from the structure of
+    the regular expressions that describe source and target format --- this is
+    relatively easy to validate. However, it can be more difficult to check the
+    interactions of the complex combinators: Are the swaps in the right place?
+    Are the correct components disconnected? Are lenses merged in the correct
+    way? These complex combinators often occupied a few dozen lines of code
+    rather than a few hundred, making our task easier. (Certainly, checking the
+    code is easier than creating it de novo.)
 2.  We built a few unit tests to validate the more complex lenses. 
-3.  We ran the lenses on a number of strings, taken from the unit
-    tests and the examples, but with minor alterations.
-    We did not add these tests as additional unit tests, but they served as additional
-    validation for ourselves as we were constructing the benchmark suite.
+3.  We ran the lenses on a number of strings, taken from the unit tests and the
+    examples, but with minor alterations. We did not add these tests as
+    additional unit tests, but they served as additional validation for
+    ourselves as we were constructing the benchmark suite.
 
 We recognize we did not go into significant enough detail on this in the
 submitted version, and will gladly add in such detail on validation in the final
@@ -43,36 +42,36 @@ version.
 
                                 -------------
 
-      - Why does assigning a fixed probability work?
+      - There were a number of related questions about our information theoretic
+        measure: Is it useful? Why not use a syntactic metric? Why does a
+        fixed distribution work?  Will knowing the data distribution help?
 
+Having a guiding principle behind these heuristics is, in itself, useful. Ad-hoc
+syntactic metrics that are present in other systems (and we claim: are typically
+building towards our underlying principle). Finding a simple underlying
+principle (be as bijective as possible, which we formalize via information
+theory) is better than a metric that simply applies only to our domain. We claim
+that information theory is a general-purpose way to group all these metrics
+where people give higher cost to their "less bijective" combinators (avoiding
+constants, for example).
 
-We assign uniform distributions to all of the components to avoid
-preferring one conjunct or disjunct over another.  We do this at the
-moment because we have little additional information and our
-experiments demonstrate that it is quite effective at the moment
-(more effective than simple heuristics such as preferring constants.
-On the other hand, we believe that if we learned a distribution from
-example data, we might be able to achieve even better results.  As an
-example, consider trying to learn a lens with this type:
+A fixed distribution works because, the core thing we are aiming for is "more
+bijective." A fixed distribution is merely a way to not unfairly weight one
+conjunct or disjunct over another in the presence of not knowing other
+information. Even with our inferred distribution, we are still aiming towards
+"more bijective".
 
-"a"+ | "b"+ <=> "c" | "d"
-
-There are (at least) two lenses of similar quality:
-
-"a"+ can go to "c", or "a"+ can go to "d"
-
-(and "b" goes to the other).
-
-With a fixed weighting, both lenses would be equivalent.  However, by
-analyzing example data, we might find that both
-"a"+ and "c" are high probability. Such a distribution would suggest
-that "a"+ be transformed into "c" (and information-theoretically, such
-a lens would have a better score).    If such weights were inputs to the
-system, our synthesis algorithm would generate a lens that transformed
-"a"+ into "c" rather than "d".
-
-
-
+Knowing the distribution will help in certain scenarios, and hinder in others.
+With a learned distribution, our information theoretic measure is closer to the
+ground-truth, permitting our learned lens to, in fact, be "more bijective."
+However, we recognize that, while we believe "more bijective" is a solid guiding
+principle, there are certain situations where the most bijective lens is not the
+desired one: this is why we must further use examples for specifications. We
+could certainly imagine situations where a learned distribution would find the
+wrong lens (without additional examples), and synthesizing with the fixed
+distribution would find the correct one, and vice-versa. However, we claim that,
+as we typically want "more bijective," and a learned distribution gets closer to
+a ground-truth on that, a learned distribution likely would perform better.
 
 
 ===========================================================================
@@ -89,7 +88,7 @@ Review #43A
        not making it clear that stochastic regular expressions are not a
        contribution of the authors (albeit it is mentioned in passing on p2).
 
-Yes, we will make this clearer on p. 3 too.  
+Yes, we will make this clearer on p. 3 too.
 
                                 -------------
 
@@ -100,7 +99,9 @@ Yes, we will make this clearer on p. 3 too.
 We should have the second type be "" (to be consistent with what we use in the
 final lens)
 
-BCP: ??
+BCP: ?? 
+AFM: In hindsight, I think I will just delete this question - it's more
+of a "finding-errata" question than an actual one
 
                                 -------------
 
@@ -120,14 +121,20 @@ This is correct -- we will clarify.
           are involved in sequence lenses, but there are examples that could
           make other lenses more useful?
 
-BCP: I'm not sure I understand the question!
+Within a DNF lens itself, all sequences are *required* to be involved with
+another sequence lens: otherwise when that side of the DNF SRE is provided -
+what disjunct on the other side should that lens be mapped to? Of course, there
+are other ways the disjunct can be mapped: but these must happen at a different
+level of the synthesis algorithm. For example - the entirety of that DNF regular
+expression (which itself could be deeply nested within other DNF regular
+expression components) could be projected. Furthermore, a specific sequence
+could be mapped to another, but all the components of that sequence lens
+actually may be disconnects. However, all sequences *must* be involved in a
+sequence lens in a well-typed DNF lens.
 
-One of our benchmarks is such an example. Consider trying to
-synchronize Windows "Scheduled Tasks" and Linux "cron jobs." In such a task, we
-might wish to synchronize the times that jobs are run, but not synchronize the
-commands to run the jobs themselves. We could create a
-bijective lens, but this is not correct behavior. Instead, examples can
-demonstrate that these components should remain unsynchronized.
+BCP: I'm not sure I understand the question! 
+AFM: I also now realize I didn't. After rereading the section, I think this
+response is more appropriate.
 
                                 -------------
 
@@ -147,6 +154,10 @@ more places by also taking into account how deeply nested within stars
 certain REs occur.
 
 BCP: What is "closed"?
+AFM: The internals of the Regular Expression are not exposed to GreedySynth,
+they are the analogue of User Defined regular expressions in the previous paper,
+but with this closed/open approach, we aren't dependent on where users place
+variables (also making our integration into Boomerang significantly less hacky).
 
 Full details can be found in the prior work on Synthesizing Bijective Lenses
 (page 16). 
@@ -225,12 +236,10 @@ GB of 1600 MHz DDR3 running macOS High Sierra.
        messy.
 
 We apologize for the lack of citations and the messy appendix. For the first
-subsection of Related Work, we got carried away in making formal claims, and
-did not include information comparisons to other lens languages. We will
-make sure to make such comparisons and citations in the next version of the
-paper. We will similarly improve the appendix.
-
-BCP: information comparisons?
+subsection of Related Work, we got carried away in making formal claims, and did
+not include informal comparisons to other lens languages. We will make sure to
+make such comparisons and citations in the next version of the paper. We will
+similarly improve the appendix.
 
                                 -------------
 
@@ -239,8 +248,6 @@ BCP: information comparisons?
        Hofmann et al. (2011) may be the choice for this time.
 
 Thank you, you are correct, we will change this citation.
-
-BCP: We should push the final version of this paper out to Arxiv.
 
                                 -------------
 
@@ -481,17 +488,21 @@ helps find the bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-Consider the situation where the input is two regular expressions:
-"a"+ | "b"+ <=> "c" | "d"
+We respond to this primarily above.  For a specific example:
 
-There are two lenses that are both require projecting the same iteration that
-satisfies this spec, "a"+ can go to "c", or "a"+ can go to "d" (and "b" goes to
-the other).
+Consider finding a lens of type:
+("a" |(.5) "b") |(.5) "c" <=> "x" |(.1) "y"
 
-However, if both "a"+ and "c" are high probability, then they would become
-aligned first, as it is more important they get low cost lenses, as they occur
-more often. This is desired, as in synchronized formats, we expect synchronized
-disjuncts to have similar probabilities.
+In this situation, the lowest cost lens would merge "a" and "b" into "x", and
+keep "c" mapped to "y".
+
+Consider finding a lens of type:
+("a" |(.5) "b") |(.5) "c" <=> "x" |(.9) "y"
+
+In this situation, the lowest cost lens would merge "a" and "b" into "y", and
+keep "c" mapped to "x".
+
+We are happy to provide an example such as this one in the paper.
 
                                 -------------
                                 
@@ -529,7 +540,11 @@ specifications (like for edit lenses and update lenses).
       above)
       
 Stochastic REs, and more generally, a semantic cost metric is critical for
-comparing between responses by GreedySynth.
+comparing between responses by GreedySynth. Without this semantic cost, the same
+function would likely have different costs if found through different calls to
+GreedySynth. Syntactic metrics, we feel, aim to approximate how good the
+underlying result is: in this work we are able to find a semantic metric that we
+can be found using syntactic information.
 
                                 -------------
                                 
@@ -540,5 +555,3 @@ Stochastic REs are not new. We cite them when we first mention them on page
 2, but agree we should provide additional citations when they are formally
 introduced. We do believe our syntactic technique for calculating their
 entropy is new.
-
-BCP: Rephased the last sentence -- is it right?
