@@ -8,35 +8,31 @@ We begin with brief responses to the most significant concerns, followed by a
      - How do we determine what a "correct" lens is? Can we make this process a 
        bit more automatic and objective?
        
-Determining what a correct lens is quite a difficult problem. What a "correct"
-lens is inherently subjective -- determining which components of one format
-should be synchronized to another requires knowledge of the formats. If there
-were a example large suite of synchronized files of these formats, we could use
-this example suite as a ground truth. Unfortunately, such a suite does not
-exist, and we then must take it upon ourselves to recognize which components of
-the file should be synchronized to which.
+Beyond the format specifications and examples, we do not have
+specifications that define the conversion functions.  Hence, we do not
+have an automated way to measure the correctness of our lenses (beyond
+checking that each synthesized lens does indeed transform the given examples
+correctly).  In this way, our work is similar to other published
+synthesis-from-examples research, such as Gulwani's work on FlashFill and related projects.
 
-In validating that the synthesized lenses were correct, we applied the types of
-approaches we use in validating our code is correct in everyday development.
-1.  We manually inspected the code. This is certainly a nontrivial task, as
-    these generated lenses are quite large. However, this task is easier than it
-    may initially sound. Much of lenses maintain a rigid structure:
-    Concatenations in the lenses typically follow concatenations in the regular
-    expressions, disjunctions in the lenses typically follow disjunctions in the
-    regular expressions. The primary difficulties arise when seeing how the more
-    complex combinators interact. Are the swaps in the right place? Are the
-    correct components disconnected? Are lenses merged in the correct way? While
-    validation certainly still requires work, instead of closely inspecting
-    hundreds of lines of code, we instead must closely inspect a few dozen, and
-    give a more cursory glance to the others.
-2.  We built unit tests to validate the more complex lenses. Much like everyday
-    development, manual inspection of code is rarely sufficient for determining
-    correctness. In addition to reading through the code, we added in unit tests
-    to validate that the generated code performs correctly on representative
-    examples.
-3.  Lastly, in addition to unit tests, we ran the lenses on a number of strings,
-    taken from the unit tests and the examples, but with minor alterations.
-    These quick tests we did not add as unit tests, but served as additional
+To check the correctness of our tool on our benchmarks, we did what
+programmers usually do:
+
+1.  We manually inspected the code. This was certainly a nontrivial task, as
+    these generated lenses are quite large, but perhaps easier than it
+    may initially sound. Some of the lenses' structure follows from the
+	structure of the regular expressions that describe source and
+    target format --- this is relatively easy to validate. However, it
+    can be more difficult to check the interactions of the complex
+    combinators: Are the swaps in the right place? Are the
+    correct components disconnected? Are lenses merged in the correct
+    way?  These complex combinators often occupied a few dozen lines
+    of code rather than a few hundred, making our task easier.   (Certainly, checking
+    the code is easier than creating it de novo.)
+2.  We built a few unit tests to validate the more complex lenses. 
+3.  We ran the lenses on a number of strings, taken from the unit
+    tests and the examples, but with minor alterations.
+    We did not add these tests as additional unit tests, but they served as additional
     validation for ourselves as we were constructing the benchmark suite.
 
 We recognize we did not go into significant enough detail on this in the
