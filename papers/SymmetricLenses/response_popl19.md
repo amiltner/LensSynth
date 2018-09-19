@@ -1,7 +1,9 @@
+BCP: The first section is too long -- 500 words max.
+
 Thank you for your comments!
 
 We begin with brief responses to the most significant concerns, followed by a
-(long and optional) appendix addressing individual questions.
+(long, optional) appendix addressing individual questions point by point.
 
                                 -------------
 
@@ -65,6 +67,8 @@ distribution, but merely loses on that advantage without it.
 
 (* This paragraph is to respond to a complaint only of R3, maybe should move
 down to below the fold *) 
+BCP: Yes, maybe so.  Though I wish we could leave at least a brief remark
+here, since other reviewers may be wondering now.
 
 This is not to say that SREs and our semantic metric are not critical for
 success. While we use a learned distribution, using such a semantic metric
@@ -90,9 +94,7 @@ Review #43A
        not making it clear that stochastic regular expressions are not a
        contribution of the authors (albeit it is mentioned in passing on p2).
 
-We did not intend to forget such citations or claim that we are introducing
-stochastic regular expressions. We will be sure, in future versions, to make
-this distinction more clear.
+Yes, we will make this clearer on p. 3 too.  
 
                                 -------------
 
@@ -103,6 +105,8 @@ this distinction more clear.
 We should have the second type be "" (to be consistent with what we use in the
 final lens)
 
+BCP: ??
+
                                 -------------
 
      - 4. p6, l288,
@@ -111,7 +115,7 @@ final lens)
           picks the default values at random, but is still valid because it
           satisfies the required lens type. If so, please make it clearer.
 
-This is correct
+This is correct -- we will clarify.
 
                                 -------------
 
@@ -121,10 +125,12 @@ This is correct
           are involved in sequence lenses, but there are examples that could
           make other lenses more useful?
 
-Yes, one of our benchmarks is such an example. In particular, consider trying to
+BCP: I'm not sure I understand the question!
+
+One of our benchmarks is such an example. Consider trying to
 synchronize Windows "Scheduled Tasks" and Linux "cron jobs." In such a task, we
-wish to synchronize the times that jobs are run, but not synchronize the
-commands to run the jobs themselves. In such a scenario, we could create a
+might wish to synchronize the times that jobs are run, but not synchronize the
+commands to run the jobs themselves. We could create a
 bijective lens, but this is not correct behavior. Instead, examples can
 demonstrate that these components should remain unsynchronized.
 
@@ -135,15 +141,20 @@ demonstrate that these components should remain unsynchronized.
            Could you explain in some more detail what criteria does `EXPAND` use
            to decide to open some closed expressions but not others?
 
-Full details are present in the prior work on Synthesizing Bijective Lenses
-(page 16). From a high level perspective, we process both regular expression
-trees, looking for situations where a regular expression is as a subcomponent of
-one format, but not the other, and expand such REs (this is where hashconsing
-provides its greatest benefits). Furthermore, we look for instances where a
-regular expressions may be present in one format, but is only contained within a
-closed regular expressions in the other, and expand the closed RE containing the
-missing RE. We then make this apply in slightly more places by also taking into
-account how deeply nested within stars certain REs occur.
+At a high level, we process both regular expression trees, looking for
+situations where a regular expression is as a subcomponent of one format but
+not the other, and expand such REs (this is where hash-consing provides its
+greatest benefits). Furthermore, we look for instances where a regular
+expression may be present in one format, but is only contained within a
+closed regular expression in the other, and we expand the closed RE
+containing the missing RE in this case. We then make this apply in slightly
+more places by also taking into account how deeply nested within stars
+certain REs occur.
+
+BCP: What is "closed"?
+
+Full details can be found in the prior work on Synthesizing Bijective Lenses
+(page 16). 
 
                                 -------------
 
@@ -154,7 +165,7 @@ account how deeply nested within stars certain REs occur.
            will just pick 0 for t>=0, because the distance and the logarithm are
            positive values.
 
-Correct, this should be max
+Right, this should be max!
 
                                 -------------
 
@@ -181,27 +192,22 @@ TODO: Learn Category Theory
          synthesis algorithm to handle any of the many variants of updates-based
          lenses, such as edit lenses, delta lenses, and update lenses?
 
-Yes, I do expect that the algorithm can be extended to handle such variants,
-though likely it would require some additional work.
+Yes, we do have some hope that the algorithm can be extended to handle such
+variants.
 
-Delta lenses would require additional work in understanding "shape" constructs.
-Currently our language only permits basic iteration, but shapes allow for
-different types of mergings. This would require changes to AtomSynth, in that we
-would we would need to discover the correct shapes of the data, and align them
-in the correct ways.
+Delta lenses would require additional work in understanding "shape"
+constructs.  Currently our language only permits basic iteration, whereas
+shapes allow for different types of mergings. Allowing this would require
+changes to the AtomSynth algorithm, in that we would we would need to
+discover the correct shapes of the data, and align them in the correct ways.
 
-Both edit and update lenses would require new notions of specifications. Both
-lens types permit updates that are not merely pushing data through, but instead
-are applying specific elements of an edit monoid. We expect that our current IO
-approach to specifications would not work as we wished for such transformations.
-(Also we would remove complements from edit lenses).
-
-
+Both edit and update lenses would require new forms of specifications, since
+both permit updates that are not merely pushing data through, but instead
+are applying specific elements of an edit monoid.  (Also we would remove
+complements from edit lenses).
 
 ===========================================================================
 Review #43B
-
-                                -------------
 
      - The main weakness is in the evaluation part. There are many 
        unclear/controversial parts regarding the evaluation. For example, the 
@@ -210,11 +216,12 @@ Review #43B
        be synthesised. See detailed comments below. (This defect does not
        prevent it from being a good paper.)
 
-All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16 GB of
-1600 MHz DDR3 running macOS High Sierra. We provide a more detailed answer our
-benchmark suite and method of finding correctness in the main portion of the
-paper.
+We responded to the more substantive points here (the benchmark suite and
+judging correctness) "above the fold" at the top of this response.
 
+All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
+GB of 1600 MHz DDR3 running macOS High Sierra. 
+    
                                 -------------
 
      - The first subsection of Related Work did not give any reference to
@@ -222,11 +229,13 @@ paper.
        paper unfriendly and hard to verify. The appendix is also in a
        messy.
 
-We apologize for the lack of citations and messy appendix. For the first
-subsection of Related Work, we got carried away in making formal claims, and did
-not include information comparisons to other lens languages. We will make sure
-to make such comparisons and citations in the final version of the paper. We
-will similarly improve the appendix.
+We apologize for the lack of citations and the messy appendix. For the first
+subsection of Related Work, we got carried away in making formal claims, and
+did not include information comparisons to other lens languages. We will
+make sure to make such comparisons and citations in the next version of the
+paper. We will similarly improve the appendix.
+
+BCP: information comparisons?
 
                                 -------------
 
@@ -235,6 +244,8 @@ will similarly improve the appendix.
        Hofmann et al. (2011) may be the choice for this time.
 
 Thank you, you are correct, we will change this citation.
+
+BCP: We should push the final version of this paper out to Arxiv.
 
                                 -------------
 
@@ -251,9 +262,9 @@ You are correct.
        are composed from (ambiguous and unambiguous) primitive lenses, in
        practice the restriction should be always there.
 
-Within our synthesis algorithm, you are, in general, correct. However, Boomerang
-exists beyond Optician, and permits lenses like id("a"|"a"). In our extension to
-Boomerang, we do not remove such freedom, and continue to permit such languages.
+Within our synthesis algorithm, you are, in general, correct. However,
+Boomerang exists beyond Optician, and permits lenses like id("a"|"a"). In
+our extension to Boomerang, we do not remove this freedom.
 
                                 -------------
 
@@ -267,8 +278,8 @@ This was us trying to make our equations more readable, but we did not
 sufficiently explain what our syntax meant. The calls to H(...) return pairs,
 and when multiplied by constants, they act as follows:
 
-a x (b,c) = (a x b,a x c)
-(a,b) + (c,d) = (a + b,c + d)
+  a x (b,c) = (a x b,a x c)
+  (a,b) + (c,d) = (a + b,c + d)
 
 We will make sure to explain this more clearly in a final version of the paper.
 
@@ -335,12 +346,12 @@ required the termination parameter, 4 of them required only bijective lenses.
        (and readers in the future) may want to know to which extent the job
        of writing lenses can be automatically done.
 
-We chose our benchmarks from the FlashFill paper, because the 238 tasks are,
+We chose our benchmarks from the FlashFill paper because the 238 tasks are,
 unfortunately, not publicly available. In general, our benchmark suite goes
-beyond the level of difficulty required for data cleaning. Many real-life file
-format descriptors involve large amounts of disjunctions and nested iterations,
-which FlashFill is either bad at (for disjunctions) or cannot do (nested
-iterations).
+beyond the level of difficulty required for data cleaning. Many real-life
+file format descriptors involve large numbers of disjunctions and nested
+iterations, which FlashFill is either bad at (for disjunctions) or cannot
+handle at all (nested iterations).
 
 A more thorough comparison to FlashFill is present in the previous Synthesizing
 Bijective Lenses paper.
@@ -364,7 +375,7 @@ Bijective Lenses paper.
        hundreds or thousands of lines code is the desired one by directly
        inspecting the lens program?)
 
-We respond to this in detail in the main response.
+We responded to this in detail above the fold.
 
                                 -------------
                              
@@ -414,11 +425,8 @@ found in the appendix.
 This is true for any arbitrary "x"
 
 
-
 ===========================================================================
 Review #43C
-
-                                -------------
 
     - The usability aspect is questionable: It seems that if the user has 
       defined complex regular expressions defining the pair of languages, then
@@ -444,16 +452,17 @@ of thinking about many fiddly details when writing the terms.  Worrying
 about these fiddly details while ALSO thinking about unambiguity
 restrictions is a very difficult task!
 
-Engineering best practices dictate that we annotate the lenses with their types.
-While Boomerang does not require these annotations - being able to infer the
-types from the terms - the types of the term serve as documentation for future
-programmers to understand what formats the lens maps between. Furthermore, the
-types provide resilience in the face of future lens modifications, as the types
-ensure that the lens maps exactly between strings of the provided formats.
-Invalid inputs are not accepted nor are the outputs ever invalid. Consequently,
-in a well-maintained codebase, we are not requiring additional work. Instead, we
-are saving programmers from having to writing the lens by leveraging work they
-should already be performing.
+Engineering best practices dictate that we annotate the lenses with their
+types.  While Boomerang does not require these annotations - being able to
+infer the types from the terms - the types of the term serve as
+documentation for future programmers to understand what formats the lens
+maps between. Furthermore, the types provide resilience in the face of
+future lens modifications, as the types ensure that the lens maps exactly
+between strings of the provided formats.  Invalid inputs are not accepted
+nor are the outputs ever invalid. Consequently, in a well-maintained
+codebase, we are not requiring additional work. Instead, we are saving
+programmers from having to writing the lens by leveraging work they should
+already be performing.
 
                                 -------------
                                 
@@ -461,11 +470,12 @@ should already be performing.
       procedure is needed — i.e., why do we need to rewrite types for
       GreedySynth.
 
-We will make this more clear in future versions of the paper. Expand is needed
-because GreedySynth alone cannot traverse regular expression equivalences. If
-given the two regular expressions "" | "a"+, and "a"\*, GreedySynth alone would
-merge "" to "a"\* (with a disconect), and merge "a"+ (also with a disconect).
-However, contuing search through equivalent REs helps find the bijective lens.
+We will make this more clear in future versions of the paper. Expand is
+needed because GreedySynth alone cannot traverse regular expression
+equivalences. If given the two regular expressions "" | "a"+, and "a"\*,
+GreedySynth alone would merge "" to "a"\* (with a disconect), and merge "a"+
+(also with a disconect).  However, contuing search through equivalent REs
+helps find the bijective lens.
 
                                 -------------
                                 
@@ -531,8 +541,9 @@ comparing between responses by GreedySynth.
     - Are stochastic REs new? I didn't see any citations when they were 
       introduced.
 
-Stochastic REs are not new. We cite them when we first mention them on page 2,
-but agree we should provide additional citations when they are formally
-introduced. We do not mean to imply we are introducing stochastic regular
-expressions, though we are introducing syntactic means to find their entropy.
+Stochastic REs are not new. We cite them when we first mention them on page
+2, but agree we should provide additional citations when they are formally
+introduced. We do believe our syntactic technique for calculating their
+entropy is new.
 
+BCP: Rephased the last sentence -- is it right?
