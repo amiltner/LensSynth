@@ -144,7 +144,7 @@ response is more appropriate.
            to decide to open some closed expressions but not others?
 
 At a high level, we process both regular expression trees, looking for
-situations where a regular expression is as a subcomponent of one format but
+situations where a regular expression is a subcomponent of one format but
 not the other, and expand such REs (this is where hash-consing provides its
 greatest benefits). Furthermore, we look for instances where a regular
 expression may be present in one format, but is only contained within a
@@ -222,7 +222,7 @@ Review #43B
        be synthesised. See detailed comments below. (This defect does not
        prevent it from being a good paper.)
 
-We responded to the more substantive points here (the benchmark suite and
+We responded to the key points in this comment (the benchmark suite and
 judging correctness) "above the fold" at the top of this response.
 
 All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
@@ -417,7 +417,6 @@ more clear.
 We will update the lens section of the related work to be more thorough on the
 related work that we do not make formal statements about, and include proper
 citations.
-found in the appendix.
 
                                 -------------
 
@@ -443,7 +442,7 @@ let single_author_convert =
     . lens_swap
         (NAME . del ",")
         (lens_swap WSP NAME)*
-in
+in ...
 
 Even the relatively simple lens that permutes the 3 elements needed for
 single_author_convert is fairly complex.  The complexity becomes even more
