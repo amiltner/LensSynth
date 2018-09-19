@@ -43,41 +43,36 @@ version.
 
                                 -------------
 
-     - Is our synthesis procedure overfit to our benchmarks? Why does assigning
-       a fixed probability work?
+      - Why does assigning a fixed probability work?
 
-Our 39 bijective benchmarks came from the original "Synthesizing Bijective
-Lenses" benchmark suite without alteration to the regular expressions. Our
-additional examples, in particular the data cleaning tasks, were taken from the
-original FlashFill paper. Unfortunately, there is no public release of the
-FlashFill benchmarks, so our examples had to be taken from the paper, instead of
-from a larger benchmark suite.
 
-Assigning a fixed probability is certainly less desirable than inferring it from
-data. With a learned distribution, we expect our algorithm to perform better: it
-can recognize that certain disjunctions both have high probability, and would
-strongly incentivize aligning those critical disjuncts to the critical disjuncts
-in the other format. With a learned distribution, we expect that tasks that
-currently require 2-3 examples would instead require 1-2. However, this is not
-to say that our tool will perform badly as-is on distributions that are far from
-our computed ones. On such distributions, our tool will merely not get the
-benefits provided by such distributions. It would get an advantage in having an
-idea beforehand which components should map to which with a learned
-distribution, but merely loses on that advantage without it.
+We assign uniform distributions to all of the components to avoid
+preferring one conjunct or disjunct over another.  We do this at the
+moment because we have little additional information and our
+experiments demonstrate that it is quite effective at the moment
+(more effective than simple heuristics such as preferring constants.
+On the other hand, we believe that if we learned a distribution from
+example data, we might be able to achieve even better results.  As an
+example, consider trying to learn a lens with this type:
 
-(* This paragraph is to respond to a complaint only of R3, maybe should move
-down to below the fold *) 
-BCP: Yes, maybe so.  Though I wish we could leave at least a brief remark
-here, since other reviewers may be wondering now.
+"a"+ | "b"+ <=> "c" | "d"
 
-This is not to say that SREs and our semantic metric are not critical for
-success. While we use a learned distribution, using such a semantic metric
-provides a means of comparison across proposed pairs. With a syntactic metric,
-we aren't making an "apples-to-apples" comparison, one lens might have a higher
-score, but that score would be based on a different distribution of data - it
-actually would be less likely with a different data distribution. Keeping the
-probabilities of the two formats is critical for comparing between proposed
-types.
+There are (at least) two lenses of similar quality:
+
+"a"+ can go to "c", or "a"+ can go to "d"
+
+(and "b" goes to the other).
+
+With a fixed weighting, both lenses would be equivalent.  However, by
+analyzing example data, we might find that both
+"a"+ and "c" are high probability. Such a distribution would suggest
+that "a"+ be transformed into "c" (and information-theoretically, such
+a lens would have a better score).    If such weights were inputs to the
+system, our synthesis algorithm would generate a lens that transformed
+"a"+ into "c" rather than "d".
+
+
+
 
 
 ===========================================================================
