@@ -1,5 +1,3 @@
-BCP: The first section is too long -- 500 words max.
-
 Thank you for your comments!
 
 We begin with brief responses to the most significant concerns, followed by
@@ -36,9 +34,11 @@ programmers usually do:
 2.  We ran a set of tests to validate the more complex lenses. These tests
     confirmed the output of creates and puts were as we expected them to be.
     
+BCP: Were these unit tests?
+
 After manually validating that SS found the desired lenses, we validated the
-lenses synthesized in other modes by comparing those lenses to the ground truth
-of SS.
+lenses synthesized in other modes by comparing those lenses to the ground
+truth of SS.
 
                                 -------------
 
