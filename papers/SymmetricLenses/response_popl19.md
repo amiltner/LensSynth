@@ -24,18 +24,21 @@ programmers usually do:
 
 1.  We manually inspected the code. 
 
-    This was a nontrivial task, as generated lenses can be quite large, but
-    it was easier than it might initially sound. Some of the lenses'
-    structure should follow from the structure of the regular expressions
-    describing source and target formats; this is relatively easy to
-    validate. The more difficult part was checking the interactions of
-    complex combinators like swaps, disconnects, and merges. Still these
-    bits typically spanned only a few dozen lines of code, making our task
-    easier. Certainly, checking the code is easier than creating it de novo.
+    This was a nontrivial task, as generated lenses can be quite large, but it
+    was easier than it might initially sound. Some of the lenses' structure
+    should follow from the structure of the regular expressions describing
+    source and target formats; this is relatively easy to validate. The more
+    difficult part was checking the interactions of complex combinators like
+    swaps, disconnects, and merges. Still these bits typically spanned only a
+    few dozen lines of code, making our task easier. Certainly, checking the
+    code is easier than creating it de novo.
 
-2.  We ran a set of tests to validate the more complex lenses. 
-
-BCP: #2 needs a few more words
+2.  We ran a set of tests to validate the more complex lenses. These tests
+    confirmed the output of creates and puts were as we expected them to be.
+    
+After manually validating that SS found the desired lenses, we validated the
+lenses output in other modes by comparing those lenses to the ground truth of
+SS.
 
                                 -------------
 
@@ -53,35 +56,24 @@ simple, clear idea that is easy to communicate and implement.  This idea can
 potentially be reused in a variety of related settings (and perhaps
 _augmented_ with domain-specific heuristics).
 
-BCP: I'd delete this: "By contrast, ad hoc syntactic metrics provide little
-value beyond the single artifact in which they are used."
+Moreover, our information-theoretic presentation has helped us understand some
+of the ad hoc metrics used in the past -- like those used in FlashFill and
+Refazer -- those in which people assign higher costs to "less bijective"
+combinators in simpler ways (avoiding constants, for example). These ad hoc
+syntactic metrics seem to be approximating something like the
+information-theoretic measure we work with.
 
-Moreover, our information-theoretic presentation has helped us understand
-some of the ad hoc metrics used in the past -- [BCP: Whose?] those in which
-people assign higher costs to "less bijective" combinators in simpler ways
-(avoiding constants, for example).  These ad hoc syntactic metrics seem to
-be approximating something like the information-theoretic measure we
-work with.
+A fixed distribution works because the core goal is to generate "more bijective"
+transformations; the intuition is that information should be preserved, when
+possible, when data is translated between formats. A fixed, uniform distribution
+avoids unfairly weighting one conjunct or disjunct over another and unfairly
+throwing information away. In the absence of a distribution, this kind of
+fairness seems to be the best we can do.
 
-A fixed distribution works because the core goal is to generate "more
-bijective" transformations; the intuition is that information should be
-preserved, when possible, when data is translated between formats.  A fixed,
-uniform distribution avoids unfairly weighting one conjunct or disjunct over
-another and unfairly throwing information away.  In the absence of
-additional information, this kind of fairness seems to be the best we can
-do.  [BCP: This is not very satisfying.  Seems like the question is exactly
-"What kind of additional information might be useful and how could it be
-communicated?"  Perhaps we could comment that this could be a direction for
-future work.]
-
-BCP: Oh, maybe the next paragraph is the discussion I was just asking for.
-But I'm confused by the way it's introduced: Is this something we do now, or
-something we could do?
-
-On the other hand, knowing the distribution can help the system make a
-choice about what to throw away: given a choice, it prefers to throw away
-less data.  For example, let (x?.9) mean "x appears with probability .9 and
-is "" otherwise and consider a conversion between these formats:
+However, if given the distribution, the system can make a more informed choice
+about what to throw away: given a choice, it prefers to throw away less data.
+For example, let (x?.9) mean "x appears with probability .9 and is "" otherwise
+and consider a conversion between these formats:
 
     (x?.999).(y?.001) <==> z
 
@@ -153,16 +145,15 @@ involved in a sequence lens in a well-typed DNF lens.
            to decide to open some closed expressions but not others?
 
 At a high level, we process both regular expression trees, looking for
-situations where a regular expression is a subcomponent of one format but
+situations where a closed regular expression is a subcomponent of one format but
 not the other, and expand such REs (this is where hash-consing provides its
-greatest benefits). Also, we look for instances where a regular expression
-may be present in one format, but is only contained within a "closed"
-regular expression in the other, and we expand the closed RE containing the
-missing RE in this case. We make this apply in a few more places by taking
-into account how deeply nested within stars certain REs occur.
-
-BCP: OK.  Can a short version of that make it into a parenthesis after
-"closed" above?
+greatest benefits). As the internals of closed REs are not exposed to
+GreedySynth, this is necessary to synchronize that closed RE with anything but
+disconnect. Also, we look for instances where a regular expression may be
+present in one format, but is only contained within a closed regular expression
+in the other, and we expand the closed RE containing the missing RE in this
+case. We make this apply in a few more places by taking into account how deeply
+nested within stars certain REs occur.
 
 Full details can be found in the prior work on Synthesizing Bijective Lenses
 (page 16), though in that context, "user-defined data types" are used instead of
@@ -508,24 +499,9 @@ equivalent REs helps find the bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-We respond to this primarily in the main response "above the fold" at the
-top of this response. For a specific example:
+We respond to this in the main response "above the fold".
 
-Consider finding a lens of type:
-
-    ("a" |(.5) "b") |(.5) "c" <=> "x" |(.1) "y"
-
-In this situation, the lowest cost lens would merge "a" and "b" into "x", and
-keep "c" mapped to "y".
-
-Consider finding a lens of type:
-
-    ("a" |(.5) "b") |(.5) "c" <=> "x" |(.9) "y"
-
-In this situation, the lowest cost lens would merge "a" and "b" into "y", and
-keep "c" mapped to "x".
-
-We can provide an example like this in the paper.
+We can provide an example, like the one in the main response, in the paper.
 
                                 -------------
                                 
