@@ -36,7 +36,10 @@ programmers usually do:
     additional unit tests, but they served as additional validation for
     ourselves as we were constructing the benchmark suite.
 
-KSF: Does 3 add anything??  We could delete it and save some words.
+KSF: Does 3 add anything?? We could delete it and save some words.
+AFM: I just wanted to give them full information about how we made sure the
+lenses were correct, and this was part of my process, because that's their
+primary fear. This comes from R2, who is the main person I want to make happy.
 
 We recognize we did not go into significant enough detail on this in the
 submitted version, and will gladly add in such detail on validation in the final
@@ -101,12 +104,8 @@ Yes, we will make this clearer on p. 3 too.
      
           Shouldn't the second argument to `disconnect` be `company`?
 
-We should have the second type be "" (to be consistent with what we use in the
-final lens)
-
-BCP: ?? 
-AFM: In hindsight, I think I will just delete this question - it's more
-of a "finding-errata" question than an actual one
+Correct. However, in signsight, we should change the example such that the
+second type is "" (to be consistent with what we use in the full lens)
 
                                 -------------
 
@@ -138,7 +137,7 @@ actually may be disconnects. However, all sequences *must* be involved in a
 sequence lens in a well-typed DNF lens.
 
 BCP: I'm not sure I understand the question! 
-AFM: I also now realize I didn't. After rereading the section, I think this
+AFM: I also now realize I also didn't. After rereading the section, I think this
 response is more appropriate.
 
                                 -------------
@@ -171,10 +170,10 @@ Full details can be found in the prior work on Synthesizing Bijective Lenses
 
      - 11. p19, l887
        
-           Surely the definition of `CONTINUE(pq)` should be using `max`? Otherwise
-           I don't see how the definition makes sense, because using surely `min` 
-           will just pick 0 for t>=0, because the distance and the logarithm are
-           positive values.
+           Surely the definition of `CONTINUE(pq)` should be using `max`? 
+           Otherwise I don't see how the definition makes sense, because using 
+           surely `min` will just pick 0 for t>=0, because the distance and the
+           logarithm are positive values.
 
 Right, this should be max!
 
@@ -195,7 +194,16 @@ are instead required to use the 0, 25, and -25 parameters.
         spans of asymmetric lenses. With simple symmetric lenses, do you think
         the situation is better now that you have omitted the complement part?
 
-TODO: Learn Category Theory
+We are not experts in this area, but from our brief research we think that it
+may be slightly better. From "Spans of Delta Lenses," p1, equivalence relations
+are needed in both the span-presentation and set-based presentation of symmetric
+lenses to address "'hidden' details such as their *complements*." Simple
+symmetric lenses intentionally have no such details. However, there seem to be
+other complexities related to lens laws, requiring restrictions like very
+well-behavedness, as (from "Spans of Lenses", p1) "in the category whose
+morphisms are lenses, what one might expect to be the pullback of lenses need
+not satisfy the universal property of a pullback." We do not believe our
+restriction helps obviate these difficulties.
 
                                 -------------
 
@@ -283,7 +291,7 @@ our extension to Boomerang, we do not remove this freedom.
 
 This was us trying to make our equations more readable, but we did not
 sufficiently explain what our syntax meant. The calls to H(...) return pairs,
-and when multiplied by constants, they act as follows:
+and when multiplied by constants, or added together, they act as follows:
 
   a x (b,c) = (a x b,a x c)
   (a,b) + (c,d) = (a + b,c + d)
@@ -296,7 +304,7 @@ We will make sure to explain this more clearly in a final version of the paper.
        shapes. I cannot understand why assigning a fixed probability will fit
        in all situations. Could you explain it a bit?
 
-See the main response above the fold.
+See the main response "above the fold" at the top of this response.
 
                                 -------------
                              
@@ -382,7 +390,7 @@ Bijective Lenses paper.
        hundreds or thousands of lines code is the desired one by directly
        inspecting the lens program?)
 
-We responded to this in detail above the fold.
+We respond to this in detail above the fold.
 
                                 -------------
                              
@@ -428,7 +436,8 @@ citations.
      - L1111 and L1112: I cannot figure out where does `x` below the
        "horizontal line" come from
 
-This is true for any arbitrary "x"
+This is true for any arbitrary x (as that x gets "overwritten" by the user
+provided x')
 
 
 ===========================================================================
@@ -492,7 +501,8 @@ helps find the bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-We respond to this primarily above.  For a specific example:
+We respond to this primarily in the main response "above the fold" at the top of
+this response. For a specific example:
 
 Consider finding a lens of type:
 ("a" |(.5) "b") |(.5) "c" <=> "x" |(.1) "y"
@@ -534,9 +544,9 @@ We respond to these issues in the main reponse.
 We agree that section 7 requires more, informal comparisons to other lenses, for
 us to discuss comparisons between our framework and other types of lenses. In
 general, for different types of lenses to work, we require additional work,
-either in the synthesis algorithm (for different types of combinators like
-matching lenses or delta lenses), or in both the synthesis algorithm and
-specifications (like for edit lenses and update lenses).
+either in the synthesis algorithm (for synthesizing different types of
+combinators like matching lenses or delta lenses), or in both the synthesis
+algorithm and specifications (like for edit lenses and update lenses).
 
                                 -------------
 
