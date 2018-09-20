@@ -25,9 +25,8 @@ programmers usually do:
     initially sound. Some of the lenses' structure follows from the structure of
     the regular expressions that describe source and target format --- this is
     relatively easy to validate. However, it can be more difficult to check the
-    interactions of the complex combinators: Are the swaps in the right place?
-    Are the correct components disconnected? Are lenses merged in the correct
-    way? These complex combinators often occupied a few dozen lines of code
+    interactions of the complex combinators, like swaps, disconnects, and
+    merges. These complex combinators often occupied a few dozen lines of code
     rather than a few hundred, making our task easier. (Certainly, checking the
     code is easier than creating it de novo.)
 2.  We built unit tests to validate the more complex lenses. 
@@ -63,23 +62,23 @@ hoc syntactic metrics that are present in other systems are typically
 building towards something like the information theoretic measure we
 propose.
 
-A fixed distribution works because, the core thing we are aiming for is "more
+A fixed distribution works because the core thing we are aiming for is "more
 bijective." A fixed distribution is merely a way to not unfairly weight one
-conjunct or disjunct over another in the presence of not knowing other
-information. Even with our inferred distribution, we are still aiming towards
-"more bijective".
+conjunct or disjunct over another in the absence of additional information.
+However, even with our fixed distribution, we are still aiming towards "more
+bijective".
 
 Knowing the distribution will help in certain scenarios, and hinder in others.
 With a learned distribution, our information theoretic measure is closer to the
-ground-truth, permitting our learned lens to, in fact, be "more bijective."
-However, we recognize that, while we believe "more bijective" is a solid guiding
-principle, there are certain situations where the most bijective lens is not the
-desired one: this is why we must further use examples for specifications. We
-could certainly imagine situations where a learned distribution would find the
-wrong lens (without additional examples), and synthesizing with the fixed
-distribution would find the correct one, and vice-versa. However, we claim that,
-as we typically want "more bijective," and a learned distribution gets closer to
-a ground-truth on that, a learned distribution likely would perform better.
+ground-truth, permitting our learned lens to be "more bijective." However, while
+we believe "more bijective" is a solid guiding principle, there are certain
+situations where the most bijective lens is not the desired one: this is why we
+must further use examples for specifications. We could certainly imagine
+situations where a learned distribution would not find the desired lens (without
+additional examples), and synthesizing with the fixed distribution would find
+the desired one, and vice-versa. However, we claim that, as we typically want
+"more bijective," and a learned distribution is closer to a ground-truth, a
+learned distribution likely would perform better.
 
 
 ===========================================================================
