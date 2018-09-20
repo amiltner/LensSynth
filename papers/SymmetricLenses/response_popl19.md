@@ -62,36 +62,25 @@ present in other systems are often building towards something like
 the information theoretic measure we propose.
 
 A fixed distribution works because the core goal is to generate "more
-bijective" transformations.  A fixed distribution avoids unfairly
-weighting one conjunct or disjunct over another in the absence of
-additional information.  However, even with our fixed distribution, we
-are still aiming towards "more bijective".
+bijective" transformations --- the intuition is that information
+should be preserved, when possible, as opposed to thrown away, when
+data is translated between formats.  A fixed, uniform distribution avoids
+unfairly weighting one conjunct or disjunct over another and unfairly
+throwing certain information away.  In the absence of additional
+information, this kind of fairness seems to be the best we can do.
 
-Knowing the distribution will help in certain scenarios, as it could
-help to disambiguate between several possible "equally bijective"
-lenses.  More broadly, the weightings can provide evidence that
-data from one (heavily-weighted) component on the left flows to
-another (heavily-weighted) component on the right.  For example:
+On the other hand, knowing the distribution can help the system make a
+choice about what to throw away --- given a choice, it prefers to
+throw away less data.  Assume (x?.9) means "x appears
+with probability .9 and is "" otherwise.  Consider a conversion between
+these formats:
 
-ANDERS:
+(x?.999).(y?.001) <==> z
 
-
-ANDERS POSSIBLY CUT THIS PARAGRAPH.  (I don't think it is detailed
-enough/concrete enough to explain exactly how a weighted distribution
-helps/hurts.):
-
-Knowing the distribution will help in certain scenarios, and hinder in others.
-With a learned distribution, our information theoretic measure is closer to the
-ground-truth, permitting our learned lens to be "more bijective." However, while
-we believe "more bijective" is a solid guiding principle, there are certain
-situations where the most bijective lens is not the desired one: this is why we
-must further use examples for specifications. We could certainly imagine
-situations where a learned distribution would not find the desired lens (without
-additional examples), and synthesizing with the fixed distribution would find
-the desired one, and vice-versa. However, we claim that, as we typically want
-"more bijective," and a learned distribution is closer to a ground-truth, a
-learned distribution likely would perform better.
-
+Here, x appears more frequently than y on the left.  Hence, the system will prefer
+a lens that projects y and maps x to z over a lens that projects x and
+maps y to z as the latter tends to throw away much more information
+and is "less bijective" in an information theoretic sense.
 
 ===========================================================================
 ===========================================================================
