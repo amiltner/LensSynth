@@ -30,11 +30,13 @@ programmers usually do:
     way? These complex combinators often occupied a few dozen lines of code
     rather than a few hundred, making our task easier. (Certainly, checking the
     code is easier than creating it de novo.)
-2.  We built a few unit tests to validate the more complex lenses. 
+2.  We built unit tests to validate the more complex lenses. 
 3.  We ran the lenses on a number of strings, taken from the unit tests and the
     examples, but with minor alterations. We did not add these tests as
     additional unit tests, but they served as additional validation for
     ourselves as we were constructing the benchmark suite.
+
+KSF: Does 3 add anything??  We could delete it and save some words.
 
 We recognize we did not go into significant enough detail on this in the
 submitted version, and will gladly add in such detail on validation in the final
@@ -46,14 +48,17 @@ version.
         measure: Is it useful? Why not use a syntactic metric? Why does a
         fixed distribution work?  Will knowing the data distribution help?
 
-Having a guiding principle behind these heuristics is, in itself, useful. Ad-hoc
-syntactic metrics that are present in other systems (and we claim: are typically
-building towards our underlying principle). Finding a simple underlying
-principle (be as bijective as possible, which we formalize via information
-theory) is better than a metric that simply applies only to our domain. We claim
-that information theory is a general-purpose way to group all these metrics
-where people give higher cost to their "less bijective" combinators (avoiding
-constants, for example).
+Having a principle guiding our heuristics is, in itself, useful as it
+helps explain the efficacy of the heuristic.  A general-purpose
+principle that cuts across multiple domains, (be as bijective as
+possible, formalized via standard information theory) provides more
+general insights than heuristics driven by a single domain. We claim
+that information theory is a general-purpose way to group the many
+metrics in which people assign higher costs to "less bijective"
+combinators (avoiding constants, for example).  We believe that the ad
+hoc syntactic metrics that are present in other systems are typically
+building towards something like the information theoretic measure we
+propose.
 
 A fixed distribution works because, the core thing we are aiming for is "more
 bijective." A fixed distribution is merely a way to not unfairly weight one
