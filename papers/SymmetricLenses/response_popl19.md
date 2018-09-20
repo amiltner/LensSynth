@@ -2,90 +2,100 @@ BCP: The first section is too long -- 500 words max.
 
 Thank you for your comments!
 
-We begin with brief responses to the most significant concerns, followed by a
-(long, optional) appendix addressing individual questions point by point.
+We begin with brief responses to the most significant concerns, followed by
+an (optional) appendix addressing individual questions point by point.
 
                                 -------------
 
      - How do we determine what a "correct" lens is? Can we make this process a 
        bit more automatic and objective?
        
-Beyond the format specifications and examples, we do not have specifications
-that define the conversion functions. Hence, we do not have an automated way to
-measure the correctness of our lenses (beyond checking that each synthesized
-lens does indeed transform the given examples correctly). In this way, our work
-is similar to other published synthesis-from-examples research, such as
-Gulwani's work on FlashFill and related projects.
+We agree we did not go into enough detail on this, and we can add more in a
+final version.
 
-To check the correctness of our tool on our benchmarks, we did what
+We do not have an automated way to measure the correctness of our lenses
+(beyond checking that each synthesized lens does indeed transform the given
+examples correctly). In this respect, our work is similar to other published
+synthesis-from-examples research, such as Gulwani's work on FlashFill and
+related projects.
+
+To assess the behavior of our tool on our benchmarks, we did what
 programmers usually do:
 
-1.  We manually inspected the code. This was certainly a nontrivial task, as
-    these generated lenses are quite large, but perhaps easier than it may
-    initially sound. Some of the lenses' structure follows from the structure of
-    the regular expressions that describe source and target format --- this is
-    relatively easy to validate. However, it can be more difficult to check the
-    interactions of the complex combinators, like swaps, disconnects, and
-    merges. These complex combinators often occupied a few dozen lines of code
-    rather than a few hundred, making our task easier. (Certainly, checking the
-    code is easier than creating it de novo.)
+1.  We manually inspected the code. 
+
+    This was a nontrivial task, as generated lenses can be quite large, but
+    it was easier than it might initially sound. Some of the lenses'
+    structure should follow from the structure of the regular expressions
+    describing source and target formats; this is relatively easy to
+    validate. The more difficult part was checking the interactions of
+    complex combinators like swaps, disconnects, and merges. Still these
+    bits typically spanned only a few dozen lines of code, making our task
+    easier. Certainly, checking the code is easier than creating it de novo.
+
 2.  We ran a set of tests to validate the more complex lenses. 
 
-We recognize we did not go into significant enough detail on this in the
-submitted version, and will gladly add in such detail on validation in the final
-version.
+BCP: #2 needs a few more words
 
                                 -------------
 
-      - There were a number of related questions about our information theoretic
-        measure: Is it useful? Why not use a (complex) syntactic metric? Why 
-        does a fixed distribution work?  Will knowing the data distribution 
-        help?
+      - A number of related questions about our information-
+        theoretic measure: Is it useful? Why not use a 
+        (perhaps complex) syntactic metric? 
+        Why does a fixed distribution work?  
+        Will knowing the data distribution help?
 
-It is difficult (impossible) to prove that our information-theoretic
-measure is better than all possible "syntactic" metrics, but our
-experiments show that it does do well.  In particular, it outperforms
-simple syntactic heuristics.  More important though, is the fact that
-our heuristic is based on a relatively simple, clear idea that is
-relatively easy to communicate and implement.  This idea can
-potentially be reused in a variety of related settings (and then
-perhaps augmented with ad hoc, domain-specific heuristics in those
-settings).  In contrast, complex ad hoc syntactic metrics provide
-little value beyond the single artifact in which they are used.
+BCP: Difficult, or impossible???
+It is difficult (impossible) to prove that our information-theoretic measure
+is better than all possible "syntactic" metrics, but our experiments show
+that it performs well.  In particular, it outperforms simple syntactic
+heuristics.  More important is the fact that our heuristic is based on a
+simple, clear idea that is easy to communicate and implement.  This idea can
+potentially be reused in a variety of related settings (and perhaps
+_augmented_ with domain-specific heuristics).
 
-In addition, we believe that our information-theoretic ideas have
-value because they help us understand some of the ad hoc metrics used in
-the past: those in which people assign higher costs to "less
-bijective" combinators in simpler ways (avoiding constants, for
-example).  We believe that the ad hoc syntactic metrics that are
-present in other systems are often building towards something like
-the information theoretic measure we propose.
+BCP: I'd delete this: "By contrast, ad hoc syntactic metrics provide little
+value beyond the single artifact in which they are used."
+
+Moreover, our information-theoretic presentation has helped us understand
+some of the ad hoc metrics used in the past -- [BCP: Whose?] those in which
+people assign higher costs to "less bijective" combinators in simpler ways
+(avoiding constants, for example).  These ad hoc syntactic metrics seem to
+be approximating something like the information-theoretic measure we
+work with.
 
 A fixed distribution works because the core goal is to generate "more
-bijective" transformations --- the intuition is that information
-should be preserved, when possible, as opposed to thrown away, when
-data is translated between formats.  A fixed, uniform distribution avoids
-unfairly weighting one conjunct or disjunct over another and unfairly
-throwing certain information away.  In the absence of additional
-information, this kind of fairness seems to be the best we can do.
+bijective" transformations; the intuition is that information should be
+preserved, when possible, when data is translated between formats.  A fixed,
+uniform distribution avoids unfairly weighting one conjunct or disjunct over
+another and unfairly throwing information away.  In the absence of
+additional information, this kind of fairness seems to be the best we can
+do.  [BCP: This is not very satisfying.  Seems like the question is exactly
+"What kind of additional information might be useful and how could it be
+communicated?"  Perhaps we could comment that this could be a direction for
+future work.]
+
+BCP: Oh, maybe the next paragraph is the discussion I was just asking for.
+But I'm confused by the way it's introduced: Is this something we do now, or
+something we could do?
 
 On the other hand, knowing the distribution can help the system make a
-choice about what to throw away --- given a choice, it prefers to
-throw away less data.  Assume (x?.9) means "x appears
-with probability .9 and is "" otherwise.  Consider a conversion between
-these formats:
+choice about what to throw away: given a choice, it prefers to throw away
+less data.  For example, let (x?.9) mean "x appears with probability .9 and
+is "" otherwise and consider a conversion between these formats:
 
-(x?.999).(y?.001) <==> z
+    (x?.999).(y?.001) <==> z
 
-Here, x appears more frequently than y on the left. Hence, the system will
-prefer a lens that projects y and maps x to z over a lens that projects x and
-maps y to z as the latter tends to throw away much more information and is "less
-bijective" in an information theoretic sense.
+Here, x appears more frequently than y on the left.  Hence, the system will
+prefer a lens that projects y and maps x to z over a lens that projects x
+and maps y to z, as the latter tends to throw away much more information and
+is "less bijective" in an information-theoretic sense.
 
 ===========================================================================
 ===========================================================================
+End of main response.
+
 Detailed responses to individual questions in the reviews follow...
-
 
 ===========================================================================
 Review #43A
@@ -126,15 +136,15 @@ This is correct -- we will clarify.
           make other lenses more useful?
 
 Within a DNF lens itself, all sequences are *required* to be involved with
-another sequence lens: otherwise when that side of the DNF SRE is provided -
-what disjunct on the other side should that lens be mapped to? Of course, there
-are other ways the disjunct can be mapped: but these must happen at a different
-level of the synthesis algorithm. For example - the entirety of that DNF regular
-expression (which itself could be deeply nested within other DNF regular
-expression components) could be projected. Furthermore, a specific sequence
-could be mapped to another, but all the components of that sequence lens
-actually may be disconnects. However, all sequences *must* be involved in a
-sequence lens in a well-typed DNF lens.
+another sequence lens: otherwise, when that side of the DNF SRE is provided,
+what disjunct on the other side should that lens be mapped to? Of course,
+there are other ways the disjunct can be mapped, but these must happen at a
+different level of the synthesis algorithm. For example, the entirety of
+that DNF regular expression (which itself could be deeply nested within
+other DNF regular expression components) could be projected. Furthermore, a
+specific sequence could be mapped to another, but all the components of that
+sequence lens actually may be disconnects. However, all sequences *must* be
+involved in a sequence lens in a well-typed DNF lens.
 
                                 -------------
 
@@ -146,12 +156,14 @@ sequence lens in a well-typed DNF lens.
 At a high level, we process both regular expression trees, looking for
 situations where a regular expression is a subcomponent of one format but
 not the other, and expand such REs (this is where hash-consing provides its
-greatest benefits). Furthermore, we look for instances where a regular
-expression may be present in one format, but is only contained within a
-closed regular expression in the other, and we expand the closed RE
-containing the missing RE in this case. We then make this apply in slightly
-more places by also taking into account how deeply nested within stars
-certain REs occur.
+greatest benefits). Also, we look for instances where a regular expression
+may be present in one format, but is only contained within a "closed"
+regular expression in the other, and we expand the closed RE containing the
+missing RE in this case. We make this apply in a few more places by taking
+into account how deeply nested within stars certain REs occur.
+
+BCP: OK.  Can a short version of that make it into a parenthesis after
+"closed" above?
 
 Full details can be found in the prior work on Synthesizing Bijective Lenses
 (page 16), though in that context, "user-defined data types" are used instead of
@@ -185,16 +197,16 @@ are instead required to use the 0, 25, and -25 parameters.
         spans of asymmetric lenses. With simple symmetric lenses, do you think
         the situation is better now that you have omitted the complement part?
 
-We are not experts in this area, but from our brief research we think that it
-may be slightly better. From "Spans of Delta Lenses," p1, equivalence relations
-are needed in both the span-presentation and set-based presentation of symmetric
-lenses to address "'hidden' details such as their *complements*." Simple
-symmetric lenses intentionally have no such details. However, there seem to be
-other complexities related to lens laws, requiring restrictions like very
-well-behavedness, as (from "Spans of Lenses", p1) "in the category whose
-morphisms are lenses, what one might expect to be the pullback of lenses need
-not satisfy the universal property of a pullback." We do not believe our
-restriction helps obviate these difficulties.
+It may be slightly better, but the details are tricky. From "Spans of Delta
+Lenses," p1, equivalence relations are needed in both the span-presentation
+and set-based presentation of symmetric lenses to address "'hidden' details
+such as their *complements*." Simple symmetric lenses intentionally have no
+such details. However, there seem to be other complexities related to lens
+laws, requiring restrictions like very well-behavedness, as (from "Spans of
+Lenses", p1) "in the category whose morphisms are lenses, what one might
+expect to be the pullback of lenses need not satisfy the universal property
+of a pullback." We do not believe our restriction helps obviate these
+difficulties.
 
                                 -------------
 
@@ -316,15 +328,15 @@ See the main response "above the fold" at the top of this response.
        be divided into several subproblems.  Why do the user still need to
        manually "generate subproblems"? Is it avoidable?
 
-We do not believe such subproblems are straightforwardly avoidable. While we can
-attempt to match up subcomponents, this matching oftentimes will not work
-because of, for example, issues where various equivalences must be applied (for
-example: ("a"|"b")|("c"|"d") <-> "a"|("b"|("c"|"d"))) do not break down. If we
-had attempted to initially try breaking down the problem syntactically, we would
-have wasted time. This is particularly an issue because bad specifications could
-take a very long time, as there may be no good lenses between the attempted
-proposed subcomponents, so there would potentially be a great deal of wasted
-time in these attempts.
+We do not believe such subproblems are straightforwardly avoidable. While we
+can attempt to match up subcomponents, this matching oftentimes will not
+work because of, for example, issues where various equivalences must be
+applied (for example: ("a"|"b")|("c"|"d") <-> "a"|("b"|("c"|"d"))) do not
+break down. If we had attempted to initially try breaking down the problem
+syntactically, we would have wasted time. This is particularly an issue
+because bad specifications could take a very long time, as there may be no
+good lenses between the attempted proposed subcomponents, so there would
+potentially be a great deal of wasted time in these attempts.
 
                                 -------------
                              
@@ -333,8 +345,8 @@ time in these attempts.
        benchmark environment since an important measurement is the speed of
        the synthesis process.
 
-All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16 GB of
-1600 MHz DDR3 running macOS High Sierra.
+All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
+GB of 1600 MHz DDR3 running macOS High Sierra.
 
                                 -------------
                              
@@ -348,9 +360,10 @@ All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16 GB of
        parameters?
 
 35 of the benchmarks only need bijective lenses (4 of the original Optician
-benchmarks had to be altered to be bijective because of projected data, in the
-symmetric benchmark suite we removed such alterations.) Of the 9 benchmarks that
-required the termination parameter, 4 of them required only bijective lenses.
+benchmarks had to be altered to be bijective because of projected data, in
+the symmetric benchmark suite we removed such alterations.) Of the 9
+benchmarks that required the termination parameter, 4 of them required only
+bijective lenses.
 
                                 -------------
                              
@@ -369,8 +382,8 @@ file format descriptors involve large numbers of disjunctions and nested
 iterations, which FlashFill is either bad at (for disjunctions) or cannot
 handle at all (nested iterations).
 
-A more thorough comparison to FlashFill is present in the previous Synthesizing
-Bijective Lenses paper.
+A more thorough comparison to FlashFill can be found in the previous
+Synthesizing Bijective Lenses paper.
 
                                 -------------
                              
@@ -391,7 +404,7 @@ Bijective Lenses paper.
        hundreds or thousands of lines code is the desired one by directly
        inspecting the lens program?)
 
-We respond to this in detail above the fold.
+See our detailed response "above the fold."
 
                                 -------------
                              
@@ -404,15 +417,16 @@ We respond to this in detail above the fold.
        tasks. A simple table is better, if the details of tasks (and their
        order) are not given.
 
-We chose a logarithmic x axis to show the differences on the fast benchmarks, as
-they otherwise would be imperceptable. However, if the impact on comparing the
-slower benchmarks is too significant, we can change to a linear x axis.
+We chose a logarithmic x axis to show the differences on the fast
+benchmarks, as they otherwise would be imperceptable. However, if the impact
+on comparing the slower benchmarks is too significant, we can change to a
+linear x axis.
 
 Our graph does not include any specific order of tasks. At any given time, a
-reader can see how many of the benchmarks are able to complete within that time
-(for example, 41 benchmarks require complete in under a second in the full
-synthesis algorithm). We can reword the description of these graphs to make this
-more clear.
+reader can see how many of the benchmarks are able to complete within that
+time (for example, 41 benchmarks require complete in under a second in the
+full synthesis algorithm). We can reword the description of these graphs to
+make this more clear.
 
                                 -------------
                              
@@ -428,9 +442,9 @@ more clear.
        have the same type as the source and view (ignoring the sum types made
        by inl and inr.), as usually they are some "deltas".
 
-We will update the lens section of the related work to be more thorough on the
-related work that we do not make formal statements about, and include proper
-citations.
+We will update the lens section of the related work to be more thorough on
+the related work that we do not make formal statements about, and include
+proper citations.
 
                                 -------------
 
@@ -452,33 +466,27 @@ Review #43C
 As a demonstration about the difficulty of writing lenses, consider the
 following bidirectional program
       
-let single_author_convert =
-  ins " au - "
-    . lens_swap
-        (NAME . del ",")
-        (lens_swap WSP NAME)*
-in ...
+     let single_author_convert =
+       ins " au - "
+         . lens_swap
+             (NAME . del ",")
+             (lens_swap WSP NAME)*
+     in ...
 
 Even the relatively simple lens that permutes the 3 elements needed for
 single_author_convert is fairly complex.  The complexity becomes even more
-apparent when working with large lenses comprised of many sub-lenses (though
-for brevity we give here the more minimal example above).  Lenses provide
-great power with their invertibility guarantees, but they come at the cost
-of thinking about many fiddly details when writing the terms.  Worrying
+apparent when working with large lenses built from many sub-lenses.  Lenses
+provide great power with their invertibility guarantees, but they come at
+the cost of thinking about fiddly details when writing the terms.  Worrying
 about these fiddly details while ALSO thinking about unambiguity
-restrictions is a very difficult task!
+restrictions is a difficult task!
 
-Engineering best practices dictate that we annotate the lenses with their
-types.  While Boomerang does not require these annotations - being able to
-infer the types from the terms - the types of the term serve as
-documentation for future programmers to understand what formats the lens
-maps between. Furthermore, the types provide resilience in the face of
-future lens modifications, as the types ensure that the lens maps exactly
-between strings of the provided formats.  Invalid inputs are not accepted
-nor are the outputs ever invalid. Consequently, in a well-maintained
-codebase, we are not requiring additional work. Instead, we are saving
-programmers from having to writing the lens by leveraging work they should
-already be performing.
+Engineering best practices suggest that it's a good idea to annotate lenses
+with their types.  While Boomerang does not require these annotations (it
+can infer the types from the terms), types serve as documentation for future
+programmers to understand what formats the lens maps between. Furthermore,
+the types provide resilience in the face of future lens modifications,
+ensuring that the lens maps exactly between strings of the provided formats.
 
                                 -------------
                                 
@@ -486,12 +494,11 @@ already be performing.
       procedure is needed — i.e., why do we need to rewrite types for
       GreedySynth.
 
-We will make this more clear in future versions of the paper. Expand is
-needed because GreedySynth alone cannot traverse regular expression
-equivalences. If given the two regular expressions "" | "a"+, and "a"\*,
-GreedySynth alone would merge "" to "a"\* (with a disconect), and merge "a"+
-(also with a disconect).  However, contuing search through equivalent REs
-helps find the bijective lens.
+Expand is needed because GreedySynth alone cannot traverse regular
+expression equivalences. If given the two regular expressions "" | "a"+, and
+"a"\*, GreedySynth alone would merge "" to "a"\* (with a disconect), and
+merge "a"+ (also with a disconect).  However, contuing search through
+equivalent REs helps find the bijective lens.
 
                                 -------------
                                 
@@ -502,10 +509,24 @@ helps find the bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-We respond to this primarily in the main response "above the fold" at the top of
-this response.
+We respond to this primarily in the main response "above the fold" at the
+top of this response. For a specific example:
 
-We are happy to provide an example such as the one above in the paper.
+Consider finding a lens of type:
+
+    ("a" |(.5) "b") |(.5) "c" <=> "x" |(.1) "y"
+
+In this situation, the lowest cost lens would merge "a" and "b" into "x", and
+keep "c" mapped to "y".
+
+Consider finding a lens of type:
+
+    ("a" |(.5) "b") |(.5) "c" <=> "x" |(.9) "y"
+
+In this situation, the lowest cost lens would merge "a" and "b" into "y", and
+keep "c" mapped to "x".
+
+We can provide an example like this in the paper.
 
                                 -------------
                                 
@@ -522,7 +543,7 @@ We are happy to provide an example such as the one above in the paper.
       in synthesis (to my knowledge), the paper does not convince me that it is 
       needed here.
 
-We respond to these issues in the main reponse.
+See the main reponse.
 
                                 -------------
                                 
@@ -530,24 +551,25 @@ We respond to these issues in the main reponse.
       of the lens language and/or take too much time. It was hard for me to 
       infer what the limitations of the approach are.
 
-We agree that section 7 requires more, informal comparisons to other lenses, for
-us to discuss comparisons between our framework and other types of lenses. In
-general, for different types of lenses to work, we require additional work,
-either in the synthesis algorithm (for synthesizing different types of
-combinators like matching lenses or delta lenses), or in both the synthesis
-algorithm and specifications (like for edit lenses and update lenses).
+We agree that section 7 requires more, informal comparisons to other lenses,
+for us to discuss comparisons between our framework and other types of
+lenses. In general, for different types of lenses to work, we require
+additional work, either in the synthesis algorithm (for synthesizing
+different types of combinators like matching lenses or delta lenses), or in
+both the synthesis algorithm and specifications (like for edit lenses and
+update lenses).
 
                                 -------------
 
     - My main concern is whether the use of stochastic REs is really useful (see
       above)
       
-Stochastic REs, and more generally, a semantic cost metric is critical for
-comparing between responses by GreedySynth. Without this semantic cost, the same
-function would likely have different costs if found through different calls to
-GreedySynth. Syntactic metrics, we feel, aim to approximate how good the
-underlying result is: in this work we are able to find a semantic metric that we
-can be found using syntactic information.
+Stochastic REs, and more generally, a semantic cost metric are critical for
+comparing between responses by GreedySynth. Without this semantic cost, the
+same function would likely have different costs if found through different
+calls to GreedySynth. Syntactic metrics, we feel, aim to approximate how
+good the underlying result is: in this work we are able to find a semantic
+metric that we can be found using syntactic information.
 
                                 -------------
                                 
@@ -557,4 +579,4 @@ can be found using syntactic information.
 Stochastic REs are not new. We cite them when we first mention them on page
 2, but agree we should provide additional citations when they are formally
 introduced. We do believe our syntactic technique for calculating their
-entropy is new.
+entropy is novel.
