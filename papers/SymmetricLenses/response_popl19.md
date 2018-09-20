@@ -37,15 +37,15 @@ programmers usually do:
     confirmed the output of creates and puts were as we expected them to be.
     
 After manually validating that SS found the desired lenses, we validated the
-lenses output in other modes by comparing those lenses to the ground truth of
-SS.
+lenses synthesized in other modes by comparing those lenses to the ground truth
+of SS.
 
                                 -------------
 
       - A number of related questions about our information-
         theoretic measure: Is it useful? Why not use a 
         (perhaps complex) syntactic metric? 
-        Why does a fixed distribution work?  
+        Why does a fixed distribution work?
         Will knowing the data distribution help?
 
 It is impossible to prove that our information-theoretic measure
@@ -67,8 +67,8 @@ A fixed distribution works because the core goal is to generate "more bijective"
 transformations; the intuition is that information should be preserved, when
 possible, when data is translated between formats. A fixed, uniform distribution
 avoids unfairly weighting one conjunct or disjunct over another and unfairly
-throwing information away. In the absence of a distribution, this kind of
-fairness seems to be the best we can do.
+throwing information away. If not given a distribution this kind of fairness
+seems to be the best we can do.
 
 However, if given the distribution, the system can make a more informed choice
 about what to throw away: given a choice, it prefers to throw away less data.
