@@ -29,16 +29,7 @@ programmers usually do:
     merges. These complex combinators often occupied a few dozen lines of code
     rather than a few hundred, making our task easier. (Certainly, checking the
     code is easier than creating it de novo.)
-2.  We built unit tests to validate the more complex lenses. 
-3.  We ran the lenses on a number of strings, taken from the unit tests and the
-    examples, but with minor alterations. We did not add these tests as
-    additional unit tests, but they served as additional validation for
-    ourselves as we were constructing the benchmark suite.
-
-KSF: Does 3 add anything?? We could delete it and save some words.
-AFM: I just wanted to give them full information about how we made sure the
-lenses were correct, and this was part of my process, because that's their
-primary fear. This comes from R2, who is the main person I want to make happy.
+2.  We ran a set of tests to validate the more complex lenses. 
 
 We recognize we did not go into significant enough detail on this in the
 submitted version, and will gladly add in such detail on validation in the final
@@ -47,39 +38,49 @@ version.
                                 -------------
 
       - There were a number of related questions about our information theoretic
-        measure: Is it useful? Why not use a syntactic metric? Why does a
+        measure: Is it useful? Why not use a (complex) syntactic metric? Why does a
         fixed distribution work?  Will knowing the data distribution help?
 
-Having a principle guiding our heuristics is, in itself, useful as it
-helps explain the efficacy of the heuristic.  A general-purpose
-principle that cuts across multiple domains, (be as bijective as
-possible, formalized via standard information theory) provides more
-general insights than heuristics driven by a single domain. We claim
-that information theory is a general-purpose way to group the many
-metrics in which people assign higher costs to "less bijective"
-combinators (avoiding constants, for example).  We believe that the ad
-hoc syntactic metrics that are present in other systems are typically
-building towards something like the information theoretic measure we
-propose.
 
-A fixed distribution works because the core thing we are aiming for is "more
-bijective." A fixed distribution is merely a way to not unfairly weight one
-conjunct or disjunct over another in the absence of additional information.
-However, even with our fixed distribution, we are still aiming towards "more
-bijective".
+It is difficult (impossible) to prove that our information-theoretic
+measure is better than all possible "syntactic" metrics, but our
+experiments show that it does do well.  In particular, it outperforms
+simple syntactic heuristics.  More important though, is the fact that
+our heuristic is based on a relatively simple, clear idea that is
+relatively easy to communicate and implement.  This idea can
+potentially be reused in a variety of related settings (and then
+perhaps augmented with ad hoc, domain-specific heuristics in those
+settings).  In contrast, complex ad hoc syntactic metrics provide
+little value beyond the single artifact in which they are used.
 
-Knowing the distribution will help in certain scenarios, and hinder in others.
-With a learned distribution, our information theoretic measure is closer to the
-ground-truth, permitting our learned lens to be "more bijective." However, while
-we believe "more bijective" is a solid guiding principle, there are certain
-situations where the most bijective lens is not the desired one: this is why we
-must further use examples for specifications. We could certainly imagine
-situations where a learned distribution would not find the desired lens (without
-additional examples), and synthesizing with the fixed distribution would find
-the desired one, and vice-versa. However, we claim that, as we typically want
-"more bijective," and a learned distribution is closer to a ground-truth, a
-learned distribution likely would perform better.
+In addition, we believe that our information-theoretic ideas have
+value because they help us understand some of the ad hoc metrics used in
+the past: those in which people assign higher costs to "less
+bijective" combinators in simpler ways (avoiding constants, for
+example).  We believe that the ad hoc syntactic metrics that are
+present in other systems are often building towards something like
+the information theoretic measure we propose.
 
+A fixed distribution works because the core goal is to generate "more
+bijective" transformations --- the intuition is that information
+should be preserved, when possible, as opposed to thrown away, when
+data is translated between formats.  A fixed, uniform distribution avoids
+unfairly weighting one conjunct or disjunct over another and unfairly
+throwing certain information away.  In the absence of additional
+information, this kind of fairness seems to be the best we can do.
+
+On the other hand, knowing the distribution can help the system make a
+choice about what to throw away --- given a choice, it prefers to
+throw away less data.  Assume (x?.9) means "x appears
+with probability .9 and is "" otherwise.  Consider a conversion between
+these formats:
+
+(x?.999).(y?.001) <==> z
+
+Here, x appears more frequently than y on the left.  Hence, the system will prefer
+a lens that projects y and maps x to z over a lens that projects x and
+maps y to z as the latter tends to throw away much more information
+and is "less bijective" in an information theoretic sense.
 
 ===========================================================================
 ===========================================================================
@@ -103,7 +104,7 @@ Yes, we will make this clearer on p. 3 too.
      
           Shouldn't the second argument to `disconnect` be `company`?
 
-Correct. However, in signsight, we should change the example such that the
+Correct. However, in hindsight, we should change the example such that the
 second type is "" (to be consistent with what we use in the full lens)
 
                                 -------------
