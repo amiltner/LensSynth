@@ -104,7 +104,7 @@ Yes, we will make this clearer on p. 3 too.
      
           Shouldn't the second argument to `disconnect` be `company`?
 
-Correct. However, in signsight, we should change the example such that the
+Correct. However, in hindsight, we should change the example such that the
 second type is "" (to be consistent with what we use in the full lens)
 
                                 -------------
