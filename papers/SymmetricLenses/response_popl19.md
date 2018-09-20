@@ -45,8 +45,7 @@ BCP: #2 needs a few more words
         Why does a fixed distribution work?  
         Will knowing the data distribution help?
 
-BCP: Difficult, or impossible???
-It is difficult (impossible) to prove that our information-theoretic measure
+It is impossible to prove that our information-theoretic measure
 is better than all possible "syntactic" metrics, but our experiments show
 that it performs well.  In particular, it outperforms simple syntactic
 heuristics.  More important is the fact that our heuristic is based on a
