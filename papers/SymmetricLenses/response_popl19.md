@@ -38,9 +38,9 @@ version.
                                 -------------
 
       - There were a number of related questions about our information theoretic
-        measure: Is it useful? Why not use a (complex) syntactic metric? Why does a
-        fixed distribution work?  Will knowing the data distribution help?
-
+        measure: Is it useful? Why not use a (complex) syntactic metric? Why 
+        does a fixed distribution work?  Will knowing the data distribution 
+        help?
 
 It is difficult (impossible) to prove that our information-theoretic
 measure is better than all possible "syntactic" metrics, but our
@@ -77,10 +77,10 @@ these formats:
 
 (x?.999).(y?.001) <==> z
 
-Here, x appears more frequently than y on the left.  Hence, the system will prefer
-a lens that projects y and maps x to z over a lens that projects x and
-maps y to z as the latter tends to throw away much more information
-and is "less bijective" in an information theoretic sense.
+Here, x appears more frequently than y on the left. Hence, the system will
+prefer a lens that projects y and maps x to z over a lens that projects x and
+maps y to z as the latter tends to throw away much more information and is "less
+bijective" in an information theoretic sense.
 
 ===========================================================================
 ===========================================================================
@@ -136,10 +136,6 @@ could be mapped to another, but all the components of that sequence lens
 actually may be disconnects. However, all sequences *must* be involved in a
 sequence lens in a well-typed DNF lens.
 
-BCP: I'm not sure I understand the question! 
-AFM: I also now realize I also didn't. After rereading the section, I think this
-response is more appropriate.
-
                                 -------------
 
      - 10. p18, l842
@@ -157,14 +153,9 @@ containing the missing RE in this case. We then make this apply in slightly
 more places by also taking into account how deeply nested within stars
 certain REs occur.
 
-BCP: What is "closed"?
-AFM: The internals of the Regular Expression are not exposed to GreedySynth,
-they are the analogue of User Defined regular expressions in the previous paper,
-but with this closed/open approach, we aren't dependent on where users place
-variables (also making our integration into Boomerang significantly less hacky).
-
 Full details can be found in the prior work on Synthesizing Bijective Lenses
-(page 16). 
+(page 16), though in that context, "user-defined data types" are used instead of
+"closed regular expressions."
 
                                 -------------
 
@@ -235,8 +226,18 @@ Review #43B
        be synthesised. See detailed comments below. (This defect does not
        prevent it from being a good paper.)
 
-We responded to the key points in this comment (the benchmark suite and
-judging correctness) "above the fold" at the top of this response.
+We responded to issues on judging correctness "above the fold" at the top of
+this response.
+
+We chose our benchmarks from the FlashFill paper because the 238 tasks are,
+unfortunately, not publicly available. In general, our benchmark suite goes
+beyond the level of difficulty required for data cleaning. Many real-life
+file format descriptors involve large numbers of disjunctions and nested
+iterations, which FlashFill is either bad at (for disjunctions) or cannot
+handle at all (nested iterations).
+
+A more thorough comparison to FlashFill is present in the previous Synthesizing
+Bijective Lenses paper.
 
 All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
 GB of 1600 MHz DDR3 running macOS High Sierra. 
@@ -502,21 +503,9 @@ helps find the bijective lens.
       influence the synthesis procedure.
 
 We respond to this primarily in the main response "above the fold" at the top of
-this response. For a specific example:
+this response.
 
-Consider finding a lens of type:
-("a" |(.5) "b") |(.5) "c" <=> "x" |(.1) "y"
-
-In this situation, the lowest cost lens would merge "a" and "b" into "x", and
-keep "c" mapped to "y".
-
-Consider finding a lens of type:
-("a" |(.5) "b") |(.5) "c" <=> "x" |(.9) "y"
-
-In this situation, the lowest cost lens would merge "a" and "b" into "y", and
-keep "c" mapped to "x".
-
-We are happy to provide an example such as this one in the paper.
+We are happy to provide an example such as the one above in the paper.
 
                                 -------------
                                 
