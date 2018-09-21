@@ -394,7 +394,16 @@ detail.
        hundreds or thousands of lines code is the desired one by directly
        inspecting the lens program?)
 
-See our detailed response "above the fold."
+See our detailed response "above the fold," for a description of our process.
+
+Without an existing lens to compare to and without an existing set of
+input/output examples, it is not obvious to us how to make the process of
+checking correctness more automatic and objective.
+
+We are interested in finding ways to make validating lenses easier for the user,
+for example by finding examples of puts and creates that differentiate between
+highly ranked lenses. However, how exactly this process would work is
+not obvious, and we leave this for future work.
 
                                 -------------
                              
