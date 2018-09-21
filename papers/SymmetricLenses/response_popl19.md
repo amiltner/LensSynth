@@ -1,40 +1,36 @@
 Thank you for your comments!
 
-We begin with brief responses to the most significant concerns, followed by
-an (optional) appendix addressing individual questions point by point.
+We begin with brief responses to the most significant concerns, followed by an
+(optional) appendix addressing individual questions point-by-point.
 
                                 -------------
 
-     - How do we determine what a "correct" lens is? Can we make this process a 
-       bit more automatic and objective?
+     - How do we determine what a "correct" lens is? Can we make this process 
+       more automatic and objective?
        
-We agree we did not go into enough detail on this, and we can add more in a
-final version.
+We agree we did not go into enough detail on this; we will add more in a final
+version.
 
-We do not have an automated way to measure the correctness of our lenses
-(beyond checking that each synthesized lens does indeed transform the given
-examples correctly). In this respect, our work is similar to other published
-synthesis-from-examples research, such as Gulwani's work on FlashFill and
-related projects.
+We do not have an automated way to measure the correctness of our lenses (beyond
+validating synthesized lenses conform to their specifications). In this respect,
+our work is similar to other published synthesis-from-examples research, like
+FlashFill and related projects.
 
-To assess the behavior of our tool on our benchmarks, we did what
-programmers usually do:
+To validate our tool synthesized the intended lenses, we did what programmers
+usually do:
 
 1.  We manually inspected the code. 
 
     This was a nontrivial task, as generated lenses can be quite large, but it
-    was easier than it might initially sound. Some of the lenses' structure
-    should follow from the structure of the regular expressions describing
-    source and target formats; this is relatively easy to validate. The more
-    difficult part was checking the interactions of complex combinators like
-    swaps, disconnects, and merges. Still these bits typically spanned only a
-    few dozen lines of code, making our task easier. Certainly, checking the
+    was easier than it might sound. Some of the lenses' structure should follow
+    the structure of their regular expression types; this is relatively easy to
+    validate. The more difficult part was checking the interactions of complex
+    combinators like swaps, disconnects, and merges. However, these bits
+    typically spanned only a few dozen lines of code. Certainly, checking the
     code is easier than creating it de novo.
 
-2.  We ran a set of tests to validate the more complex lenses. These tests
-    confirmed the output of creates and puts were as we expected them to be.
-    
-BCP: Were these unit tests?
+2.  We ran a set of tests to validate the more complex lenses. These tested that
+    the synthesized lenses performed creates and puts as we expected them to.
 
 After manually validating that SS found the desired lenses, we validated the
 lenses synthesized in other modes by comparing those lenses to the ground
@@ -48,39 +44,36 @@ truth of SS.
         Why does a fixed distribution work?
         Will knowing the data distribution help?
 
-It is impossible to prove that our information-theoretic measure
-is better than all possible "syntactic" metrics, but our experiments show
-that it performs well.  In particular, it outperforms simple syntactic
-heuristics.  More important is the fact that our heuristic is based on a
-simple, clear idea that is easy to communicate and implement.  This idea can
-potentially be reused in a variety of related settings (and perhaps
-_augmented_ with domain-specific heuristics).
+It is impossible to prove that our information-theoretic measure is better than
+all possible "syntactic" metrics; our experiments show that it performs
+well, outperforming simple ones. More importantly, our heuristic is based on a
+simple, clear idea that is easy to communicate and implement. This idea can
+potentially be reused in a variety of related settings (and perhaps _augmented_
+with domain-specific heuristics).
 
-Moreover, our information-theoretic presentation has helped us understand some
-of the ad hoc metrics used in the past -- like those used in FlashFill and
-Refazer -- those in which people assign higher costs to "less bijective"
-combinators in simpler ways (avoiding constants, for example). These ad hoc
-syntactic metrics seem to be approximating something like the
-information-theoretic measure we work with.
+Moreover, our information-theoretic presentation helped us understand some of
+the ad hoc metrics used in the past -- like in FlashFill and Refazer -- in which
+"less bijective" combinators are assigned higher costs in simpler ways (like
+avoiding constants). These ad hoc syntactic metrics seem to be approximating
+something like the information-theoretic measure we work with.
 
 A fixed distribution works because the core goal is to generate "more bijective"
-transformations; the intuition is that information should be preserved, when
-possible, when data is translated between formats. A fixed, uniform distribution
-avoids unfairly weighting one conjunct or disjunct over another and unfairly
-throwing information away. If not given a distribution this kind of fairness
-seems to be the best we can do.
+transformations; information should be preserved, when possible, when
+translating data between formats. A fixed, uniform distribution avoids unfairly
+weighting one conjunct or disjunct over another, unfairly throwing information
+away. When not given a distribution this kind of fairness seems to be the best
+we can do.
 
-However, if given the distribution, the system can make a more informed choice
-about what to throw away: given a choice, it prefers to throw away less data.
-For example, let (x?.9) mean "x appears with probability .9 and is "" otherwise
-and consider a conversion between these formats:
+If given the distribution, the system can make a more informed choice about what
+to throw away. Let (x?.9) mean "x appears with probability .9 and is ""
+otherwise." Consider a conversion between these formats:
 
     (x?.999).(y?.001) <==> z
 
-Here, x appears more frequently than y on the left.  Hence, the system will
-prefer a lens that projects y and maps x to z over a lens that projects x
-and maps y to z, as the latter tends to throw away much more information and
-is "less bijective" in an information-theoretic sense.
+Here, x appears more frequently than y on the left. The system will prefer a
+lens that projects y and maps x to z over a lens that projects x and maps y to
+z; the latter tends to throw away more information and is "less bijective" in an
+information-theoretic sense.
 
 ===========================================================================
 ===========================================================================
@@ -106,7 +99,8 @@ Yes, we will make this clearer on p. 3 too.
           Shouldn't the second argument to `disconnect` be `company`?
 
 Correct. However, in hindsight, we should change the example such that the
-second type is "" (to be consistent with what we use in the full lens)
+second type is "" (to be consistent with what we use in the full lens in Figure
+3)
 
                                 -------------
 
@@ -520,19 +514,28 @@ We can provide an example, like the one in the main response, in the paper.
 
 See the main reponse.
 
+35 of the 48 symmetric benchmarks synthesized the same lenses as in the
+Synthesizing Bijective Lenses paper. 4 of the benchmarks in Synthesizing
+Bijective Lenses had to be altered to be bijective to account for projecting
+information: those 4 were altered to their original forms, and we built our
+algorithm on those 39 benchmarks. The remaining 9 benchmarks were added without
+any changes to the synthesis algorithm (although we did make bugfixes while
+adding those benchmarks). The 39 benchmarks from Optician hence were certainly
+not hand-picked, and our synthesis algorithm was certainly not overtuned to the
+remaining 9 benchmarks.
+
                                 -------------
                                 
     - Section 6 or 7 should discuss examples that are outside the expressivity 
       of the lens language and/or take too much time. It was hard for me to 
       infer what the limitations of the approach are.
 
-We agree that section 7 requires more, informal comparisons to other lenses,
-for us to discuss comparisons between our framework and other types of
-lenses. In general, for different types of lenses to work, we require
-additional work, either in the synthesis algorithm (for synthesizing
-different types of combinators like matching lenses or delta lenses), or in
-both the synthesis algorithm and specifications (like for edit lenses and
-update lenses).
+We agree that section 7 requires more, informal comparisons to other lenses, for
+us to discuss comparisons between our framework and other types of lenses. In
+general, for different types of lenses to work, we require additional work,
+either in the synthesis algorithm (for synthesizing different types of
+combinators like matching lenses or delta lenses), or in both the synthesis
+algorithm and specifications (like for edit lenses and update lenses).
 
                                 -------------
 
