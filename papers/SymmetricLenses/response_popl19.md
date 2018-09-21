@@ -11,13 +11,12 @@ an (optional) appendix addressing individual questions.
 We agree we should discuss this point in more detail; we will do so in the final
 version.
 
-We do not have an automated way to measure the correctness of our lenses beyond
-validating synthesized lenses conform to their specifications. In this respect,
-our work is similar to other published synthesis-from-examples research, like
-FlashFill and related projects.
+We do not have an automated way to measure the correctness of our
+lenses beyond confirming that they conform to their specifications. In
+this respect, our work is similar to other published
+synthesis-from-examples research, like FlashFill and related projects.
 
-To validate our tool synthesized the intended lenses, we did what programmers
-usually do:
+To validate the synthesized lenses, we did what programmers usually do:
 
 1.  We manually inspected the code. 
 
@@ -32,9 +31,9 @@ usually do:
 2.  We ran a series of unit tests to validate the more complex lenses. These
     tests confirmed that the output of creates and puts were as expected.
     
-After manually validating that SS found the desired lenses, we validated the
-lenses synthesized in other modes by comparing those lenses to the ground
-truth of SS.
+After manually validating that the SS mode found the desired lenses,
+we validated other modes by matching their output to that of SS.
+
 
                                 -------------
 
@@ -57,12 +56,12 @@ the ad hoc metrics used in the past -- like in FlashFill and Refazer -- in which
 avoiding constants). These ad hoc syntactic metrics seem to be approximating
 something like the information-theoretic measure we work with.
 
-A fixed distribution works because the core goal is to generate "more bijective"
-transformations; information should be preserved, when possible, when
-translating data between formats. A fixed, uniform distribution avoids unfairly
-weighting one conjunct or disjunct over another, unfairly throwing information
-away. When not given a distribution this kind of fairness seems to be the best
-we can do.
+A fixed distribution works because the core goal is to generate "more
+bijective" transformations; information should be preserved, wherever
+possible, when translating data between formats. A fixed, uniform
+distribution avoids weighting one conjunct or disjunct over
+another. When not given a distribution, this kind of "fairness" seems
+to be the best we can do.
 
 If given the distribution, the system can make a more informed choice about what
 to throw away. Let (x?.9) mean "x appears with probability .9 and is ""
@@ -70,10 +69,11 @@ otherwise." Consider a conversion between these formats:
 
     (x?.999).(y?.001) <==> z
 
-Here, x appears more frequently than y on the left. The system will prefer a
-lens that projects y and maps x to z over a lens that projects x and maps y to
-z; the latter tends to throw away more information on average and is "less
-bijective" in an information-theoretic sense.
+Here, x appears more frequently than y on the left. The system will
+prefer a lens that projects y and maps x to z over a lens that
+projects x and maps y to z because the latter throws away more
+information on average and is "less bijective" in an
+information-theoretic sense.
 
 ===========================================================================
 ===========================================================================
@@ -90,7 +90,7 @@ Review #43A
        not making it clear that stochastic regular expressions are not a
        contribution of the authors (albeit it is mentioned in passing on p2).
 
-Yes, we will make this clearer on p. 3 too.
+Yes, we will make this clear on p. 3 too.
 
                                 -------------
 
@@ -98,9 +98,8 @@ Yes, we will make this clearer on p. 3 too.
      
           Shouldn't the second argument to `disconnect` be `company`?
 
-Correct. However, in hindsight, we should change the example such that the
-second type is "" (to be consistent with what we use in the full lens in Figure
-3)
+Correct. However, in hindsight, we should change the example so that the
+second type is "" to be consistent with the full lens in Figure 3.
 
                                 -------------
 
@@ -110,7 +109,7 @@ second type is "" (to be consistent with what we use in the full lens in Figure
           picks the default values at random, but is still valid because it
           satisfies the required lens type. If so, please make it clearer.
 
-This is correct -- we will clarify.
+You are correct. We will clarify.
 
                                 -------------
 
@@ -120,16 +119,17 @@ This is correct -- we will clarify.
           are involved in sequence lenses, but there are examples that could
           make other lenses more useful?
 
-Within a DNF lens itself, all sequences are *required* to be involved with
-another sequence lens: otherwise, when that side of the DNF SRE is provided,
-what disjunct on the other side should that lens be mapped to? Of course,
-there are other ways the disjunct can be mapped, but these must happen at a
-different level of the synthesis algorithm. For example, the entirety of
-that DNF regular expression (which itself could be deeply nested within
-other DNF regular expression components) could be projected. Furthermore, a
-specific sequence could be mapped to another, but all the components of that
-sequence lens actually may be disconnects. However, all sequences *must* be
-involved in a sequence lens in a well-typed DNF lens.
+Within a DNF lens, all sequences are *required* to pair with another
+sequence lens. Otherwise, when given one side of the DNF SRE, what
+disjunct on the other side should it be mapped to?  There are other
+ways the disjunct can be mapped, but they must happen at a different
+level of the synthesis algorithm. For example, the entirety of that
+DNF regular expression (which itself could be deeply nested within
+other DNF regular expression components) could be
+projected. Furthermore, a specific sequence could be mapped to
+another, but all the components of that sequence lens may be
+disconnects. However, all sequences *must* be involved in a sequence
+lens in a well-typed DNF lens.
 
                                 -------------
 
@@ -138,20 +138,21 @@ involved in a sequence lens in a well-typed DNF lens.
            Could you explain in some more detail what criteria does `EXPAND` use
            to decide to open some closed expressions but not others?
 
-At a high level, we process both regular expression trees, looking for
-situations where a closed regular expression is a subcomponent of one format but
-not the other, and expand such REs (this is where hash-consing provides its
-greatest benefits). As the internals of closed REs are not exposed to
-GreedySynth, this is necessary to synchronize that closed RE with anything but
-disconnect. Also, we look for instances where a regular expression may be
-present in one format, but is only contained within a closed regular expression
-in the other, and we expand the closed RE containing the missing RE in this
-case. We make this apply in a few more places by taking into account how deeply
+EXPAND processes both regular expression trees, looking for situations
+where a closed regular expression is a subcomponent of one format but
+not the other.  We expand such REs (hash-consing provides great
+benefits here). As the internals of closed REs are not exposed to
+GreedySynth, this expansion is necessary to synchronize the closed RE
+with anything but disconnect. EXPAND also looks for instances where a
+regular expression is present in one format but is only contained
+within a closed regular expression in the other.  In this case, we
+expand the closed RE containing the missing RE.  We apply this
+rewriting in a few more places by taking into account how deeply
 nested within stars certain REs occur.
 
-Full details can be found in the prior work on Synthesizing Bijective Lenses
-(page 16), though in that context, "user-defined data types" are used instead of
-"closed regular expressions."
+Full details can be found in the prior work on Synthesizing Bijective
+Lenses (page 16), though in that context, the term "user-defined data
+types" is used instead of "closed regular expressions."
 
                                 -------------
 
@@ -162,7 +163,7 @@ Full details can be found in the prior work on Synthesizing Bijective Lenses
            surely `min` will just pick 0 for t>=0, because the distance and the
            logarithm are positive values.
 
-Right, this should be max!
+Right!
 
                                 -------------
 
@@ -170,9 +171,11 @@ Right, this should be max!
                
            Which preference metric are the t=0, t=25, t=-25 benchmarks using?
 
-These benchmarks are using the full "SS" mode. The only difference between these
-benchmarks and the full mode is that termination parameters are ignored, and
-are instead required to use the 0, 25, and -25 parameters.
+These benchmarks use the full "SS" mode. The only difference between these
+benchmarks and the full mode is that they ignore termination
+parameters and use the 0, 25, and -25 parameters instead.
+
+KSF: Anders, what is the difference between full SS mode and full mode?
 
                                 -------------
 
@@ -198,19 +201,18 @@ difficulties.
          synthesis algorithm to handle any of the many variants of updates-based
          lenses, such as edit lenses, delta lenses, and update lenses?
 
-Yes, we do have some hope that the algorithm can be extended to handle such
-variants.
+Yes.
 
 Delta lenses would require additional work in understanding "shape"
-constructs.  Currently our language only permits basic iteration, whereas
-shapes allow for different types of mergings. Allowing this would require
-changes to the AtomSynth algorithm, in that we would we would need to
-discover the correct shapes of the data, and align them in the correct ways.
+constructs.  Currently our language only permits basic iteration,
+whereas shapes allow for different types of mergings. This extension
+would require changes to the AtomSynth algorithm in that we would need
+to discover the correct shapes of the data and align them correctly.
 
-Both edit and update lenses would require new forms of specifications, since
-both permit updates that are not merely pushing data through, but instead
-are applying specific elements of an edit monoid.  (Also we would remove
-complements from edit lenses).
+Both edit and update lenses would require new forms of specifications,
+since both permit updates that are not merely pushing data through,
+but instead are applying elements of an edit monoid.  (Also we would
+remove complements from edit lenses).
 
 ===========================================================================
 Review #43B
@@ -222,21 +224,20 @@ Review #43B
        be synthesised. See detailed comments below. (This defect does not
        prevent it from being a good paper.)
 
-We responded to issues on judging correctness "above the fold" at the top of
-this response.
+We responded to issues on judging correctness at the top of this response.
 
-We chose our benchmarks from the FlashFill paper because the 238 tasks are,
-unfortunately, not publicly available.  Many real-life
-file format descriptors involve large numbers of disjunctions and nested
-iterations, which FlashFill is either bad at (for disjunctions) or cannot
-handle at all (nested iterations).
+We chose our benchmarks from the FlashFill paper because the fuller
+set of 238 tasks are not publicly available.  
 
-In our previous work on synthesizing bijective lenses, we compared
-FlashFill to our bijective synthesis algorithm in more detail, finding
-that FlashFill was able to synthesize just 5 of the 39 examples that
-we had at that time due to the presence of nested iterations.  In any
-subsequent version of this paper, we would be happy to compare our
-work with FlashFill in greater detail.
+Many real-life file format descriptors involve large numbers of
+disjunctions and nested iterations. FlashFill struggles with
+disjunctions and does not handle nested iterations. In our previous
+work on synthesizing bijective lenses, we compared FlashFill to our
+bijective synthesis algorithm in more detail, finding that FlashFill
+was able to synthesize just 5 of the 39 examples that we had at that
+time because of nested iterations.  In future version of this paper,
+we would be happy to compare our work with FlashFill in greater
+detail.
 
 All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
 GB of 1600 MHz DDR3 running macOS High Sierra. 
@@ -248,11 +249,12 @@ GB of 1600 MHz DDR3 running macOS High Sierra.
        paper unfriendly and hard to verify. The appendix is also in a
        messy.
 
-We apologize for the lack of citations and the messy appendix. For the first
-subsection of Related Work, we got carried away in making formal claims, and did
-not include informal comparisons to other lens languages. We will make sure to
-make such comparisons and citations in the next version of the paper. We will
-similarly improve the appendix.
+We apologize for the lack of citations and the messy appendix. For the
+first subsection of Related Work, we focused on making formal claims,
+and did not include informal comparisons to other lens languages. We
+will make sure to make such comparisons and include a fuller set of
+citations in the next version of the paper. We will similarly improve
+the appendix.
 
                                 -------------
 
@@ -260,13 +262,13 @@ similarly improve the appendix.
        is not yet published and cannot be obtained from Internet. Martin
        Hofmann et al. (2011) may be the choice for this time.
 
-Thank you, you are correct, we will change this citation.
+Thank you!  We will change this citation.
 
                                 -------------
 
      - L442: H(s) should be 0. Otherwise the entropy of the SRE in L452 is 2.
 
-You are correct.
+You are correct; we will fix it.
 
                                 -------------
 
@@ -277,8 +279,8 @@ You are correct.
        are composed from (ambiguous and unambiguous) primitive lenses, in
        practice the restriction should be always there.
 
-Within our synthesis algorithm, you are, in general, correct. However,
-Boomerang exists beyond Optician, and permits lenses like id("a"|"a"). In
+Within our synthesis algorithm, you are correct. However, Boomerang
+includes more than Optician and permits lenses like id("a"|"a"). In
 our extension to Boomerang, we do not remove this freedom.
 
                                 -------------
@@ -290,13 +292,13 @@ our extension to Boomerang, we do not remove this freedom.
        intervals.
 
 We were attempting to make our equations more readable, but we did not
-sufficiently explain what our syntax meant. The calls to H(...) returns pairs,
+sufficiently explain our syntax. The calls to H(...) return pairs,
 and when multiplied by constants, or added together, they act as follows:
 
-  a x (b,c) = (a x b,a x c)
+  a * (b,c) = (a * b,a * c)
   (a,b) + (c,d) = (a + b,c + d)
 
-We will make sure to explain this more clearly in a final version of the paper.
+We will explain this more clearly in a final version of the paper.
 
                                 -------------
 
@@ -304,7 +306,7 @@ We will make sure to explain this more clearly in a final version of the paper.
        shapes. I cannot understand why assigning a fixed probability will fit
        in all situations. Could you explain it a bit?
 
-See the main response "above the fold" at the top of this response.
+See the shared section at the top of this response.
 
                                 -------------
                              
@@ -315,15 +317,13 @@ See the main response "above the fold" at the top of this response.
        be divided into several subproblems.  Why do the user still need to
        manually "generate subproblems"? Is it avoidable?
 
-We do not believe such subproblems are straightforwardly avoidable. While we
-can attempt to match up subcomponents, this matching oftentimes will not
-work because of, for example, issues where various equivalences must be
-applied (for example: ("a"|"b")|("c"|"d") <-> "a"|("b"|("c"|"d"))) do not
-break down. If we had attempted to initially try breaking down the problem
-syntactically, we would have wasted time. This is particularly an issue
-because bad specifications could take a very long time, as there may be no
-good lenses between the attempted proposed subcomponents, so there would
-potentially be a great deal of wasted time in these attempts.
+We do not believe such subproblems are straightforwardly
+avoidable. While we can attempt to match up subcomponents, this
+matching will often not work, for example in cases where various
+equivalences must be applied (such as: ("a"|"b")|("c"|"d") <->
+"a"|("b"|("c"|"d"))). If we had attempted to break down the problem
+syntactically, we could have wasted a lot of time trying to find a
+good lens that doesn't exist.
 
                                 -------------
                              
@@ -333,7 +333,8 @@ potentially be a great deal of wasted time in these attempts.
        the synthesis process.
 
 All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
-GB of 1600 MHz DDR3 running macOS High Sierra.
+GB of 1600 MHz DDR3 running macOS High Sierra. We will add this
+information. 
 
                                 -------------
                              
@@ -362,17 +363,18 @@ bijective lenses.
        (and readers in the future) may want to know to which extent the job
        of writing lenses can be automatically done.
 
-We chose our benchmarks from the FlashFill paper because the 238 tasks
-are, unfortunately, not publicly available.  Many real-life file
-format descriptors involve large numbers of disjunctions and nested
-iterations, which FlashFill is either bad at (for disjunctions) or
-cannot handle at all (nested iterations).
 
-In our previous work, we compared FlashFill to our bijective synthesis
-algorithm in more detail, finding that FlashFill was able to
-synthesize just 5 of the 39 examples that we had at that time due to
-the presence of nested iterations.  In any subsequent version of this
-paper, we would be happy to compare our work with FlashFill in greater
+We chose our benchmarks from the FlashFill paper because the fuller
+set of 238 tasks are not publicly available.  
+
+Many real-life file format descriptors involve large numbers of
+disjunctions and nested iterations. FlashFill struggles with
+disjunctions and does not handle nested iterations. In our previous
+work on synthesizing bijective lenses, we compared FlashFill to our
+bijective synthesis algorithm in more detail, finding that FlashFill
+was able to synthesize just 5 of the 39 examples that we had at that
+time because of nested iterations.  In future version of this paper,
+we would be happy to compare our work with FlashFill in greater
 detail.
 
                                 -------------
@@ -394,16 +396,15 @@ detail.
        hundreds or thousands of lines code is the desired one by directly
        inspecting the lens program?)
 
-See our detailed response "above the fold," for a description of our process.
+See our response "above the fold" for a description of our process.
 
 Without an existing lens to compare to and without an existing set of
-input/output examples, it is not obvious to us how to make the process of
+input/output examples, it is not obvious how to make the process of
 checking correctness more automatic and objective.
 
 We are interested in finding ways to make validating lenses easier for the user,
 for example by finding examples of puts and creates that differentiate between
-highly ranked lenses. However, how exactly this process would work is
-not obvious, and we leave this for future work.
+highly ranked lenses. However, we leave this task for future work.
 
                                 -------------
                              
@@ -421,11 +422,11 @@ benchmarks, as they otherwise would be imperceptable. However, if the impact
 on comparing the slower benchmarks is too significant, we can change to a
 linear x axis.
 
-Our graph does not include any specific order of tasks. At any given time, a
-reader can see how many of the benchmarks are able to complete within that
-time (for example, 41 benchmarks require complete in under a second in the
-full synthesis algorithm). We can reword the description of these graphs to
-make this more clear.
+Our graph does not include any specific order of tasks. At any given
+time, a reader can see how many of the benchmarks are able to complete
+within that time (for example, 41 benchmarks complete in under a
+second in the full synthesis algorithm). We can reword the description
+of these graphs to make this more clear.
 
                                 -------------
                              
@@ -441,9 +442,9 @@ make this more clear.
        have the same type as the source and view (ignoring the sum types made
        by inl and inr.), as usually they are some "deltas".
 
-We will update the lens section of the related work to be more thorough on
-the related work that we do not make formal statements about, and include
-proper citations.
+We will update the lens portion of the related work section to include
+a more thorough deription of related work that we do not make formal
+statements about, and we will include the relevant citations.
 
                                 -------------
 
@@ -462,7 +463,7 @@ Review #43C
       they can probably go ahead and just implement the lens without resorting 
       to examples.
       
-As a demonstration about the difficulty of writing lenses, consider the
+As a demonstration of the difficulty of writing lenses, consider the
 following bidirectional program
       
      let single_author_convert =
@@ -472,13 +473,13 @@ following bidirectional program
              (lens_swap WSP NAME)*
      in ...
 
-Even the relatively simple lens that permutes the 3 elements needed for
-single_author_convert is fairly complex.  The complexity becomes even more
-apparent when working with large lenses built from many sub-lenses.  Lenses
-provide great power with their invertibility guarantees, but they come at
-the cost of thinking about fiddly details when writing the terms.  Worrying
-about these fiddly details while ALSO thinking about unambiguity
-restrictions is a difficult task!
+Even this relatively simple lens that permutes the 3 elements needed
+for single_author_convert is fairly complex.  The complexity becomes
+even more apparent when working with large lenses built from many
+sub-lenses.  Lenses provide great power with their invertibility
+guarantees, but they come at the cost of thinking about fiddly details
+when writing the terms.  Worrying about these details while ALSO
+thinking about unambiguity restrictions is a difficult task!
 
 Moreover, engineering best practices suggest that it's a good idea to annotate lenses
 with their types.  While Boomerang does not require these annotations (it
@@ -514,7 +515,7 @@ given here, using Expand allows us to find a bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-Please see above, in the initial 500 words of this reponse.
+See the shared section at the top of this response.
 
 We can provide an example, like the one in the main response above, in the paper.
 
@@ -533,7 +534,7 @@ We can provide an example, like the one in the main response above, in the paper
       in synthesis (to my knowledge), the paper does not convince me that it is 
       needed here.
 
-Please see above, in the initial 500 words of this reponse.
+See the main response at the top of this response.
 
 35 of the 48 symmetric benchmarks synthesized the same lenses as in the
 Synthesizing Bijective Lenses paper. 4 of the benchmarks in Synthesizing
@@ -563,7 +564,7 @@ algorithm and specifications (like for edit lenses and update lenses).
     - My main concern is whether the use of stochastic REs is really useful (see
       above)
       
-Please see above, in the initial 500 words of this response.
+See the shared section at the top of this response.
 
                                 -------------
                                 
