@@ -171,11 +171,9 @@ Right!
                
            Which preference metric are the t=0, t=25, t=-25 benchmarks using?
 
-These benchmarks use the full "SS" mode. The only difference between these
-benchmarks and the full mode is that they ignore termination
-parameters and use the 0, 25, and -25 parameters instead.
-
-KSF: Anders, what is the difference between full SS mode and full mode?
+These benchmarks use the full "SS" mode. The only difference between these t=0,
+t=25, and t=-25 benchmarks and the full "SS" mode is that they ignore
+termination parameters and use the 0, 25, and -25 parameters instead.
 
                                 -------------
 
