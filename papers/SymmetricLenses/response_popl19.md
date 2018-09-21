@@ -1,41 +1,39 @@
 Thank you for your comments!
 
 We begin with brief responses to the most significant concerns, followed by
-an (optional) appendix addressing individual questions point by point.
+an (optional) appendix addressing individual questions.
 
                                 -------------
 
-     - How do we determine what a "correct" lens is? Can we make this process a 
-       bit more automatic and objective?
+     - How do we determine whether a lens is "correct"? Can we make this process  
+       more automatic and objective?
        
-We agree we did not go into enough detail on this, and we can add more in a
-final version.
+We agree we should discuss this point in more detail; we will do so in
+the final version. 
 
 We do not have an automated way to measure the correctness of our lenses
-(beyond checking that each synthesized lens does indeed transform the given
-examples correctly). In this respect, our work is similar to other published
+beyond checking that each synthesized lens does indeed transform the given
+examples correctly. In this respect, our work is similar to other published
 synthesis-from-examples research, such as Gulwani's work on FlashFill and
 related projects.
 
-To assess the behavior of our tool on our benchmarks, we did what
+To assess the correctness of our tool on the benchmarks, we did what
 programmers usually do:
 
 1.  We manually inspected the code. 
 
-    This was a nontrivial task, as generated lenses can be quite large, but it
+    This task was nontrivial, as generated lenses can be quite large, but it
     was easier than it might initially sound. Some of the lenses' structure
     should follow from the structure of the regular expressions describing
     source and target formats; this is relatively easy to validate. The more
     difficult part was checking the interactions of complex combinators like
-    swaps, disconnects, and merges. Still these bits typically spanned only a
+    swaps, disconnects, and merges. Still these bits typically span only a
     few dozen lines of code, making our task easier. Certainly, checking the
     code is easier than creating it de novo.
 
-2.  We ran a set of tests to validate the more complex lenses. These tests
-    confirmed the output of creates and puts were as we expected them to be.
+2.  We ran a series of unit tests to validate the more complex lenses. These tests
+    confirmed that the output of creates and puts were as expected.
     
-BCP: Were these unit tests?
-
 After manually validating that SS found the desired lenses, we validated the
 lenses synthesized in other modes by comparing those lenses to the ground
 truth of SS.
