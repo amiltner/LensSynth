@@ -72,8 +72,8 @@ otherwise." Consider a conversion between these formats:
 
 Here, x appears more frequently than y on the left. The system will prefer a
 lens that projects y and maps x to z over a lens that projects x and maps y to
-z; the latter tends to throw away more information and is "less bijective" in an
-information-theoretic sense.
+z; the latter tends to throw away more information on average and is "less
+bijective" in an information-theoretic sense.
 
 ===========================================================================
 ===========================================================================
