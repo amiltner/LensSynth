@@ -1,18 +1,18 @@
 Thank you for your comments!
 
-We begin with brief responses to the most significant concerns, followed by an
-(optional) appendix addressing individual questions point-by-point.
+We begin with brief responses to the most significant concerns, followed by
+an (optional) appendix addressing individual questions.
 
                                 -------------
 
-     - How do we determine what a "correct" lens is? Can we make this process 
+     - How do we determine whether a lens is "correct"? Can we make this process
        more automatic and objective?
        
-We agree we did not go into enough detail on this; we will add more in a final
+We agree we should discuss this point in more detail; we will do so in the final
 version.
 
-We do not have an automated way to measure the correctness of our lenses (beyond
-validating synthesized lenses conform to their specifications). In this respect,
+We do not have an automated way to measure the correctness of our lenses beyond
+validating synthesized lenses conform to their specifications. In this respect,
 our work is similar to other published synthesis-from-examples research, like
 FlashFill and related projects.
 
@@ -21,17 +21,17 @@ usually do:
 
 1.  We manually inspected the code. 
 
-    This was a nontrivial task, as generated lenses can be quite large, but it
+    This task was nontrivial, as generated lenses can be quite large, but it
     was easier than it might sound. Some of the lenses' structure should follow
     the structure of their regular expression types; this is relatively easy to
     validate. The more difficult part was checking the interactions of complex
     combinators like swaps, disconnects, and merges. However, these bits
-    typically spanned only a few dozen lines of code. Certainly, checking the
+    typically span only a few dozen lines of code. Certainly, checking the
     code is easier than creating it de novo.
 
-2.  We ran a set of tests to validate the more complex lenses. These tested that
-    the synthesized lenses performed creates and puts as we expected them to.
-
+2.  We ran a series of unit tests to validate the more complex lenses. These
+    tests confirmed that the output of creates and puts were as expected.
+    
 After manually validating that SS found the desired lenses, we validated the
 lenses synthesized in other modes by comparing those lenses to the ground
 truth of SS.
