@@ -226,14 +226,17 @@ We responded to issues on judging correctness "above the fold" at the top of
 this response.
 
 We chose our benchmarks from the FlashFill paper because the 238 tasks are,
-unfortunately, not publicly available. In general, our benchmark suite goes
-beyond the level of difficulty required for data cleaning. Many real-life
+unfortunately, not publicly available.  Many real-life
 file format descriptors involve large numbers of disjunctions and nested
 iterations, which FlashFill is either bad at (for disjunctions) or cannot
 handle at all (nested iterations).
 
-A more thorough comparison to FlashFill is present in the previous Synthesizing
-Bijective Lenses paper.
+In our previous work on synthesizing bijective lenses, we compared
+FlashFill to our bijective synthesis algorithm in more detail, finding
+that FlashFill was able to synthesize just 5 of the 39 examples that
+we had at that time due to the presence of nested iterations.  In any
+subsequent version of this paper, we would be happy to compare our
+work with FlashFill in greater detail.
 
 All benchmarks were performed on a 2.5 GHz Intel Core i7 processor with 16
 GB of 1600 MHz DDR3 running macOS High Sierra. 
@@ -286,8 +289,8 @@ our extension to Boomerang, we do not remove this freedom.
        interval. Currently only `id`, `disconnect`, and `merge_left` yield
        intervals.
 
-This was us trying to make our equations more readable, but we did not
-sufficiently explain what our syntax meant. The calls to H(...) return pairs,
+We were attempting to make our equations more readable, but we did not
+sufficiently explain what our syntax meant. The calls to H(...) returns pairs,
 and when multiplied by constants, or added together, they act as follows:
 
   a x (b,c) = (a x b,a x c)
@@ -359,15 +362,18 @@ bijective lenses.
        (and readers in the future) may want to know to which extent the job
        of writing lenses can be automatically done.
 
-We chose our benchmarks from the FlashFill paper because the 238 tasks are,
-unfortunately, not publicly available. In general, our benchmark suite goes
-beyond the level of difficulty required for data cleaning. Many real-life
-file format descriptors involve large numbers of disjunctions and nested
-iterations, which FlashFill is either bad at (for disjunctions) or cannot
-handle at all (nested iterations).
+We chose our benchmarks from the FlashFill paper because the 238 tasks
+are, unfortunately, not publicly available.  Many real-life file
+format descriptors involve large numbers of disjunctions and nested
+iterations, which FlashFill is either bad at (for disjunctions) or
+cannot handle at all (nested iterations).
 
-A more thorough comparison to FlashFill can be found in the previous
-Synthesizing Bijective Lenses paper.
+In our previous work, we compared FlashFill to our bijective synthesis
+algorithm in more detail, finding that FlashFill was able to
+synthesize just 5 of the 39 examples that we had at that time due to
+the presence of nested iterations.  In any subsequent version of this
+paper, we would be happy to compare our work with FlashFill in greater
+detail.
 
                                 -------------
                              
@@ -465,12 +471,15 @@ the cost of thinking about fiddly details when writing the terms.  Worrying
 about these fiddly details while ALSO thinking about unambiguity
 restrictions is a difficult task!
 
-Engineering best practices suggest that it's a good idea to annotate lenses
+Moreover, engineering best practices suggest that it's a good idea to annotate lenses
 with their types.  While Boomerang does not require these annotations (it
 can infer the types from the terms), types serve as documentation for future
-programmers to understand what formats the lens maps between. Furthermore,
+programmers to understand the formats that lenses process. Furthermore,
 the types provide resilience in the face of future lens modifications,
-ensuring that the lens maps exactly between strings of the provided formats.
+ensuring that the lens maps exactly between strings of the provided
+formats.  Hence, if lens authors are going to write down the types
+anyway, why not allow our system to synthesize the fiddly terms from
+those types for the programmer?  It seems clear work will be saved.
 
                                 -------------
                                 
@@ -478,11 +487,14 @@ ensuring that the lens maps exactly between strings of the provided formats.
       procedure is needed — i.e., why do we need to rewrite types for
       GreedySynth.
 
-Expand is needed because GreedySynth alone cannot traverse regular
+Expand is needed because GreedySynth alone does not account for regular
 expression equivalences. If given the two regular expressions "" | "a"+, and
-"a"\*, GreedySynth alone would merge "" to "a"\* (with a disconect), and
-merge "a"+ (also with a disconect).  However, contuing search through
-equivalent REs helps find the bijective lens.
+"a"\*, GreedySynth alone will not synthesize the right lens:  it will
+merge "" to "a"\* (with a disconect), and merge "a"+ (also with a
+disconect).  The Expand algorithm searches for semantically equivalent
+REs that are "compatible" in the sense that they allow GreedySynth to
+find additional lenses between them.  In particular, in the example
+given here, using Expand allows us to find a bijective lens.
 
                                 -------------
                                 
@@ -493,9 +505,9 @@ equivalent REs helps find the bijective lens.
       synthetic ones) where knowing the distribution of data can clearly 
       influence the synthesis procedure.
 
-We respond to this in the main response "above the fold".
+Please see above, in the initial 500 words of this reponse.
 
-We can provide an example, like the one in the main response, in the paper.
+We can provide an example, like the one in the main response above, in the paper.
 
                                 -------------
                                 
@@ -512,7 +524,7 @@ We can provide an example, like the one in the main response, in the paper.
       in synthesis (to my knowledge), the paper does not convince me that it is 
       needed here.
 
-See the main reponse.
+Please see above, in the initial 500 words of this reponse.
 
 35 of the 48 symmetric benchmarks synthesized the same lenses as in the
 Synthesizing Bijective Lenses paper. 4 of the benchmarks in Synthesizing
@@ -520,8 +532,8 @@ Bijective Lenses had to be altered to be bijective to account for projecting
 information: those 4 were altered to their original forms, and we built our
 algorithm on those 39 benchmarks. The remaining 9 benchmarks were added without
 any changes to the synthesis algorithm (although we did make bugfixes while
-adding those benchmarks). The 39 benchmarks from Optician hence were certainly
-not hand-picked, and our synthesis algorithm was certainly not overtuned to the
+adding those benchmarks). The 39 benchmarks from Optician hence were
+not hand-picked, and our synthesis algorithm was not overtuned to the
 remaining 9 benchmarks.
 
                                 -------------
@@ -542,12 +554,7 @@ algorithm and specifications (like for edit lenses and update lenses).
     - My main concern is whether the use of stochastic REs is really useful (see
       above)
       
-Stochastic REs, and more generally, a semantic cost metric are critical for
-comparing between responses by GreedySynth. Without this semantic cost, the
-same function would likely have different costs if found through different
-calls to GreedySynth. Syntactic metrics, we feel, aim to approximate how
-good the underlying result is: in this work we are able to find a semantic
-metric that we can be found using syntactic information.
+Please see above, in the initial 500 words of this response.
 
                                 -------------
                                 
