@@ -31,7 +31,7 @@ To validate the synthesized lenses, we did what programmers usually do:
 2.  We ran a series of unit tests to validate the more complex lenses. These
     tests confirmed that the output of creates and puts were as expected.
     
-After manually validating that the SS mode found the desired lenses,
+After manually validating that the full "SS" mode found the desired lenses,
 we validated other modes by matching their output to that of SS.
 
 
