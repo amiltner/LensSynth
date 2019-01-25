@@ -245,19 +245,19 @@ lenses are of independent theoretical interest, being the largest class of
 symmetric lenses that do not rely on persistent internal state.
 
 Synthesizing simple symmetric lenses is substantially more challenging that
-synthesizing bijective lenses: Since some of the information on each side
-can be ``disconnected'' from the other side, there will in general be {\em
-  many} lenses that agree with a given example.  To guide the search
-process, we use {\em stochastic regular expressions} and ideas from
-information theory to estimate the amount of information propagated by a
-candidate lens.
+synthesizing bijective lenses: Since some of the information on each side can be
+``disconnected'' from the other side, there will in general be {\em many} lenses
+that agree with a given example. To guide the search process, we use {\em
+  stochastic regular expressions} and ideas from information theory to estimate
+the amount of information propagated by a candidate lens, in conjunction with
+annotations to state whether certain bits of information are irrelevant, or must
+be maintained.
 
 We describe an implementation of simple symmetric lenses and our synthesis
 procedure as extensions to the Boomerang language~\cite{Boomerang}. We evaluate
 its performance on 48 benchmark examples drawn from Flash Fill~\cite{flashfill},
 Augeus~\cite{augeas2}, the bidirectional programming literature, and electronic
-file format synchronization tasks. After modest tuning, which is encouraged by
-the interactive nature of the tool, our implementation can synthesize all these
+file format synchronization tasks. Our implementation can synthesize all these
 lenses in under 30 seconds.
 \end{abstract}
 
@@ -574,14 +574,14 @@ suggests that further searching is unlikely to be fruitful.
 %%search terminates. Otherwise, this lens is stored away (if it is the best found
 %%so far) and the search continues with \Expand again.
 
-We added this synthesis procedure to the Boomerang implementation and
-evaluated its effectiveness on a benchmark suite of 48 problems, including
-data-cleaning tasks taken from Flash Fill~\cite{gulwani-popl-2014},
-view-maintenance tasks taken from Augeas~\cite{augeas2}, and ad-hoc
-synchronization tasks from a variety of other sources (mostly from the
-bidirectional programming literature).  The ``programmer'' can control the
-search process via examples and a {\em tuning parameter} that governs how
-much effort is spent trying to improve on existing solutions.
+We added this synthesis procedure to the Boomerang implementation and evaluated
+its effectiveness on a benchmark suite of 48 problems, including data-cleaning
+tasks taken from Flash Fill~\cite{gulwani-popl-2014}, view-maintenance tasks
+taken from Augeas~\cite{augeas2}, and ad-hoc synchronization tasks from a
+variety of other sources (mostly from the bidirectional programming literature).
+The ``programmer'' can control the search process via examples and annotations
+that informs the synthesis algorithm as to whether certain information is
+irrelevant, or must maintained.
 
 In summary, our contributions are:\bcp{The section references do not proceed
   in order, so this doesn't work very well as an outline of the paper.
@@ -605,14 +605,13 @@ novel application of stochastic regular expressions to guide the search
 process (\S\ref{sec:synthesis})\bcp{``and prove it correct''???}.  
 %
 \item We extend the Boomerang implementation with simple symmetric lenses,
-demonstrating that they integrate smoothly with other lens extensions such
-as quotient lenses~\cite{quotientlenses} and matching
-lenses~\cite{matchinglenses}.  We evaluate our implementation and the
-effects of various optimizations and the tuning parameter on a set of 48
-lens synthesis benchmarks drawn from data cleaning, view maintenance, and
-file synchronization tasks.  With only modest interactive tuning, the system
-can synthesize simple symmetric lenses for all of the benchmarks in under 30
-seconds (\S\ref{sec:evaluation}).
+  demonstrating that they integrate smoothly with other lens extensions such as
+  quotient lenses~\cite{quotientlenses} and matching
+  lenses~\cite{matchinglenses}. We evaluate our implementation, the effects of
+  various optimizations, and our inclusion of relevance annotations on a set of
+  48 lens synthesis benchmarks drawn from data cleaning, view maintenance, and
+  file synchronization tasks. The system can synthesize simple symmetric lenses
+  for all of the benchmarks in under 30 seconds (\S\ref{sec:evaluation}).
 %
 \item We show that simple symmetric lenses fall between asymmetric
 lenses~\cite{Focal2005-long} and full symmetric
@@ -1177,18 +1176,19 @@ searching for an even better lens.
 
 To resolve this tension, our algorithm uses heuristics to judge whether to
 return the current best satisfying lens to the user or to pass the next set of
-unrollings to \GreedySynth.  The heuristics favor stopping if the current best
+unrollings to \GreedySynth. The heuristics favor stopping if the current best
 satisfying lens has relatively high likelihood, indicating the lens is very
-promising.  The heuristics also favor stopping if \Expand has delivered to
+promising. The heuristics also favor stopping if \Expand has delivered to
 \GreedySynth all pairs of stochastic regular expressions at a given rank and
 there is a large number of pairs at the next rank because searching through all
-such pairs will take a long time.  With this approach, the algorithm can quickly
-respond with a satisfying lens with relatively high likelihood.  If users are
+such pairs will take a long time. With this approach, the algorithm can quickly
+respond with a satisfying lens with relatively high likelihood. If users are
 unhappy with the result, they can either refine the search by supplying
 additional examples, which serve both to rule out the previously proposed
 lens(es) and to reduce the size of the search space by cutting down on the
-number of satisfying lenses, or supply a tuning parameter (discussed in 
-\S\ref{subsec:optimizations}) that adjusts how much effort is put into the search.
+number of satisfying lenses, or they can supply annotations (discussed in
+\S\ref{subsec:optimizations}) informing describing whether certain information
+should be retained through format conversion.
 
 
 %Consider the trivial lens
@@ -2339,17 +2339,16 @@ returns \None otherwise.
   \end{algorithmic}
 \end{algorithm}
 
-\subsection{Optimizations and Termination Tuning}
+\subsection{Optimizations and Relevance Annotations}
 \label{subsec:optimizations}
 
 Our implementation includes a number of optimizations not described above:
-annotations that guide DNF conversion; an expansion inference
-algorithm; hash-consing and memoization; and compositional synthesis. The
-implementation also provides for an additional specification parameter that
-customizes the termination condition for the synthesis procedure.  The
-optimizations make the system performant enough for interactive use, and the
-tuning parameter gives the user a ``knob'' by which the algorithm can be
-directed to try harder to find a good lens.
+annotations that guide DNF conversion; an expansion inference algorithm;
+hash-consing and memoization; and compositional synthesis. The implementation
+also provides for additional specifications in the form of annotations that help
+describe which information is irrelevant to the lens. The optimizations make the
+system performant enough for interactive use, and the annotations help ensure
+the desired information is projected.
 
 \paragraph*{Open and Closed Regular Expressions} While \GreedySynth acts
 relatively efficiently, it can suffer from an exponential blowup when converting
@@ -2403,35 +2402,49 @@ larger problem can subsequently use solutions to those subproblems.  In our expe
 this is a very powerful tool that allows synthesis to tackle problems of arbitrary
 complexity.
 
-\paragraph*{Termination Customization}
+\paragraph*{Relevance Annotations}
 In this work, there are three competing constraints. The tool should (1) return
 lenses quickly to users, (2) return the highest quality lenses, and (3)
 not require users to write a large number of examples.
 Our termination heuristic works well for most situations, but
-there are cases where a large number of expansions must be performed to find the
-correct lens.  Users can work around such a problem by providing a large number
-of examples, but constructing examples is a chore, especially when formats are
-complicated.  We have often found it simpler to allow users to change the
-synthesis termination condition to demand \SynthSymLens be more judgemental
-when it comes to deciding it has found a ``good enough'' lens.  
-Conversely, if the user's desired transformation has a particularly
-high cost, the algorithm may spend a long time searching in vain for lenses with
-lower cost. By tuning \SynthSymLens to be more permissive, such a search can be
-short-circuited.
+there are cases where it fails.
 
-For these situations, users can provide a number $t$ that affects
-the strictness of the termination condition by adjusting the \Continue formula
-as follows. When $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, $\Regex$ and
-$\RegexAlt$ are at
-distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
-current best lens has cost $c$,
-\begin{gather*}
-  \Call{Continue}{pq} := c > \Min(d + \Log_2(n) - t, 0).
-\end{gather*}
-With a positive $t$, the termination condition is stricter, and the algorithm
-will spend longer searching for more likely lenses. With a negative $t$, the
-termination condition is less strict, and the algorithm will spend less time
-searching.  The default $t$ is $0$.
+In particular, our system works hard to find lenses that project \emph{as little
+  information as possible}. If the desired lens requires projecting a large
+amount of information, the termination condition will be satisfied ``too late.''
+While \GreedySynth may have found what the user knows to be the desired lens,
+the full algorithm will continue trying to find lenses that project less
+information.
+
+Conversely, the termination heuristic is satisfied algorithm cuts short: if it
+had continued searching for lenses it would have found the desired one, but the
+termination heuristic was satisfied ``too early.'' We wish for our algorithm to
+provide feedback in a timely manner, but sometimes this prohibits finding the
+desired lens.
+
+To address these issues, we allow annotations on the regular expressions
+dictating relevance. The first, $\SkipOf{\Regex}$, says the information
+content of $\Regex$ is irrelevant to the desired lens, and can the data can be
+safely projected. The second, $\SRequireOf{\Regex}$, says the information of
+$\Regex$ is critical to the desired lens, and none of the information can be
+lost when converting between the formats.
+
+If synthesizing a lens seems to be taking a long time, it is spending time
+checking it cannot find a lens that projects less information. By ``skipping''
+portions of the SRE that \emph{should} be projected, the algorithm will not
+continue searching for a better lens when it has already found the correct one.
+In practice, we implement \Skip by setting the information content of
+$\Skip(\Regex)$ to zero.
+
+If the algorithm returns a lens with too disconnects and merges, one could
+provide additional examples to constrain the lens more. However, for large
+formats, writing such examples is time consuming and error-prone. Instead, if
+one recognizes that information from $\Regex$ is incorrectly lost when converted
+between formats, they can prevent that information from being lost by annotating
+it $\SRequireOf{\Regex}$. One can guarantee a lens between \Regex and \RegexAlt
+is bijective by annotating them as $\SRequireOf{\Regex}$ and
+$\SRequireOf{\RegexAlt}$. In practice, we implement \SRequire by setting the
+cost of any lens that loses ``required'' information to infinity.
 % end synthesis
 
 % begin evaluation
@@ -2451,13 +2464,13 @@ the synthesis of new lenses.
 
 In this evaluation, we aim to answer four primary questions:
 \begin{enumerate}
-\item Can the algorithm (with suitable examples and termination
-  tuning) find the correct lens?
+\item Can the algorithm (with suitable examples and annotations) find the correct lens?
 \item Is the synthesis procedure efficient enough to be used in everyday
   development?
 \item How much slower is our tool on bijective lens synthesis benchmarks than
   the existing Optician system customized for bijective lenses?
-\item How effective is the information-theoretic search heuristic and how does termination tuning affect the results?
+\item How effective is the information-theoretic search heuristic and how do our
+  annotations affect the results?
 \end{enumerate}
 
 
@@ -2488,29 +2501,34 @@ target regular expression.\saz{Do we want to say anything about the sizes of the
 
 Because our tool is intended to be interactive---the user typically starts with
 zero or one examples, runs the tools, determines whether the output is the
-desired one and, if not, either adds an example or adjusts the termination
-metric and then tries again---it is hard to cleanly evaluate the net user
-experience.  The primary concern is whether it is usable to generate
-synthesize correct lenses.
+desired one and, if not, either adds an example or relevance annotations and
+then tries again---it is hard to cleanly evaluate the net user experience. The
+primary concern is whether it is usable to generate synthesize correct lenses.
 
 To determine whether the system can synthesize the desired lenses, we ran it
 interactively on all 48 tasks, working with the system to create sufficient
-examples and adjust the termination parameter.  In all cases, the desired lens
-was obtained, which we verified by manually inspecting the generated lens
-programs.
+examples and provide useful relevance annotations.  In all cases, the desired lens
+was obtained.
 %
 The majority of the tasks required only a single example and none required
 more than three examples in order to synthesize the desired lens.\footnote{In
   one benchmark, we supplied a fourth example that was later discovered to 
   be unnecessary.}  
 
-Adjusting the termination parameter was needed in only 9 of the 48 tasks. In practice, we
-found that customizing the termination metric to be quite easy: if manual
-inspection of the lens showed there were too few \IdentityLens{}s, and too many
-\Disconnect{}s or merges, we would increase
-the termination parameter. If synthesis took too long, we would decrease it.
-Section~\ref{subsec:effect-of-heuristics} studies the effect of fixing the
-termination metric.
+Providing relevance annotations was needed in only 8 of the 48 tasks. In
+practice, we found that adding such annotations quite easy: if manual inspection
+of the lens showed there were too few \IdentityLens{}s, and too many
+\Disconnect{}s or merges, we would add \SRequire annotations. If synthesis took
+too long, we would add \Skip annotations.
+Section~\ref{subsec:effect-of-heuristics} studies the effects of removing such
+annotations.
+
+We verified that \SSOpt{} generated the correct lenses the way programmers often
+validate their programs: we manually inspected the code and ran unit tests on
+the synthesized code. To determine whether the synthesis procedure generated the
+correct lens when running in modes other than \SSOpt{}, we compared generated lens
+to the lens synthesized by \SSOpt{}.
+
 
 %%A realistic benchmarks suite is critical in answering the first research
 %%question. To determine whether our algorithm is fast enough to be used in
@@ -2520,7 +2538,7 @@ termination metric.
 
 \subsection{Effectiveness of Compositional Synthesis}
 
-Having determined appropriate examples and termination parameters for the 48
+Having determined appropriate examples and annotations for the 48
 benchmarks, we evaluate the performance of the system by measuring the running
 time of our algorithm in two modes:
 
@@ -2546,9 +2564,8 @@ provides a useful experimental stress test for the system.
     existing lenses. The symmetric synthesis algorithm is able to complete all
     benchmarks in under 30 seconds elapsed total time. Without compositional
     synthesis it is able to complete 26. Each benchmark specification includes
-    source and target regular expressions, between one and three sufficient
-    examples, and, if necessary, the timing parameter determined to be
-    sufficient for correctness during a prior interactive session.}
+    source and target (potentially annotated) regular expressions, and between
+    one and three sufficient examples.}
   \label{fig:times}
 \end{figure}
 
@@ -2568,7 +2585,7 @@ synthesis, the synthesis algorithm is able to solve 26 problem instances.
 To compare to the existing bijective synthesis algorithm, we run our symmetric
 synthesis algorithm on the original Optician benchmarks, comprised of
 39 bijective synthesis tasks.\footnote{We had to slightly alter four of these
-benchmarks, either by providing additional examples or by tuning termination parameters.
+benchmarks, either by providing additional examples or by adding in \SRequire annotations.
 Without these alterations, symmetric synthesis yielded a lens that fit
 the specification but that was undesired.}
 
@@ -2613,15 +2630,8 @@ termination heuristic.  To this end, we run our program in several different mod
   \CCOpt{}: & We replace our information-theoretic cost metric with one where
               the cost of the lens is the number of disonnects plus the number
               of merges.\\
-\end{tabulary}
-
-\begin{tabulary}{\linewidth}{rL}
-  \ZTOpt{}: & \ZTOpt{} runs the algorithm with the termination parameter
-              universally set to 0 (default). \\
-  \TFTOpt{}: & \TFTOpt{} runs the algorithm with the
-               termination parameter universally set to 25. \\
-  \NTFTOpt{}: & \NTFTOpt{} runs the algorithm with the
-                termination parameter universally set to -25. \\
+  \NSOpt{}: & We ignore all \Skip annotations in the SRE specifications. \\
+  \NROpt{}: & We ignore all \SRequire annotations in the SRE specifications. \\
 \end{tabulary}
 
 
@@ -2634,22 +2644,17 @@ measure---it operates by counting disconnects, which put a complete
 stop to information transfer, and merges, which
 eliminate the information in a union. 
 
-Figure~\ref{fig:metric}
-summarizes the result of these experiments. The data reveal that 
-the information-theoretic metric is critical for finding the correct
-lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode.
-The termination condition is also quite important. When running
-in \FLOpt{} mode, the algorithm only discovers 5 lenses, which shows
-that the first cluster that contains a satisfying lens is rarely the
-correct cluster.  However, our termination condition is not perfect.
-Sometimes users must tell the algorithm to ``keep going'' or ``stop early.''
-Without termination parameters, our algorithm finds the correct lens for 39 of
-our 48 benchmarks; nine required tuning 
-to find the correct lens. Nevertheless, our default parameter sits in a
-good middle-ground. Both \TFTOpt{} and \NTFTOpt{} synthesized the correct lens
-less often than \ZTOpt.  \TFTOpt{} demands too good a lens, so the search
-procedure keeps spinning, while \NTFTOpt{} terminates early, not
-always trying hard enough to find the correct lens.
+Figure~\ref{fig:metric} summarizes the result of these experiments. The data
+reveal that the information-theoretic metric is critical for finding the correct
+lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode. The
+termination condition is also quite important. When running in \FLOpt{} mode,
+the algorithm only discovers 5 lenses, which shows that the first cluster that
+contains a satisfying lens is rarely the correct cluster. However, our algorithm
+is not perfect and fails when either it is very difficult to find the desired
+lens (necessitating \SRequire) or when a large amount of data is projected
+(necessitating \Skip). Without any annotations, our algorithm finds the correct
+lens for 40 of our 48 benchmarks; eight required relevance annotations to find
+the correct lens.
 % end evaluation
 
 % begin related-work
@@ -2664,11 +2669,9 @@ always trying hard enough to find the correct lens.
     first lens it finds that satisfies the specification. \FLOpt{} provides a
     notion of cost to \GreedySynth, but once a satisfying lens is greedily
     found, that lens is returned. \CCOpt{} synthesizes lenses, where the cost of
-    a lens is the number of disconnects plus the number of merges. \ZTOpt{} runs
-    the algorithm with the termination parameter universally set to 0 (default).
-    \TFTOpt{} runs the algorithm with the termination parameter universally set
-    to 25. \NTFTOpt{} runs the algorithm with the termination parameter
-    universally set to -25.}
+    a lens is the number of disconnects plus the number of merges. \NSOpt
+    ignores all \Skip annotations while running the algorithm. \NROpt ignores
+    all \SRequire annotations while running the algorithm.}
   \label{fig:metric}
 \end{figure}
 
