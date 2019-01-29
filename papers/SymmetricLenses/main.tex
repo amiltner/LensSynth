@@ -378,7 +378,10 @@ targets for search-based synthesis, since their specialized, sub-Turing-complete
 and expressive type systems drastically
 limit the space of possible programs. 
 %
-In particular, the Optician~\cite{optician} system has demonstrated that
+In particular, the Optician~\cite{optician} algorithm\bcp{there's a
+  potential for confusion between ``Optician'' and ``Boomerang''---are they
+  distinct systems?  Is one part of the other?  Is one a system and one just
+  an algorithm?  It's not very clear.} has demonstrated that
 it is feasible to synthesize quite complex examples, albeit only for a
 restricted class of lenses---so-called bijective lenses. Specifically, given 
 source and target formats plus a small number of
@@ -483,38 +486,46 @@ To characterize their expressive power formally, we show that simple
 symmetric lenses are exactly the symmetric lenses that satisfy an intuitive
 property called \emph{forgetfulness}.  To check that they are expressive
 enough in practice, we add simple symmetric lenses to the Boomerang
-language~\cite{Boomerang} and apply them to a range of real-world
+language~\cite{Boomerang}\bcp{this seems to assume that readers already know what
+  Boomerang is} and apply them to a range of real-world
 applications, showing in the process that simple symmetric lenses integrate
 smoothly with other advanced lens features provided by Boomerang, including
 quotient lenses~\cite{quotientlenses,maina+:quotient-synthesis} and matching
 lenses~\cite{matchinglenses}.
 
-However, we are still left with a second difficulty with synthesizing
-symmetric lenses: While the number of bijective lenses between two related
-formats is typically tiny, the number of simple symmetric lenses is
-typically huge.  Thus, if a na\"ive search algorithm selects the first
-simple symmetric lens it finds, this will generally \emph{not} be the one we
-want.  We need a new principle for identifying ``more likely'' lenses and a
-more sophisticated synthesis algorithm that uses this principles to search
-the space more intelligently.
+This leaves us with just the second difficulty with synthesizing symmetric
+lenses: While the number of bijective lenses between two given formats is
+typically tiny, the number of simple symmetric lenses is typically enormous.
+If a na\"ive search algorithm just selects the first simple symmetric lens
+it finds, this will generally \emph{not} be the one the user wanted.  We
+need a new principle for identifying ``more likely'' lenses and a more
+sophisticated synthesis algorithm that uses this principle to search the
+space more intelligently. For these, we turn to information theory. 
 
-For these, we turn to information theory. 
 We consider a ``likely'' lens to be one that propagates ``a lot'' of
 information from source to 
-target and vice versa. Conversely, an unlikely lens requires a
+target and vice versa. Conversely, an unlikely lens is one that requires a
 large amount of additional information to recover the target given a
-source.  
+source.\bcp{I'm nervous about the way we're talking about source and target
+  here.  For one thing, even the words ``source'' and ``target'' connote a
+  directionality that is misleading here.  And even ignoring that issue, a
+  lot of the discussion (like here) sounds as though we are talking about
+  unidirectional transformations.}  
 This categorization follows from the intuition
 that users will typically want to synchronise formats with lots
-of shared information, and so lenses that propagate
-more information are preferable to ones that propagate less.
+of shared information\bcp{really?  It's hard to be certain without lots of
+  practical experience, but a priori it seems equally reasonable for users
+  to want to pull little bits of shared information out of huge structures
+  and keep them in sync.  But maybe we can weaken the claim and just say
+  that we have an intuition that this will at least be {\em one} large class
+  of application scenarios, and this is the one we focus on}, and so lenses
+that propagate more information are preferable to ones that propagate less.
 %
 This intuition is formalized using \emph{stochastic regular expressions}
 (SREs)~\cite{stoch-rnn,stoch-def}, which simultaneously define a set of
 strings and a probability distribution over those strings.  Using this
 probability distribution, we can calculate the shared information content of
-two formats\bcp{It's not obvious at this point what the {\em shared}
-  information content has to do with anything.} and our measure of likelihood.
+two formats and our measure of likelihood.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -540,10 +551,12 @@ the likelihood measure.
 The interesting complications arise from the need to deal with
 regular-expression equivalences.  There are infinitely many regular
 expressions equivalent to a given one, and the lens returned by a
-type-directed search will depend on which of the infinitely many possible
+type-directed search will in general depend on which of the possible
 representations are chosen for its source and target formats.  Moreover,
 there may be {\em no} lens connecting the 
-source and target formats selected by the user: in general, the synthesis
+source and target formats selected\bcp{until we get past the colon, it is
+  not clear that we are talking here about formats {\em not} modulo
+  equivalence.} by the user: in general, the synthesis 
 algorithm has to search to find equivalent ones for which a suitable lens
 exists.  
 To tame this complexity, we divide the synthesis algorithm into two
@@ -555,9 +568,10 @@ original pair.
 The second, \GreedySynth, takes a pair of SREs as input
 and uses a greedy, type-directed algorithm to find a simple symmetric
 lens between them, returning the lens and its likelihood score
-to \Expand.  The whole synthesis algorithm terminates when comparing the
+to \Expand.  The whole synthesis algorithm terminates when a comparison of the
 likilihood score of the best lens found so far with 
-the complexity of newly generated SREs 
+the complexity\bcp{what does it mean to compare likelihood with complexity?}
+of newly generated SREs  
 suggests that further searching is unlikely to be fruitful. 
 
 %%
@@ -576,23 +590,16 @@ suggests that further searching is unlikely to be fruitful.
 %%search terminates. Otherwise, this lens is stored away (if it is the best found
 %%so far) and the search continues with \Expand again.
 
-We added this synthesis procedure to the Boomerang implementation and evaluated
+We have added this synthesis procedure to the Boomerang system and evaluated
 its effectiveness on a benchmark suite of 48 problems, including data-cleaning
 tasks taken from Flash Fill~\cite{gulwani-popl-2014}, view-maintenance tasks
 taken from Augeas~\cite{augeas2}, and ad-hoc synchronization tasks from a
 variety of other sources (mostly from the bidirectional programming literature).
-The ``programmer'' can control the search process via examples and annotations
+The ``programmer''\bcp{user?} can control the search process via examples and annotations
 that informs the synthesis algorithm as to whether certain bits of information
 are irrelevant, or must maintained.
 
-In summary, our contributions are:\bcp{The section references do not proceed
-  in order, so this doesn't work very well as an outline of the paper.
-  Should we try to reorder the contributions?  Write a separate outline?
-  Live with it as-is?}\afm{Personally, I don't see it as a problem.  It's
-  nice when the contributions mirror the paper, I am not jarred when they
-  don't.}\bcp{But then the reader has no birds-eye view of the paper at
-  this point.  I tried reorganizing, which I think also helps clarify the
-  contributions.} 
+In summary, our contributions are:
 \begin{itemize}
 %
 \item We define {\em simple symmetric lenses}, a subclass of symmetric
@@ -604,7 +611,7 @@ describe how to calculate their likelihoods (\S\ref{sec:ssl}).
 \item We give
 an algorithm for synthesizing lenses built from these combinators, using a 
 novel application of stochastic regular expressions to guide the search
-process (\S\ref{sec:synthesis})\bcp{``and prove it correct''???}.  
+process (\S\ref{sec:synthesis})\bcp{``and prove it correct''!  (right?)}.  
 %
 \item We extend the Boomerang implementation with simple symmetric lenses,
   demonstrating that they integrate smoothly with other lens extensions such as
@@ -624,7 +631,7 @@ full symmetric lenses for which a simple ``forgetfulness'' property holds
 \end{itemize}
 Along the
 way, we show that {\em star-semiring equivalences} on regular expressions
-remain valid when applied to stochastic regular expressions, preserving
+remain valid when extended to stochastic regular expressions, preserving
 probability distributions as well as languages (\S\ref{sec:sre}).
 We close with related work (\S\ref{sec:related}) and
 concluding thoughts (\S\ref{sec:conc}).
@@ -817,12 +824,15 @@ $Y$ comprises four functions that collectively satisfy four
 \noindent
 The two \KW{create} functions are used to propagate shared information and
 fill in default values when introducing new data (\EG, the ``unk'' salary
-entry is added alongside the name to the management file when HR inserts a
+entry is added\bcp{is added by what?  A create function, I guess, but the
+  connection is not clear} alongside the name to the management file when HR inserts a
 new employee). The two \KW{put} functions propagate edits from one format to
 the other by combining a new value from one with an old value from the
 other.  The round-tripping laws guarantee that pushing an ``un-edited''
 value from one side (the result of a put or create) back through a lens in
-the other direction will get back to exactly where we began.
+the other direction will get back to exactly where we began.  \bcp{That
+  paragraph seems likely to be quite opaque to any reader that is not
+  already familiar with (symmetric) lenses.  How about a concrete example?}
 
 This definition differs from classical symmetric lenses in that it does not
 involve a \emph{complement}.  We give a detailed comparison in
@@ -838,9 +848,9 @@ involve a \emph{complement}.  We give a detailed comparison in
 
 \subsection{Simple Symmetric Lens Combinators}
 
-Generally, we do not expect programmers to define simple symmetric lenses by
+We do not expect programmers to define simple symmetric lenses by
 writing four functions by hand and showing they satisfy the round-tripping
-laws. Instead, we provide a set of combinators---a domain-specific
+laws.  Instead, we provide a set of combinators---a domain-specific
 language---for building complex lenses from simpler ones.  Such languages
 have been given for building lenses over many different kinds of data,
 including database relations~\cite{BohannonPierceVaughan} and algebraic data
