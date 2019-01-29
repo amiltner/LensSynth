@@ -736,7 +736,9 @@ let emp_insurance = header . ("\n" . emp_ins)$^*$
     to drop all the information theory?  Or would we still need it?  (In
     retrospect, this seems like a fairly obvious thing to try, so it seems
     important to try it and report on how it performs relative to what we
-    propose here...)}  }
+    propose here...)}\afm{Oh sorry, yes we can write such examples.  I personally found that typically the same information could be provided through a series of 2 creates (aka: if we want a disconnect: creater a = b; creater a' = b:  if we want an identity: creater a = a; creater a' = a').  However, we also permit putr and putl examples of the proposed form in the tool 
+Much like other aspects of the work, any situation with examples ultimately only constrains the subcomponents of the lens corresponding to that specific parse tree (aka: if I give an example about A in A|B, it only constrains "A").  I don't think it removes the need for the information theory, as all the other non-constrained subcomponents of the lens can still be "anything."
+}  }
   \label{fig:minimized-representations}
 \end{figure}
 
@@ -785,7 +787,7 @@ synchronized because they contain a mix of shared and unshared information.
 
 \subsection{Simple Symmetric Lenses}
 Semantically, a simple symmetric lens between sets $X$ and
-$Y$ comprises four functions that collectively satisfy four
+$Y$ comprises four functions subject to four
 ``round-tripping'' laws:  
 
 %\begin{enumerate}
@@ -795,6 +797,7 @@ $Y$ comprises four functions that collectively satisfy four
 %\item $\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$
 %\end{enumerate}
 \vskip 1.5ex
+\begin{center}
 \begin{minipage}[c]{.3\textwidth}
 \begin{gather}
  \tag{1}
@@ -807,7 +810,8 @@ $Y$ comprises four functions that collectively satisfy four
  \mbox{$\PutL \OfType Y \rightarrow X \rightarrow X$}
 \end{gather} 
 \end{minipage} 
-\begin{minipage}[c]{.6\textwidth}
+\hspace{.4in}
+\begin{minipage}[c]{.5\textwidth}
 \begin{align}
   \tag{\CreatePutRL}
   \PutLOf{(\CreateROf{x})}{x} = x\\
@@ -819,8 +823,10 @@ $Y$ comprises four functions that collectively satisfy four
   \PutROf{(\PutLOf{y}{x})}{y} = y
 \end{align}
 \end{minipage} 
+\end{center}
 \vskip 1ex
-\bcp{I want less space between the put/create laws and their names.}
+\bcp{Are we going to use the numbers next to the laws??  Seems like not, so
+  why have them at all?}
 \noindent
 The two \KW{create} functions are used to propagate shared information and
 fill in default values when introducing new data (\EG, the ``unk'' salary
@@ -848,10 +854,12 @@ involve a \emph{complement}.  We give a detailed comparison in
 
 \subsection{Simple Symmetric Lens Combinators}
 
-We do not expect programmers to define simple symmetric lenses by
-writing four functions by hand and showing they satisfy the round-tripping
-laws.  Instead, we provide a set of combinators---a domain-specific
-language---for building complex lenses from simpler ones.  Such languages
+In principle, programmers can define simple symmetric lenses just by
+writing four arbitrary functions by hand and showing they satisfy the round-tripping
+laws.  But a better idea is to streamline the process by providing a set of
+combinators---a domain-specific 
+language---for building law-abiding complex lenses from simpler ones.  Such
+bidirectional languages
 have been given for building lenses over many different kinds of data,
 including database relations~\cite{BohannonPierceVaughan} and algebraic data
 types~\cite{symmetric-lenses}\bcp{and what else? graphs, etc.?}.  We focus
@@ -861,7 +869,7 @@ described by regular expressions.
 If $\BRegex$ and $\BRegexAlt$ are regular expressions, then
 \lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that
 $\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
-$\LanguageOf{\BRegexAlt}$. (Later, we will use undecorated variables for
+$\LanguageOf{\BRegexAlt}$. (We will use undecorated variables later for
 stochastic regular expressions; we mark plain REs with overbars.)  When
 clear from context, we shorten ``simple symmetric lens'' to just
 ``lens.''
@@ -890,11 +898,10 @@ and the put functions merely return the first argument
 In our example, when a \lstinline{name} is updated in one file, the identity
 lens ensures it is also updated in the other file.
 
-In contrast, the \Disconnect lens does not propagate any edits
+In contrast, the \Disconnect lens does not propagate any edits at all
 from one format to the other.  It takes four arguments: two
 regular expressions and two strings. The regular expressions specify the formats
-of the corresponding data on the two sides while the strings provide default
-values. 
+on the two sides, while the strings provide default values. 
 %
 \begin{lstlisting}
 disconnect(salary, "", "unk", "") : salary $\Leftrightarrow$ ""
@@ -909,18 +916,20 @@ so we use the disconnect lens to ensure salary edits do not cause updates to the
 HR file.
 The defaults are strings that indicate the information is missing.
 
-The insert \lstinline{ins} and delete \lstinline{del} lenses are
+The insert lens \lstinline{ins} and the delete lens \lstinline{del} are
 syntactic sugar for uses of the disconnect lens in which a string
-constant is omitted entirely from the source and target formats,
-respectively.
+constant is omitted entirely from the source or target format.
 \begin{lstlisting}
  ins($t$) = disconnect("", $t$, "", $t$)
  del($s$) = disconnect($s$, "", $s$, "")
 \end{lstlisting}
+The \lstinline{ins} lens inserts a constant string when going from
+left to right, while \lstinline{del} inserts a string when going from right
+to left.
 
-Finally, there are a number of combinators that compositionally construct
+Finally, there are a number of combinators that construct
 more complex lenses from simpler ones. These include concatenation
-($\ConcatLensOf{\Lens_1}{\Lens_2}$ or $\Lens_1 . \Lens_2$), variation
+($\ConcatLensOf{\Lens_1}{\Lens_2}$, often written $\Lens_1 . \Lens_2$), variation
 ($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).
 For example, the composite lens \lstinline{name_lens} in the running
 example
@@ -930,7 +939,7 @@ id(name) . id(" ") . id(name) . del(": ") . ins(",")
 \end{lstlisting}
 %
 will transform ``\lstinline{Jane Doe: }'' to ``\lstinline{Jane Doe,}'' in
-the forward direction (converting from the left format to the right).
+the left-to-right direction.
 \bcp{We don't actually give a nontrivial example of how disconnect works.}
 
 % concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
@@ -966,7 +975,7 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 %let emp_lens = or(id(""),employees_lens) in
   \caption{A lens that synchronizes management and HR employee files\bcp{I'm
     pretty sure there was an error in name\_lens: the thing between the two
-    names should be id(" ") (was ins('','')).  Crossing my fingers that I'm
+    names should be id(" ") (it was ins('','')).  Crossing my fingers that I'm
     making a correct fix...}}
   \label{fig:example_lens}
 \end{figure}
@@ -975,13 +984,16 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 % management and HR employee files. 
 
 
-We provide typing rules for each of the simple symmetric combinators, most of
-which are syntax directed. However, regular expressions have a number of
+We provide typing rules for the simple symmetric combinators, most of
+them syntax directed. However, regular expressions have a number of
 equivalences on them, and sometimes we must convert one regular expression type
-to another, equivalent, regular expression type. Our typing rules include type
+to another, equivalent, regular expression type. \bcp{The next sentence is
+  dense.  Just show the rule?}Our typing rules include type
 equivalence, so if a lens has type $\BRegex \Leftrightarrow \BRegexAlt$, then it
 is also has type $\BRegex' \Leftrightarrow \BRegexAlt'$, where $\BRegex$ is
-equivalent to $\BRegex'$, and $\BRegexAlt$ is equivalent to $\BRegexAlt'$. The
+equivalent to $\BRegex'$, and $\BRegexAlt$ is equivalent to
+$\BRegexAlt'$. \bcp{We're not talking about synthesis yet, so this next
+  sentence seems off-track.  Drop it?}The
 flexibility this type equivalence rule provides is useful when a different
 representation of a regular expression would facilitate synthesis.
 
@@ -999,20 +1011,21 @@ representation of a regular expression would facilitate synthesis.
 
 \subsection{Synthesizing Simple Symmetric Lenses}
 
-While our example is relatively simple for demonstration, writing such lenses
-for real-world formats is quite difficult, as these formats can be large and
-represent data in complex and unintuitive ways. To alleviate the difficulty of
-manually writing simple symmetric lenses, we wish to synthesize them instead.
-Given a pair of regular expressions and a set of input-output examples, we want
+Lens expressions for small examples like the one above are pretty easy to
+write.  But for larger and more complex formats, it can become quite difficult to
+write lenses by hand.  Instead, we wish to synthesize them from examples.
+
+That is, given a pair of regular expressions and a set of input-output examples, we want
 to find a simple symmetric lens that is typed by the regular expression pair and
-satisfies the input/output examples. We call such a lens a \emph{satisfying
+satisfies all the input/output examples. We call such a lens a \emph{satisfying
   lens}. In our running example, we wish to synthesize a lens between
 \lstinline{emp_salaries} and \lstinline{emp_insurance}, using as an input-output
-example the data in Figure~\ref{fig:minimized-representations}. The algorithm
+example the data in Figure~\ref{fig:minimized-representations}.
+\bcp{Suggest deleting this sentence:}The algorithm
 uses such examples to find suitable defaults for \Disconnect lenses and to
 figure out how to match data that could be synchronised in multiple ways.
 
-A challenge is that the simple symmetric lens combinators permit many
+One challenge is that the simple symmetric lens combinators permit many
 well-typed lenses
 between a given pair of regular expressions. For example, 
 Figure~\ref{fig:example_lens} gives one possible lens between regular
@@ -1020,13 +1033,13 @@ expressions  \lstinline{emp_salaries} and \lstinline{emp_insurance},
 but 
 %
 \begin{lstlisting}
-disconnect(emp_salaries,emp_insurance,rep(emp_salaries),rep(emp_insurance))
+disconnect(emp_salaries, emp_insurance, rep(emp_salaries), rep(emp_insurance))
 \end{lstlisting}
 %
 is another well-typed lens (where \lstinline{rep($\BRegex$)} denotes some string in the
-language of $\BRegex$). Furthermore, adding the input-output example in
+language of $\BRegex$).  Adding the input-output example in
 Figure~\ref{fig:minimized-representations} 
-helps, but only a little: It may, in general, require {\em many} examples to rule
+helps, but only a little: In general, {\em many} examples may be required to rule
 out all possible occurrences of nested \Disconnect lenses,
 particularly in complex formats. 
 %\ksf{I don't understand the following.  We shouldn't explain the issue in
@@ -1044,35 +1057,42 @@ choose a lens despite the underspecification. Instead of merely finding
 \emph{any} satisfying lens, we wish to synthesize a satisfying lens that is
 likely to please the user.
 
-But what is a ``likely'' satisfying lens? We propose the following
+How can we identify such a ``likely'' lens? We propose the following
 heuristic: A satisfying
-lens is more likely if it connects more data between the two
+lens is ``more likely'' if it ``connects'' more data between the two
 formats, \EG, by using an identity rather than a disconnect lens.  The
 likeliest satisfying lenses would connect as much data as
 possible. More formally, we define the likelihood of a
 satisfying lens as the expected number of bits required to recover
 data in one format from synchronized data in the other.  Higher
-likelihoods correspond to lower numbers of bits. In more
-detail, we say that two strings $s$ and $t$ are \emph{synchronized
+likelihoods correspond to fewer bits. Yet more formally, we say that two
+strings $s$ and $t$ are \emph{synchronized 
 according to lens $l$} if $l.\PutR\ s\ t = t$ and $l.\PutL\ t\ s = s$.\footnote{
 The notation $l.\PutR$ extracts the \PutR function from simple
-symmetric lens $l$; similarly for \PutL.}  We say that we
+symmetric lens $l$; similarly for \PutL.\bcp{Let's introduce this notation
+  earlier when talking about lenses; shoving it in a footnote here is clunky.}}  We say that we
 can \emph{recover} $s$ from $t$ using bits $b$ and lens $l$ if we can
 reconstruct $s$ from $t$, $b$, and $l$.  For example, given
 the \IdentityLens{} lens, we can recover $s$ from $t$ using no bits
 because, in this case, $s$ is just $t$.  In contrast, given
 the \Disconnect{} lens, we need enough bits to fully encode $s$ in
 order to recover it from $t$ because $t$ contains no useful
-information.  This calculation shows that if both \IdentityLens{}
-and \Disconnect{} are satisfying lenses, then \IdentityLens{} is more
-likely.
+information.  Thus, if both \IdentityLens{}
+and \Disconnect{} are satisfying lenses for a particular pair of formats,
+then \IdentityLens{} will be more likely.
 
-The expected number of bits required to recover data is the well-known
-information-theoretic concept of the \emph{entropy} of the
-data~\cite{Shannon1948}. Calculating entropy requires a probability distribution
-over the space of possible values for the data. Specifically, given a set $S$
-and a probability distribution $P \OfType S \rightarrow \Reals$ over $S$, the
-entropy $\EntropyOf{S,P}$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$.
+The expected number of bits required to recover a piece of data corresponds
+to the well-known information-theoretic concept of
+\emph{entropy}~\cite{Shannon1948}. Calculating entropy requires a
+probability distribution over the space of possible values for the
+data. Specifically, given a set $S$ and a probability distribution
+$P \OfType S \rightarrow \Reals$ over $S$, the entropy $\EntropyOf{S,P}$ is
+$-\Sigma_{s\in S}P(s)\Log_2P(s)$.  \bcp{That definition requires some more words of
+  explanation!  And probably an example or two.  It is fundamental to the
+  rest of the paper: if a reader doesn't follow it, they will be lost.  (I
+  am a little lost myself... is entropy a property of an individual piece of
+  data (as the wording above suggests), or is it a property of the set to
+  which the data belongs?)}
 
 In our setting, we already have a way of expressing sets of data:
 regular expressions.  What we need is a way to express probability
