@@ -1193,50 +1193,55 @@ names to first names and last names to last names\bcp{the relationship of
 yields a simple symmetric lens by converting the n-ary
 forms into the binary forms provided in the surface language.
 
-%%%%%%%%%%%%%%% BCP stopped here
-
-As an example of the partnership between \Expand and \GreedySynth,
+To illustrate the partnership between \Expand and \GreedySynth,
 consider the lens shown in Figure~\ref{fig:example_lens}. 
 Inferring this lens requires \Expand to use a star-semiring axiom\bcp{are we
 assuming readers know what that is?} to
 rewrite the regular expression \lstinline{("\n" . emp_salary)$^*$} within
 \lstinline{emp_salaries} into 
 \lstinline{"" | (("\n" . emp_salary). ("\n" . emp_salary)$^*$)} 
-so that \GreedySynth can find the appropriate lens.  
+so that \GreedySynth can find the appropriate lens.  \bcp{This example would
+be more helpful if it were spelled out in full.  What is the path from the
+start of the search to the point where we find this solution?}
 
-Our strategy of communicating synthesizers gives us a way to
+This architecture of communicating synthesizers gives us a way to
 enumerate pairs of stochastic regular expressions of increasing
 rank and to efficiently search through them, but it poses a
-problem: when do we stop? We may have found a promising lens
+problem: when do we stop?\bcp{This question would arise independent of the
+  architecture of the search algorithm!} We may have found a promising lens
 between a pair of stochastic regular expressions, but a different 
 pair we haven't yet discovered may give rise to an even better lens. 
 Or, we may have found a promising lens between a given pair of
 stochastic regular expressions, but the discovered lens is not 
-acceptable to the users. 
+acceptable to the users. \bcp{How would the algorithm know this?}
 
-Our algorithm must resolve a three-way tension among the quality of
+The search algorithm must resolve a three-way tension among the quality of
 the inferred lens, the number of examples the user must provide to
 eliminate unwanted lenses, and the amount of time it takes to return a
 result.  For example, if the algorithm has already found the lens in
 Figure~\ref{fig:example_lens}, we don't want to spend a lot of time
-searching for an even better lens.
+searching for an even better lens.\bcp{How does this example illustrate a
+  three-way tension?}
 
-To resolve this tension, our algorithm uses heuristics to judge whether to
+To resolve this tension, the algorithm uses heuristics to judge whether to
 return the current best satisfying lens to the user or to pass the next set of
 unrollings to \GreedySynth. The heuristics favor stopping if the current best
-satisfying lens has relatively high likelihood, indicating the lens is very
+satisfying lens has relatively high\bcp{high compared to what??} likelihood,
+indicating the lens is very 
 promising. The heuristics also favor stopping if \Expand has delivered to
 \GreedySynth all pairs of stochastic regular expressions at a given rank and
-there is a large number of pairs at the next rank because searching through all
+there is a large number of pairs at the next rank, because searching through all
 such pairs will take a long time. With this approach, the algorithm can quickly
-respond with a satisfying lens with relatively high likelihood. If users are
+respond with a satisfying lens with relatively high likelihood. If the user is
 unhappy with the result, they can either refine the search by supplying
 additional examples, which serve both to rule out the previously proposed
 lens(es) and to reduce the size of the search space by cutting down on the
-number of satisfying lenses, or they can supply annotations (discussed in
-\S\ref{subsec:optimizations}) informing describing whether certain information
-should be retained through format conversion.
-
+number of satisfying lenses, or they can supply annotations on the source
+and target SREs indicating that certain information
+either must be retained or must be discarded by the lens (see
+\S\ref{subsec:optimizations}\bcp{this reference to the later section with
+  details is nice, but why don't we have similar references throughout this
+  overview??}). 
 
 %Consider the trivial lens
 %\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
@@ -1291,25 +1296,20 @@ should be retained through format conversion.
 
 \section{Stochastic Regular Expressions}
 \label{sec:sre}
-To characterize the likely lenses, we must compute the expected number of bits
-needed to recover a string in one data source from a synchronized string in the
-other data source. To do this, we must first develop a probabilistic language
-model for our language. We do this with \emph{stochastic regular expressions}~\cite{stoch-rnn,stoch-def},
-regular expressions annotated with probability information. With this, we can
-jointly express a language and a probability distribution over that language. In
-the following grammar, $\String$ ranges over strings, and $\Probability$ ranges
-over real numbers between 0 and 1, exclusive.
-$$\Regex{},\RegexAlt{} \GEq{}  \String  \; | \; \emptyset \; | \; \PRegexStar{\Regex}{p} \; | \; \RegexConcat{\Regex_1}{\Regex_2} \; | \; \PRegexOr{\Regex_1}{\Regex_2}{p}$$
+To characterize likely lenses, we must compute the expected number of bits
+needed to recover a string in one data source from a synchronized\bcp{again,
+needs a definition} string in the
+other data source. To do this, we must first develop a probabilistic 
+model for our language. We do this with \emph{stochastic regular
+  expressions} (SREs)---regular expressions annotated with probability
+information~\cite{stoch-rnn,stoch-def}---which 
+jointly express a language and a probability distribution over that language. 
+$$\Regex{},\RegexAlt{} \quad\GEq{}\quad  \String  \quad|\quad \emptyset \quad|\quad \PRegexStar{\Regex}{p} \quad|\quad \RegexConcat{\Regex_1}{\Regex_2} \quad|\quad \PRegexOr{\Regex_1}{\Regex_2}{p}$$
+(Lowercase $\String$ ranges over constant strings and $\Probability$ ranges
+over real numbers between 0 and 1, exclusive.)
 
-In the stochastic regular expression
-$\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation $\Probability$
-represents the likelihood that the string is in $\Regex_1$. In the stochastic regular
-expression $\PRegexStar{\Regex}{\Probability}$, the annotation \Probability
-represents how
-much more likely having a string involving more than $n$ iterations is than
-having a string involving exactly $n$ iterations. The semantics of SREs is
-defined by the function $P$ below.
-
+The semantics of an SRE $S$ is a probability distribution $P_S$ defined as
+follows.
 \begin{center}
   \begin{tabular}{rcl}
     $\ProbabilityOf{\String}{\String''}$
@@ -1335,6 +1335,17 @@ defined by the function $P$ below.
     & $\Sigma_n \Sigma_{\String = \String_1 \ldots \String_n}\Probability^n(1-\Probability)\Pi_{i=1}^n\ProbabilityOf{\Regex}{\String_i}$\\
   \end{tabular}
 \end{center}
+In the stochastic regular expression\bcp{abbreviate to SRE here and in many
+  places elsewhere}
+$\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$, the annotation $\Probability$
+represents the likelihood that the string is in $\Regex_1$\bcp{That seems
+  both confusing (what is ``the string''??) and probably inaccurate (what if
+  $S_1$ and $S_2$ are the same?)}. In the stochastic regular
+expression $\PRegexStar{\Regex}{\Probability}$, the annotation \Probability
+represents how
+much more likely having a string involving more than $n$ iterations is than
+having a string involving exactly $n$ iterations. \bcp{Last sentence needs
+  an example.  Probably the first sentence also.}
 
 \begin{figure}
   \begin{tabular}{@{\hspace*{5em}}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
@@ -1356,10 +1367,13 @@ defined by the function $P$ below.
 \end{figure}
 
 \subsection{Stochastic Regular Expression Equivalences}
-$\Expand$ needs to be able to find equivalent stochastic regular expressions.
+The $\Expand$ algorithm needs to be able to enumerate SREs that are
+``equivalent'' to a given one.
 However, existing work does not provide a means of reasoning about stochastic
-regular expression equivalence. We extend the
-\emph{star-semiring}~\cite{Droste2009} equivalences to stochastic regular
+regular expression equivalence\bcp{Does not provide a means of {\em
+    reasoning} about it, or does not even define it?}. We extend the
+\emph{star-semiring}~\cite{Droste2009} equivalences\bcp{again, we seem to be
+assuming that all readers will already know what they are...} to stochastic regular
 expressions (Figure~\ref{fig:ssr-sre}).
 
 \begin{theorem}
