@@ -1,7 +1,7 @@
 \newif\ifdraft\drafttrue  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anonfalse    % set true to suppress names, etc.
-\newif\ifappendices\appendicesfalse
+\newif\ifappendices\appendicestrue
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \documentclass[acmsmall,review,screen,anonymous]{acmart}
@@ -1371,30 +1371,32 @@ The $\Expand$ algorithm needs to be able to enumerate SREs that are
 ``equivalent'' to a given one.
 However, existing work does not provide a means of reasoning about stochastic
 regular expression equivalence\bcp{Does not provide a means of {\em
-    reasoning} about it, or does not even define it?}. We extend the
+    reasoning} about it, or does not even define
+  it?}. Figure~\ref{fig:ssr-sre} shows how we to extend the
 \emph{star-semiring}~\cite{Droste2009} equivalences\bcp{again, we seem to be
 assuming that all readers will already know what they are...} to stochastic regular
-expressions (Figure~\ref{fig:ssr-sre}).
+expressions.\bcp{Notation: I don't see any reason for the $s$ superscript in
+$\SSREquiv$}
 
 \begin{theorem}
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
 \begin{proof}
-  The proofs of this theorem, and subsequent theorems in this paper, appears in
-  the appendix presented in the full version of the paper accompanying this
-  submission.
+  See the appendix%
+\ifappendices\else{} included with the supplemental
+material\bcp{Right?}\fi.  \bcp{It took me quite a while to find it.  We
+  should give an actual pointer to a specific theorem in the appendix.}
 \end{proof}
 
-We prove these star-semiring equivalences sound, as those are the equivalences
-we either traverse (with \Expand), or normalize across (as part of
-\GreedySynth).
+This theorem will come in handy as we traverse (with \Expand) or normalize
+across (as part of \GreedySynth) star-semiring equivalences.
 
 \subsection{Stochastic Regular Expression Entropy}
 The entropy of a data source $S$ is the expected number of bits required to
-describe a random element in $S$ (formally $-\Sigma_{s\in S}P(s)\Log_2P(s)$). The
+describe a random element in $S$ (formally $-\Sigma_{s\in S}\,P(s)\cdot \Log_2P(s)$). The
 entropy of a stochastic regular expression can be computed directly from its
-syntax, when the stochastic regular expression is unambiguous and contains no
+syntax, when it is unambiguous\bcp{undefined term} and contains no
 empty subcomponents.
 \begin{center}
   \begin{tabular}{rcl}
@@ -1416,34 +1418,40 @@ empty subcomponents.
     & $\Probability(\EntropyOf{\Regex} - \Log_2(\Probability)) + (1-\Probability)(\EntropyOf{\RegexAlt} - \Log_2(1-\Probability))$\\
   \end{tabular}
 \end{center}
-We have proven that this syntactic computation corresponds to the entropy of the
+\bcp{This sentence says exactly what the previous one does.  Drop.}We have proven that this syntactic computation corresponds to the entropy of the
 stochastic regular expression when the stochastic regular expression is
 unambiguous (parses strings uniquely).
+
+\bcp{Again, this is a critical definition for understanding the paper, and
+  it is pretty gnarly.  Examples, please!}
 
 \begin{theorem}
   \label{thm:correct_entropy}
   If $\Regex$ is unambiguous and does not contain $\emptyset$ as a subterm,
-  $\EntropyOf{\Regex}$ is the entropy of $\Regex$.
+  $\EntropyOf{\Regex}$ is the entropy of $\Regex$.\bcp{Should it not be $-\EntropyOf{\Regex}$??}
 \end{theorem}
 
-Without unambiguity constraints it is not easy to calculate entropy (and the
-method we have given is certainly incorrect).  For example, consider the SRE
-$\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$. Using the above computation,
-this SRE has an entropy of $1$, but the entropy should be $0$. These
-difficulties become particularlly complex when the languages are ambiguous in
-subtle ways and the algorithm must be correct when only some of the two languages
-overlap. Similar issues occur when trying to find the entropy when $\emptyset$
-is a subterm (what should the entropy of $\PRegexStar{\emptyset}{.5}$ be?),
-so we do not define entropy on $\emptyset$.
+Without unambiguity constraints, the method above for calculating entropy does
+not work, and it is not easy to see how to generalize it.  For example,
+consider the SRE $\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$. Using
+the above computation, this SRE has an entropy of $1$, but the entropy
+should be $0$. These difficulties become particularly complex when the
+languages are ambiguous in subtle ways and the algorithm must be correct
+when only some of the two languages overlap. Similar issues occur when
+trying to find the entropy when $\emptyset$ is a subterm (what should the
+entropy of $\PRegexStar{\emptyset}{.5}$ be?), so we do not define entropy
+on~$\emptyset$. 
 
 Fortunately, we already require unambiguous regular expressions as input to
 our synthesis procedure for other reasons, and we can easily preprocess
-emptysets out of the stochastic regular expressions that are themselves
-nonempty by traversing the appropriate star-semiring equivalences (\EG,
-\PRegexOr{\emptyset}{\lstinline{"s"}}{.5} \SSREquiv \lstinline{"s"}).
+empty subexpressions out of SREs that are themselves nonempty using the
+star-semiring equivalences (\EG, $\PRegexOr{\emptyset}{\lstinline{"s"}}{.5}
+\SSREquiv \lstinline{"s"}$).
 
 % \caption{Regular Expression Equivalences}
 % \label{fig:regex-equivalence-rules}
+
+%%%%%%%%%%%%%%  BCP: stopped reading carefully here...
 
 \section{Simple Symmetric String Lenses}
 \label{sec:ssl}
@@ -1451,19 +1459,21 @@ We now give a formal description of all the combinators in our symmetric lens
 language. While our algorithms perform synthesis on stochastic regular
 expressions, lenses themselves are typed between regular expressions. We can
 recover a regular expression from a stochastic regular expression by deleting
-probability annotations. In a slight abuse of notation, if $\Regex$ is a
+probability annotations. In a slight abuse of notation\bcp{why is this an
+  abuse of notation??}, if $\Regex$ is a
 stochastic regular expression, $\BRegex$ is the regular expression obtained by
 removing probability annotations. The typing judgment $\Lens \OfType \BRegex
 \Leftrightarrow \BRegexAlt$ means that $\Lens$ is a well typed lens between
-$\LanguageOf{\BRegex}$ and $\LanguageOf{\BRegexAlt}$.
+$\LanguageOf{\BRegex}$ and $\LanguageOf{\BRegexAlt}$.  \bcp{Ugly typesetting:}
 
 \begin{align*}
 \ell ::= &\IdentityLensOf{\BRegex} \; | \; \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt} \; | \; \IterateLensOf{\Lens} \; | \; \ConcatLensOf{\Lens_1}{\Lens_2} \; | \; \SwapLensOf{\Lens_1}{\Lens_2} \; | \; \OrLensOf{\Lens_1}{\Lens_2} \; | \; \ComposeLensOf{\Lens_1}{\Lens_2} \; |\\
 &\MergeROf{\Lens_1}{\Lens_2} \; | \; \MergeLOf{\Lens_1}{\Lens_2} \; | \; \InvertOf{\Lens}
 \end{align*}
 
-We have already described a number of these lenses in \S\ref{sec:overview}.
-The compose lens $\Lens_1 ; \Lens_2$ composes two lenses sequentially, it
+We have already described a number of these combinators in \S\ref{sec:overview}.
+Briefly (full definitions are below), the compose lens $\Lens_1 ; \Lens_2$
+composes two lenses sequentially, it 
 transforms from one data format to the other by first transforming to an
 intermediate format, shared as the target of $\Lens_1$ and the source of
 $\Lens_2$. The \MergeR lens combines two sublenses which share the same target.
@@ -1473,16 +1483,17 @@ $\Lens_2$.  The \MergeL lens is symmetric to \MergeR, the two sublenses must
 share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
-We now provide the typing rules and semantics for these combinators. We do
-not include the semantics for combinators equivalent to those presented in
-prior work~\cite{symmetric-lenses,Boomerang}. Furthermore, we only present
-\CreateR and \PutR when \CreateL and \PutL are symmetric; full details can
-be found in an appendix\ifappendices\else{} (in the supplemental
-materials)\fi. For simplicity of presentation, we use unambiguous regular
-expressions everywhere, even though some lenses can actually be defined over
-ambiguous regular expressions (for example, the identity lens doesn't need
-any ambiguity constraints\bcp{Is this the only example?}); we believe
-relaxing this restriction is unproblematic.
+We now give typing rules and semantics for these combinators. We do not
+include the semantics for combinators equivalent to those presented in prior
+work~\cite{symmetric-lenses,Boomerang}\bcp{Huh?}. Furthermore, we present
+just \CreateR and \PutR in cases where \CreateL and \PutL are symmetric;
+full details can be found in an appendix\bcp{where,
+  exactly??}\ifappendices\else{} (in the supplemental materials)\fi. For
+simplicity of presentation, we use unambiguous regular expressions
+everywhere, even though some lenses can actually be defined over ambiguous
+regular expressions (for example, the identity lens doesn't need any
+ambiguity constraints\bcp{Is this the only example?}); we believe relaxing
+this restriction is unproblematic.
 
 \begin{centermath}
   \begin{tabular}{m{1cm}@{\hspace*{6em}}m{1cm}@{\hspace*{3em}}}
@@ -1615,7 +1626,8 @@ $
 \end{centermath}
 The \OrLens lens deals with data that can come in one form or another. If the
 data gets changed from one format to the other, information in the old format is
-lost.
+lost.  \bcp{We should highlight here the fact that this is a significant
+  loss of power for some examples, compared to full symmetric lenses.}
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
 %    $\CreateR{} \App \String_1\ldots\String_n$
@@ -1793,11 +1805,11 @@ Our cost metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
 $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds of the
 expected amount of information required to recover a string in $\RegexAlt$ from
-a string in $\Regex$, synchronized by $\Lens$. We use the function
+a string in $\Regex$, synchronized by $\Lens$. Similarly, we use the function
 $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate bounds of the
 expected amount of information required to recover a string in $\Regex$ from a
-string in $\RegexAlt$, synchronized by $\Lens$. We use the notation $a(b,c)$ to
-mean $(a*b,a*c)$, and the notation $(a,b)+(c,d)$ to mean $(a+c,b+d)$.
+string in $\RegexAlt$, synchronized by $\Lens$. We write $a(b,c)$ to
+mean $(a*b,a*c)$, and $(a,b)+(c,d)$ to mean $(a+c,b+d)$.
 \begin{center}
   \begin{tabular}{rcl}
     $\REntropyOf{\RegexAlt \Given \IdentityLensOf{\RegexAlt}, \RegexAlt}$
@@ -1840,7 +1852,7 @@ mean $(a*b,a*c)$, and the notation $(a,b)+(c,d)$ to mean $(a+c,b+d)$.
 $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ is defined symmetrically. These
 functions bound the expected number of bits to recover one data format from a
 synchronized string in the other format. Note that we would be able to exactly
-calculate the conditional entropy, were it not for \MergeL. If
+calculate the conditional entropy, were it not for \MergeL\bcp{and \MergeR??}. If
 $\MergeLOf{\Lens_1}{\Lens_2} \OfType \Regex \Leftrightarrow
 \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}$, given a string in $s$, we
 need to determine if the synchronized string is in $\RegexAlt_1$ or $\RegexAlt_2$.
@@ -1882,16 +1894,17 @@ conditional entropy to recover the data.
 
 Note that our definition of $\Entropy^\rightarrow$ contains no case for sequential
 composition $\Lens_1 ; \Lens_2$ and our theorem excludes lenses that contain
-such compositions. Unfortunately, defining the entropy of lenses involving
+such compositions.  Defining the entropy of lenses involving
 composition is challenging because $\Lens_1$ might, for instance, add some
 information that is subsequently projected away in $\Lens_2$. Such operations
 can cancel, leaving a zero-entropy bijection composed from two non-zero entropy
 transformations. However, detecting such cancellations directly is complicated and
 this property is difficult to determine merely from syntax. Fortunately, we are able to
-avoid such complication altogether by synthesizing \emph{DNF lenses}---simple symmetric
+sidestep such considerations by synthesizing \emph{DNF lenses}---simple symmetric
 lenses that inhabit a disjunctive normal form. DNF lenses have a number of
 properties that facilitate synthesis: they cut down the program search space
-dramatically and they do not contain instances of composition.
+dramatically and they do not contain instances of composition.\bcp{The last
+  sentence basically repeats what the rest of the paragraph already says.}
 
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
@@ -2271,7 +2284,7 @@ string in $\DNFRegex$ from a string in $\DNFRegexAlt$, synchronized by
 $\SDNFLens$.
 
 The details of these definitions are syntactically tedious, but not
-intellectually difficult. We elide them here but include them in the appendix.
+intellectually difficult. We elide them here but include them in the appendix.\bcp{Where?}
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
@@ -2467,7 +2480,8 @@ larger problem can subsequently use solutions to those subproblems.  In our expe
 this is a very powerful tool that allows synthesis to tackle problems of arbitrary
 complexity.
 
-\paragraph*{Relevance Annotations}
+\paragraph*{Relevance Annotations}\bcp{Wonder whether this should be its own
+top-level section...?}
 In this work, there are three competing constraints. The tool should (1) return
 lenses quickly to users, (2) return the highest quality lenses, and (3)
 not require users to write a large number of examples.
@@ -2481,7 +2495,8 @@ While \GreedySynth may have found what the user knows to be the desired lens,
 the full algorithm will continue trying to find lenses that project less
 information.
 
-Conversely, the termination heuristic is satisfied algorithm cuts short: if it
+Conversely, the termination heuristic is satisfied algorithm cuts
+short\bcp{huh??}: if it 
 had continued searching for lenses it would have found the desired one, but the
 termination heuristic was satisfied ``too early.'' We wish for our algorithm to
 provide feedback in a timely manner, but sometimes this prohibits finding the
@@ -2494,14 +2509,14 @@ safely projected. The second, $\SRequireOf{\Regex}$, says the information of
 $\Regex$ is critical to the desired lens, and none of the information can be
 lost when converting between the formats.
 
-If synthesizing a lens seems to be taking a long time, it is spending time
+If synthesizing a lens seems to be taking a long time, it is\bcp{always?} spending time
 checking it cannot find a lens that projects less information. By ``skipping''
 portions of the SRE that \emph{should} be projected, the algorithm will not
 continue searching for a better lens when it has already found the correct one.
 In practice, we implement \Skip by setting the information content of
 $\Skip(\Regex)$ to zero.
 
-If the algorithm returns a lens with too disconnects and merges, one could
+If the algorithm returns a lens with too disconnects\bcp{??} and merges, one could
 provide additional examples to constrain the lens more. However, for large
 formats, writing such examples is time consuming and error-prone. Instead, if
 one recognizes that information from $\Regex$ is incorrectly lost when converted
@@ -2510,6 +2525,11 @@ it $\SRequireOf{\Regex}$. One can guarantee a lens between \Regex and \RegexAlt
 is bijective by annotating them as $\SRequireOf{\Regex}$ and
 $\SRequireOf{\RegexAlt}$. In practice, we implement \SRequire by setting the
 cost of any lens that loses ``required'' information to infinity.
+
+\bcp{This discussion seems both too brief---maybe some concrete examples
+  would help?---and too informal: E..g., What do skip and require have to do
+  with probability distributions and entropy?}
+
 % end synthesis
 
 % begin evaluation
@@ -2517,7 +2537,8 @@ cost of any lens that loses ``required'' information to infinity.
 \label{sec:evaluation}
 We have implemented symmetric DNF lenses as an extension to
 Boomerang. Specifically, we added symmetric lens combinators to
-Boomerang, and implemented all of Boomerang's asymmetric lens
+Boomerang\bcp{that's exactly what the previous sentence said!}, and
+implemented all of Boomerang's asymmetric lens 
 combinators  using a combination of the symmetric lens combinators presented in this
 paper and symmetric versions of the asymmetric extensions (like matching lenses~\cite{matchinglenses} and quotient lenses\cite{quotientlenses})
 already present in Boomerang.
@@ -2879,7 +2900,7 @@ program). In either case, the complexity of the specifications increases.
 %% formats keeping track of them.  While we are reducing the expressivity of our
 %% lenses with this restriction, we feel the benefits outweigh the costs.
 
-\paragraph*{Relation with Simple Symmetric Lenses} To compare classical and simple
+\paragraph*{Symmetric Lenses vs.{} Simple Symmetric Lenses} To compare classical and simple
 symmetric lenses, we define an $apply$ function on simple symmetric lenses as well. If
 $apply(\Lens,\None,es) = es'$, then starting with no prior data, after edit
 $es_i$, the lens \Lens generates $es_i'$ (the right format if $es_i =
@@ -3012,7 +3033,7 @@ strictly more expressive than classical asymmetric lenses.
   \end{center}
 \end{theorem}
 
-\paragraph*{Other Lens Formulations}
+\paragraph*{Other Lens Formulations}\bcp{This paragraph doesn't add much}
 Bidirectional programming has an extensive literature, with many extensions onto
 basic lens formulations, like quotient lenses\cite{quotientlenses} and matching
 lenses\cite{matchinglenses}. Interested readers can consult
@@ -4680,7 +4701,8 @@ H(\mathcal{L}(S^{*p})) &= - \sum_{s \in \mathcal{L}(S^{*p})} P_{S^{*p}}(s) \log_
 \item
 ($S = S_1 \cdot S_2$)
 
-Since $S$ is unambigous, then $S_1$ and $S_2$ are also unambiguous, and for each $s \in \mathcal{L}(S_1 \cdot S_2)$ there exists a unique $s_1 \in \mathcal{L}(S_1)$ and a unique $s_2 \in \mathcal{L}(S_2)$ such that $s = s_1 \cdot s_2$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$, hence
+Since $S$ is unambigous, then $S_1$ and $S_2$ are also unambiguous, and for each $s \in \mathcal{L}(S_1 \cdot S_2)$ there exists a unique $s_1 \in \mathcal{L}(S_1)$ and a unique $s_2 \in \mathcal{L}(S_2)$ such that $s = s_1 \cdot s_2$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$, hence\bcp{Don't understand what's going on with the $-$
+  signs in the last few lines here.}
 \begin{align*}
 H(\mathcal{L}(S_1 \cdot S_2))(s) &= -\sum_{s_1 \in S_1} \sum_{s_2 \in S_2}P_{S_1}(s_1)*P_{s_2}(s_2) \log_2(P_{S_1}(s_1)*P_{S_2}(s_2))\\
 &= -\sum_{s_1 \in S_1} P_{S_1}(s_1)\sum_{s_2 \in S_2}P_{s_2}(s_2) (\log_2(P_{S_1}(s_1) + \log_2 P_{S_2}(s_2)))\\
@@ -4692,7 +4714,13 @@ H(\mathcal{L}(S_1 \cdot S_2))(s) &= -\sum_{s_1 \in S_1} \sum_{s_2 \in S_2}P_{S_1
 \item
 ($S = S_1 \; |_p \; S_2$)
 
-Since $S$ is unambiguous, then $S_1$ and $S_2$ are also unambiguous, and every $s \in \mathcal{L}(S_1 \; |_p \; S_2)$ is either in $\mathcal{L}(S_1)$ or in $\mathcal{L}(S_2)$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$. Then
+\bcp{``Since...then...'' is not english.}
+Since $S$ is unambiguous, then $S_1$ and $S_2$ are also unambiguous, and
+every $s \in \mathcal{L}(S_1 \; |_p \; S_2)$ is either in $\mathcal{L}(S_1)$
+or in $\mathcal{L}(S_2)$. By the induction hypothesis, $H(\mathcal{L}(S_1))
+= \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) =
+\mathbb{H}(S_2)$. Then\bcp{Again, don't understand what's going on with the $-$
+  signs.}
 \begin{align*}
 H(\mathcal{L}(S_1 \; |_p \; S_2)) &= -\sum_{s \in \mathcal{L}(S_1)}(p * P_{S_1}(s))\log_2 (p * P_{S_1}(s)) - \sum_{s \in \mathcal{L}(S_2)}((1-p) * P_{S_2}(s))\log_2 ((1-p) * P_{S_2}(s))\\
 &=- p\sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s)(\log_2 p + \log_2 P_{S_1}(s)) - (1-p)\sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s)(\log_2 (1-p) + \log_2 P_{S_2}(s))\\
