@@ -60,28 +60,32 @@ stringstyle=\sffamily\color{dkblue},
 }
 
 \begin{abstract}
-  Recent work has shown how to synthesize a class of string bijections from
+  \emph{AFM: I will remove this from the submission, but am including it in the
+    document for people to review. It is due today (February 12)} Recent work has shown how to synthesize a class of string bijections from
   regular expression specifications. While these bijective string
   transformations can be useful for synchronizing data formats, it may still be
   useful to keep interesting formats synchronized when they are not in bijective
   correspondence. In this talk, we aim to show how we can expand the class of
-  synthesized transformations beyond bijections, as long as users are willing to
-  provide annotations that help identify a ``bijective core.''
+  synthesized transformations beyond bijections, for example into classical
+  lenses, quotient lenses, and even symmetric lenses, as long as users are
+  willing to provide annotations that help identify a ``bijective core.''
 \end{abstract}
 \vskip 32pt
 
-
 \section{Synthesizing Bijective Transformations}
 
-Bidirectional languages are often difficult to program in. The can use
-unfamiliar paradigms, and their type systems can sometimes be complex, making
-fixing type errors oftentimes nontrivial. This is evident in the language
-Boomerang~\cite{boomerang}, a DSL for writing lenses~\cite{Focal2005-long2}
-on strings. In Boomerang, users can write bidirectional programs between data
-formats: programs are lenses and types are regular expressions representing the
-formats the lenses operate on. Instead of requiring users to manually write
-bidirectional transformations, we find it preferable to synthesize bidirectional
-transformations from their types.
+Learning any new domain-specific language takes time and energy. Any support we
+can provide to help users ``get over the hump'' of learning a new DSL is going
+to increase the rate of adoption for such a DSL. Indeed, due to the need to
+think in ``two directions'' at once, bidirectional languages are more difficult
+to learn than usual. This difficulty is evident in the language
+Boomerang~\cite{boomerang}, a DSL for writing bidirectional programs on strings.
+In Boomerang, users can write bidirectional programs between data formats.
+Boomerang programs encode lenses a class of bidirectional objects. Boomerang
+expressions are bidirectional programs on strings, and Boomerang types are
+regular expressions representing the formats the lenses operate on. Instead of
+requiring users to manually write bidirectional transformations, we find it
+preferable to synthesize these transformations from their types.
 
 Optician is a Boomerang extension that synthesizes a subset of Boomerang lenses,
 bijective lenses. When provided with a pair of regular expressions, Optician
@@ -91,12 +95,12 @@ provided regular expressions.
 \section{Building Complex Transformations With Bijective Cores}
 
 Bijections are an important class of bidirectional transformations, but many
-useful transformations are not completely bijective. Boomerang permits defining
-non-bijective transformations, such as lenses and quotient lenses, though
-Optician cannot synthesize them. Lenses are bidirectional transformations that
-may lose information when going from one side to the other, while obeying
-certain roundtripping properties. Quotient lenses~\cite{quotientlenses} obey
-similar properties to lenses, but also permit treating certain pieces of
+useful transformations are not completely bijective. Boomerang expressions are
+not necessarily bijections -- they encode lenses~\cite{Focal2005-long2}, and
+various lens extensions like quotient lenses~\cite{quotientlenses}. Lenses are
+bidirectional transformations that may lose information when going from one side
+to the other, while obeying certain roundtripping properties. Quotient lenses
+obey similar properties to lenses, but also permit treating certain pieces of
 information as irrelevant -- normalizing them to a canonical representative.
 
 While we wish to make creating these lenses easier, Optician's synthesis algorithm
@@ -105,11 +109,11 @@ a ``bijective core'', a component that merely changes the shape of data.
 This bijective component can then be surrounded by projection and quotient
 components to form a full-fledged quotient lens.
 
-At its base, this surrounding can be done solely with Optician and Boomerang,
-but doing so requires repeated code. For example, consider the example of
-converting an index of musical composers (with names, birth and death dates, and
-nationalities) to a simple index of musical composers (with just names and
-nationalities), but with irrelevant whitespace. In this example, ``.''
+At its base, surrounding bijections in this way can be done solely with Optician
+and Boomerang, but doing so requires repeated code. For example, consider the
+example of converting an index of musical composers (with names, birth and death
+dates, and nationalities) to a simple index of musical composers (with just
+names and nationalities), but with irrelevant whitespace. In this example, ``.''
 represents concatenation and ``\lstinline{*}'' represents the Kleene star.
 
 \begin{lstlisting}
@@ -169,9 +173,9 @@ quotients)~\cite{maina+:quotient-synthesis}, but here we extend it with projecti
 Consider the left-hand format of \lstinline{full_composers}. We expand our
 regular expression types with the new combinator \lstinline{skip}. Annotating a
 regular expression to be skipped does exactly what \lstinline{full_projection}
-does in the previous code -- it sends the minified format to the core synthesis
-engine, then composes the generated lens with a lens that deletes the regular
-expression from the data format.
+does in the previous code -- it sends the format, after removing the projected
+portions, to the core synthesis engine, then composes the generated lens with a
+lens that deletes the regular expression from the data format.
 %
 \begin{lstlisting}
   let full_composers' : annotated_regex = (name . (skip dates) . nationality)*
@@ -211,6 +215,14 @@ lenses as also having a bijective core (with projections on both sides instead
 of just one), providing \lstinline{skip} annotations on the right could even
 make synthesizing symmetric lenses easier. Of course, this would require
 symmetric lenses in Boomerang for the generated lenses to be well-typed.
+
+Furthermore, we think this approach could scale to other lens extensions, like
+matching lenses and dictionary lenses, and other types of bidirectional
+constructs beyond merely lenses. All that is needed for this approach is a
+user-provided a reduction to a ``bijective core,'' and a means to synthesize
+that core. This means that, if a bijective synthesis algorithm is discovered for
+(for example) trees or graphs, then annotations can be used to synthesize more
+complex bidirectional programs for those structures as well.
 
 \bibliographystyle{alpha} 
 \bibliography{local}
