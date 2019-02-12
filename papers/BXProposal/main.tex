@@ -60,15 +60,15 @@ stringstyle=\sffamily\color{dkblue},
 }
 
 \begin{abstract}
-emph{AFM: I will remove this from the submission, but am including it in the
-    document for people to review. It is due today (February 12)}
-Recent work has shown how to synthesize a class of string bijections from
-regular expression specifications. These bijective string transformations
-can be useful for synchronizing simple data formats, but many interesting
-formats require non-bijective lenses. In this talk, we show how to expand
-the class of synthesized transformations beyond bijections to a large subset
-of full symmetric lenses (including all the standard asymmetric lenses)
-using lightweight user annotations that help identify a ``bijective core.''
+  {\color{dkblue} \emph{AFM: I will remove this from the submission, but am including it in the
+    document for people to review. It is due today (February 12)}} Recent work
+  has shown how to synthesize a class of string bijections from regular
+  expression specifications. These bijective string transformations can be
+  useful for synchronizing simple data formats, but many interesting formats
+  require non-bijective lenses. In this talk, we show how to expand the class of
+  synthesized transformations beyond bijections to quotient lenses and a large
+  subset of full symmetric lenses (including all the standard asymmetric lenses)
+  through lightweight user annotations that help identify a ``bijective core.''
 \end{abstract}
 
 \section{Synthesizing Bijective Transformations}
@@ -88,25 +88,26 @@ expressions) and a small number of examples (often zero).
 \section{Building Complex Transformations With Bijective Cores}
 
 Bijections are an important class of bidirectional transformations, but many
-useful transformations are not completely bijective. Boomerang expressions are
-not necessarily bijections -- they encode lenses~\cite{Focal2005-long2}, and
+useful transformations are not completely bijective. In particular, Boomerang
+expressions are not necessarily bijections -- they encode lenses and
 various lens extensions like quotient lenses~\cite{quotientlenses}. Lenses are
 bidirectional transformations that may lose information when going from one side
 to the other, while obeying certain roundtripping properties. Quotient lenses
 obey similar properties to lenses, but also permit treating certain pieces of
 information as irrelevant -- normalizing them to a canonical representative.
 
-While we wish to make creating these lenses easier, Optician's synthesis algorithm
-only works on bijective lenses. However, lenses and quotient lenses seem to have
-a ``bijective core'', a component that merely changes the shape of data.
-This bijective component can then be surrounded by projection and quotient
-components to form a full-fledged quotient lens.
+While we wish to make creating these lenses easier, Optician's synthesis
+algorithm only works on bijective lenses. Fortunately, many lenses and quotient
+lenses seem to have a ``bijective core'', a component that merely changes the
+shape of data, but does not remove any data. This bijective component can then
+be surrounded by projection and quotient components to form a full-fledged
+quotient lens.
 
-At its base, surrounding bijections in this way can be done solely with Optician
-and Boomerang, but doing so requires repeated code. For example, consider the
-example of converting an index of musical composers (with names, birth and death
+Surrounding bijections in this way can be already be done with Optician
+and Boomerang, but doing so requires repeated code. Consider the
+converting an index of musical composers (with names, birth and death
 dates, and nationalities) to a simple index of musical composers (with just
-names and nationalities), but with irrelevant whitespace. In this example, ``.''
+names and nationalities and irrelevant whitespace). In this example, ``.''
 represents concatenation and ``\lstinline{*}'' represents the Kleene star.
 
 \begin{lstlisting}
@@ -115,8 +116,9 @@ represents concatenation and ``\lstinline{*}'' represents the Kleene star.
 \end{lstlisting}
 
 In this example, the bijective core is the bijection that transmits nationality and
-names (while swapping them), the projection component removes \lstinline{dates},
-and the quotient component normalizes the whitespace.
+names (while swapping them), the projection component removes \lstinline{dates}
+when operating from left-to-right and recovers it when operating from right-to-left,
+and the quotient component normalizes the whitespace to the empty string.
 
 We can build a projection component for \lstinline{full_composers} using
 existing Boomerang combinators.
@@ -139,8 +141,8 @@ Boomerang combinators.
 Here, \lstinline{normalize} turns a lens into a ``canonizer'' (in effect, a
 normalization function). In this example, \lstinline{normalize} canonizes an
 arbitrarily long list of whitespace to the empty string. Then, the canonizer is
-hooked into a lens with \lstinline{rquot}, essentially normalizing strings when
-the lens is being operated from right-to-left.
+hooked into a lens with \lstinline{rquot}, normalizing strings when the lens is
+applied right-to-left, and performing the identity when applied from left-to-right.
 
 With these normalization and projection components defined, the bijective core
 can be synthesized (using \lstinline{synth $R$ <=> $S$}), and the full lens can be
@@ -213,7 +215,7 @@ Furthermore, we think this approach could scale to other lens extensions, like
 matching lenses and dictionary lenses, and other types of bidirectional
 constructs beyond merely lenses. All that is needed for this approach is a
 user-provided a reduction to a ``bijective core,'' and a means to synthesize
-that core. This means that, if a bijective synthesis algorithm is discovered for
+that core. If a bijective synthesis algorithm is discovered for
 (for example) trees or graphs, then annotations can be used to synthesize more
 complex bidirectional programs for those structures as well.
 
