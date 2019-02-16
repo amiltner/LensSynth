@@ -1,0 +1,228 @@
+\documentclass[a4paper]{article}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{onecolpceurws}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+
+\title{Expanding the Power of Lens Synthesis \\ (talk proposal)}
+
+% I've never done a talk before, should this be everybody or just me
+\author{
+Anders Miltner \\ Princeton University \\ \ 
+% Princeton, NJ 08540 \\ amiltner@cs.princeton.edu
+\and
+Solomon Maina \\ University of Pennsylvania
+% Philadelphia, PA 19104 \\ smaina@seas.upenn.edu
+\and
+Kathleen Fisher \\ Tufts University
+% Medford, MA 02155 \\ kfisher@eecs.tufts.edu
+\and
+Benjamin C. Pierce \\ University of Pennsylvania
+% Philadelphia, PA 19104 \\ bcpierce@cis.upenn.edu
+\and
+David Walker \\ Princeton University
+% Princeton, NJ 08540 \\ dpw@cs.princeton.edu
+\and
+Steve Zdancewic \\ University of Pennsylvania
+% Philadelphia, PA 19104 \\ stevez@cis.upenn.edu
+}
+
+\institution{}
+
+\begin{document}
+\maketitle
+
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.4,0,0.6}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 179}
+\definecolor{vlightyellow}{RGB}{255, 255, 200}
+\definecolor{lightgreen}{RGB}{170, 255, 220}
+\definecolor{vlightgreen}{RGB}{190, 255, 230}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
+
+\lstset{ language=Caml, basicstyle=\upshape\sffamily,
+keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
+framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
+commentstyle=\itshape\rmfamily,
+emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disconnect,merge_left,merge_right,const,skip},
+emphstyle=\upshape\sffamily\color{dkpurple}, 
+columns=fullflexible,
+mathescape, 
+xleftmargin=1.5em,
+% BCP: I find this distracting:
+stringstyle=\sffamily\color{dkblue},
+}
+
+\begin{abstract}
+  {\color{dkblue} \emph{AFM: I will remove this from the submission, but am including it in the
+    document for people to review. It is due today (February 12)}} Recent work
+  has shown how to synthesize a class of string bijections from regular
+  expression specifications. These bijective string transformations can be
+  useful for synchronizing simple data formats, but many interesting formats
+  require non-bijective lenses. In this talk, we show how to expand the class of
+  synthesized transformations beyond bijections to quotient lenses and a large
+  subset of full symmetric lenses (including all the standard asymmetric lenses)
+  through lightweight user annotations that help identify a ``bijective core.''
+\end{abstract}
+
+\section{Synthesizing Bijective Transformations}
+
+Bidirectional languages can be difficult to program in, proposing unfamiliar
+programming paradigms, novel syntax, and subtle typing constraints.
+Fortunately, their restricted expressive power, together with the
+fine-grained type systems needed to guarantee that well-types programs
+satisfy strong round-tripping properites, make them a perfect target for
+program synthesis.  
+
+The {\em Optician} tool is an extension to Boomerang~\cite{boomerang}---a
+DSL for writing lenses~\cite{Focal2005-long2} on strings---that synthesizes
+{\em bijective} Boomerang lenses when provided with a pair of types (regular
+expressions) and a small number of examples (often zero).
+
+\section{Building Complex Transformations With Bijective Cores}
+
+Bijections are an important class of bidirectional transformations, but many
+useful transformations are not completely bijective. In particular, Boomerang
+expressions are not necessarily bijections -- they encode lenses and
+various lens extensions like quotient lenses~\cite{quotientlenses}. Lenses are
+bidirectional transformations that may lose information when going from one side
+to the other, while obeying certain roundtripping properties. Quotient lenses
+obey similar properties to lenses, but also permit treating certain pieces of
+information as irrelevant -- normalizing them to a canonical representative.
+
+While we wish to make creating these lenses easier, Optician's synthesis
+algorithm only works on bijective lenses. Fortunately, many lenses and quotient
+lenses seem to have a ``bijective core'', a component that merely changes the
+shape of data, but does not remove any data. This bijective component can then
+be surrounded by projection and quotient components to form a full-fledged
+quotient lens.
+
+Surrounding bijections in this way can be already be done with Optician
+and Boomerang, but doing so requires repeated code. Consider the
+converting an index of musical composers (with names, birth and death
+dates, and nationalities) to a simple index of musical composers (with just
+names and nationalities and irrelevant whitespace). In this example, ``.''
+represents concatenation and ``\lstinline{*}'' represents the Kleene star.
+
+\begin{lstlisting}
+  let full_composers : regex = (name . dates . nationality)*
+  let composers_nodates : regex = (nationality . " "* . name)*
+\end{lstlisting}
+
+In this example, the bijective core is the bijection that transmits nationality and
+names (while swapping them), the projection component removes \lstinline{dates}
+when operating from left-to-right and recovers it when operating from right-to-left,
+and the quotient component normalizes the whitespace to the empty string.
+
+We can build a projection component for \lstinline{full_composers} using
+existing Boomerang combinators.
+%
+\begin{lstlisting}
+  let full_projection = iterate (name . (del dates) . nationality)
+\end{lstlisting}
+%
+Here, \lstinline{del} deletes data when going in one direction, and restores it
+when going backwards.
+
+We can also build a normalization component for \lstinline{dates} using existing
+Boomerang combinators.
+%
+\begin{lstlisting}
+  let ws_norm = normalize (del " "*)
+  let nodates_norm = iterate (nationality . (rquot ws_norm) . name)
+\end{lstlisting}
+%
+Here, \lstinline{normalize} turns a lens into a ``canonizer'' (in effect, a
+normalization function). In this example, \lstinline{normalize} canonizes an
+arbitrarily long list of whitespace to the empty string. Then, the canonizer is
+hooked into a lens with \lstinline{rquot}, normalizing strings when the lens is
+applied right-to-left, and performing the identity when applied from left-to-right.
+
+With these normalization and projection components defined, the bijective core
+can be synthesized (using \lstinline{synth $R$ <=> $S$}), and the full lens can be
+provided by composing all the subcomponents (using ``;'').
+\begin{lstlisting}
+  let bij_core = synth (targetType full_projection) <=> (sourceType nodates_norm)
+  let composers : full_composers <=> composers_nodates = full_projections ; bij_core ; nodates_norm
+\end{lstlisting}
+
+Note how in both the projection and quotient component, the bijective aspects
+are repeated with no real alteration -- they are merely required scaffolding
+for expressing the projections and normalizations.
+
+\section{Projection and Quotient Annotations}
+
+Instead of manually writing explicit canonization and projection functions, we
+consider an alternative approach: by annotating our regular expressions with
+canonization and projection annotations, we can write our data formats and find
+the bijective core in a single step. This approach has already been employed in
+synthesizing bidirectional transformations that are bijections (up to
+quotients)~\cite{maina+:quotient-synthesis}, but here we extend it with projections as well.
+
+Consider the left-hand format of \lstinline{full_composers}. We expand our
+regular expression types with the new combinator \lstinline{skip}. Annotating a
+regular expression to be skipped does exactly what \lstinline{full_projection}
+does in the previous code -- it sends the format, after removing the projected
+portions, to the core synthesis engine, then composes the generated lens with a
+lens that deletes the regular expression from the data format.
+%
+\begin{lstlisting}
+  let full_composers' : annotated_regex = (name . (skip dates) . nationality)*
+\end{lstlisting}
+%
+
+Consider the right-hand format of \lstinline{composers_nodates}. We expand our
+regular expression types with a number of new combinators (to address different
+types of quotients), one of which is
+\lstinline{squash}~\cite{maina+:quotient-synthesis}. Annotating a regular
+expression to be squashed does exactly what \lstinline{nodates_norm} does in the
+previous code -- it sends the normalized format to the core synthesis engine,
+then composes the generated lens with a lens that normalizes the whitespace to a
+representative (in the example, the empty string).
+%
+\begin{lstlisting}
+  let composers_nodates' : annotated_regex = (nationality . (squash " "*) . name)*
+\end{lstlisting}
+%
+
+Now, with annotated regular expressions, we can synthesize the composers lens much
+more compactly.
+%
+\begin{lstlisting}
+  let composers'  = synth full_composers' <=> composers_nodates'
+\end{lstlisting}
+%
+Synthesizing with these annotated regular expressions performs the same steps
+that we previously did manually: it breaks the lens into concatenation and
+normalization subcomponents, sends the bijective core to the existing synthesis
+algorithm, and composes the generated subcomponents with the synthesized
+bijective core.
+
+While we have shown how these annotations can work for quotient lenses, we could
+even imagine getting them to work for symmetric lenses. If we viewed symmetric
+lenses as also having a bijective core (with projections on both sides instead
+of just one), providing \lstinline{skip} annotations on the right could even
+make synthesizing symmetric lenses easier. Of course, this would require
+symmetric lenses in Boomerang for the generated lenses to be well-typed.
+
+Furthermore, we think this approach could scale to other lens extensions, like
+matching lenses and dictionary lenses, and other types of bidirectional
+constructs beyond merely lenses. All that is needed for this approach is a
+user-provided a reduction to a ``bijective core,'' and a means to synthesize
+that core. If a bijective synthesis algorithm is discovered for
+(for example) trees or graphs, then annotations can be used to synthesize more
+complex bidirectional programs for those structures as well.
+
+\bibliographystyle{alpha} 
+\bibliography{local}
+%inline the .bbl file directly for mailing to authors.
+
+\end{document}
+
+

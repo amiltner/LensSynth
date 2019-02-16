@@ -54,31 +54,29 @@ def write_to_filename(filename, s):
 def generate_examples_required_graph(input_csv):
     nm_count = count_real_vals(input_csv,"NM")
     fc_count = count_real_vals(input_csv,"FC")
-    notp_count = count_real_vals(input_csv,"NoTP")
-    tc25_count = count_real_vals(input_csv,"TC25")
-    tcn25_count = count_real_vals(input_csv,"TCN25")
+    no_skip_count = count_real_vals(input_csv,"NoSkip")
+    no_require_count = count_real_vals(input_csv,"NoRequire")
     constcostcc_count = count_real_vals(input_csv,"ConstCostCC")
     print(nm_count)
     print(fc_count)
-    print(tcn25_count)
-    print(notp_count)
-    print(tc25_count)
+    print(no_skip_count)
+    print(no_require_count)
     print(constcostcc_count)
 
-    ind = np.arange(6)
+    ind = np.arange(5)
     width = 0.35
 
     fig, ax = plt.subplots()
 
-    rects1 = ax.bar(ind, [nm_count,fc_count,constcostcc_count,notp_count,tc25_count,tcn25_count], width, color='#ffffb3', align='center')
+    rects1 = ax.bar(ind, [nm_count,fc_count,constcostcc_count,no_skip_count,no_require_count], width, color='#ffffb3', align='center')
 
     ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Run Mode')
     ax.set_xticks(ind)
-    ax.set_xticklabels(["\\textbf{Any}","\\textbf{FL}","\\textbf{DC}","\\textbf{t=0}","\\textbf{t=25}","\\textbf{t=-25}"])
+    ax.set_xticklabels(["\\textbf{Any}","\\textbf{FL}","\\textbf{DC}","\\textbf{NS}","\\textbf{NR}"])
 
     fig = plt.figure(3,tight_layout=True)
-    ax.step([-.5,5.5],[48.1,48.1],label="Benchmark Count",linestyle=":",
+    ax.step([-.5,4.5],[48.1,48.1],label="Benchmark Count",linestyle=":",
             linewidth=1, dashes=(1,1))
 
     plt.tick_params(
@@ -87,7 +85,7 @@ def generate_examples_required_graph(input_csv):
                         bottom='off',      # ticks along the bottom edge are off
                             top='off') # labels along the bottom edge are off
     fig.set_figheight(1)
-    fig.set_figwidth(4)
+    fig.set_figwidth(5)
 
     fig.savefig(generated_graphs_base + "metrics_importance.eps", bbox_inches='tight')
 
