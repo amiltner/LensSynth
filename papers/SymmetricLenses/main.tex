@@ -1,7 +1,7 @@
 \newif\ifdraft\drafttrue  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anonfalse    % set true to suppress names, etc.
-\newif\ifappendices\appendicestrue
+\newif\ifappendices\appendicesfalse
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \documentclass[acmsmall,review,screen,anonymous]{acmart}
@@ -226,8 +226,8 @@ stringstyle=\sffamily\color{dkblue},
 {\em Lenses} are programs that can be run both ``front to back'' and ``back
 to front,'' allowing updates to both input and output data to be transferred
 in both directions.
-Since their introduction by~\citet{Focal2005-long}, lenses have been extensively
-studied, extended, and applied.  Recent work~\cite{optician} has also demonstrated how
+Since their introduction by Foster \ETAL, lenses have been extensively
+studied, extended, and applied.  Recent work has also demonstrated how
 techniques from {\em type-directed program synthesis} can be used to
 efficiently synthesize a simple class of lenses---so-called {\em
   bijective lenses} over string data---given a pair of types (regular
@@ -236,12 +236,12 @@ expressions) and a small number of examples.
 \hspace*{1em}We show how to extend this synthesis algorithm to a much wider class of
 lenses, which we call {\em simple symmetric lenses}, including not only all
 of the bijective lenses and the more widely used ``asymmetric''
-lenses~\cite{Focal2005-long}, but also a rich subset of the full-blown
-``symmetric lenses'' proposed by \citet{symmetric-lenses}.  
+lenses, but also a rich subset of the full-blown
+``symmetric lenses'' proposed by Hofmann \ETAL.  
 
 Synthesizing simple symmetric lenses is substantially more challenging than
 synthesizing bijective lenses: Since some of the information on each side
-can be ``disconnected'' from the other side, there will in general be {\em
+can be ``disconnected'' from the other side, there will, in general, be {\em
   many} lenses that agree with a given example. To guide the search process,
 we use {\em stochastic regular expressions} and ideas from information
 theory to estimate the amount of information propagated by a candidate lens,
@@ -253,9 +253,9 @@ the largest class of symmetric lenses that do not rely on persistent
 internal state.  
 
 We describe an implementation of simple symmetric lenses and our synthesis
-procedure as extensions to the Boomerang language~\cite{Boomerang}. We evaluate
-its performance on 48 benchmark examples drawn from Flash Fill~\cite{flashfill},
-Augeus~\cite{augeas2}, the bidirectional programming literature, and electronic
+procedure as extensions to the Boomerang language. We evaluate
+its performance on 48 benchmark examples drawn from Flash Fill,
+Augeus, the bidirectional programming literature, and electronic
 file format synchronization tasks. Our implementation can synthesize all these
 lenses in under 30 seconds.
 \end{abstract}
@@ -370,8 +370,8 @@ can transform updates to data represented in a format $S$ to another format
 $T$ and vice versa, providing ``round tripping'' guarantees that help ensure
 information is not lost or corrupted as it is transformed back and forth
 between different representations.
-Domain-specific languages for writing lenses can facilitate building
-principled data transformations.  For example, Boomerang~cite{boomerang} is a
+Domain-specific languages for writing lenses can facilitate generation of
+principled data transformations.  For example, Boomerang~\cite{boomerang} is a
 language for expressing bidirectional string transformations.
 
 \textit{Synthesizing} lenses can make the task even easier. Indeed, lens
@@ -409,7 +409,7 @@ somewhat limited.  A more common situation is where two real-world data
 formats share just {\em some} of their information content.  For instance,
 two related database tables might share four out of five columns, but each
 might have a different fifth column.  Or, one ad-hoc system configuration
-file might include some format-specific meta data, such as a date or a
+file might include some format-specific metadata, such as a date or a
 reference number, whereas the same configuration file on another operating
 system does not.  Indeed among the 48 benchmark problems described in
 Section \ref{sec:evaluation} below, all of the benchmarks taken from Flash
@@ -461,7 +461,7 @@ The first is pragmatic. ``Classical'' symmetric lenses as presented
 by ~\citet{symmetric-lenses} operate
 over three structures: the ``left'' structure $X$, the ``right'' $Y$ and a complement
 $C$ that contains the information not
-present in either $X$ or $Y$. Logistically, these complements must be stored
+present in either $X$ or $Y$. These complements must be stored
 and managed somehow.  More fundamentially, complements complicate
 synthesis {\em specifications}---instead of just giving single examples of
 source and target 
@@ -508,8 +508,7 @@ information are preferable in our context to ones that propagate less.
 This intuition is formalized using \emph{stochastic regular expressions}
 (SREs)~\cite{stoch-rnn,stoch-def}, which simultaneously define a set of
 strings and a probability distribution over those strings.  Using this
-probability distribution, we can calculate the shared information content of
-two formats and our measure of likelihood.
+probability distribution, we can calculate the likelihood of a given lens.
 
 \begin{figure}
   \includegraphics[width=.5\textwidth]{high-level-algorithm.pdf}
@@ -538,7 +537,7 @@ depend on which of the possible representations are chosen for its source and
 target formats. Moreover, if Boomerang's type-equivalence rule is disallowed,
 there may be {\em no} well-typed lens connecting the source and target formats
 selected by the user: in general, the synthesis algorithm has to search through
-equivalent regular expression types for which a suitable lens exists. To tame
+equivalent regular expression types to find the most likely lens. To tame
 this complexity, we divide the synthesis algorithm into two communicating search
 procedures (Figure~\ref{fig:high-level-algorithm}), following~\citet{optician}.
 The first, \Expand, uses rewriting rules to iteratively propose new pairs of
@@ -546,8 +545,7 @@ stochastic regular expressions equivalent to the original pair. The second,
 \GreedySynth, takes a pair of SREs as input and uses a greedy, type-directed
 algorithm to find a simple symmetric lens between them, returning the lens and
 its likelihood score to \Expand. The whole synthesis algorithm heuristically
-terminates when the most likely lens is no longer unlikely enough to justify
-the time cost of searching through newly generated SREs.
+terminates when a sufficiently likely lens is found.
 
 %%
 %%searches for two \emph{related} SREs $S'$ and $T'$ that are
@@ -565,14 +563,17 @@ the time cost of searching through newly generated SREs.
 %%search terminates. Otherwise, this lens is stored away (if it is the best found
 %%so far) and the search continues with \Expand again.
 
-We have added this synthesis procedure to the Boomerang system and evaluated
-its effectiveness on a benchmark suite of 48 problems, including data-cleaning
+We added this synthesis procedure to the Boomerang system and explored its
+effectiveness on a range of applications. Users set up a Boomerang synthesis
+task by providing the source and target types and optionally supplying one or
+more examples. In addition, users can override the default mechanism for
+calculating the information content of a SRE by
+asserting that certain strings are \emph{essential} or \emph{irrelevant},
+thereby forcing certain data to either be retained or discarded during the
+transformations. We evaluated our system on a benchmark suite of 48 problems, including data-cleaning
 tasks taken from Flash Fill~\cite{gulwani-popl-2014}, view-maintenance tasks
 taken from Augeas~\cite{augeas2}, and ad-hoc synchronization tasks from a
 variety of other sources (mostly from the bidirectional programming literature).
-The user can control the search process via examples and annotations
-that informs the synthesis algorithm as to whether certain bits of information
-are irrelevant, or must maintained.
 
 In summary, our contributions are:
 \begin{itemize}
@@ -590,7 +591,10 @@ describe how to calculate their likelihoods (\S\ref{sec:ssl}).
 \item We extend the Boomerang implementation with simple symmetric lenses,
   demonstrating that they integrate smoothly with other lens extensions such as
   quotient lenses~\cite{quotientlenses} and matching
-  lenses~\cite{matchinglenses}. We evaluate our implementation, the effects of
+  lenses~\cite{matchinglenses}.
+
+\item We also extend Boomerang with symmetric lens synthesis specifications,
+  which include types, examples, and relevance annotations. We evaluate our implementation, the effects of
   various optimizations, and our inclusion of relevance annotations on a set of
   48 lens synthesis benchmarks drawn from data cleaning, view maintenance, and
   file synchronization tasks. The system can synthesize simple symmetric lenses
