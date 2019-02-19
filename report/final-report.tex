@@ -55,6 +55,12 @@
 \usepackage{tabulary}
 \usepackage{xspace}
 \usepackage{bbm}
+\usepackage{fullpage}
+\usepackage[explicit]{titlesec}
+
+% \renewcommand*\thesection{\arabic{section}.0}
+% \renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
+
 
 \newtheorem*{theorem*}{Theorem}
 \newenvironment{centermath}
@@ -144,11 +150,11 @@ stringstyle=\sffamily\color{dkblue},
 \renewcommand{\thepage}{\arabic{page}}% Arabic numerals for page counter
 \setcounter{page}{1}% Start page number with 2
 
-\section{Summary}
+\section{SUMMARY}
 
 
 
-\section{Introduction}
+\section{INTRODUCTION}
 
 Building information-processing systems and maintaining them over a long
 period of time is a tedious, labor-intensive process.  One key challenge is
@@ -235,11 +241,189 @@ most Augeas file formats.  However, our synthesis toolkit was able to
 transform all 40 of the Augeas file formats that we analyzed.
 
 We have written three academic papers~\cite{?}
-describing and evaluating our algorithms and produced open-source our code.
+describing and evaluating our algorithms and produced open-source our code that
+implements those algorithms.
 
-\section{Methods, Assumptions, and Procedures}
+\section{METHODS, ASSUMPTIONS, AND PROCEDURES}
 
-\section{Results and Discussion}
+Our approach combines two strategies.  We use \textit{domain-specific programming
+  language}, specifically, the Boomerang~\cite{boomerang, Matching10} language,
+which is designed for writing bidirectional string transformations.  We also exploit
+\textit{type- and example-directed program synthesis}, which uses enumerative
+techniques to search a space of candidate solutions.  The search is constrained
+by the type information about the program, as well as by example instances
+provided by the user.
+
+\subsection{Lenses and lens domain-specific programming languages}
+
+A lens comprises two functions,
+\emph{get} and \emph{put}.  The \emph{get} function translates
+source data into the target format.  If the target data is updated, the
+\emph{put} function translates this edited data back into the
+source format.  
+A benefit of lens-based languages is that they use a single term
+to express both 
+\emph{get} and \emph{put}.
+Furthermore, well-typed lenses give rise to 
+\emph{get} and \emph{put} functions 
+guaranteed to satisfy desirable invertibility properties.
+
+Lens-based languages are present in variety of tools and have found mainstream
+industrial use.
+Boomerang~\cite{boomerang, Matching10} lenses provide
+guarantees on transformations between {\em ad hoc} string document formats.
+Augeas~\cite{augeas}, a popular tool that reads Linux system configuration
+files, uses the \emph{get} part of a lens to transform configuration
+files into a canonical tree representation that users can edit
+either manually or 
+programmatically.  It uses the lens's \emph{put} to merge the edited
+results back into the original string format.  Other lens-based languages and
+tools include 
+%
+GRoundTram~\cite{Hidaka2011GRoundTramAI},
+%
+BiFluX~\cite{DBLP:conf/ppdp/PachecoZH14}, 
+%
+BiYacc~\cite{DBLP:conf/staf/ZhuK0SH15},
+%
+Brul~\cite{DBLP:conf/etaps/ZanLKH16},
+%
+BiGUL \cite{DBLP:conf/pepm/KoZH16}, 
+%
+bidirectional variants of 
+relational algebra~\cite{BohannonPierceVaughan},
+spreadsheet formulas~\cite{DBLP:conf/vl/MacedoPSC14},
+graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
+and
+XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}.
+
+
+\subsection{Bijective lens synthesis}
+
+As inputs, our bijective synthesis procedure takes regular expressions specifying the
+source, $S$, and
+target, $T$, formats, plus a collection of concrete examples of the desired 
+transformation.  Format specifications are supplied as ordinary regular
+expressions.
+Because regular expressions are so widely understood, we anticipate such
+inputs will be substantially easier for everyday programmers to work with
+than the unfamiliar syntax of lenses.
+Moreover, these format descriptions communicate a
+great deal of information to the synthesis system.  Thus, requiring user input
+of regular expressions makes synthesis robust, 
+helps the system scale to large and complex data sources, and 
+constrains the search space sufficiently that the user typically needs
+to give very few, if any, examples.
+
+The goal of the synthesis algorithm is to find a lens
+$\ell : S \Leftrightarrow T$ that corresponds to a bijection from the language
+of a source regular expression $S$ to a target language of a target regular
+expression $T$.   Such a lens should satisfy the \textit{bijective lens laws}:
+
+\begin{equation}\label{bijectivelenslaws} \ell.\get \;
+  (\ell.\lput \; t) = t \text{, and } \ell.\lput \; (\ell.\get \; s) = s
+\end{equation}
+
+\begin{figure}
+  \centering
+  \small 
+  \begin{tikzpicture}[auto,node distance=1.5cm]
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
+    
+    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
+    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
+    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
+    
+    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
+    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
+
+    \node[text width=2.3cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
+    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
+    
+    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
+    
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
+    
+    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
+    
+    
+    \path[->] (regex1.east) edge (todnfregex.north west);
+    \path[->] (regex2.east) edge (todnfregex.south west);
+    
+    \path[->] (todnfregex.north east) edge (dnfregex1.west);
+    \path[->] (todnfregex.south east) edge (dnfregex2.west);
+    
+    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
+    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
+    
+    \path[->] (synthdnflens) edge (dnflens);
+    
+    \path[->] (dnflens) edge (tolens);
+    
+    \path[->] (tolens) edge (lens);
+    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
+    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
+    % Now place a relation (ID=rel1)
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
+    %\node (below-gen) [below=.5cm of sketch-gen] {};
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
+    %     [right = .25cm of sketch-gen] {\RigidSynth{}};
+    %\node (below-compl) [below=.5cm of sketch-compl] {};
+    %\node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
+    %% Draw an edge between rel1 and node1; rel1 and node2
+    %\path[->] (spec) edge node (start-alg) {} (sketch-gen);
+    %\path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
+    %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
+    %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
+
+    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
+    %
+    %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure)
+    %(success) ,draw] (surrounding) {};
+
+  \end{tikzpicture}
+  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
+    \RegexAlt{}, and examples, \Examples{}, are given as input.
+    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
+    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
+    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
+    \RegexAlt{}, and \Examples{}.
+    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
+    that is equivalent to \DNFLens{}.}
+  \label{fig:schematic-diagram-synthesis}
+\end{figure}
+
+Figure~\Cref{fig:schematic-diagram-synthesis} shows a high-level,
+schematic diagram for \Optician{}.
+First, \Optician{} uses the function \ToDNFRegex{} to convert the input
+regular expressions into DNF regular expressions.  Next,
+\SynthDNFLens{} performs type-directed synthesis on these DNF regular
+expressions and the input examples to synthesize a DNF lens.  Finally, this DNF lens is
+converted back into a regular lens with the function \ToLens{}, and returned to the user.
+
+
+\subsection{Quotient lens synthesis}
+
+Quotient lenses are lenses in which the lens laws are
+loosened so that they hold modulo an equivalence relation on the source and
+target data respectively; as above, we are concerned with {\em bijective
+quotient lenses} which are lenses for which Equation \ref{bijectivelenslaws}
+holds modulo equivalence relations $\equiv_S$ and $\equiv_T$ defined on the source
+and target data respectively:
+
+\begin{equation}\label{quotientlenslaws}
+\ell.\get \; (\ell.\lput \; t) \equiv_T t \text{, and } \ell.\lput \; (\ell.\get
+\; s) \equiv_S s
+\end{equation}
+
+The inputs to the quotient lens synthesis problem, as in the bijective case,
+include source and target regular expressions $S$ and $T$ and a set of example
+instances.  The equivalence relations $\equiv_S$ and $\equiv_T$ are also given
+as inputs to the synthesis algorithm.  As we describe below, one result of our
+work is a language of \textit{quotient regular expressions} that concisely
+specifies $S$ and $\equiv_S$ simultaneously.
+
+\section{RESULTS AND DISCUSSION}
 
 Reffing a \Cref{fig:eg}.
 
@@ -249,7 +433,7 @@ Reffing a \Cref{fig:eg}.
   \label{fig:eg}
 \end{figure}
 
-\section{Conclusions}
+\section{CONCLUSIONS}
 
 During the course of this project, we have designed, analyzed and implemented algorithms that demonstrate it is possible to synthesize three classes of bidirectional transformations:  (1) pure bijective transformations, (2) bijections modulo equivalences classes and (3) bijections modulo projections.  The synthesis algorithms we have designed take inputs that include a format specification (which includes specification of equivalence classes) and a collection of examples.  As the class of transformations becomes richer, the number of potential programs grows dramatically.  As a result, the corresponding inference algorithm slows and its ability to guess the transformation desired by the user decreases, leading to reduced accuracy.  We found that it was possible to overcome such challenges through new heuristics that use information theory to help guide the search for program transformations.  In addition, we found the use of compositional synthesis, which is the process of breaking down a complex synthesis task into smaller, more mangeable subtasks critical when attempting to scale our prototype system up to be able to handle larger transformation task.
 
