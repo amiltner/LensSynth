@@ -1,11 +1,11 @@
 \newif\ifdraft\drafttrue  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
-\newif\ifanon\anonfalse    % set true to suppress names, etc.
+\newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\ifappendices\appendicesfalse
 
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 %\documentclass[acmsmall,review,screen,anonymous]{acmart}
-\documentclass[acmsmall,review,screen]{acmart}
+\documentclass[acmsmall,review,screen,anonymous]{acmart}
 \settopmatter{printacmref=false,printccs=false}
 
 
@@ -75,6 +75,8 @@ mathescape,
 xleftmargin=1.5em,
 % BCP: I find this distracting:
 stringstyle=\sffamily\color{dkblue},
+aboveskip=.3em,
+belowskip=.3em,
 }
 \makeatletter
      \let\lst@oldvisiblespace\lst@visiblespace
@@ -512,7 +514,7 @@ strings and a probability distribution over those strings.  Using this
 probability distribution, we can calculate the likelihood of a given lens.
 
 \begin{figure}
-  \includegraphics[width=.65\textwidth]{high-level-algorithm.pdf}
+  \includegraphics[width=.63\textwidth]{high-level-algorithm.pdf}
   \vspace{-2ex}
   \caption{Schematic diagram for the simple symmetric lens synthesis algorithm.
     The user provides regular expressions \BRegex and \BRegexAlt and a set of
@@ -754,7 +756,6 @@ $Y$ comprises four functions subject to four
 %\item $\PutR \OfType \Regex \rightarrow \RegexAlt \rightarrow \RegexAlt$
 %\item $\PutL \OfType \RegexAlt \rightarrow \Regex \rightarrow \Regex$
 %\end{enumerate}
-\vskip 1.5ex
 \begin{center}
 \begin{minipage}[c]{.3\textwidth}
 \begin{gather}
@@ -778,8 +779,8 @@ $Y$ comprises four functions subject to four
 \end{align}
 \end{minipage} 
 \end{center}
-\vskip 1ex
 \noindent
+\vskip -.5em
 The two \KW{create} functions are used to propagate shared information and fill
 in default values when introducing new data (\EG, on \KW{create} the ``unk''
 salary entry is added alongside the name to the management file when HR inserts
@@ -1295,19 +1296,21 @@ from $\PRegexStar{\lstinline{"c"}}{.8}$ would give \lstinline{""} 20\% of the
 time, \lstinline{"c"} 16\% of the time, and \lstinline{"cc"} 12.8\% of the time).
 
 \begin{figure}
-  \begin{tabular}{@{\hspace*{5em}}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{}}
-    \PRegexOr{\Regex}{\emptyset}{1} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} \\
+  \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{\hspace*{3em}}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r}
+    $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} &
     $\RegexConcat{\Regex}{\emptyset}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionRightRule{} \\
-    $\RegexConcat{\emptyset}{\Regex}$ & $\SSREquiv$ & $\emptyset$ & \EmptyProjectionLeftRule{} \\
+    \RegexConcat{\EmptyString{}}{\Regex{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityLeftRule{} &
+    \RegexConcat{\Regex{}}{\EmptyString{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityRightRule{} \\
+    \PRegexOr{\Regex}{\emptyset}{1} & $\SSREquiv$ & \Regex{} & \OrIdentityRule{} &
+    \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
+    \RegexConcat{\Regex{}}{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})}{\Probability} & \DistributivityLeftRule{} &
+    \RegexConcat{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})}{\Regex{}} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})}{\Probability} & \DistributivityRightRule{} \\
+    \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\PRegexStar{\Regex{}}{\Probability}})}{1-\Probability} & \UnrollstarLeftRule{} &
+    \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\PRegexStar{{\Regex{}}}{\Probability}}{\Regex{}})}{1-\Probability} & \UnrollstarRightRule{} 
+  \end{tabular}
+  \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{\hspace{1em}}r@{}}
     \RegexConcat{(\RegexConcat{\Regex{}}{\Regex'})}{\Regex''} & $\SSREquiv$ & \RegexConcat{\Regex{}}{(\RegexConcat{\Regex'}{\Regex''})} & \ConcatAssocRule{}  \\
     \PRegexOr{(\PRegexOr{\Regex}{\Regex'}{\Probability_1})}{\Regex''}{\Probability_2} & $\SSREquiv$ & \PRegexOr{\Regex}{(\PRegexOr{\Regex'}{\Regex''}{\frac{(1-\Probability_1)\Probability_2}{1 - \Probability_1\Probability_2}})}{\Probability_1\Probability_2} & \OrAssociativityRule{}  \\
-    \PRegexOr{\Regex{}}{\RegexAlt{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\RegexAlt{}}{\Regex{}}{1-\Probability} & \OrCommutativityRule{}\\
-    \RegexConcat{\Regex{}}{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}}{\Regex{}'})}{(\RegexConcat{\Regex{}}{\Regex{}''})}{\Probability} & \DistributivityLeftRule{} \\
-    \RegexConcat{(\PRegexOr{\Regex{}'}{\Regex{}''}{\Probability})}{\Regex{}} & $\SSREquiv$ & \PRegexOr{(\RegexConcat{\Regex{}'}{\Regex{}})}{(\RegexConcat{\Regex{}''}{\Regex{}})}{\Probability} & \DistributivityRightRule{} \\
-    \RegexConcat{\EmptyString{}}{\Regex{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityLeftRule{} \\
-    \RegexConcat{\Regex{}}{\EmptyString{}} & $\SSREquiv$ & \Regex{} & \ConcatIdentityRightRule{} \\
-    \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\Regex{}}{\PRegexStar{\Regex{}}{\Probability}})}{1-\Probability} & \UnrollstarLeftRule{} \\
-    \PRegexStar{\Regex{}}{\Probability} & $\SSREquiv$ & \PRegexOr{\EmptyString{}}{(\RegexConcat{\PRegexStar{{\Regex{}}}{\Probability}}{\Regex{}})}{1-\Probability} & \UnrollstarRightRule{} 
   \end{tabular}
   \caption{Stochastic Regular Expression Star-Semiring Equivalence}
   \label{fig:ssr-sre}
@@ -1890,7 +1893,7 @@ further depth in the following subsections.
 algorithm. Stochastic DNF regular expressions (\SDNFREabbrev{}s) are a
 pseudo-normal form for stochastic regular expressions. Of all the star-semiring
 equations required to relate two \SDNFREabbrevs, only those relating to Kleene
-star (\EG, \emph{Unrollstar$_L$} and \emph{Unrollstar$_R$}) are needed to relate
+star (\EG, \UnrollstarLeftRule{} and \UnrollstarLeftRule{}) are needed to relate
 two \SDNFREabbrevs; other axioms, like associativity, commutativity or
 distributivity, are unneeded. This important property makes it possible to
 construct an efficient algorithm ($\GreedySynth$), directed by the syntax of two
