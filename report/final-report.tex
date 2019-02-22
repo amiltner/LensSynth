@@ -501,7 +501,7 @@ of 1600 MHz DDR3 running macOS Sierra.
 We constructed our benchmarks primarily by adapting examples from
 Augeas~\cite{augeas} and 
 Flash Fill~\cite{gulwani-popl-2014}.
-
+%
 Augeas is a configuration editing system for Linux that uses lens
 combinators similar to those in Boomerang. However, it transforms
 strings on the left to structured trees on the right rather than
@@ -517,7 +517,7 @@ Furthermore, the 12 last synthesis problems derived
 from Augeas were tested after \Optician{} was
 finalized, demonstrating that the optimizations were not
 overtuned to perform well on the testing data.
-
+%
 Flash Fill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
 We derived three benchmarks from the first few examples in the
@@ -705,6 +705,203 @@ tasks present in our test suite.
 Furthermore, as unidirectional transformations, Flash Fill and FlashExtract have
 a more expressive calculus.  To guarantee bidirectionality, our syntax must be
 highly restrictive, providing a smaller search space to traverse.
+
+\subsection{Quotient Synthesis Algorithms}
+
+% DPW:  From Quotient lenses paper
+
+\newcommand{\wf}[1]{\ensuremath{#1\;\mathsf{wf}}}
+
+% FOR Regular Expression names
+\newcommand{\re}[1]{\ensuremath{\mathtt{#1}}}
+\newcommand{\codefont}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\kw}[1]{\textcolor{dkblue}{\ensuremath{\mathsf{#1}}}}
+\newcommand{\collapse}[2]{\ensuremath{\kw{collapse} \; #1 \mapsto #2}}
+\newcommand{\squash}[3]{\ensuremath{\kw{squash} \; #1 \rightarrow #2\; \kw{using} \; #3}}
+\newcommand{\perm}[2]{\ensuremath{\kw{perm}(#1)\; \kw{with}\; #2}}
+\newcommand{\normalize}[3]{\ensuremath{\kw{normalize}(#1, #2, #3)}}
+\newcommand{\eqrel}[1]{\ensuremath{\equiv_{#1}}}
+
+\newcommand{\canonize}{\ensuremath{\kw{canonize}}}
+
+\newcommand{\Name}{Optometrist\xspace}
+
+\newcommand{\QRESize}{\textbf{QS}}
+\newcommand{\canonizeAndSpecSize}{\textbf{BS}}
+\newcommand{\LensAndSpecSize}{\textbf{NS}}
+
+%\newcommand{\QOpt}{Optician_Q}
+\newcommand{\QOpt}{QRE-enhanced Optician}
+\newcommand{\OpticianRuntime}{\textbf{Optician}}
+\newcommand{\QREOptician}{\textbf{Optician\textsubscript{Q}}}
+\newcommand{\SystemOnOptician}{\textbf{QO}}
+\newcommand{\SystemOnBenchmarks}{\textbf{QQ}}
+\newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
+
+We have implemented QREs and the quotient lens synthesis algorithm described
+above as an extension to the Boomerang
+interpreter~\cite{boomerang,quotientlenses}. We have extended the existing
+Optician tool to synthesize QRE lenses from QREs. We will use 
+``\QOpt'' to denote our extended version of Optician, and just plain ``Optician'' to denote
+the pre-QRE version of Optician. The synthesis algorithm produces Boomerang lens
+values, so Boomerang gives synthesized lenses the same first-class status as hand-written ones. To
+evaluate the effectiveness of QREs, QRE lenses, and QRE lens synthesis, we
+conducted experiments to answer the following questions:
+%
+\begin{itemize}
+  \item {\bf Ease of use.} Does synthesizing QRE lenses from QREs permit an
+  easier development process than writing lenses by hand?
+  Does synthesizing QRE lenses from QREs permit an easier development
+  process than manually writing canonizers and then synthesizing lenses between
+  their canonized forms?  
+  \item {\bf Performance.} Is the synthesis algorithm/implementation fast enough to be
+  used as part of a standard development process?
+\end{itemize}
+%
+All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
+of 1600 MHz DDR3 running macOS High Sierra.
+
+
+\paragraph*{Benchmark Suite Construction}
+
+To evaluate our QRE implementation, we adapted 39 lens synthesis tasks
+from the benchmark suite of the original Optician system. These
+benchmarks are a combination of custom benchmarks, benchmarks derived
+from FlashFill~\cite{flashfill}, and benchmarks derived from
+Augeas~\cite{augeas2} (we also experimented using our QRE implementation to synthesize quotient lenses between XML, RDF and and JSON formats using data from the data.gov database; the data consisted of census statistics, demographic statistics, wage comparosion data, and crime index data).  In these 39 benchmarks, 10 of
+the data formats had to be modified to work with the bijectivity
+constraints that Optician required. For instance, when one
+representation permits whitespace where the other does not, we
+modified the original version of the benchmark to allow more whitespace,
+thereby restoring bijectivity (but altering the data format). With the
+new QRE support, we were able to remove these alterations.  This
+experience alone suggests that QREs make the lens development process
+more flexible.
+
+\paragraph*{Ease of Use}
+
+\begin{figure}[t]
+\includegraphics{qfigs/asts.eps}
+\caption{AST node measurements for each of the three approaches
+on each of the 10 non-bijective benchmark problems.
+Benchmarks are sorted in order of increasing complexity as measured by
+the number of AST nodes in the source and target format descriptions. 
+QRE Synthesis requires far fewer AST nodes than the other
+two approaches.}
+%%\caption{Count of benchmark programs definable using a given AST count. We find
+%%that it takes far fewer AST nodes to define benchmark lenses using QRE
+%%synthesis than with Optician without QRE synthesis or without synthesis.}
+\label{fig:asts}
+\end{figure}
+
+To evaluate the impact of QRE lens synthsis on programmer effort,
+we focus our attention on the 10 problems in the benchmark suite that
+are not bijective and hence require non-trivial canonizers. 
+(Optician already handles the other problems with minimal programmer
+effort.)
+
+We are interested in comparing three different approaches, which vary
+in the amount of synthesis used. 
+In the first approach, which we call \QRESize{} for QRE Synthesis, the programmer uses
+QRE lens synthesis.  She must write QRE specifications of the source and
+target formats and she may give examples.
+In the second approach, which we call \canonizeAndSpecSize{} for
+Bijective Synthesis, the
+programmer uses bijective lens synthesis \`a la Optician.
+She must write canonizers by hand, along with 
+regular expressions to describe the external
+representations of the source and target formats. (The internal
+formats can be inferred from the canonizers.) She may also
+provide examples to help in the synthesis of the bijective lens.
+In the third approach, which we call \LensAndSpecSize{} for No Synthesis, the
+programmer writes the lens between the source and target formats
+entirely by hand, including the descriptions of the source and target
+formats.
+
+For each problem in the benchmark suite, we calculate the following
+measures as proxies for the level of programmer effort when using each
+the three approaches:
+
+%
+\begin{itemize}
+  \item[\QRESize{}:] 
+  The number of AST nodes in the QRE specifications for the source and
+  target formats, including examples. 
+  \item[\canonizeAndSpecSize{}:] 
+  The sum of (1) the number of AST nodes in $W(q)$ for each QRE $q$ in the source and target
+  formats, (2) the number of AST nodes in $\canonize(q)$ for each QRE $q$ with a
+  non-trivial canonizer, and (3) the number of AST nodes in the
+  examples.  We use (1) to estimate the burden of describing
+  the external source and target formats and (2) to estimate the
+  burden of writing the requisite canonizers
+  by hand.  We count the nodes in the examples because they would be
+  fed to the bijective synthesizer.  
+  These counts are an approximation, as both $W(q)$ and $\canonize(q)$ are
+  automatically generated from the corresponding QRE $q$, and it is
+  possible that a human-written version might be smaller.
+  \item[\LensAndSpecSize{}:] The sum of (1) the number of AST nodes in
+  $W(q)$ for each QRE $q$ in the source and target formats and (2) the
+  number of AST nodes in the synthesized QRE lens.  We use (1) to
+  estimate the burdern of describing the source and target formats
+  and (2) to estimate the burdern of writing the appropriate lens by
+  hand. These counts are also approximations, as
+  $W(q)$ and the synthesized lens may be larger than one written by hand.
+\end{itemize}
+
+Figure~\ref{fig:asts} shows each of these measures for the 10
+non-bijective problems in the benchmark suite.  On
+average (using a geometric mean), \canonizeAndSpecSize{} used~38.5\% more AST nodes
+than \QRESize{}, requiring an average of~214 more AST nodes. On 
+average, \LensAndSpecSize{} used~180\% more AST nodes than \QRESize{}, requiring an
+average of~998 more AST nodes. These figures suggest that introducing QREs saves
+programmers significant effort compared to both Optician and basic
+Boomerang.
+
+\paragraph*{Maintaining Competitive Performance}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[b]{.49\textwidth}
+\centering
+\includegraphics{qfigs/times_opt}
+\caption{}
+\label{subfig:lenssize}
+\end{subfigure}
+\begin{subfigure}[b]{.49\textwidth}
+\includegraphics{qfigs/times_new.eps}
+\caption{}
+\label{subfig:examplesused}
+\end{subfigure}
+\caption{Runtimes measurements. In (a), we run Optician and \QOpt{}
+  on the Optician benchmarks.  We find that there is only a negligible
+  performance overhead incurred by using QREs. 
+  In (b), we run \QOpt{} on the 10 Optician benchmarks
+  previously edited to make them bijective, after removing those edits
+  and then extending the synthesis specification to include QREs.
+  (In other words, we restored them to their original state, added QREs,
+  and then ran \QOpt{}). 
+  We find that \QOpt{} is able to
+  synthesize all quotient lenses in under 10 seconds, and typically finishes in
+  under 5 seconds.}
+\label{fig:times}
+\end{figure}
+
+To assess the performance of QRE synthesis, we are interested in two different
+questions. First, how does the performance of \QOpt{} compare to the performance
+of Optician on benchmarks that do not require QREs? The answer to this question
+tells us how much overhead we have introduced by adopting the more general
+mechanism. Figure~\ref{fig:times}(a) shows that \QOpt{} was able to synthesize
+all of the Optician benchmarks at a speed competitive with the old version.
+There is a small amount of additional overhead introduced by QREs in calculating
+the $W$ and $K$ functions, resulting in a slight decrease in performance.
+
+Second, how much time does it take for \QOpt{} to synthesize a QRE
+lens when running on a non-bijective benchmark problem?  
+Figure~\ref{fig:times}(b) shows the amount of time required to infer a
+lens for each of the 10 benchmark programs with nontrivial quotients.  
+We find that \QOpt{} is able to synthesize all quotient lenses in
+under 10~seconds, and typically finishes in under 5~seconds.
+
 
 \section{CONCLUSIONS}
 
