@@ -150,11 +150,11 @@ stringstyle=\sffamily\color{dkblue},
 \renewcommand{\thepage}{\arabic{page}}% Arabic numerals for page counter
 \setcounter{page}{1}% Start page number with 2
 
-\section{SUMMARY}
+\section{Summary}
 
 
 
-\section{INTRODUCTION}
+\section{Introduction}
 
 Building information-processing systems and maintaining them over a long
 period of time is a tedious, labor-intensive process.  One key challenge is
@@ -215,36 +215,41 @@ irrelevant details, such as the amount of whitespace that separates
 two tokens.
 
 Despite their limitations, bijections and bijective synthesis form a
-useful foundation on top which more general transformations between
+useful foundation on top of which more general transformations between
 data sets may be built.  Hence, in the second half of our of project,
 we extended the regular expression-based specifications of data types
 with \emph{isomorphisms} between strings, also known as
 \emph{quotients}.  To synthesize transformations between sets of
 strings modulo isomorphisms, we generate canonizing functions followed
 by bijections (using the original bijective synthesis algorithm).  The
-so-called \emph{quotient lenses}~\cite{Foster:quotient-lenses}we generate are capable of handling
+so-called \emph{quotient lenses}~\cite{quotientlenses} we generate are capable of handling
 ``irrelevant'' differences between structures such as white space or
 permutations of items in a row of data set and hence expand the set of
 transformations our system can define significantly.  Finally, we explored the
-synthesis of \emph{symmetric lenses}~\cite{hofmann+:lenses} , again building upon the
+synthesis of \emph{symmetric lenses}~\cite{symmetric-lenses} , again building upon the
 bijective platform that we started with.  Symmetric lenses are able to
 ignore arbitrary chunks of data in A when generating target data B,
 and vice-versa.  For example, a serial number specific to one data set
 may be ignored when we translate to a second.  Symmetric lenses
 further expand the set of allowed transformations.
 
-We measured the effectiveness of our algorithms on a set of
-benchmarks drawn from the Augeas system~\cite{augeas}---a system for
-transforming and editing Linux configuration files.  Past synthesis
+We measured the effectiveness of our algorithms on a set of 39
+benchmarks drawn from the Augeas system~\cite{augeas},  system for
+transforming and editing Linux configuration files, and
+FlashFill~\cite{flashfill}, an extension to Microsoft Excel for
+synthesizing columns of spreadsheets.  Past synthesis
 tools, such as FlashFill~\cite{flashfill} were unable to translate
 most Augeas file formats.  However, our synthesis toolkit was able to
-transform all 40 of the Augeas file formats that we analyzed.
+generate transforms for all 39 of the Augeas file formats that we analyzed.
 
-We have written three academic papers~\cite{?}
-describing and evaluating our algorithms and produced open-source our code that
-implements those algorithms.
+We have written
+papers~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}
+describing and evaluating our algorithms and produced open-source 
+code~\cite{GitHub} that implements those algorithms.  In this report,
+we summarize some of our key methods, results and findings, focusing
+on the core algorithms for bijective synthesis and quotient synthesis.
 
-\section{METHODS, ASSUMPTIONS, AND PROCEDURES}
+\section{Methods, Assumptions and Procedures}
 
 Our approach combines two strategies.  We use \textit{domain-specific programming
   language}, specifically, the Boomerang~\cite{boomerang, Matching10} language,
@@ -288,10 +293,11 @@ BiYacc~\cite{DBLP:conf/staf/ZhuK0SH15},
 %
 Brul~\cite{DBLP:conf/etaps/ZanLKH16},
 %
-BiGUL \cite{DBLP:conf/pepm/KoZH16}, 
-%
 bidirectional variants of 
 relational algebra~\cite{BohannonPierceVaughan},
+%
+BiGUL \cite{DBLP:conf/pepm/KoZH16}, 
+%
 spreadsheet formulas~\cite{DBLP:conf/vl/MacedoPSC14},
 graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
 and
@@ -419,11 +425,13 @@ and target data respectively:
 The inputs to the quotient lens synthesis problem, as in the bijective case,
 include source and target regular expressions $S$ and $T$ and a set of example
 instances.  The equivalence relations $\equiv_S$ and $\equiv_T$ are also given
-as inputs to the synthesis algorithm.  As we describe below, one result of our
-work is a language of \textit{quotient regular expressions} that concisely
-specifies $S$ and $\equiv_S$ simultaneously.
+as inputs to the synthesis algorithm.  Definition of such equivalences
+are given via a new language of \textit{quotient regular expressions}
+that we have defined.  Quotient regular expressions
+describe both  $S$ (or $T$) and $\equiv_S$ (or $\equiv_T$)
+simulataneously in one compact notation.
 
-\section{RESULTS AND DISCUSSION}
+\section{Results and Discussion}
 
 % From bijective lens paper
 
@@ -485,7 +493,7 @@ soundness and completeness results.  We have also analyzed our
 algorithms empirically, studying their impact on a range of real and
 synthetic benchmarks.  Our full results have been published in a
 series of conference papers and technical
-reports~\cite{bijective,quotient,symmetric}.  In the rest of this
+reports~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}.  In the rest of this
 section, we summarize some of the key results.
 
 \subsection{Bijective Synthesis Algorithms}
@@ -493,7 +501,7 @@ section, we summarize some of the key results.
 We first study the effectiveness of the pure bijective synthesis
 algorithm by evaluating its performance on a set of 39
 benchmark programs.  
-
+%
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS Sierra.
 
@@ -738,25 +746,10 @@ highly restrictive, providing a smaller search space to traverse.
 \newcommand{\SystemOnBenchmarks}{\textbf{QQ}}
 \newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
 
-We have implemented QREs and the quotient lens synthesis algorithm described
-above as an extension to the Boomerang
-interpreter~\cite{boomerang,quotientlenses}. We have extended the existing
-Optician tool to synthesize QRE lenses from QREs. We will use 
+We have extended the bijective synthesis tool to synthesize quotient lenses. We will use 
 ``\QOpt'' to denote our extended version of Optician, and just plain ``Optician'' to denote
-the pre-QRE version of Optician. The synthesis algorithm produces Boomerang lens
-values, so Boomerang gives synthesized lenses the same first-class status as hand-written ones. To
-evaluate the effectiveness of QREs, QRE lenses, and QRE lens synthesis, we
-conducted experiments to answer the following questions:
-%
-\begin{itemize}
-  \item {\bf Ease of use.} Does synthesizing QRE lenses from QREs permit an
-  easier development process than writing lenses by hand?
-  Does synthesizing QRE lenses from QREs permit an easier development
-  process than manually writing canonizers and then synthesizing lenses between
-  their canonized forms?  
-  \item {\bf Performance.} Is the synthesis algorithm/implementation fast enough to be
-  used as part of a standard development process?
-\end{itemize}
+the pre-quotient version of Optician. The synthesis algorithm produces Boomerang lens
+values, so Boomerang gives synthesized lenses the same first-class status as hand-written ones. 
 %
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS High Sierra.
@@ -764,21 +757,20 @@ of 1600 MHz DDR3 running macOS High Sierra.
 
 \paragraph*{Benchmark Suite Construction}
 
-To evaluate our QRE implementation, we adapted 39 lens synthesis tasks
-from the benchmark suite of the original Optician system. These
-benchmarks are a combination of custom benchmarks, benchmarks derived
-from FlashFill~\cite{flashfill}, and benchmarks derived from
-Augeas~\cite{augeas2} (we also experimented using our QRE implementation to synthesize quotient lenses between XML, RDF and and JSON formats using data from the data.gov database; the data consisted of census statistics, demographic statistics, wage comparosion data, and crime index data).  In these 39 benchmarks, 10 of
-the data formats had to be modified to work with the bijectivity
-constraints that Optician required. For instance, when one
-representation permits whitespace where the other does not, we
-modified the original version of the benchmark to allow more whitespace,
-thereby restoring bijectivity (but altering the data format). With the
-new QRE support, we were able to remove these alterations.  This
-experience alone suggests that QREs make the lens development process
-more flexible.
+We analyzed the same 39 lens synthesis tasks from the original
+Optician system.
+We also experimented using our tool to synthesize quotient lenses
+between XML, RDF and and JSON formats using data from the data.gov
+database; the data consisted of census statistics, demographic
+statistics, wage comparosion data, and crime index data).
+Recall that to use bijective synthesis,  we had to modify 10 of 39
+benchmarks make them bijective (for instance, by normalizing whitespace)
+Because quotient lenses are more expressive, we were able avoid such
+modifications. This
+experience alone points to the benefits that quotient lens synthesis
+brings to the table. 
 
-\paragraph*{Ease of Use}
+\paragraph*{Evaluating programmer effort}
 
 \begin{figure}[t]
 \includegraphics{qfigs/asts.eps}
@@ -802,8 +794,8 @@ effort.)
 
 We are interested in comparing three different approaches, which vary
 in the amount of synthesis used. 
-In the first approach, which we call \QRESize{} for QRE Synthesis, the programmer uses
-QRE lens synthesis.  She must write QRE specifications of the source and
+In the first approach, which we call \QRESize{}, the programmer uses
+quotient lens synthesis.  She must write QRE specifications of the source and
 target formats and she may give examples.
 In the second approach, which we call \canonizeAndSpecSize{} for
 Bijective Synthesis, the
@@ -857,7 +849,7 @@ average of~998 more AST nodes. These figures suggest that introducing QREs saves
 programmers significant effort compared to both Optician and basic
 Boomerang.
 
-\paragraph*{Maintaining Competitive Performance}
+\paragraph*{Quotient Lens Performance}
 
 \begin{figure}[t]
 \centering
@@ -886,16 +878,16 @@ Boomerang.
 \label{fig:times}
 \end{figure}
 
-To assess the performance of QRE synthesis, we are interested in two different
+To assess the performance of quotient synthesis, we are interested in two different
 questions. First, how does the performance of \QOpt{} compare to the performance
-of Optician on benchmarks that do not require QREs? The answer to this question
+of Optician on benchmarks that do not require quotients? The answer to this question
 tells us how much overhead we have introduced by adopting the more general
 mechanism. Figure~\ref{fig:times}(a) shows that \QOpt{} was able to synthesize
 all of the Optician benchmarks at a speed competitive with the old version.
 There is a small amount of additional overhead introduced by QREs in calculating
-the $W$ and $K$ functions, resulting in a slight decrease in performance.
+equivalences, resulting in a slight decrease in performance.
 
-Second, how much time does it take for \QOpt{} to synthesize a QRE
+Second, how much time does it take for \QOpt{} to synthesize a quotient
 lens when running on a non-bijective benchmark problem?  
 Figure~\ref{fig:times}(b) shows the amount of time required to infer a
 lens for each of the 10 benchmark programs with nontrivial quotients.  
@@ -903,7 +895,7 @@ We find that \QOpt{} is able to synthesize all quotient lenses in
 under 10~seconds, and typically finishes in under 5~seconds.
 
 
-\section{CONCLUSIONS}
+\section{Conclusions}
 
 During the course of this project, we have designed, analyzed and implemented algorithms that demonstrate it is possible to synthesize three classes of bidirectional transformations:  (1) pure bijective transformations, (2) bijections modulo equivalences classes and (3) bijections modulo projections.  The synthesis algorithms we have designed take inputs that include a format specification (which includes specification of equivalence classes) and a collection of examples.  As the class of transformations becomes richer, the number of potential programs grows dramatically.  As a result, the corresponding inference algorithm slows and its ability to guess the transformation desired by the user decreases, leading to reduced accuracy.  We found that it was possible to overcome such challenges through new heuristics that use information theory to help guide the search for program transformations.  In addition, we found the use of compositional synthesis, which is the process of breaking down a complex synthesis task into smaller, more mangeable subtasks critical when attempting to scale our prototype system up to be able to handle larger transformation task.
 
