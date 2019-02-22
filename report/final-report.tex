@@ -425,13 +425,286 @@ specifies $S$ and $\equiv_S$ simultaneously.
 
 \section{RESULTS AND DISCUSSION}
 
-Reffing a \Cref{fig:eg}.
+% From bijective lens paper
+
+
+% \newcommand{\SOptician}{Optician\textsubscript{S}}
+% \newcommand{\SynthSymLens}{\PCF{SynthSymLens}\xspace}
+% \newcommand{\RXSearchState}{\ensuremath{\mathit{pq}}}
+% \newcommand{\ToStochastic}{\PCF{ToStochastic}\xspace}
+% \newcommand{\LC}{\ensuremath{\mathit{lc}}}
+% \newcommand{\Best}{\ensuremath{\mathit{best}}}
+% \newcommand{\RXSearch}{\PCF{RXSearch}\xspace}
+% \newcommand{\Continue}{\PCF{Continue}\xspace}
+% \newcommand{\PQ}{\PCF{PQ}\xspace}
+% \newcommand{\SynthDNFLens}{\PCF{SynthDNFLens}}
+% \newcommand{\ToLens}{\ensuremath{\Uparrow}}
+% \newcommand{\ToLensOf}[1]{\ensuremath{\ToLens{}\mkern-4mu #1}}
+% \newcommand{\ToDNFRegexText}{\PCF{ToDNFRegex}}
+% \newcommand{\Beautify}{\PCF{Beautify}}
+% \newcommand{\RigidSynth}{\PCF{RigidSynth}}
+% \newcommand{\GreedySynth}{\PCF{GreedySynth}\xspace}
+% \newcommand{\RigidSynthInternal}{\PCF{RigidSynthInternal}}
+% \newcommand{\RigidSynthSequence}{\PCF{RigidSynthSeq}}
+% \newcommand{\RigidSynthAtom}{\PCF{RigidSynthAtom}}
+% \newcommand{\GetDNFNormalizer}{\PCF{GetDNFNormalizer}}
+% \newcommand{\CreatePQueue}{\PCF{CreatePQueue}}
+% \newcommand{\GetTransitiveSet}{\PCF{GetTransitiveSet}}
+% \newcommand{\GetCurrentSet}{\PCF{GetCurrentSet}}
+% \newcommand{\Pop}{\PCF{Pop}}
+% \newcommand{\ExpandOnce}{\PCF{ExpandOnce}}
+% \newcommand{\ExpandRequired}{\PCF{ExpandRequired}}
+% \newcommand{\FixProblemElts}{\PCF{FixProblemElts}}
+% \newcommand{\Expand}{\PCF{Expand}\xspace}
+% \newcommand{\ForceExpand}{\PCF{ForceExpand}}
+% \newcommand{\Reveal}{\PCF{Reveal}}
+% \newcommand{\Map}{\PCF{Map}}
+% \newcommand{\EnqueueMany}{\PCF{EnqueueMany}}
+% \newcommand{\ReturnVal}[1]{\ensuremath{\Return\,#1}}
+% \newcommand{\CurrentSet}{\ensuremath{\mathit{CS}}}
+% \newcommand{\TransitiveSet}{\ensuremath{\mathit{TS}}}
+
+% \newcommand{\SSOpt}{\ensuremath{\mathbf{SS}}}
+% \newcommand{\SSNCOpt}{\ensuremath{\mathbf{SSNC}}}
+% \newcommand{\BSOpt}{\ensuremath{\mathbf{BS}}}
+% \newcommand{\BSNCOpt}{\ensuremath{\mathbf{BSNC}}}
+% \newcommand{\AnyOpt}{\ensuremath{\mathbf{Any}}}
+% \newcommand{\FLOpt}{\ensuremath{\mathbf{FL}}}
+% \newcommand{\CCOpt}{\ensuremath{\mathbf{DC}}}
+% \newcommand{\NSOpt}{\textbf{NS}}
+% \newcommand{\NROpt}{\textbf{NR}}
+
+We have implemented our synthesis algorithms in
+of OCaml and integrated them into Boomerang system,
+where they are available as open source code~\cite{GitHub}.
+Users of Boomerang can write lenses by hand, specify them as
+synthesis tasks, or do a combination of both.
+
+We have analyzed our algorithms theoretically, proving various
+soundness and completeness results.  We have also analyzed our
+algorithms empirically, studying their impact on a range of real and
+synthetic benchmarks.  Our full results have been published in a
+series of conference papers and technical
+reports~\cite{bijective,quotient,symmetric}.  In the rest of this
+section, we summarize some of the key results.
+
+\subsection{Bijective Synthesis Algorithms}
+
+We first study the effectiveness of the pure bijective synthesis
+algorithm by evaluating its performance on a set of 39
+benchmark programs.  
+
+All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
+of 1600 MHz DDR3 running macOS Sierra.
+
+\paragraph*{Benchmark Suite Construction}
+We constructed our benchmarks primarily by adapting examples from
+Augeas~\cite{augeas} and 
+Flash Fill~\cite{gulwani-popl-2014}.
+
+Augeas is a configuration editing system for Linux that uses lens
+combinators similar to those in Boomerang. However, it transforms
+strings on the left to structured trees on the right rather than
+transforming strings to strings.
+We adapted these Augeas lenses to our setting by converting the
+right-hand sides to strings that correspond to serialized versions
+of the tree formats.  
+We derived 29 of the benchmark tests by
+adapting the first 27 lenses in alphabetical order, as well as the lenses
+\CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
+by the `A' lenses.
+Furthermore, the 12 last synthesis problems derived
+from Augeas were tested after \Optician{} was
+finalized, demonstrating that the optimizations were not
+overtuned to perform well on the testing data.
+
+Flash Fill is a system that allows users to specify common string
+transformations by example~\cite{gulwani-popl-2014}.  
+We derived three benchmarks from the first few examples in the
+paper and one from the running example on
+extracting phone numbers.
+
+Both Augeas and Flash Fill permit non-bijective transformations.
+To test our system on these benchmarks, we had to convert them into
+bijective transformations by hand.  More specifically, in many of the
+benchmarks, we normalized
+the whitespace in the documents so the amount of whitespace was equal
+in the source and target.  In a few of the benchmarks, either the
+source or the target was missing information present in the other
+format.  We modified those benchmarks by adding the missing
+information back into the file. 
+
+Finally, we added custom examples to highlight weaknesses of
+our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
+and to test situations for which we thought the tool would be
+particularly useful (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
+and \CF{addr-probs}).   These examples convert between work item formats, date
+formats, bibliography formats, and address formats, respectively.
 
 \begin{figure}
-  a picture is here
-  \caption{An example figure}
-  \label{fig:eg}
+  \centering
+  \begin{subfigure}[b]{.49\textwidth}
+    \centering
+    \includegraphics{figs/specsizes}
+    \caption{}
+    \label{subfig:lenssize}
+  \end{subfigure}
+  \begin{subfigure}[b]{.49\textwidth}
+    \includegraphics{figs/examplesused}
+    \caption{}
+    \label{subfig:examplesused}
+  \end{subfigure}
+  \caption{Sizes of Specifications.
+    In (a), we show how many benchmarks are defined in our suite using a
+    given number of AST nodes or fewer.
+    In (b), we show how many benchmarks are defined in our suite using a
+    given number of examples or fewer.}
+  \label{fig:definition-sizes}
 \end{figure}
+
+Figure~\ref{fig:definition-sizes} shows the complexity of our type-based
+specifications as well as our example counts.
+An average benchmark has a type-based specification that can be represented using
+310 AST node, and requires 1.1 input/output examples.
+Our benchmarks vary from simple problems, like changing the
+representation of dates
+(with a specification size of 85, and a generated lens size of 79), to 
+complex tasks, like transforming configuration files for server monitoring
+software into dictionary form (with a specification size of 670 and
+a generated lens size of 651).  On average, the size of the generated lens is
+89\% the size of its type specifications.
+
+
+\paragraph*{Importance of Examples}
+
+\begin{figure}
+  \centering
+  \includegraphics{figs/examples.eps}
+  \caption{Average number of random examples required to synthesize benchmark
+    programs.  {\bf Experimental Average} is the average number of randomly
+    generated examples needed to correctly synthesize the lens.  {\bf
+      Determinize Permutations} is the theoretical number of examples required
+    to determinize the choice all the permutations in \RigidSynth{}.
+    In practice, far fewer examples are
+    needed to synthesize the correct lens than would be predicted by the number
+    required to determinize permutations.}
+  \label{fig:exs-reqd}
+\end{figure}
+
+To evaluate how many user-supplied examples the algorithm requires in
+practice, we \textit{randomly} generated appropriate source/target
+pairs, mimicking what a na\"{i}ve user might do.  We did not write the
+examples by hand out of concern that our knowledge of the synthesis
+algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
+the number of randomly generated examples it takes to synthesize the
+correct lens averaged over ten runs.  The synthesis algorithm almost never needs
+any examples: only 5 benchmarks need a nonzero number of examples to
+synthesize the correct lens and only one, \CF{cust/workitem-probs} required over
+10 randomly generated examples.
+A clever user may be able to reduce the
+number of examples further by selecting examples carefully; we
+synthesized \CF{cust/workitem-probs} with only 8 examples.
+
+These numbers are low because there are relatively few well-typed
+bijective lenses between any two source and target regular expressions. 
+As one would expect, the benchmarks where there are multiple ways to
+map source data to the target (and vice versa) require the most examples.
+For example, the benchmark \CF{cust/workitem-probs} requires a large number of
+examples because it
+must differentiate between data in different text fields in both the
+source and target and map between them appropriately.  As these text fields are
+heavily permuted
+(the legacy format ordered fields by a numeric ID, where
+the modern format ordered fields alphabetically) and fields can be
+omitted, a number of examples are needed to correctly identify the mapping
+between fields.
+
+The average number of examples to
+infer the correct lens does not tell the whole story.  The system will
+stop as soon as it finds a well typed lens that satisfies the supplied examples.
+This inferred lens may or may not 
+correctly handle unseen examples that correspond to
+unexercised portions of the source and target regular expressions.
+Figure~\ref{fig:exs-reqd} lists
+the number of examples that are required to determinize the generation of
+permutations in \RigidSynth{}.
+Intuitively, this number represents the maximum number of
+examples that a user must supply to guide the synthesis engine if it
+always guesses the wrong permutation when multiple permutations can be used to
+satisfy the specification. 
+
+The average number of examples is so much lower than the maximum
+number of required examples because of correspondences in how we wrote
+the regular expressions for the source and target data formats. 
+Specifically, when we had corresponding disjunctions in both the
+source and the target, we ordered them the same way.  The algorithm
+uses the supplied ordering to guide its search, and so the system
+requires fewer examples.   We did not write the examples in this style
+to facilitate synthesis, but rather because maintaining similar
+subparts in similar orderings makes the types much easier to 
+read. We expect that most users would do the same.
+
+\paragraph*{Comparison Against Other Tools}
+%
+We are the first tool to synthesize bidirectional transformations between data
+formats, so there is no tool to which we can make an apple-to-apples comparison.
+Instead, we compare against tools for generating unidirectional
+transformations instead. 
+Figure~\ref{fig:synthesis-times} includes a comparison against two other
+well-known tools that synthesize
+text transformation and extraction functions from examples -- Flash Fill and FlashExtract.  For this
+evaluation, we used the version of these tools distributed through the
+PROSE project~\cite{prose}.
+
+\begin{figure}
+  \includegraphics{figs/times}
+  \caption{
+    Number of benchmarks that can be solved by a given algorithm in a given
+    amount of time.
+    \Optician{} is our bijective synthesis algorithm including a set
+    of optimizations we have implemented.
+    \FlashExtractMode{} is the existing FlashExtract system.  \FlashFillMode{} is
+    the existing Flash Fill system.  \NaiveMode{} is na\"{i}ve type-directed 
+    synthesis on the bijective lens combinators.  Our synthesis algorithm performs
+    better than the na\"{i}ve approach and other string transformation systems,
+    and our optimizations speed up the algorithm enough that all tasks become
+    solvable.
+  }
+  \label{fig:synthesis-times}
+\end{figure}
+
+To generate specifications for Flash Fill, we generated input/output
+specifications by generating random elements of the source language, and
+running the lens on those elements to generate elements of the target language.
+These were then fed to Flash Fill.
+
+To generate specifications for FlashExtract, we extracted portions of strings
+mapped in the generated lens either through an identity
+transformation or through a previously synthesized lens, whereas strings that were
+mapped through use of \ConstLens{} were considered boilerplate and so not
+extracted.
+
+As these tools were designed for a broader audience, they put less of a burden
+on the user.  These tools only use input/output examples (for Flash
+Fill), or marked text regions (for FlashExtract), as opposed
+to \Optician{}'s use of regular expressions to constrain the format of
+the input and output.  By using regular expressions,
+\Optician{} is able to synthesize significantly more programs
+than either existing tool.
+
+Flash Fill and FlashExtract have two tasks: to determine how
+the data is transformed, they must also infer the structure of the data, a
+difficult job for complex formats.
+In particular, neither Flash Fill nor FlashExtract was able to synthesize
+transformations or extractions present under two iterations, a type of format
+that is notoriously hard to infer.
+These types of dual iterations are pervasive in Linux configuration
+files, making Flash Fill and FlashExtract ill suited for many of the synthesis
+tasks present in our test suite.
+
+Furthermore, as unidirectional transformations, Flash Fill and FlashExtract have
+a more expressive calculus.  To guarantee bidirectionality, our syntax must be
+highly restrictive, providing a smaller search space to traverse.
 
 \section{CONCLUSIONS}
 
