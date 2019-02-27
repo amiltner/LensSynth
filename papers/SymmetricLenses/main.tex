@@ -68,7 +68,7 @@
 keywordstyle=\upshape\sffamily\color{dkpurple}, keepspaces=true,
 framexleftmargin=1ex, framexrightmargin=1ex, showstringspaces=true,
 commentstyle=\itshape\rmfamily,
-emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disconnect,merge_left,merge_right,const},
+emph={rep,iterate,synth,collapse,perm,squash,normalize,using,ins,del,lens,let,get,put,rquot,lquot,id,swap,concat,or,disconnect,merge_left,merge_right,const,skip,require},
 emphstyle=\upshape\sffamily\color{dkpurple}, 
 columns=fullflexible,
 mathescape, 
@@ -660,7 +660,7 @@ let emp_salaries = "" | emp_salary . ("\n" emp_salary)$^*$
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let company = (name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
+let company = (co_name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
 let emp_ins = name . " " . name "," company in
 let header = "FirstLast,Company" in
 let emp_insurance = header . ("\n" . emp_ins)$^*$
@@ -1350,16 +1350,12 @@ example, a fixed string has no information content, and so has no entropy.
   $\EntropyOf{\Regex}$ is the entropy of $\Regex$.
 \end{theorem}
 
-Without unambiguity constraints, the method above for calculating entropy does
-not work, and it is not easy to see how to generalize it.  For example,
-consider the SRE $\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$. Using
-the above computation, this SRE has an entropy of $1$, but the entropy
-should be $0$. These difficulties become particularly complex when the
-languages are ambiguous in subtle ways and the algorithm must be correct
-when only some of the two languages overlap. Similar issues occur when
-trying to find the entropy when $\emptyset$ is a subterm (what should the
-entropy of $\PRegexStar{\emptyset}{.5}$ be?), so we do not define entropy
-on~$\emptyset$. 
+To understand the difficulties caused by ambiguity, consider the SRE
+$\PRegexOr{\lstinline{"a"}}{\lstinline{"a"}}{.5}$. The formula above defines the
+entropy to be 1, but the true entropy is 0 (\IE, no bits are needed to know the
+generated string will be \lstinline{"a"}). Similar issues occur when trying to
+find the entropy when $\emptyset$ is a subterm (what should the entropy of
+$\PRegexStar{\emptyset}{.5}$ be?), so we do not define entropy on~$\emptyset$.
 
 Fortunately, we already require unambiguous regular expressions as input to
 our synthesis procedure for other reasons, and we can easily preprocess
@@ -1374,16 +1370,10 @@ star-semiring equivalences (\EG, $\PRegexOr{\emptyset}{\lstinline{"s"}}{.5}
 
 \section{Simple Symmetric String Lenses}
 \label{sec:ssl}
-We now give a formal description of all the combinators in our symmetric lens
-language. While our algorithms perform synthesis on stochastic regular
-expressions, lenses themselves are typed between regular expressions. We can
-recover a regular expression from a stochastic regular expression by deleting
-probability annotations. In a slight abuse of notation (as we are also using
-these symbols as nonterminals), if $\Regex$ is a
-stochastic regular expression, $\BRegex$ is the regular expression obtained by
-removing probability annotations. The typing judgment $\Lens \OfType \BRegex
-\Leftrightarrow \BRegexAlt$ means that $\Lens$ is a well typed lens between
-the language of \BRegex and the language of \BRegexAlt.
+Simple symmetric string lenses are bidirectional programs that convert string
+data between formats. These lenses operate over regular expressions, not SREs.
+If $\Regex$ is a stochastic regular expression, $\BRegex$ is the regular
+expression obtained by removing probability annotations.
 
 \begin{align*}
 \ell ::= &\IdentityLensOf{\BRegex} \; | \; \DisconnectOf{\BRegex}{\BRegexAlt}{\String}{\StringAlt} \; | \; \IterateLensOf{\Lens} \; | \; \ConcatLensOf{\Lens_1}{\Lens_2} \; | \; \SwapLensOf{\Lens_1}{\Lens_2} \; | \; \OrLensOf{\Lens_1}{\Lens_2} \; | \; \ComposeLensOf{\Lens_1}{\Lens_2} \; |\\
@@ -1391,26 +1381,27 @@ the language of \BRegex and the language of \BRegexAlt.
 \end{align*}
 
 We have already described a number of these combinators in \S\ref{sec:overview}.
-Briefly (full definitions are below), the compose lens $\Lens_1 ; \Lens_2$
+Briefly (full definitions are below), the lens $\Lens_1 ; \Lens_2$
 composes two lenses sequentially, it 
 transforms from one data format to the other by first transforming to an
 intermediate format, shared as the target of $\Lens_1$ and the source of
-$\Lens_2$. The \MergeR lens combines two sublenses which share the same target.
-Which lens gets used depends on what data is in the left-hand format, if it is
+$\Lens_2$. The \MergeR lens combines two sublenses that operate on disjoint
+source formats and share the same target.
+The lens that gets used depends on what data is in the left-hand format, if the data is
 in the domain of $\Lens_1$ then $\Lens_1$ gets used, and similarly for
 $\Lens_2$.  The \MergeL lens is symmetric to \MergeR, the two sublenses must
 share the same source. Finally, $\InvertOf{\Lens}$ inverts a lens, \CreateR
 becomes \CreateL and \PutR becomes \PutL, and vice-versa.
 
-We now give typing rules and semantics for (some of) these combinators. We do not
-include the semantics for combinators equivalent to those presented in prior
-work~\cite{boomerang}. Furthermore, we present
-just \CreateR and \PutR in cases where \CreateL and \PutL are symmetric;
-full details can be found in an appendix\ifappendices \S\ref{sec:appendixlenses}  \else{} (in the supplemental materials)\fi. For
-simplicity of presentation, we use unambiguous regular expressions
-everywhere, even though the identity and disconnect lenses can actually be defined over ambiguous
-regular expressions; we believe relaxing
-this restriction is unproblematic.
+We now give typing rules and semantics for (some of) these combinators. We write
+$\Lens \OfType \BRegex \Leftrightarrow \BRegexAlt$ to indicate that $\Lens$ is a
+well typed lens between the language of \BRegex and the language of \BRegexAlt.
+We present just \CreateR and \PutR in cases where \CreateL and \PutL are
+symmetric; full details can be found in an appendix\ifappendices
+\S\ref{sec:appendixlenses} \else{} (in the supplemental materials)\fi. For
+simplicity of presentation, we use unambiguous regular expressions everywhere,
+even though the identity and disconnect lenses can actually be defined over
+ambiguous regular expressions; relaxing this restriction is not problematic.
 
 \begin{centermath}
   \begin{tabular}{m{1cm}@{\hspace*{6em}}m{1cm}@{\hspace*{3em}}}
@@ -1454,7 +1445,7 @@ is needed.
 \end{centermath}
 
 Just as the identity lens ignores the second argument in puts, disconnect lenses
-ignore the first in both puts and creates.  The data is unsynchronized in these
+ignore the first argument in both puts and creates.  The data is unsynchronized in these
 two formats, information from one format doesn't impact the other.
 
 \begin{centermath}
@@ -1722,10 +1713,10 @@ annotations, and for making well-typed compositions.
 \label{subsec:lenscosts}
 Our cost metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
-$\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds of the
+$\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds on the
 expected amount of information required to recover a string in $\RegexAlt$ from
 a string in $\Regex$, synchronized by $\Lens$. Similarly, we use the function
-$\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate bounds of the
+$\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate bounds on the
 expected amount of information required to recover a string in $\Regex$ from a
 string in $\RegexAlt$, synchronized by $\Lens$. We write $a(b,c)$ to
 mean $(a*b,a*c)$, and $(a,b)+(c,d)$ to mean $(a+c,b+d)$.
@@ -1820,7 +1811,7 @@ can cancel, leaving a zero-entropy bijection composed from two non-zero entropy
 transformations. However, detecting such cancellations directly is complicated and
 this property is difficult to determine merely from syntax. Fortunately, we are able to
 sidestep such considerations by synthesizing \emph{DNF lenses}---simple symmetric
-lenses that inhabit a disjunctive normal form.
+lenses that inhabit a disjunctive normal form that does not include composition.
 
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
@@ -1836,18 +1827,21 @@ lenses that inhabit a disjunctive normal form.
 \section{Synthesis}
 \label{sec:synthesis}
 Algorithm~\ref{alg:synth-sym-lens} presents our synthesis algorithm at a high
-level of abstraction. The input regular expressions are first converted into
-stochastic regular expressions with \ToStochastic.  
-%Once that conversion has
-%taken place, the $\RXSearch$ algorithm executes. This algorithm itself is
-%defined via five functions: (1) $\PCF{\PQ.Create}$, (2) $\PCF{\PQ.Pop}$, (3)
-%$\PCF{Expand}$, (4) $\PCF{\PQ.Push}$, and (5) $\PCF{\Continue}$. First,
-This pair of SREs is used to initialize a priority queue ($pq$). The priority of
-a SRE pair is the number of rewrites needed to derive the pair from the
-originals. Next, $\PCF{SynthSymLens}$ enters a loop that searches for likely
-lenses. The loop terminates when the algorithm believes it is unlikely to find a
-better lens than the best one it has found so far (a termination condition
-defined by $\PCF{\Continue}$). Within each iteration of the loop, it:
+level of abstraction. This algorithm searches for likely lenses in priority
+order one ``class'' at a time using a \GreedySynth subroutine. Each class is the
+set of lenses that can by typed by a pair of regular expressions, modulo a set
+of simple axioms such as associativity, commutativity, and distributivity. The
+\Expand subroutine generates new classes using the star-unrolling axioms
+(\UnrollstarLeftRule and \UnrollstarRightRule).
+
+To summarize, the input regular
+expressions are first converted into stochastic regular expressions with
+\ToStochastic. This pair of SREs is used to initialize a priority queue ($pq$).
+The priority of a SRE pair is the number of rewrites needed to derive the pair
+from the originals. Next, $\PCF{SynthSymLens}$ enters a loop that searches for
+likely lenses. The loop terminates when the algorithm believes it is unlikely to
+find a better lens than the best one it has found so far (a termination
+condition defined by $\PCF{\Continue}$). Within each iteration of the loop, it:
 \begin{itemize}
 \item pops the next class ($S$, $T$) of lenses to
 search off of the priority queue ($\PCF{\PQ.Pop}$),
@@ -1863,20 +1857,6 @@ to our information-theoretic metric, and
 When the loop terminates, the search returns the globally best lens found
 ($best$).  Each subroutine of this algorithm will be explained in
 further depth in the following subsections.
-
-\emph{Stochastic DNF regular expressions} are critical to the success of our
-algorithm. Stochastic DNF regular expressions (\SDNFREabbrev{}s) are a
-pseudo-normal form for stochastic regular expressions. Of all the star-semiring
-equations required to relate two \SDNFREabbrevs, only those relating to Kleene
-star (\EG, \UnrollstarLeftRule{} and \UnrollstarLeftRule{}) are needed to relate
-two \SDNFREabbrevs; other axioms, like associativity, commutativity or
-distributivity, are unneeded. This important property makes it possible to
-construct an efficient algorithm ($\GreedySynth$), directed by the syntax of two
-\SDNFREabbrevs, to synthesize any lenses in the same ``class'' (\IE, any lenses
-that have the same type when the Kleene star axioms are unused). This property,
-and the resulting efficiency of $\GreedySynth$ is key to the effectiveness of
-our core algorithms.
-
 
 
 \begin{algorithm}[t]
@@ -1969,8 +1949,13 @@ The procedure \PCF{\Continue} returns false based on the how long the search has
 been going, and how hard it expects the next class of problems to be. In
 particular, if $\PCF{PQ.Peek}(pq) = (\Regex,\RegexAlt)$, that RE pair is at
 distance $d$, the number of pairs in $pq$ at distance $d$ is $n$, and the
-current best lens has cost $c$, then
-  $\Call{Continue}{pq}$ checks whether $c > d + \Log_2(n)$.
+current best lens has cost $c$, then $\Call{Continue}{pq}$ checks whether $c > d
++ \Log_2(n)$. This termination condition is based around two primary principles:
+do not search overly deep ($d$), and do not tackle a frontier that would take
+too long to process ($\Log_2(n)$). The log of the frontier is included because
+the frontier grows much faster than lens costs grow. Lens cost grows with the
+log of the expected number of choices in a given lens (due to its information
+theoretic basis), so the frontier calculation does too.
 
 When $\Call{Continue}{pq}$ returns $\False$, the algorithm stops proposing
 regular expression pairs, and instead returns to the user the best lens found
@@ -1979,12 +1964,12 @@ has zero cost, it will immediately return.
 %
 \subsection{Stochastic DNF Regular Expressions}
 \label{subsec:sdnfre}
-Just as SREs are REs with probability annotations,
-\SDNFREabbrevs are \DNFREabbrevs with probability annotations.
-As with SREs and regular
-expressions, if $\DNFRegex$ is a stochastic DNF regular expression,
-$\overline{\DNFRegex}$ is the DNF regular expression generated by erasing
-probability annotations.
+The \GreedySynth subroutine converts input SREs into a temporary pseudo-normal
+form, \emph{Stochastic DNF regular expressions} (\SDNFREabbrev{}s).
+\SDNFREabbrev{}s normalize across many of the star-semiring equivalences -- if
+two regular expressions are equal modulo differences in associativity,
+commutativity, or distributivity, their corresponding SREs are syntactically
+equal.
 
 Syntactically, stochastic DNF regular expressions (\DNFRegex, \DNFRegexAlt) are
 lists of stochastic sequences. Stochastic sequences (\Sequence, \SequenceAlt)
@@ -2096,7 +2081,8 @@ language.
 
 The algorithm for converting a stochastic regular expressions into its
 corresponding stochastic DNF regular expressions, written
-$\ToDNFRegexOf{\Regex}$, is defined below.
+$\ToDNFRegexOf{\Regex}$, is defined below. This conversion relies on operators
+defined in Figure~\ref{fig:dnf-regex-functions}.
 \[
   \begin{array}{rcl@{\hspace*{3em}}rcl}
     \ToDNFRegexOf{\String} 
@@ -2119,35 +2105,16 @@ $\ToDNFRegexOf{\Regex}$, is defined below.
     
   \end{array}
 \]
-This conversion relies on operators defined in
-Figure~\ref{fig:dnf-regex-functions}. We have proved that this conversion
-respects languages and probability distributions.
+After this conversion has taken place, the sequences are ordered (thereby
+normalizing for commutativity differences).
+We have proven that this conversion respects languages and probability
+distributions.
 
 \begin{theorem}
   $\ProbabilityOf{\Regex}{\String} = \ProbabilityOf{\ToDNFRegex
     \Regex}{\String}$ and $\LanguageOf{\Regex} =
   \LanguageOf{\ToDNFRegexOf{\Regex}}$.
 \end{theorem}
-
-\paragraph*{\ToStochastic} With stochastic DNF regular expressions and
-\ToDNFRegex defined, it is easier to explain \ToStochastic, the function that converts regular
-expressions into stochastic regular expressions. If users
-provided stochastic regular expressions themselves (perhaps inferred from
-example data), this step could be skipped,
-though our implementation does not (yet) permit users to provide such
-stochastic regular expressions. If $\Regex$ is a stochastic DNF regular
-expression generated by \ToStochastic, then $\ToDNFRegexOf{\Regex} =
-\DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
-  (\Sequence_n,\frac{1}{n})}$ for some sequences $\Sequence_1\ldots\Sequence_n$,
-and every stochastic atom generated by \ToStochastic is
-$\PRegexStar{\DNFRegex}{.8}$. In particular, $\ToDNFRegex$ generates regular
-expressions whose DNF form gives equal probability to all sequence subcomponents
-of the DNF regular expression, and gives iterations a .8 chance to continue
-iterating. In our experience generating random strings from regular expressions,
-these probabilities provide good distributions of strings---stars are iterated
-4 times on average, and no individual choice in a series disjunctions is chosen
-disproportionately often. As we have found these distributions generate
-reasonable strings, we believe they describe the shape of data well.
 
 \paragraph*{Entropy}
 We have developed a syntactic means for finding the entropy of a stochastic DNF
@@ -2177,6 +2144,85 @@ a stochastic regular expression.
   $\EntropyOf{\DNFRegex}$ is the entropy of $P_{\DNFRegex}$.
 \end{theorem}
 
+\paragraph*{\ToStochastic} With stochastic DNF regular expressions and
+\ToDNFRegex defined, it is easier to explain \ToStochastic, the function that
+converts regular expressions into stochastic regular expressions. If $\Regex$ is
+a stochastic regular expression generated by \ToStochastic, then when put into
+\SDNFREabbrev form,
+$\ToDNFRegexOf{\Regex} = \DNFOf{(\Sequence_1,\frac{1}{n}) \DNFSep \ldots \DNFSep
+  (\Sequence_n,\frac{1}{n})}$ for some sequences $\Sequence_1\ldots\Sequence_n$,
+and every stochastic atom generated by \ToStochastic is
+$\PRegexStar{\DNFRegex}{.8}$. In particular, $\ToDNFRegex$ generates regular
+expressions whose DNF form gives equal probability to all sequence subcomponents
+of the DNF regular expression, and gives iterations a .8 chance to continue
+iterating. In our experience generating random strings from regular expressions,
+these probabilities provide good distributions of strings---stars are iterated 4
+times on average, and no individual choice in a series of disjunctions is chosen
+disproportionately often.
+
+\subsection{Relevance Annotations}
+
+Even though our generated probability distribution works well in most
+situations, it is not perfect. Consider synthesizing a lens between the formats
+shown in Figure~\ref{fig:minimized-representations}. While salary information is
+present in \lstinline{emp_salaries}, but not in \lstinline{emp_insurance}, the
+algorithm might spend a long time (fruitlessly) trying to construct lenses that
+transform the salary to information present in \lstinline{emp_insurance}.
+
+One solution would be to cut off the search early. However, then one runs into
+the opposite problem: in other scenarios salary information may be present in
+the other format, but it may well take quite a bit of work to find a
+transformation that connects the salary in \lstinline{emp_salaries} to the
+salary information in the second format. In such a scenario, early termination
+may leave salary information discarded where it should be retained.
+
+We can solve both problems by allowing users to augment the specifications with
+\emph{relevance annotations}. Sometimes, users have external knowledge that certain
+information appears exclusively in one format or the other or conversely appears
+in both formats. By communicating this knowledge to the synthesis algorithm
+through relevance annotations, users can force the synthesis of lenses that
+discard or retain certain information.
+The first annotation, $\SkipOf{\Regex}$, says the information of
+$\Regex$ appears only in $\Regex$, and can safely be
+projected. The second annotation, $\SRequireOf{\Regex}$, says the information of
+$\Regex$ appears in the other format and cannot be discarded.
+
+For example, the user can easily recognize that salary information of
+\lstinline{emp_salaries} is not present in \lstinline{emp_insurance}. By
+annotating the \lstinline{salary} field as \lstinline{skip(salary)}, users can
+add this knowledge to the specification to optimize the search. In practice,
+we define \Skip by setting the information content of $\Skip(\Regex)$ to zero.
+\begin{gather*}
+  \EntropyOf{\Skip(\Regex)} = 0
+\end{gather*}
+
+Similarly, users can recognize that employee names are present in both files. By
+annotating instances of \lstinline{name} as \lstinline{require(name)}, users can
+add this knowledge to the specification to optimize the search and enforce that
+the returned lens that retains \lstinline{name} information. In practice, we
+define \SRequire by setting the cost of any lens that loses ``required''
+information to infinity.
+%
+\begin{center}
+  \begin{tabular}{rcl}
+    $\REntropyOf{\SRequireOf{\RegexAlt} \Given \Lens, \Regex}$
+    & =
+    & $\begin{cases}
+      \infty & \text{if }\REntropyOf{\SRequireOf{\RegexAlt} \Given \Lens, \Regex}
+      \neq 0\\
+    0 & \text{otherwise}
+  \end{cases}$\\
+    
+    $\REntropyOf{\RegexAlt \Given \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, \Regex}$
+    & =
+    & $\begin{cases}
+      \infty & \vspace*{-.3em}\text{if $\RegexAlt$ contains $\SRequireOf{\RegexAlt'}$ as a}\\
+      & \text{subexpression, where $\EntropyOf{\RegexAlt'} \neq 0$}\\
+    [\EntropyOf{\RegexAlt},\EntropyOf{\RegexAlt}] & \text{otherwise}
+  \end{cases}$\\
+  \end{tabular}
+\end{center}
+
 \subsection{Symmetric DNF Lenses}
 Symmetric DNF lenses are an intermediate synthesis target for \GreedySynth.
 There are many fewer symmetric DNF lenses than symmetric regular lenses. In
@@ -2184,16 +2230,16 @@ fact, if one does not use the star-unrolling axioms, there are only finitely
 many DNF lenses of a given type (though there are still many more symmetric DNF
 lenses than DNF bijective lenses).
 
-Intuitively, a symmetric DNF lens $sdl$ is a union of symmetric sequence lenses,
-$ssql_1 \ldots ssql_p$, a symmetric DNF sequence lens is a concatenation of
-symmetric atom lenses, $sal_1 \ldots sal_n$, and a symmetric atom lens $sal$ is
-an iteration of a symmetric DNF lens. Note that the structure of symmetric DNF
-lenses exactly mirrors that of SDNF REs.
+The structure of symmetric DNF lenses exactly mirrors that of SDNF REs. A
+symmetric DNF lens $sdl$ is a union of symmetric sequence lenses, $ssql_1 \ldots
+ssql_p$, a symmetric DNF sequence lens is a concatenation of symmetric atom
+lenses, $sal_1 \ldots sal_n$, and a symmetric atom lens $sal$ is an iteration of
+a symmetric DNF lens.
 
 Just as we analyzed the information content of ordinary regular expressions, we
 can analyze the information content of DNF regular expressions. As before, we
 use $\REntropyOf{\DNFRegexAlt \Given \SDNFLens, \DNFRegex}$ to calculate bounds
-of the expected amount of information required to recover a string in
+on the expected amount of information required to recover a string in
 $\DNFRegexAlt$ from a string in $\DNFRegex$, synchronized by $\SDNFLens$. We use
 the function $\LEntropyOf{\DNFRegex \Given \SDNFLens, \DNFRegexAlt}$ to
 calculate bounds on the expected amount of information required to recover a
@@ -2398,95 +2444,6 @@ at once, a user can first generate subproblems for parts of a data format, and t
 larger problem can subsequently use solutions to those subproblems.  In our experience,
 this is a very powerful tool that allows synthesis to tackle problems of arbitrary
 complexity.
-
-\subsection{Relevance Annotations}
-
-In this work, there are three competing constraints. The tool should (1) return
-lenses quickly to users, (2) return the highest quality lenses, and (3)
-not require users to write a large number of examples.
-Our termination heuristic works well for most situations, but
-there are cases where it fails.
-
-In particular, our system works hard to find lenses that project \emph{as little
-  information as possible}. If the desired lens requires projecting a large
-amount of information, the termination condition will be satisfied ``too late.''
-While \GreedySynth may have found what the user knows to be the desired lens,
-the full algorithm will continue trying to find lenses that project less
-information.
-
-Conversely, sometimes the termination heuristic is overly permissive and algorithm cuts
-short: if it 
-had continued searching for lenses it would have found the desired one, but the
-termination heuristic was satisfied ``too early.'' We wish for our algorithm to
-provide feedback in a timely manner, but sometimes this prohibits finding the
-desired lens.
-
-To address these issues, we allow annotations on the regular expressions
-dictating relevance. The first, $\SkipOf{\Regex}$, says the information
-content of $\Regex$ is irrelevant to the desired lens, and can the data can be
-safely projected. The second, $\SRequireOf{\Regex}$, says the information of
-$\Regex$ is critical to the desired lens, and none of the information can be
-lost when converting between the formats.
-
-If synthesizing a lens seems to be taking a long time, it is typically spending
-time checking it cannot find a lens that projects less information. By
-``skipping'' portions of the SRE that \emph{should} be projected, the algorithm
-will not continue searching for a better lens when it has already found the
-correct one. In practice, we implement \Skip by setting the information content
-of $\Skip(\Regex)$ to zero.
-%
-\begin{gather*}
-  \EntropyOf{\Skip(\Regex)} = 0
-\end{gather*}
-%
-If synthesizing a lens between \lstinline{emp_salaries} and
-\lstinline{emp_insurance} from Figure~\ref{fig:minimized-representations} is
-taking overly long, the synthesis procedure is uncomfortable disconnecting
-\lstinline{company} and \lstinline{salary} information. Redefining
-\lstinline{company} and \lstinline{salary} as $\SkipOf{\lstinline{company}}$ and
-$\SkipOf{\lstinline{salary}}$ would set their information content to zero,
-alleviating such issues.
-
-If the algorithm returns a lens with too many disconnects and merges, one could
-provide additional examples to constrain the lens more. However, for large
-formats, writing such examples is time consuming and error-prone. Instead, if
-one recognizes that information from $\Regex$ is incorrectly lost when converted
-between formats, they can prevent that information from being lost by annotating
-it $\SRequireOf{\Regex}$. One can guarantee a lens between \Regex and \RegexAlt
-is bijective by annotating them as $\SRequireOf{\Regex}$ and
-$\SRequireOf{\RegexAlt}$. In practice, we implement \SRequire by setting the
-cost of any lens that loses ``required'' information to infinity.
-%
-\begin{center}
-  \begin{tabular}{rcl}
-    $\REntropyOf{\SRequireOf{\RegexAlt} \Given \Lens, \Regex}$
-    & =
-    & $\begin{cases}
-      \infty & \text{if }\REntropyOf{\SRequireOf{\RegexAlt} \Given \Lens, \Regex}
-      \neq 0\\
-    0 & \text{otherwise}
-  \end{cases}$\\
-    
-    $\REntropyOf{\RegexAlt \Given \DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}, \Regex}$
-    & =
-    & $\begin{cases}
-      \infty & \vspace*{-.3em}\text{if $\RegexAlt$ contains $\SRequireOf{\RegexAlt'}$ as a subexpression,}\\
-      & \text{where $\EntropyOf{\RegexAlt'} \neq 0$}\\
-    [\EntropyOf{\RegexAlt},\EntropyOf{\RegexAlt}] & \text{otherwise}
-  \end{cases}$\\
-  \end{tabular}
-\end{center}
-   
-%
-If synthesizing a lens between \lstinline{emp_salaries} and
-\lstinline{emp_insurance} from Figure~\ref{fig:minimized-representations}
-quickly returns a lens with too many disconnects and merges (perhaps
-disconnecting instances of \lstinline{name} in \lstinline{emp_salary} and
-\lstinline{emp_ins}), the termination heuristic is being overly permissive. By
-replacing \lstinline{name} with $\SRequireOf{\lstinline{name}}$ in
-\lstinline{emp_salary} and \lstinline{emp_ins}, name information can no longer
-be lost, and future synthesis calls would continue until a more likely lens is
-found.
 % end synthesis
 
 % begin evaluation
