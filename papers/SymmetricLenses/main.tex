@@ -1078,26 +1078,29 @@ the well-known information-theoretic concept of
 distribution over the space of possible values for the data. Specifically, given
 a set $S$ and a probability distribution $P \OfType S \rightarrow \Reals$ over
 $S$, the entropy $\EntropyOf{S,P}$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$. In
-information theory, each element of $s \in S$ has \emph{information content},
-the number of bits required to specify that element in a perfect encoding scheme
-($-\Log_2P(s)$). The entropy of $S$ calculates the expected number of bits
-required to specify an element drawn from $S$, in other words, the
-probability of each element times its information content. Entropy maintains
-that if a data source contains many possible elements, where none have
+information theory, the \emph{information content} of each element of $s \in
+S$ is 
+the number of bits required to specify $s$ in a perfect encoding scheme
+($-\Log_2P(s)$). The entropy of $S$ is the expected number of bits
+required to specify an element drawn from $S$---the
+probability of each element times its information content. Entropy captures
+the intuition that, if a data source contains many possible elements and
+none have 
 significantly higher probability than others, it will have high information
-content. Data sources with few elements that don't have vanishingly small
-probabilities have small entropy. When $P$ is clear, we will often use the
-shorthand of $\EntropyOf{S}$ for $\EntropyOf{S,P}$.
+content. Data sources where most elements have small
+probabilities have small entropy. When $P$ is clear from context, we will
+often use the shorthand of $\EntropyOf{S}$ for $\EntropyOf{S,P}$.
 
-In our setting, we already have a way of expressing sets of data: regular
+In the present setting, we already have a way of expressing sets of data:
+regular 
 expressions. To calculate entropy, what we need is a way to express probability
-distributions over that data. To that end, we adopt \emph{stochastic regular
+distributions over those sets. To that end, we adopt \emph{stochastic regular
   expressions}~\cite{stoch-def,stoch-rnn} (SREs), which are regular expressions
 in which each operator is annotated with a probability (see \S\ref{sec:sre}). A
-stochastic regular expression specifies both a set of strings and a probability
-distribution over that set.
+stochastic regular expression thus specifies both a set of strings at the
+same time as a probability distribution over that set.
 
-We use entropy to guage the relative likelihood of such lenses in our synthesis
+We use entropy to gauge the relative likelihood of lenses in our synthesis
 algorithm (see \S\ref{subsec:lenscosts}). For any lens $\Lens$, we can calculate
 the expected number of bits required to recover a string $t$ in
 $\LanguageOf{\RegexAlt}$ from a synchronized string $s$ in
@@ -1107,7 +1110,9 @@ $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
-assigns higher entropy (or cost) to lenses where knowing the string on one side
+assigns higher entropy (or cost\bcp{= lower likelihood?  I'm still confused
+  by these different ways of speaking about what seems to be the same
+  thing.}) to lenses where knowing the string on one side 
 provides little information about the string on the other side. It assigns zero
 entropy to bijections because given a string $s \in \Regex$, the bijection
 exactly determines the corresponding string in $\RegexAlt$.
@@ -1122,65 +1127,72 @@ exactly determines the corresponding string in $\RegexAlt$.
 %%\EntropyOf{\lstinline{": " . salary}}, so by our metric
 %%\lstinline{single_emp_map} is preferable to the disconnect lens.
 
-To obtain SREs from the plain regular expressions that users write, by default
-we use a heuristic that attempts to assign probability annotations that give
+To obtain SREs from the plain regular expressions that users write, 
+we use a default heuristic that attempts to assign probability annotations
+giving
 each string in the language equal probablity. In other words, this heuristic
-tries to make each bit of data no more or less likely than any other.
-Our synthesis algorithm could equally well take as input a pair of stochastic
-regular expression rather than a plain one, permitting users to specify a
+tries to make each bit of data no more or less likely than any
+other.\bcp{huh?} 
+Alternatively, our synthesis algorithm could take as input a pair of stochastic
+regular expressions rather than plain ones, permitting users to specify a
 data-specific probability distribution (either manually calculated or inferred
-from some dataset of interest).
+from some dataset of interest).\bcp{So why didn't we do it this way?}
 
-However, sometimes users already know that certain data should or should not be
+However\bcp{``However'' means that something from before is being
+  contradicted.  What is it in this case?}, sometimes users already know that certain data should or should not be
 used to construct the other format. We introduce relevance annotations to SREs
 that enable users to specify whether a piece of data should be used to construct
 the other format (with \SRequire) or not (with \Skip). In our example,
 \lstinline{salary} and \lstinline{company} could safely be skipped (as they are
 disconnected), where \lstinline{name} in \lstinline{emp_salary} and
 \lstinline{emp_ins} be annotated as required (as they are converted with the
-identity lens).
+identity lens).  \bcp{That paragraph seems way too brief and high level.
+  These annotations were added in response to significant complaints from an
+earlier PC, but the paper reads as though they are an afterthought of little
+consequence; they deserve more attention and explanation.}
 
 \subsection{Searching for Likely Lenses}
 Now that we have a way to calculate likelihood, we need a way to search for
 likely lenses. Previous work~\cite{augustsson-2004, osera+:pldi15,
-  feser-pldi-2015, frankle+:popl16} has shown that we can use types to
+  feser-pldi-2015, frankle+:popl16} has shown that types can be used to
 dramatically restrict the search space and improve the effectiveness of
 synthesis. In our setting, types are pairs of stochastic regular
-expressions. The fact that each regular expression is semantically equivalent to
-infinitely many others complicates the problem.
+expressions, and the fact that each regular expression is semantically
+equivalent to infinitely many others complicates the problem.
+
 Following existing work on bidirectional program
 synthesis~\cite{maina+:quotient-synthesis}, we 
 split our algorithm into two communicating
-searches. The first search,
+searche procedures. The first,
 \Expand, navigates the space of semantically equivalent regular expressions
-by applying rewrite rules that preserve both the semantics and the
-probability distributions of those stochastic regular expressions. This
+by applying rewrite rules that preserve both semantics and
+probability distributions. This
 algorithm ranks pairs of stochastic regular expressions by the number of
 rewrite rule applications required to obtain each pair from the one given as
 input. It passes the pairs off to the second 
 search procedure, \GreedySynth, in rank order with the smallest first.
 
-Abstractly, \GreedySynth looks for highest-likelihood lenses between a given
+\GreedySynth looks for highest-likelihood lenses between a given
 pair of stochastic regular expressions $\Regex$ and $\RegexAlt$ by performing a
-type-directed search. In more detail, \GreedySynth first converts the stochastic
+type-directed search. It first converts the stochastic
 regular expressions provided by \Expand into \emph{stochastic DNF regular
   expressions}---a constrained representation of stochastic regular expressions
 with disjunctions distributed over concatenations and with concatenations and
-disjunctions normalized to operating over lists (see \S\ref{subsec:sdnfre}).
-\GreedySynth then uses the syntax of these n-ary DNF regular expressions to find
-normalized lenses, in a form we call \emph{simple symmetric n-ary DNF lenses}.
-These lenses include neither a composition operator nor a type equivalence rule.
+disjunctions normalized to operating over lists.
+Then it uses the syntax of these n-ary DNF regular expressions to find
+normalized lenses in a form we call \emph{simple symmetric n-ary DNF lenses}.
+These involve neither a composition operator nor a type equivalence rule.
 These restrictions mean that there are only a few simple symmetric n-ary DNF
-lenses that are well-typed between each pair of stochastic n-ary DNF regular
-expressions, hence \GreedySynth's search space for a given pair of regular
+lenses that are well typed between a given pair of stochastic n-ary DNF regular
+expressions, so \GreedySynth's search space for a given pair of regular
 expressions is finite. Finally, \GreedySynth yields a simple symmetric lens by
-converting the n-ary forms into the binary forms provided in the surface
+converting the n-ary syntax back to the binary forms provided in the surface
 language.
 
 This architecture of communicating synthesizers gives us a way to enumerate
 pairs of stochastic regular expressions of increasing rank and to efficiently
 search through them, but it poses a problem: when should \Expand stop proposing
-new SRE pairs? We may have found a promising lens between a pair of stochastic
+new SRE pairs? We might have found a promising lens between a pair of stochastic
 regular expressions, but a different pair we haven't yet discovered may give
 rise to an even better lens. The search algorithm must resolve a tension between
 the quality of the inferred lens and the amount of time it takes to return a
@@ -1191,18 +1203,22 @@ to judge whether to return the current best satisfying lens to the user or to
 pass the next set of unrollings to \GreedySynth. The heuristics favor stopping
 if the current best satisfying lens is very likely, indicating the lens is very
 promising (for example, if the satisfying lens loses no information, the
-algorithm should terminate for no other lens will be more likely). The
+algorithm should terminate for no other lens will be more likely\bcp{this
+  case is 100\% obvious, which makes it not so interesting as an example.
+  The reader is left wondering what happens with pretty likely but not
+  maximally likely lenses?}). The
 heuristics also favor stopping if \Expand has delivered to \GreedySynth all
 pairs of stochastic regular expressions at a given rank and there is a large
 number of pairs at the next rank, because searching through all such pairs will
 take a long time. With this approach, the algorithm can quickly respond with a
 satisfying lens with relatively high likelihood. If the user is unhappy with the
 result, they can either refine the search by supplying additional examples,
-which serve both to rule out the previously proposed lens(es) and to reduce the
+which serve both to rule out previously proposed lenses and to reduce the
 size of the search space by cutting down on the number of satisfying lenses, or
 they can supply annotations on the source and target SREs indicating that
 certain information either must be retained or must be discarded by the lens
-(see \S\ref{subsec:optimizations}).
+(see \S\ref{subsec:optimizations}). \bcp{Again, I feel like we're
+  downplaying this aspect too much.}
 
 %Consider the trivial lens
 %\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
