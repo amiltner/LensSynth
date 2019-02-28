@@ -1010,15 +1010,16 @@ Figure~\ref{fig:example_lens} to be well-typed.
 
 \subsection{Ranking Simple Symmetric Lenses}
 
-Even for small examples, lenses like the one above take a little getting used
-to. For larger and more complex formats, it can become quite difficult to
-write lenses by hand.  Instead, we wish to synthesize them from examples. 
-That is, given a pair of regular expressions and a set of input-output examples, we want
+For larger and more complex formats, it can become quite difficult to
+write lenses by hand, as we did above.  Instead, we would like to synthesize
+them from types and examples.  
+That is, given a pair of regular expressions and a set of input-output
+examples, we want 
 to find a simple symmetric lens that is typed by the regular expression pair and
-satisfies all the input/output examples. We call such a lens a \emph{satisfying
-  lens}. In our running example, we wish to synthesize a lens between
-\lstinline{emp_salaries} and \lstinline{emp_insurance}, using as an input-output
-example the data in Figure~\ref{fig:minimized-representations}.
+satisfies all the input/output examples. We this a \emph{satisfying
+  lens}. For our running example, suppose we wish to synthesize a lens between
+\lstinline{emp_salaries} and \lstinline{emp_insurance}, using as sole
+input-output example the data in Figure~\ref{fig:minimized-representations}.
 
 One challenge is that the simple symmetric lens combinators permit many
 well-typed lenses
@@ -1033,8 +1034,9 @@ disconnect(emp_salaries, emp_insurance, ..., ...)
 %
 is another well-typed lens that satisfies the example in
 Figure~\ref{fig:minimized-representations} (where \lstinline{...} represents
-components of the example itself). In general, {\em many} examples may be
-required to rule out all possible occurrences of nested \Disconnect lenses,
+components of the example itself\bcp{huh?}). In general, {\em many} examples
+may be 
+required to rule out all possible occurrences of nested\bcp{??} \Disconnect lenses,
 particularly in complex formats.
 %\ksf{I don't understand the following.  We shouldn't explain the issue in
 %terms of \PutR and \PutL as we are focused on the combinators rather
@@ -1045,28 +1047,30 @@ particularly in complex formats.
 %examples, or by a carefully chosen input-output example on \PutR
 %or \PutL, this problem continues presenting itself for the sublenses,
 %and is highlighted even more on larger formats.
-While we could ask programmers to provide detailed and precise specifications
+\proposedelete{While we could ask programmers to provide detailed and precise specifications
 for their synthesis tasks, we would prefer an algorithm that can intelligently
-choose a lens despite the underspecification. Instead of merely finding
+choose a lens despite the underspecification.} Instead of merely finding
 \emph{any} satisfying lens, we wish to synthesize a satisfying lens that is
 likely to please the user.
 
 How can we identify such a ``likely'' lens? We propose the following heuristic:
 A satisfying lens is ``more likely'' if it uses more data from one format to
-construct the other. One manifestation of this principle involves choosing the
-identity lens (which uses all the data) rather than the disconnect lens (which
-uses none of the data). We define the likelihood of a satisfying lens as the
-expected number of bits required to recover data in one format from synchronized
-data in the other. Higher likelihoods correspond to fewer bits. Two
-strings $s$ and $t$ are \emph{synchronized according to lens $l$} if $l.\PutR\
-s\ t = t$ and $l.\PutL\ t\ s = s$. We can \emph{recover} $s$ from
+construct the other.  For example, the
+identity lens (which uses all the data) is more likely than the disconnect
+lens (which uses none). Formally, we define the {\em likelihood} of a
+satisfying lens as the 
+expected number of bits required to recover data in one format from 
+data in the other; higher likelihoods correspond to fewer bits. Two
+strings $s$ and $t$ are \emph{synchronized according to lens
+  $l$}\bcp{Earlier we used $\Lens$, now we are switching to $l$...} if $l.\PutR\
+s\ t = t$ and $l.\PutL\ t\ s = s$. We can \emph{recover} $s$ from 
 $t$ using bits $b$ and lens $l$ if we can reconstruct $s$ from $t$, $b$, and
 $l$. For example, given the \IdentityLens{} lens, we can recover $s$ from $t$
 using no bits because, in this case, $s$ is just $t$. In contrast, given the
 \Disconnect{} lens, we need enough bits to fully encode $s$ in order to recover
-it from $t$ because $t$ contains no useful information. Thus, if both
+it from $t$ because all the information in $t$ gets thrown away. Thus, if both
 \IdentityLens{} and \Disconnect{} are satisfying lenses for a particular pair of
-formats, then \IdentityLens{} will be more likely.
+formats, \IdentityLens{} will be more likely.
 
 The expected number of bits required to recover a piece of data corresponds to
 the well-known information-theoretic concept of
