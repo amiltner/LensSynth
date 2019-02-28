@@ -1,4 +1,4 @@
-\newif\ifdraft\draftfalse  % set true to show comments
+\newif\ifdraft\drafttrue  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\ifappendices\appendicesfalse
@@ -571,30 +571,32 @@ data cleaning, view maintenance, and file synchronization tasks. We find the
 system can synthesize simple symmetric lenses for all of the benchmarks in under
 30 seconds (\S\ref{sec:evaluation}).
 
-In summary, our contributions are:
+In summary, our contributions are as follows:
 \begin{itemize}
 %
 \item We define {\em simple symmetric lenses}, a subclass of symmetric
-lenses that do not maintain any hidden state (\S\ref{sec:overview}).  
+lenses with no hidden state,
 %
-We present a collection of combinators for building simple symmetric lenses and
-describe how to calculate their likelihoods (\S\ref{sec:ssl}).
+we propose a syntax for them---a collection
+of combinators for building simple symmetric lenses---and we
+describe how to calculate their likelihoods
+(\S\ref{sec:overview}--\S\ref{sec:ssl}).  
 \item We give an algorithm for synthesizing lenses built from these combinators,
   using a novel application of stochastic regular expressions to guide the
   search process (\S\ref{sec:synthesis}) and prove that our metrics have deep
-  semantic meaning.
+  semantic meaning. \bcp{``Semantic meaning'' is redundant.  And ``deep
+    semantic meaning'' just sounds silly.  Can we say it more precisely?}
 %
-\item We extend the Boomerang implementation with simple symmetric lenses,
-  demonstrating that they integrate smoothly with other lens extensions such as
-  quotient lenses~\cite{quotientlenses} and matching
-  lenses~\cite{matchinglenses}.
-
-\item We also extend Boomerang with symmetric lens synthesis specifications:
-  including types, examples, and relevance annotations. We evaluate our system
-  on a set of 48 benchmarks, and find it synthesizes each of them in under
-  30 seconds.
+\item We extend the Boomerang implementation with simple symmetric lenses
+and lens synthesis specifications, 
+  including types, examples, and relevance annotations. We evaluate our
+  implementation, the effects of
+  optimizations, and our inclusion of relevance annotations on a set of
+  48 lens synthesis benchmarks drawn from data cleaning, view maintenance, and
+  file synchronization tasks. The system can synthesize simple symmetric lenses
+  for all of the benchmarks in under 30 seconds (\S\ref{sec:evaluation}).
 %
-\item We show that simple symmetric lenses fall between asymmetric
+\item We prove that simple symmetric lenses fall between asymmetric
 lenses~\cite{Focal2005-long} and full symmetric
 lenses~\cite{symmetric-lenses} in expressiveness.  Indeed, the
 class of simple lenses can be characterized semantically as the subset of
@@ -602,7 +604,8 @@ full symmetric lenses for which a simple ``forgetfulness'' property holds
 (\S\ref{sec:related}).
 \end{itemize}
 Along the
-way, we show the {\em star-semiring equivalences} on regular expressions
+way, we show that {\em star-semiring equivalences}\bcp{citation} on regular
+expressions 
 remain valid when extended to stochastic regular expressions, preserving
 probability distributions as well as languages (\S\ref{sec:sre}).
 We close with related work (\S\ref{sec:related}) and
@@ -739,10 +742,13 @@ synchronized because they contain a mix of shared and unshared information.
 %align the actual commands that are run.
 
 \subsection{Simple Symmetric Lenses}
-Semantically, a simple symmetric lens (or lens when clear from context) between
-sets $X$ and $Y$ comprises four functions subject to four ``round-tripping''
+Semantically, a simple symmetric lens (we will just say ``lens'' when clear
+from context) between 
+sets $X$ and $Y$ comprises four functions subject to four round-tripping
 laws.
-
+\vspace*{.7ex}
+\begin{trivlist}
+\item 
 %\begin{enumerate}
 %\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
 %\item $\CreateL \OfType \RegexAlt \rightarrow \Regex$
@@ -772,24 +778,25 @@ laws.
 \end{align}
 \end{minipage} 
 \end{center}
-\noindent
-\vskip -.5em
-The two \KW{create} functions are used to propagate shared information and fill
+\end{trivlist}
+The two \KW{create} functions are used to \proposedelete{propagate shared
+  information and} fill 
 in default values when introducing new data (\EG, on \KW{create} the ``unk''
 salary entry is added alongside the name to the management file when HR inserts
 a new employee). The two \KW{put} functions propagate edits from one format to
 the other by combining a new value from one with an old value from the other.
-The notation $\Lens.\PutR$ extracts the \PutR function from the
-lens $\Lens$; similarly for \PutL. These four functions can be used to keep the
-common information between two file types in synch. For example, if a new file
-of the left-hand format is created, the \CreateR function will a new file in the
-right-hand format. If the right-hand format is edited, the \PutL function can
-update the left-hand format with the changed information.
+The record projection notation $\Lens.\PutR$ extracts the \PutR function
+from the 
+lens $\Lens$. These four functions can be used to keep the
+common information between two file types in sync. For example, if a new file
+of the left-hand format is created, the \CreateR function will build a new
+file in the 
+right-hand format. If the right-hand file is then edited, the \PutL function can
+update the left-hand file with the changed information.
 
 The round-tripping laws guarantee that pushing an ``un-edited'' value from one
 side (the result of a put or create) back through a lens in the other direction
-will get back to exactly where we began. For example, consider a simple
-symmetric lens
+will get back to exactly where we began. For example, consider a lens
 synchronizing the employee data formats in
 Figure~\ref{fig:minimized-representations}. Applying the \CreateR function to a
 salary file creates a insurance file with the same employee names in the file,
@@ -798,8 +805,8 @@ with
 laws guarantees that applying the \PutL function to the generated insurance file
 and the original salary file will return the original salary file, unmodified. If \KW{put}ting a string $s$ into a string $t$ results in the original string $s$, then $s$ and $t$ are considered \emph{synchronized}.
 
-This simple symmetric lens definition differs from classical symmetric lenses in
-that it does not involve a \emph{complement}. We give a detailed comparison in
+Simple symmetric lenses differ from ''classical'' symmetric lenses in that
+they do not involve a \emph{complement}. We give a detailed comparison in
 \S\ref{sec:relationship}.
 
 %%For synchronization, when the original company.hr or company.mgmt
@@ -812,28 +819,29 @@ that it does not involve a \emph{complement}. We give a detailed comparison in
 
 \subsection{Simple Symmetric Lens Combinators}
 
-In principle, programmers can define simple symmetric lenses just by writing
+In principle, programmers can define lenses just by writing
 four arbitrary functions by hand and showing they satisfy the round-tripping
-laws. But a better idea is to streamline the process by providing a set of
-combinators---a domain-specific language---for building complex, law-abiding
+laws, but this can be tedious and error prone.  A better idea is to provide
+a set of combinators---a domain-specific language---for building complex,
+law-abiding 
 lenses from simpler ones. Such bidirectional languages have been given for
-building lenses over many different kinds of data, including database
+many different kinds of data, including database
 relations~\cite{BohannonPierceVaughan} algebraic data
 types~\cite{symmetric-lenses}, graphs~\cite{tgg}, and more.
-
 We focus here on combinators for defining lenses between string data formats
 described by regular expressions.
+
 If $\BRegex$ and $\BRegexAlt$ are regular expressions, then
 \lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that
 $\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
 $\LanguageOf{\BRegexAlt}$. (We will use undecorated variables later for
-stochastic regular expressions; we mark plain REs with overbars.)
+stochastic regular expressions, so we mark plain REs with overbars.)
 We illustrate some of these
 combinators by defining lenses on subcomponents of the employee data formats.
 
 The simplest combinator is the identity lens \IdentityLens, which takes as an
-argument a regular expression $\BRegex$ and performs an identity mapping on data
-matching $\BRegex$. 
+argument a regular expression $\BRegex$ and propagates data unchanged
+in both directions.
 %
 \begin{lstlisting}
 id(name) : name $\Leftrightarrow$ name
@@ -860,7 +868,7 @@ thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). For
 example, the \lstinline{salary} field is only present in management files,
 so the disconnect lens can ensure salary edits do not cause updates to the
 HR file.
-For example, with the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
+With the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
 and \PutR will always return \lstinline{""}.
 
 The insert lens \lstinline{ins} and the delete lens \lstinline{del} are
@@ -878,7 +886,7 @@ Finally, there are a number of combinators that construct
 more complex lenses from simpler ones. These include concatenation
 ($\ConcatLensOf{\Lens_1}{\Lens_2}$, often written $\Lens_1 . \Lens_2$), variation
 ($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).
-For example, we could use the following lens
+For example, we could use the lens
 %
 \begin{lstlisting}
 id(name) . id(" ") . id(name) . del(": ") . ins(",")
@@ -901,15 +909,16 @@ the left-to-right direction.
 %\end{lstlisting}
 The \IterateLens lens is useful for synchronizing a series of items or rows in a
 table. For example given a
-lens \lstinline{employee_lens} that synchronizes data for a single employee the
-following lens
+lens \lstinline{employee_lens} that synchronizes data for a single employee, the
+lens\bcp{In all these examples, I'd like to have one more space on each side
+of the ``:''}
 %
 \begin{lstlisting}
 iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
 \end{lstlisting}
 %
 transforms a list of employees in employees in the Management format to a list
-of employees in the HR format in the left-to-right direction. These combinators
+of employees in the HR format and vice versa. These combinators
 are combined in figure~\ref{fig:example_lens} to construct a complete lens
 between the employee formats.
 
@@ -930,8 +939,16 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 % Using these combinators, we can build up a lens that synchronizes
 % management and HR employee files. 
 
-Most of the typing rules for lenses are syntax driven, where only a handful of
-rules result in a given type.  For example, the type of a
+\bcp{I wonder whether the rest of this subsection can be cut... It is both
+  hard to understand and too brief to really say much, and I wonder whether
+  we need it for anything between here and where we give it a real
+  explanation.} 
+
+Most of the typing rules for lenses are syntax directed, where only a handful of
+rules result in a given type\bcp{syntax directed usually means that the
+  conclusion of at most
+  {\em one} rule will match a given goal; if that's not the case here, then
+  we need to speak more carefully}.  For example, the type of a
 \ConcatLens lens is the concatenation of the regular expressions of the sub-lenses.
 \[
   \inferrule*
@@ -945,10 +962,10 @@ rules result in a given type.  For example, the type of a
     \BRegexAlt_1 \Concat \BRegexAlt_2
   }
 \]
-With one notable exception, lens typing rules maintain structural similarity
-between regular expression types and lens terms; type equivalence does not. Type
-equivalence permits a well-typed lens to be well-typed among any equivalent
-regular expression pair.
+The typing  rules for maintain structural similarity
+between regular expression types and lens terms, with one exception: The
+type equivalence rule permits a well-typed lens to be well-typed among any
+equivalent regular expression pair.
 %
 \[
   \centering
@@ -981,15 +998,16 @@ Figure~\ref{fig:example_lens} to be well-typed.
 
 \subsection{Ranking Simple Symmetric Lenses}
 
-Even for small examples, lenses like the one above take a little getting used
-to. For larger and more complex formats, it can become quite difficult to
-write lenses by hand.  Instead, we wish to synthesize them from examples. 
-That is, given a pair of regular expressions and a set of input-output examples, we want
+For larger and more complex formats, it can become quite difficult to
+write lenses by hand, as we did above.  Instead, we would like to synthesize
+them from types and examples.  
+That is, given a pair of regular expressions and a set of input-output
+examples, we want 
 to find a simple symmetric lens that is typed by the regular expression pair and
-satisfies all the input/output examples. We call such a lens a \emph{satisfying
-  lens}. In our running example, we wish to synthesize a lens between
-\lstinline{emp_salaries} and \lstinline{emp_insurance}, using as an input-output
-example the data in Figure~\ref{fig:minimized-representations}.
+satisfies all the input/output examples. We this a \emph{satisfying
+  lens}. For our running example, suppose we wish to synthesize a lens between
+\lstinline{emp_salaries} and \lstinline{emp_insurance}, using as sole
+input-output example the data in Figure~\ref{fig:minimized-representations}.
 
 One challenge is that the simple symmetric lens combinators permit many
 well-typed lenses
@@ -1004,8 +1022,9 @@ disconnect(emp_salaries, emp_insurance, ..., ...)
 %
 is another well-typed lens that satisfies the example in
 Figure~\ref{fig:minimized-representations} (where \lstinline{...} represents
-components of the example itself). In general, {\em many} examples may be
-required to rule out all possible occurrences of nested \Disconnect lenses,
+components of the example itself\bcp{huh?}). In general, {\em many} examples
+may be 
+required to rule out all possible occurrences of nested\bcp{??} \Disconnect lenses,
 particularly in complex formats.
 %\ksf{I don't understand the following.  We shouldn't explain the issue in
 %terms of \PutR and \PutL as we are focused on the combinators rather
@@ -1016,28 +1035,30 @@ particularly in complex formats.
 %examples, or by a carefully chosen input-output example on \PutR
 %or \PutL, this problem continues presenting itself for the sublenses,
 %and is highlighted even more on larger formats.
-While we could ask programmers to provide detailed and precise specifications
+\proposedelete{While we could ask programmers to provide detailed and precise specifications
 for their synthesis tasks, we would prefer an algorithm that can intelligently
-choose a lens despite the underspecification. Instead of merely finding
+choose a lens despite the underspecification.} Instead of merely finding
 \emph{any} satisfying lens, we wish to synthesize a satisfying lens that is
 likely to please the user.
 
 How can we identify such a ``likely'' lens? We propose the following heuristic:
 A satisfying lens is ``more likely'' if it uses more data from one format to
-construct the other. One manifestation of this principle involves choosing the
-identity lens (which uses all the data) rather than the disconnect lens (which
-uses none of the data). We define the likelihood of a satisfying lens as the
-expected number of bits required to recover data in one format from synchronized
-data in the other. Higher likelihoods correspond to fewer bits. Two
-strings $s$ and $t$ are \emph{synchronized according to lens $l$} if $l.\PutR\
-s\ t = t$ and $l.\PutL\ t\ s = s$. We can \emph{recover} $s$ from
+construct the other.  For example, the
+identity lens (which uses all the data) is more likely than the disconnect
+lens (which uses none). Formally, we define the {\em likelihood} of a
+satisfying lens as the 
+expected number of bits required to recover data in one format from 
+data in the other; higher likelihoods correspond to fewer bits. Two
+strings $s$ and $t$ are \emph{synchronized according to lens
+  $l$}\bcp{Earlier we used $\Lens$, now we are switching to $l$...} if $l.\PutR\
+s\ t = t$ and $l.\PutL\ t\ s = s$. We can \emph{recover} $s$ from 
 $t$ using bits $b$ and lens $l$ if we can reconstruct $s$ from $t$, $b$, and
 $l$. For example, given the \IdentityLens{} lens, we can recover $s$ from $t$
 using no bits because, in this case, $s$ is just $t$. In contrast, given the
 \Disconnect{} lens, we need enough bits to fully encode $s$ in order to recover
-it from $t$ because $t$ contains no useful information. Thus, if both
+it from $t$ because all the information in $t$ gets thrown away. Thus, if both
 \IdentityLens{} and \Disconnect{} are satisfying lenses for a particular pair of
-formats, then \IdentityLens{} will be more likely.
+formats, \IdentityLens{} will be more likely.
 
 The expected number of bits required to recover a piece of data corresponds to
 the well-known information-theoretic concept of
@@ -1045,26 +1066,29 @@ the well-known information-theoretic concept of
 distribution over the space of possible values for the data. Specifically, given
 a set $S$ and a probability distribution $P \OfType S \rightarrow \Reals$ over
 $S$, the entropy $\EntropyOf{S,P}$ is $-\Sigma_{s\in S}P(s)\Log_2P(s)$. In
-information theory, each element of $s \in S$ has \emph{information content},
-the number of bits required to specify that element in a perfect encoding scheme
-($-\Log_2P(s)$). The entropy of $S$ calculates the expected number of bits
-required to specify an element drawn from $S$, in other words, the
-probability of each element times its information content. Entropy maintains
-that if a data source contains many possible elements, where none have
+information theory, the \emph{information content} of each element of $s \in
+S$ is 
+the number of bits required to specify $s$ in a perfect encoding scheme
+($-\Log_2P(s)$). The entropy of $S$ is the expected number of bits
+required to specify an element drawn from $S$---the
+probability of each element times its information content. Entropy captures
+the intuition that, if a data source contains many possible elements and
+none have 
 significantly higher probability than others, it will have high information
-content. Data sources with few elements that don't have vanishingly small
-probabilities have small entropy. When $P$ is clear, we will often use the
-shorthand of $\EntropyOf{S}$ for $\EntropyOf{S,P}$.
+content. Data sources where most elements have small
+probabilities have small entropy. When $P$ is clear from context, we will
+often use the shorthand of $\EntropyOf{S}$ for $\EntropyOf{S,P}$.
 
-In our setting, we already have a way of expressing sets of data: regular
+In the present setting, we already have a way of expressing sets of data:
+regular 
 expressions. To calculate entropy, what we need is a way to express probability
-distributions over that data. To that end, we adopt \emph{stochastic regular
+distributions over those sets. To that end, we adopt \emph{stochastic regular
   expressions}~\cite{stoch-def,stoch-rnn} (SREs), which are regular expressions
 in which each operator is annotated with a probability (see \S\ref{sec:sre}). A
-stochastic regular expression specifies both a set of strings and a probability
-distribution over that set.
+stochastic regular expression thus specifies both a set of strings at the
+same time as a probability distribution over that set.
 
-We use entropy to guage the relative likelihood of such lenses in our synthesis
+We use entropy to gauge the relative likelihood of lenses in our synthesis
 algorithm (see \S\ref{subsec:lenscosts}). For any lens $\Lens$, we can calculate
 the expected number of bits required to recover a string $t$ in
 $\LanguageOf{\RegexAlt}$ from a synchronized string $s$ in
@@ -1074,7 +1098,9 @@ $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
-assigns higher entropy (or cost) to lenses where knowing the string on one side
+assigns higher entropy (or cost\bcp{= lower likelihood?  I'm still confused
+  by these different ways of speaking about what seems to be the same
+  thing.}) to lenses where knowing the string on one side 
 provides little information about the string on the other side. It assigns zero
 entropy to bijections because given a string $s \in \Regex$, the bijection
 exactly determines the corresponding string in $\RegexAlt$.
@@ -1089,65 +1115,72 @@ exactly determines the corresponding string in $\RegexAlt$.
 %%\EntropyOf{\lstinline{": " . salary}}, so by our metric
 %%\lstinline{single_emp_map} is preferable to the disconnect lens.
 
-To obtain SREs from the plain regular expressions that users write, by default
-we use a heuristic that attempts to assign probability annotations that give
+To obtain SREs from the plain regular expressions that users write, 
+we use a default heuristic that attempts to assign probability annotations
+giving
 each string in the language equal probablity. In other words, this heuristic
-tries to make each bit of data no more or less likely than any other.
-Our synthesis algorithm could equally well take as input a pair of stochastic
-regular expression rather than a plain one, permitting users to specify a
+tries to make each bit of data no more or less likely than any
+other.\bcp{huh?} 
+Alternatively, our synthesis algorithm could take as input a pair of stochastic
+regular expressions rather than plain ones, permitting users to specify a
 data-specific probability distribution (either manually calculated or inferred
-from some dataset of interest).
+from some dataset of interest).\bcp{So why didn't we do it this way?}
 
-However, sometimes users already know that certain data should or should not be
+However\bcp{``However'' means that something from before is being
+  contradicted.  What is it in this case?}, sometimes users already know that certain data should or should not be
 used to construct the other format. We introduce relevance annotations to SREs
 that enable users to specify whether a piece of data should be used to construct
 the other format (with \SRequire) or not (with \Skip). In our example,
 \lstinline{salary} and \lstinline{company} could safely be skipped (as they are
 disconnected), where \lstinline{name} in \lstinline{emp_salary} and
 \lstinline{emp_ins} be annotated as required (as they are converted with the
-identity lens).
+identity lens).  \bcp{That paragraph seems way too brief and high level.
+  These annotations were added in response to significant complaints from an
+earlier PC, but the paper reads as though they are an afterthought of little
+consequence; they deserve more attention and explanation.}
 
 \subsection{Searching for Likely Lenses}
 Now that we have a way to calculate likelihood, we need a way to search for
 likely lenses. Previous work~\cite{augustsson-2004, osera+:pldi15,
-  feser-pldi-2015, frankle+:popl16} has shown that we can use types to
+  feser-pldi-2015, frankle+:popl16} has shown that types can be used to
 dramatically restrict the search space and improve the effectiveness of
 synthesis. In our setting, types are pairs of stochastic regular
-expressions. The fact that each regular expression is semantically equivalent to
-infinitely many others complicates the problem.
+expressions, and the fact that each regular expression is semantically
+equivalent to infinitely many others complicates the problem.
+
 Following existing work on bidirectional program
 synthesis~\cite{maina+:quotient-synthesis}, we 
 split our algorithm into two communicating
-searches. The first search,
+searche procedures. The first,
 \Expand, navigates the space of semantically equivalent regular expressions
-by applying rewrite rules that preserve both the semantics and the
-probability distributions of those stochastic regular expressions. This
+by applying rewrite rules that preserve both semantics and
+probability distributions. This
 algorithm ranks pairs of stochastic regular expressions by the number of
 rewrite rule applications required to obtain each pair from the one given as
 input. It passes the pairs off to the second 
 search procedure, \GreedySynth, in rank order with the smallest first.
 
-Abstractly, \GreedySynth looks for highest-likelihood lenses between a given
+\GreedySynth looks for highest-likelihood lenses between a given
 pair of stochastic regular expressions $\Regex$ and $\RegexAlt$ by performing a
-type-directed search. In more detail, \GreedySynth first converts the stochastic
+type-directed search. It first converts the stochastic
 regular expressions provided by \Expand into \emph{stochastic DNF regular
   expressions}---a constrained representation of stochastic regular expressions
 with disjunctions distributed over concatenations and with concatenations and
-disjunctions normalized to operating over lists (see \S\ref{subsec:sdnfre}).
-\GreedySynth then uses the syntax of these n-ary DNF regular expressions to find
-normalized lenses, in a form we call \emph{simple symmetric n-ary DNF lenses}.
-These lenses include neither a composition operator nor a type equivalence rule.
+disjunctions normalized to operating over lists.
+Then it uses the syntax of these n-ary DNF regular expressions to find
+normalized lenses in a form we call \emph{simple symmetric n-ary DNF lenses}.
+These involve neither a composition operator nor a type equivalence rule.
 These restrictions mean that there are only a few simple symmetric n-ary DNF
-lenses that are well-typed between each pair of stochastic n-ary DNF regular
-expressions, hence \GreedySynth's search space for a given pair of regular
+lenses that are well typed between a given pair of stochastic n-ary DNF regular
+expressions, so \GreedySynth's search space for a given pair of regular
 expressions is finite. Finally, \GreedySynth yields a simple symmetric lens by
-converting the n-ary forms into the binary forms provided in the surface
+converting the n-ary syntax back to the binary forms provided in the surface
 language.
 
 This architecture of communicating synthesizers gives us a way to enumerate
 pairs of stochastic regular expressions of increasing rank and to efficiently
 search through them, but it poses a problem: when should \Expand stop proposing
-new SRE pairs? We may have found a promising lens between a pair of stochastic
+new SRE pairs? We might have found a promising lens between a pair of stochastic
 regular expressions, but a different pair we haven't yet discovered may give
 rise to an even better lens. The search algorithm must resolve a tension between
 the quality of the inferred lens and the amount of time it takes to return a
@@ -1158,18 +1191,22 @@ to judge whether to return the current best satisfying lens to the user or to
 pass the next set of unrollings to \GreedySynth. The heuristics favor stopping
 if the current best satisfying lens is very likely, indicating the lens is very
 promising (for example, if the satisfying lens loses no information, the
-algorithm should terminate for no other lens will be more likely). The
+algorithm should terminate for no other lens will be more likely\bcp{this
+  case is 100\% obvious, which makes it not so interesting as an example.
+  The reader is left wondering what happens with pretty likely but not
+  maximally likely lenses?}). The
 heuristics also favor stopping if \Expand has delivered to \GreedySynth all
 pairs of stochastic regular expressions at a given rank and there is a large
 number of pairs at the next rank, because searching through all such pairs will
 take a long time. With this approach, the algorithm can quickly respond with a
 satisfying lens with relatively high likelihood. If the user is unhappy with the
 result, they can either refine the search by supplying additional examples,
-which serve both to rule out the previously proposed lens(es) and to reduce the
+which serve both to rule out previously proposed lenses and to reduce the
 size of the search space by cutting down on the number of satisfying lenses, or
 they can supply annotations on the source and target SREs indicating that
 certain information either must be retained or must be discarded by the lens
-(see \S\ref{subsec:optimizations}).
+(see \S\ref{subsec:optimizations}). \bcp{Again, I feel like we're
+  downplaying this aspect too much.}
 
 %Consider the trivial lens
 %\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
@@ -1299,20 +1336,18 @@ The $\Expand$ algorithm enumerates SREs that are
 of stochastic regular expression equivalence. Figure~\ref{fig:ssr-sre} shows how
 we to extend the \emph{star-semiring}~\cite{starsemiring} equivalences (a
 \emph{finer} notion of equivalence than semantic equivalence) to
-SREs.
+SREs.  
 
 \begin{theorem}
   If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
   \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
-\begin{proof}
-  See the appendix %
-\ifappendices  Theorem~\ref{thm:semantics-correctness} \else{} included with the supplemental
-material\fi.
-\end{proof}
 
-This theorem will come in handy as we traverse (with \Expand) or normalize
-across (as part of \GreedySynth) star-semiring equivalences.
+(For the proof, see the appendix \ifappendices
+Theorem~\ref{thm:semantics-correctness} \else{} included with the
+supplemental material\fi.)  This theorem will come in handy as we traverse
+(with \Expand) or normalize across (as part of \GreedySynth) star-semiring
+equivalences.
 
 \subsection{Stochastic Regular Expression Entropy}
 The entropy of a data source $S$ is the expected number of bits required to
@@ -1714,7 +1749,8 @@ equivalent to $T'$. Type equivalence is useful both for addressing type
 annotations, and for making well-typed compositions.
 
 \subsection{Lens Costs}
-\label{subsec:lenscosts}
+\label{subsec:lenscosts} \bcp{In the intro, we talked about ``likelihood.''
+Now we seem to be switching the terminology to ``cost.''}
 Our cost metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
 $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds on the
@@ -2558,7 +2594,9 @@ provides a useful experimental stress test for the system.
 \begin{figure}
   \includegraphics{generated-graphs/times}
   \vspace{-4ex}
-  \caption{Number of benchmarks that can be solved by a given algorithm in a
+  \caption{\bcp{What are the little tick marks on the top of the figure?
+      And why do we need a line for ``benchmark count''?}Number of
+    benchmarks that can be solved by a given algorithm in a 
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
     \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
     existing lenses. The symmetric synthesis algorithm is able to complete all
@@ -3079,9 +3117,9 @@ principles in type-directed or syntax-guided synthesis of DSL programs.
 % begin conclusion
 \section{Conclusion}
 \label{sec:conc}
-We have developed a synthesis algorithm for synthesizing synchronization
-functions between data formats that may not be in bijective correspondence. More
-specifically, we identify a subset of symmetric lenses, simple symmetric lenses,
+We described a synthesis algorithm for synthesizing synchronization
+functions between data formats that may not be in bijective correspondence.
+We identified a subset of symmetric lenses, simple symmetric lenses, 
 develop new combinators for them, and show how to synthesize them from regular
 expression specifications. In order to guide the search for ``likely'' lenses,
 we introduce new search principles based on information theory and allow users
@@ -3090,6 +3128,8 @@ of these ideas, we designed and implemented a new tool for symmetric lens
 synthesis and integrated it into the Boomerang lens programming framework. Our
 experiments on 48 benchmarks demonstrate that we can synthesize complex lenses for
 real-life formats in under 30 seconds.
+
+\bcp{Future work??????????????}
 
 % end conclusion
 
