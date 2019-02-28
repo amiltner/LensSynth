@@ -754,10 +754,13 @@ synchronized because they contain a mix of shared and unshared information.
 %align the actual commands that are run.
 
 \subsection{Simple Symmetric Lenses}
-Semantically, a simple symmetric lens (or lens when clear from context) between
-sets $X$ and $Y$ comprises four functions subject to four ``round-tripping''
+Semantically, a simple symmetric lens (we will just say ``lens'' when clear
+from context) between 
+sets $X$ and $Y$ comprises four functions subject to four round-tripping
 laws.
-
+\vspace*{.7ex}
+\begin{trivlist}
+\item 
 %\begin{enumerate}
 %\item $\CreateR \OfType \Regex \rightarrow \RegexAlt$
 %\item $\CreateL \OfType \RegexAlt \rightarrow \Regex$
@@ -787,24 +790,25 @@ laws.
 \end{align}
 \end{minipage} 
 \end{center}
-\noindent
-\vskip -.5em
-The two \KW{create} functions are used to propagate shared information and fill
+\end{trivlist}
+The two \KW{create} functions are used to \proposedelete{propagate shared
+  information and} fill 
 in default values when introducing new data (\EG, on \KW{create} the ``unk''
 salary entry is added alongside the name to the management file when HR inserts
 a new employee). The two \KW{put} functions propagate edits from one format to
 the other by combining a new value from one with an old value from the other.
-The notation $\Lens.\PutR$ extracts the \PutR function from the
-lens $\Lens$; similarly for \PutL. These four functions can be used to keep the
-common information between two file types in synch. For example, if a new file
-of the left-hand format is created, the \CreateR function will a new file in the
-right-hand format. If the right-hand format is edited, the \PutL function can
-update the left-hand format with the changed information.
+The record projection notation $\Lens.\PutR$ extracts the \PutR function
+from the 
+lens $\Lens$. These four functions can be used to keep the
+common information between two file types in sync. For example, if a new file
+of the left-hand format is created, the \CreateR function will build a new
+file in the 
+right-hand format. If the right-hand file is then edited, the \PutL function can
+update the left-hand file with the changed information.
 
 The round-tripping laws guarantee that pushing an ``un-edited'' value from one
 side (the result of a put or create) back through a lens in the other direction
-will get back to exactly where we began. For example, consider a simple
-symmetric lens
+will get back to exactly where we began. For example, consider a lens
 synchronizing the employee data formats in
 Figure~\ref{fig:minimized-representations}. Applying the \CreateR function to a
 salary file creates a insurance file with the same employee names in the file,
@@ -813,8 +817,8 @@ with
 laws guarantees that applying the \PutL function to the generated insurance file
 and the original salary file will return the original salary file, unmodified. If \KW{put}ting a string $s$ into a string $t$ results in the original string $s$, then $s$ and $t$ are considered \emph{synchronized}.
 
-This simple symmetric lens definition differs from classical symmetric lenses in
-that it does not involve a \emph{complement}. We give a detailed comparison in
+Simple symmetric lenses differ from ''classical'' symmetric lenses in that
+they do not involve a \emph{complement}. We give a detailed comparison in
 \S\ref{sec:relationship}.
 
 %%For synchronization, when the original company.hr or company.mgmt
@@ -827,28 +831,29 @@ that it does not involve a \emph{complement}. We give a detailed comparison in
 
 \subsection{Simple Symmetric Lens Combinators}
 
-In principle, programmers can define simple symmetric lenses just by writing
+In principle, programmers can define lenses just by writing
 four arbitrary functions by hand and showing they satisfy the round-tripping
-laws. But a better idea is to streamline the process by providing a set of
-combinators---a domain-specific language---for building complex, law-abiding
+laws, but this can be tedious and error prone.  A better idea is to provide
+a set of combinators---a domain-specific language---for building complex,
+law-abiding 
 lenses from simpler ones. Such bidirectional languages have been given for
-building lenses over many different kinds of data, including database
+many different kinds of data, including database
 relations~\cite{BohannonPierceVaughan} algebraic data
 types~\cite{symmetric-lenses}, graphs~\cite{tgg}, and more.
-
 We focus here on combinators for defining lenses between string data formats
 described by regular expressions.
+
 If $\BRegex$ and $\BRegexAlt$ are regular expressions, then
 \lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that
 $\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
 $\LanguageOf{\BRegexAlt}$. (We will use undecorated variables later for
-stochastic regular expressions; we mark plain REs with overbars.)
+stochastic regular expressions, so we mark plain REs with overbars.)
 We illustrate some of these
 combinators by defining lenses on subcomponents of the employee data formats.
 
 The simplest combinator is the identity lens \IdentityLens, which takes as an
-argument a regular expression $\BRegex$ and performs an identity mapping on data
-matching $\BRegex$. 
+argument a regular expression $\BRegex$ and propagates data unchanged
+in both directions.
 %
 \begin{lstlisting}
 id(name) : name $\Leftrightarrow$ name
@@ -875,7 +880,7 @@ thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). For
 example, the \lstinline{salary} field is only present in management files,
 so the disconnect lens can ensure salary edits do not cause updates to the
 HR file.
-For example, with the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
+With the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
 and \PutR will always return \lstinline{""}.
 
 The insert lens \lstinline{ins} and the delete lens \lstinline{del} are
@@ -893,7 +898,7 @@ Finally, there are a number of combinators that construct
 more complex lenses from simpler ones. These include concatenation
 ($\ConcatLensOf{\Lens_1}{\Lens_2}$, often written $\Lens_1 . \Lens_2$), variation
 ($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).
-For example, we could use the following lens
+For example, we could use the lens
 %
 \begin{lstlisting}
 id(name) . id(" ") . id(name) . del(": ") . ins(",")
@@ -916,15 +921,16 @@ the left-to-right direction.
 %\end{lstlisting}
 The \IterateLens lens is useful for synchronizing a series of items or rows in a
 table. For example given a
-lens \lstinline{employee_lens} that synchronizes data for a single employee the
-following lens
+lens \lstinline{employee_lens} that synchronizes data for a single employee, the
+lens\bcp{In all these examples, I'd like to have one more space on each side
+of the ``:''}
 %
 \begin{lstlisting}
 iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
 \end{lstlisting}
 %
 transforms a list of employees in employees in the Management format to a list
-of employees in the HR format in the left-to-right direction. These combinators
+of employees in the HR format and vice versa. These combinators
 are combined in figure~\ref{fig:example_lens} to construct a complete lens
 between the employee formats.
 
@@ -945,8 +951,16 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 % Using these combinators, we can build up a lens that synchronizes
 % management and HR employee files. 
 
-Most of the typing rules for lenses are syntax driven, where only a handful of
-rules result in a given type.  For example, the type of a
+\bcp{I wonder whether the rest of this subsection can be cut... It is both
+  hard to understand and too brief to really say much, and I wonder whether
+  we need it for anything between here and where we give it a real
+  explanation.} 
+
+Most of the typing rules for lenses are syntax directed, where only a handful of
+rules result in a given type\bcp{syntax directed usually means that the
+  conclusion of at most
+  {\em one} rule will match a given goal; if that's not the case here, then
+  we need to speak more carefully}.  For example, the type of a
 \ConcatLens lens is the concatenation of the regular expressions of the sub-lenses.
 \[
   \inferrule*
@@ -960,10 +974,10 @@ rules result in a given type.  For example, the type of a
     \BRegexAlt_1 \Concat \BRegexAlt_2
   }
 \]
-With one notable exception, lens typing rules maintain structural similarity
-between regular expression types and lens terms; type equivalence does not. Type
-equivalence permits a well-typed lens to be well-typed among any equivalent
-regular expression pair.
+The typing  rules for maintain structural similarity
+between regular expression types and lens terms, with one exception: The
+type equivalence rule permits a well-typed lens to be well-typed among any
+equivalent regular expression pair.
 %
 \[
   \centering
