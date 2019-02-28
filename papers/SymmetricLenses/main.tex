@@ -1,4 +1,4 @@
-\newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifdraft\draftfalse  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\ifappendices\appendicesfalse
@@ -404,18 +404,13 @@ data formats contain different arrangements of precisely the same
 information, is  
 limited.  Oftentimes, two data
 formats share just {\em some} of their information content.  For instance,
-two related database tables might share four out of five columns, but each
-might have a different fifth column.  Or one ad-hoc system-configuration
+one ad-hoc system-configuration
 file might include some format-specific metadata, such as a date or a
 reference number, while the same configuration file on another operating
 system does not.  Indeed among the 48 benchmark problems described in
 Section \ref{sec:evaluation} below, all of the benchmarks taken from Flash
 Fill~\cite{flashfill} and many of the benchmarks that synchronize between
-two ad hoc file formats have this characteristic (13 benchmarks in
-total).  \bcp{The safer wording is better, but the reader is still left
-  wondering ``If they are demonstrating a system for synthesizing
-  non-bijective lenses, why did they choose a benchmark suite where 35/48
-  examples are bijective??''}
+two ad hoc file formats have this characteristic.
 
 Can Optician's basic synthesis procedure be extended to a richer class of
 lenses? Could we even imagine synthesizing all \emph{symmetric
@@ -423,8 +418,7 @@ lenses? Could we even imagine synthesizing all \emph{symmetric
 bijective lenses, ``asymmetric'' lenses (where the transformation from a
 source structure to a target can throw away information that must
 then be restored when transferring from target to source), and even more flexibile
-transformations that allow each side to retain information not present in
-the other?
+transformations that allow each side to throw away information?
 
 % A symmetric lens between $S$ and $T$ represents a pair of functions, $\PutR$
 % and $\PutL$.  The $\PutR$ component has type
@@ -494,7 +488,7 @@ This leaves us with the second difficulty in synthesizing symmetric
 lenses: Whereas the number of bijective lenses between two given formats is
 typically tiny, the number of simple symmetric lenses is typically enormous.
 If a na\"ive search algorithm just selects the first simple symmetric lens
-it finds, this will generally \emph{not} be the one the user wanted.  We
+it finds, the returned lens will generally \emph{not} be the one the user wanted.  We
 need a new principle for identifying ``more likely'' lenses and a more
 sophisticated synthesis algorithm that uses this principle to search the
 space more intelligently. 
@@ -526,19 +520,16 @@ probability distribution, we can calculate the likelihood of a given lens.
 
 With simple symmetric lenses and this SRE-based likelihood measure in hand, we
 propose a new algorithm for synthesizing likely lenses. At its core, the
-algorithm performs a type-directed search between the descriptions of the source
-and target formats, measuring success using the likelihood measure.
+algorithm performs a type-directed search between descriptions of the data
+formats, measuring success using the likelihood measure.
 
 Interesting complications arise from the need to deal with regular-expression
 equivalences. There are infinitely many regular expressions equivalent to a
 given one, and the lens returned by a type-directed search will in general
 depend on which of the possible representations are chosen for its source and
-target formats. \bcp{There's a disconnect here: The reader was probably not
-  thinking about Boomerang's type-equivalence rule (indeed, very likely, did
-  not even know there was such a thing).}Moreover, if Boomerang's type-equivalence rule is disallowed,
-there may be {\em no} well-typed lens connecting a particular pair of source
-and target formats 
-selected by the user: in general, the synthesis algorithm has to search through
+target formats. Moreover, certain lenses may not be well-typed unless the
+format representations are replaced by equivalent ones:
+in general, the synthesis algorithm has to search through
 equivalent regular expression types to find the most likely lens. To tame
 this complexity, we divide the synthesis algorithm into two communicating search
 procedures (Figure~\ref{fig:high-level-algorithm}), following~\citet{optician}.
@@ -567,21 +558,18 @@ terminates when a sufficiently likely lens is found.
 
 We added this synthesis procedure to the Boomerang system and explored its
 effectiveness on a range of applications. Users set up a Boomerang synthesis
-task by providing the source and target types and optionally supplying one or
-more examples. In addition, users can override the default mechanism for
+task by providing two regular expressions and optionally supplying input-output
+examples. Users can also override the default mechanism for
 calculating the information content of a SRE by
 asserting that certain strings are \emph{essential} or \emph{irrelevant},
-thereby forcing certain data to either be retained or discarded during the
+forcing certain data to either be retained or discarded during the
 transformations.
 
-We evaluated our system on a benchmark suite of 48 problems, including
-data-cleaning tasks taken from Flash Fill~\cite{flashfill}, view-maintenance
-tasks taken from Augeas~\cite{augeas2}, and ad-hoc synchronization tasks
-from a variety of other sources (mostly from the bidirectional programming
-literature).  \bcp{``... and we found...''?}  \bcp{Also, this paragraph is
-  redundant with the corresponding contribution a bit below.  I think it
-  would improve the flow if we made this one a bit longer (and stronger) and
-  the contribution paragraph shorter, just summarizing what this one says.}
+We evaluate our implementation, the effects of optimizations, and our inclusion
+of relevance annotations on a set of 48 lens synthesis benchmarks drawn from
+data cleaning, view maintenance, and file synchronization tasks. We find the
+system can synthesize simple symmetric lenses for all of the benchmarks in under
+30 seconds (\S\ref{sec:evaluation}).
 
 In summary, our contributions are:
 \begin{itemize}
@@ -602,11 +590,9 @@ describe how to calculate their likelihoods (\S\ref{sec:ssl}).
   lenses~\cite{matchinglenses}.
 
 \item We also extend Boomerang with symmetric lens synthesis specifications:
-  including types, examples, and relevance annotations. We evaluate our implementation, the effects of
-  optimizations, and our inclusion of relevance annotations on a set of
-  48 lens synthesis benchmarks drawn from data cleaning, view maintenance, and
-  file synchronization tasks. The system can synthesize simple symmetric lenses
-  for all of the benchmarks in under 30 seconds (\S\ref{sec:evaluation}).
+  including types, examples, and relevance annotations. We evaluate our system
+  on a set of 48 benchmarks, and find it synthesizes each of them in under
+  30 seconds.
 %
 \item We show that simple symmetric lenses fall between asymmetric
 lenses~\cite{Focal2005-long} and full symmetric
@@ -2440,15 +2426,24 @@ through possible regular expressions harder. Our algorithm identifies when
 certain closed regular expressions can \emph{only} be involved in a disconnect
 lens (unless opened). Such regular expressions will automatically be opened.
 
-\paragraph*{Compositional Synthesis} Compositional synthesis allows us to use
-previously defined lenses, whether they are previously defined by users or by
-synthesis. As the synthesizer processes a Boomerang file, it accumulates
-lens definitions and their types.  It tackles synthesis problems one after another
+\paragraph*{Compositional Synthesis} Compositional synthesis allows \GreedySynth to use
+previously defined (by users or synthesis) lenses. As the synthesizer processes a Boomerang file, it accumulates
+lens definitions and types.  It tackles synthesis problems one after another
 and there may be many such problems in a given program.
-During synthesis, if an existing lens has the right type and agrees with the examples.
-\GreedySynth will use it.  Consequently, if a large synthesis problem cannot be solved all
-at once, a user can first generate subproblems for parts of a data format, and the
-larger problem can subsequently use solutions to those subproblems.  In our experience,
+During synthesis, if an existing lens has the right type and agrees with the examples,
+\GreedySynth will use it.  If a large synthesis problem cannot be solved all
+at once, a user can generate subproblems for parts of a data format, and the
+larger problem can subsequently use solutions to those subproblems. For example,
+when given the synthesis task:
+%
+\begin{lstlisting}
+let l_1 = synth R <=> S
+let l_2 = synth R' <=> S'
+\end{lstlisting}
+%
+the synthesis algorithm use the previously generated \lstinline{l_1} in the
+synthesis of \lstinline{l_2}.
+In our experience,
 this is a very powerful tool that allows synthesis to tackle problems of arbitrary
 complexity.
 % end synthesis
@@ -2488,15 +2483,19 @@ Our benchmarks are drawn from three different sources.
   Excel product team. Note that our tool produces bidirectional transformations
   rather than one-way transformers like Flash Fill. We ensure one direction of
   our bidirectional transformers performs the same unidirectional transformation
-  as Flash Fill -- we ignore the other direction.
+  as Flash Fill -- the other direction is determined from the round-tripping
+  laws. None of these benchmarks were bijective.
 \item We adapted 29 benchmarks from Augeas~\cite{augeas}. Augeas is a utility
   that bidirectionally converts between Linux configuration files and an
   in-memory dictionaries. In our benchmarks, we synthesize lenses between Linux
-  configuration files and serialized versions of Augeas dictionaries.
+  configuration files and serialized versions of Augeas dictionaries. Because
+  these benchmarks merely transformed the information into a structured form,
+  synthesized lenses were all bijective.
 \item We created 11 additional benchmarks 
   derived from real-world examples and/or the bidirectional programming
   literature. These tasks range from synchronizing REST and JSON web resource
-  descriptions to synchronizing BibTeX and EndNote citation descriptions.
+  descriptions to synchronizing BibTeX and EndNote citation descriptions. Five
+  of these benchmarks were not bijective lenses.
 \end{enumerate}
 
 Each task consists of a source and target regular expression and a set of
@@ -2512,7 +2511,7 @@ examples and provide useful relevance annotations.  In all cases, the desired le
 was obtained.
 %
 The majority of the tasks required only a single example and none required
-more than three examples in order to synthesize the desired lens.\footnote{In
+more than three examples to synthesize the desired lens.\footnote{In
   one benchmark, we supplied a fourth example that was later discovered to 
   be unnecessary.}  
 
@@ -2544,8 +2543,8 @@ benchmarks, we evaluate the performance of the system by measuring the running
 time of our algorithm in two modes:
 
 \begin{tabulary}{\linewidth}{rL}
-  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
-  \SSNCOpt{}: & The symmetric synthesis algorithm, with no compositional synthesis enabled.\\
+  \SSOpt{}: & Run the symmetric synthesis algorithm with all optimizations enabled.\\
+  \SSNCOpt{}: & Run the symmetric synthesis algorithm, with no compositional synthesis enabled.\\
 \end{tabulary}\\
 
 Recall that compositional synthesis allows users to break a benchmark into a
@@ -2574,7 +2573,7 @@ For each benchmark in the suite and each mode, we ran the system with a timeout
 of 60 seconds, averaging the result over 5 runs. Figure~\ref{fig:times}
 summarizes the results of these tests. We find that our algorithm is able to
 synthesize all of the benchmarks in under 30 seconds. Without compositional
-synthesis, the synthesis algorithm is able to solve 26 problem instances.
+synthesis, the synthesis algorithm is able to solve 26 out of 48 problem instances.
 
 % Section~\ref{subsec:optimizations} that users may tune the termination metric.
 % Success on this set of benchmarks requires we tune that termination condition
@@ -2620,19 +2619,19 @@ complete.
 
 \subsection{The Effects of Heuristics and Relevance Annotations}
 \label{subsec:effect-of-heuristics}
-We evaluate the usefulness of (1) our information-theoretic metric, and (2) our
+We evaluate the usefulness of (1) our information-theoretic metric, (2) our
+termination heuristic and (3) our
 relevance annotations.  To this end, we run our program in several different modes:\\[1ex]
 \begin{tabulary}{\linewidth}{rL}
-  \AnyOpt{}: & We ignore the information-theoretic preference metric entirely,
-               returning the first lens \GreedySynth finds without using this information. \\ 
-  \FLOpt{}: &  \GreedySynth uses the information-theoretic preference
-              metric to search, but returns immediately upon finding a
-              satisfying lens, instead of returning based on \Continue.  \\
-  \CCOpt{}: & We replace our information-theoretic cost metric with one where
+  \AnyOpt{}: & Ignore the information-theoretic preference metric (\IE, all valid
+               lenses have cost 0). \\ 
+  \FLOpt{}: &  Return the first highest ranked lens \GreedySynth returns (\IE,
+              ignore the termination heuristic). \\
+  \CCOpt{}: & Replace our information-theoretic cost metric with one where
               the cost of the lens is the number of disonnects plus the number
               of merges.\\
-  \NSOpt{}: & We ignore all \Skip annotations in the SRE specifications. \\
-  \NROpt{}: & We ignore all \SRequire annotations in the SRE specifications. \\
+  \NSOpt{}: & Ignore all \Skip annotations in the SRE specifications. \\
+  \NROpt{}: & Ignore all \SRequire annotations in the SRE specifications. \\
 \end{tabulary}
 
 
@@ -2663,8 +2662,8 @@ Figure~\ref{fig:metric} summarizes the result of these experiments. The data
 reveal that the information-theoretic metric is critical for finding the correct
 lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode. The
 termination condition is also quite important. When running in \FLOpt{} mode,
-the algorithm only discovers 5 lenses, which shows that the first cluster that
-contains a satisfying lens is rarely the correct cluster. However, our algorithm
+the algorithm only discovers 5 lenses, which shows that the first class that
+contains a satisfying lens is rarely the correct class. However, our algorithm
 is not perfect and fails when either it is very difficult to find the desired
 lens (necessitating \SRequire) or when a large amount of data is projected
 (necessitating \Skip). Without any annotations, our algorithm finds the correct
@@ -2682,8 +2681,7 @@ techniques.  In this section, we analyze the relationship
 between our simple symmetric
 lenses and two previous lens languages:  classical symmetric lenses
 and asymmetric lenses. Proofs about these relationships are included in
-the appendix
-\ifappendices  \S\ref{sec:appendixforget}. \else{}included with the supplemental
+the appendix \ifappendices  \S\ref{sec:appendixforget}. \else{}included with the supplemental
 material.  \fi We also comment on related
 program synthesis techniques.
 
@@ -2791,21 +2789,20 @@ $apply(\Lens_1,\Lens_1.init,es) = apply(\Lens_2,\Lens_2.init,es)$ for all $es$.
 %can be sent over the wire, and the appropriate function can stitch together
 %those edits, no additional state needed. \fi
 
-While classical symmetric lenses are technically more expressive than simple
-symmetric lenses, we still believe simple symmetric lenses are useful in
-practice. Indeed, all asymmetric lenses (we later show) are expressible as
+Simple symmetric lenses are a strict subset of classical symmetric lenses, but
+quite a useful one. For instance, all asymmetric lenses are expressible as
 simple symmetric lenses. The primary loss is the loss of ``memory'' within the
-complement. In classical symmetric lenses, \OrLens lenses retain information, so
-users don't lose information when swapping from one disjunct to the other, the
-information is stored in the complement. Simple symmetric lenses have no such
-complement, so they mimic the forgetful \OrLens lens of classical symmetric
-lenses.
+complement. In classical symmetric lenses, disjunctive (\OrLens) lenses retain information
+about both possible formats. If a user edits a format from one disjuncted format
+to the other, the information contained in that first disjunct is retained
+within the complement. Simple symmetric lenses have no such complement, so they
+mimic the forgetful disjunctive lens of classical symmetric lenses.
 
-In our judgement, the complications they introduce into synthesis did
-not justify the potential additional expressiveness: because each lens has a
+Though classical symmetric lenses are more expressive, they introduce drawbacks
+for synthesis: because each lens has a
 custom complement, one can no longer specify the put functions through
 input/output examples alone. One alternative would be to enrich specifications
-with edit sequentials; another would be to specify the structure of complements
+with edit sequences; another would be to specify the structure of complements
 explicitly (though the latter would be somewhat akin to specifying the internal
 state of a program). In either case, the complexity of the specifications
 increases.
@@ -2920,7 +2917,7 @@ Next, we define \emph{forgetful symmetric
 \end{equation}
 
 Intuitively, these equations state that complements are uniquely determined by
-the most recently input $x$ and $y$. Such lenses correspond exactly with simple
+the most recent input $x$ and $y$. Such lenses correspond exactly with simple
 symmetric lenses, where all state is maintained by the $x$ and $y$ data.
 
 \begin{theorem}
@@ -2952,9 +2949,7 @@ lenses.
   \end{center}
 \end{theorem}
 
-\paragraph*{Other Lens Formulations}\bcp{This paragraph doesn't add
-  much}\afm{the POPL reviewers complained we didn't have this type of
-  paragraph, I personally agree that it doesn't add much and feels unnecessary}
+\paragraph*{Other Lens Formulations}
 Bidirectional programming has an extensive literature, with many extensions onto
 basic lenses, like quotient lenses~\cite{quotientlenses} and matching
 lenses~\cite{matchinglenses}. Readers can consult
@@ -2977,10 +2972,10 @@ generates one-way spreadsheet transformations from input/output
 examples~\cite{flashfill,le-pldi-2014}.  On the one hand,
 FlashFill is easier to use because one need not specify the type of
 the data being transformed.  On the other hand, this type information
-makes it possible to transform more complex formats---Flash Fill
-does not synthesize programs with nested loops, for instance,
+makes it possible to transform more complex formats. For example, Flash Fill
+does not synthesize programs with nested loops~\cite{flashfill},
 and hence is incapable of synthesizing the majority of our
-benchmarks, even in one direction~\cite{flashfill}.
+benchmarks, even in one direction.
 %% Flashfill, designed
 %% for transformation of the cells of spreadsheets, does not scale to
 %% more complex formats
@@ -3007,7 +3002,7 @@ ranking possible programs. Such a choice is consistent with our
 information-theoretic viewpoint as the constant function throws away a great
 deal of information about the source string being transformed. Likewise, Flash
 Fill prefers ``wider'' character classes over ``narrower'' ones. Again such a
-choice is implied by information theory -- the wider class preserves more
+choice is implied by information theory---the wider class preserves more
 information during translation. More broadly, we hope our information-theoretic
 analysis provides a basis for understanding the heuristic choices made in
 related work.
@@ -3089,9 +3084,12 @@ functions between data formats that may not be in bijective correspondence. More
 specifically, we identify a subset of symmetric lenses, simple symmetric lenses,
 develop new combinators for them, and show how to synthesize them from regular
 expression specifications. In order to guide the search for ``likely'' lenses,
-we introduce new search principles based on information theory. Based on these
-principles, we designed, implemented, and evaluated a new tool for lens
-synthesis.
+we introduce new search principles based on information theory and allow users
+to control this search via relevance annotations. To evaluate the effectiveness
+of these ideas, we designed and implemented a new tool for symmetric lens
+synthesis and integrated it into the Boomerang lens programming framework. Our
+experiments on 48 benchmarks demonstrate that we can synthesize complex lenses for
+real-life formats in under 30 seconds.
 
 % end conclusion
 
