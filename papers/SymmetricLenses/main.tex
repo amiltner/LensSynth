@@ -421,7 +421,7 @@ it is more common, but I suppose I have no real data on that. I've updated
 the wording to be ``safer''.}
 
 Can Optician's basic synthesis procedure be extended to a richer class of
-lenses? In particular, what about \emph{symmetric
+lenses? Could we even imagine synthesizing all \emph{symmetric
   lenses}~\cite{symmetric-lenses}---a much larger class that includes
 bijective lenses, ``asymmetric'' lenses (where the transformation from a
 source structure to a target can throw away information that must
@@ -460,9 +460,10 @@ straightforward: Simply replace the bijective combinators with symmetric
 ones and search using similar heuristics.  However, this na\"ive approach
 encounters two difficulties.
 
-The first is pragmatic. ``Classical'' symmetric lenses as presented
+The first of these is pragmatic. ``Classical'' symmetric lenses as presented
 by ~\citet{symmetric-lenses} operate
-over three structures: the ``left'' structure $X$, the ``right'' $Y$ and a complement
+over three structures: a ``left'' structure $X$, a ``right'' structure
+$Y$ and a ``complement'' 
 $C$ that contains the information not
 present in either $X$ or $Y$. These complements must be stored
 and managed somehow.  More fundamentially, complements complicate
@@ -471,41 +472,51 @@ source and target
 pairings, users would have to give longer ``interaction sequences'' to 
 show how a lens should behave. To avoid these complexities, we define a
 restricted variant 
-of symmetric lenses, which we call \emph{simple symmetric lenses}. 
+of symmetric lenses,  called \emph{simple symmetric lenses}. 
 %only the usual source and target.
 %
 %, which we define in Section~\ref{sec:relationship}.
-Intuitively, simple symmetric lenses are the complete set of symmetric
+Intuitively, simple symmetric lenses are symmetric
 lenses that do not require external ``memory'' to recover data from past
 instances of $X$ or $Y$ when making a round trip. They only need the most
 recent instance.
 
-To characterize their expressive power formally, we show that simple
-symmetric lenses are exactly symmetric lenses that satisfy an intuitive
-property called \emph{forgetfulness}.  We show they are expressive
-enough in practice by adding simple symmetric lenses to the Boomerang
-language~\cite{boomerang} and applying them to a range of real-world
-applications, showing that simple symmetric lenses integrate
-smoothly with other advanced lens features provided by Boomerang, including
-quotient lenses~\cite{quotientlenses,maina+:quotient-synthesis} and matching
-lenses~\cite{matchinglenses}.
+Formally, we characterize the expressiveness of simple symmetric lenses by
+proving that they are exactly the symmetric lenses
+that satisfy an intuitive property called \emph{forgetfulness}.  We also show
+they are expressive enough for many practical uses by adding simple
+symmetric lenses to 
+the Boomerang language~\cite{boomerang} and applying them to a range of
+real-world applications.  This exercise also demonstrates that simple
+symmetric lenses integrate smoothly with other advanced lens features
+provided by Boomerang, including {\em quotient
+  lenses}~\cite{quotientlenses,maina+:quotient-synthesis} and {\em matching
+  lenses}~\cite{matchinglenses}.\bcp{How does it demonstrate this?  Did we
+  actually {\em use} symmetric quotient or matching lenses for anything?  Or
+are we just observing that these features can coexist in the same
+implementation even if using them together might not make sense?}
 
-This leaves us with just the second difficulty with synthesizing symmetric
-lenses: While the number of bijective lenses between two given formats is
+This leaves us with the second difficulty in synthesizing symmetric
+lenses: Whereas the number of bijective lenses between two given formats is
 typically tiny, the number of simple symmetric lenses is typically enormous.
 If a na\"ive search algorithm just selects the first simple symmetric lens
 it finds, this will generally \emph{not} be the one the user wanted.  We
 need a new principle for identifying ``more likely'' lenses and a more
 sophisticated synthesis algorithm that uses this principle to search the
-space more intelligently. For these, we turn to information theory. 
+space more intelligently. 
 
-We consider ``likely'' lenses to be ones that propagate ``a lot'' of information
-from the left data format to the right and vice versa. Conversely, unlikely
-lenses require a large amount of additional information to recover
-either of the formats given the other. For many application scenarios, users
+For these, we turn to information theory. We consider ``likely'' lenses to
+be ones that propagate ``a lot'' of information 
+from the left data format to the right and vice versa. Conversely, ``unlikely''
+lenses are ones that require a large amount of additional information to recover
+one of the formats given the other. \bcp{Next two sentences are not very
+  persuasive.  And they may be a bit out of date anyway, not that we have
+  these annotations.  We can just say that we take ``propagate as much as
+  possible'' as the default and use explicit annotations on the source and
+  target types to mark information that the user knows should not be propagated.}For many application scenarios, users
 will want to synchronise formats with lots of shared information (and lenses
 with little shared information are typically easier to write). Our tool is built
-primarily for these complex scnearios, and so lenses that propagate more
+primarily for these complex scenarios, and so lenses that propagate more
 information are preferable in our context to ones that propagate less.
 %
 This intuition is formalized using \emph{stochastic regular expressions}
@@ -527,10 +538,11 @@ probability distribution, we can calculate the likelihood of a given lens.
   \label{fig:high-level-algorithm}
 \end{figure}
 
-With simple symmetric lenses and our SRE-based likelihood measure in hand, we
-develop a new algorithm for synthesizing likely lenses. At its core, the
+With simple symmetric lenses and this SRE-based likelihood measure in hand, we
+propose a new algorithm for synthesizing likely lenses. At its core, the
 algorithm performs a type-directed search between the descriptions of the source
 and target formats, measuring success using the likelihood measure.
+
 Interesting complications arise from the need to deal with regular-expression
 equivalences. There are infinitely many regular expressions equivalent to a
 given one, and the lens returned by a type-directed search will in general
