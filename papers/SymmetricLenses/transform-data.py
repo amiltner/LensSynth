@@ -76,8 +76,8 @@ def generate_examples_required_graph(input_csv):
     ax.set_xticklabels(["\\textbf{Any}","\\textbf{FL}","\\textbf{DC}","\\textbf{NS}","\\textbf{NR}"])
 
     fig = plt.figure(3,tight_layout=True)
-    ax.step([-.5,4.5],[48.1,48.1],label="Benchmark Count",linestyle=":",
-            linewidth=1, dashes=(1,1))
+    #ax.step([-.5,4.5],[48.1,48.1],label="Benchmark Count",linestyle=":",
+    #        linewidth=1, dashes=(1,1))
 
     plt.tick_params(
                 axis='x',          # changes apply to the x-axis
@@ -309,22 +309,23 @@ def generate_time_vs_tasks_graph_vs_bijective(input_csv):
             x_completed_counts.append(acc)
         x_completed_counts = [0] + x_completed_counts[:len(x_completed_counts)-1]
         if (style != '-'):
-            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1))
+            ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width, dashes=(5,1), color='g')
         else:
             ax.step(x_vals,x_completed_counts,label=outputname,linestyle=style,linewidth=width)
 
     normal_size = 2
     full_size = 3
 
-    ax.step([0,60],[39.1,39.1],label="Benchmark Count",linestyle=":",
-            linewidth=1, dashes=(1,1))
-    create_step_plot("SS","\\textbf{SS}",'-',normal_size)
+    #ax.step([0,60],[39.1,39.1],label="Benchmark Count",linestyle=":",
+    #        linewidth=1, dashes=(1,1))
     create_step_plot("BS","\\textbf{BS}",':',normal_size)
+    create_step_plot("SS","\\textbf{SS}",'-',normal_size)
 
     ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Time (s)')
 
-    l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
+    #l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
+    l = ax.legend(bbox_to_anchor=(1.25,1),borderaxespad=0)
     plt.setp(l.texts) 
 
     plt.xscale('log')
@@ -361,15 +362,16 @@ def generate_time_vs_tasks_graph(input_csv):
     normal_size = 2
     full_size = 3
 
-    ax.step([0,60],[48.1,48.1],label="Benchmark Count",linestyle=":",
-            linewidth=1, dashes=(1,1))
+    #ax.step([0,60],[48.1,48.1],label="Benchmark Count",linestyle=":",
+    #        linewidth=1, dashes=(1,1))
     create_step_plot("SS","\\textbf{SS}",'-',normal_size)
     create_step_plot("SSNC","\\textbf{SSNC}",':',normal_size)
 
     ax.set_ylabel('Benchmarks\nCompleted')
     ax.set_xlabel('Time (s)')
 
-    l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
+    l = ax.legend(bbox_to_anchor=(1.3,1),borderaxespad=0)
+    #l = ax.legend(bbox_to_anchor=(1.6,1),borderaxespad=0)
     plt.setp(l.texts) 
 
     plt.xscale('log')

@@ -583,9 +583,8 @@ describe how to calculate their likelihoods
 (\S\ref{sec:overview}--\S\ref{sec:ssl}).  
 \item We give an algorithm for synthesizing lenses built from these combinators,
   using a novel application of stochastic regular expressions to guide the
-  search process (\S\ref{sec:synthesis}) and prove that our metrics have deep
-  semantic meaning. \bcp{``Semantic meaning'' is redundant.  And ``deep
-    semantic meaning'' just sounds silly.  Can we say it more precisely?}
+  search process (\S\ref{sec:synthesis}) and prove that our metrics correspond
+  to the information loss of a given lens.
 %
 \item We extend the Boomerang implementation with simple symmetric lenses
 and lens synthesis specifications, 
@@ -604,7 +603,7 @@ full symmetric lenses for which a simple ``forgetfulness'' property holds
 (\S\ref{sec:related}).
 \end{itemize}
 Along the
-way, we show that {\em star-semiring equivalences}\bcp{citation} on regular
+way, we show that {\em star-semiring equivalences}~\cite{starsemiring} on regular
 expressions 
 remain valid when extended to stochastic regular expressions, preserving
 probability distributions as well as languages (\S\ref{sec:sre}).
@@ -779,8 +778,7 @@ laws.
 \end{minipage} 
 \end{center}
 \end{trivlist}
-The two \KW{create} functions are used to \proposedelete{propagate shared
-  information and} fill 
+The two \KW{create} functions are used to fill 
 in default values when introducing new data (\EG, on \KW{create} the ``unk''
 salary entry is added alongside the name to the management file when HR inserts
 a new employee). The two \KW{put} functions propagate edits from one format to
@@ -844,7 +842,7 @@ argument a regular expression $\BRegex$ and propagates data unchanged
 in both directions.
 %
 \begin{lstlisting}
-id(name) : name $\Leftrightarrow$ name
+id(name)  :  name $\Leftrightarrow$ name
 \end{lstlisting}
 %
 The identity lens moves data back and forth from source to target without
@@ -858,7 +856,7 @@ regular expressions ($\Regex, \RegexAlt$) and two strings ($\String, \StringAlt$
 on the two sides, while the strings provide default values. 
 %
 \begin{lstlisting}
-disconnect(salary, "", "unk", "") : salary $\Leftrightarrow$ ""
+disconnect(salary, "", "unk", "")  :  salary $\Leftrightarrow$ ""
 \end{lstlisting}
 %
 On creates, the input values are thrown away, and default values are
@@ -910,11 +908,10 @@ the left-to-right direction.
 The \IterateLens lens is useful for synchronizing a series of items or rows in a
 table. For example given a
 lens \lstinline{employee_lens} that synchronizes data for a single employee, the
-lens\bcp{In all these examples, I'd like to have one more space on each side
-of the ``:''}
+lens
 %
 \begin{lstlisting}
-iterate(id("\n") . employee_lens) : ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
+iterate(id("\n") . employee_lens)  :  ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
 \end{lstlisting}
 %
 transforms a list of employees in employees in the Management format to a list
@@ -928,7 +925,7 @@ let name_lens = id(name) . id(" ") . id(name) . del(": ") . ins(",") in
 let employee_lens = name_lens . disconnect(salary,"","unk","") 
                                                     . disconnect("",company,"","UNK") in
 let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
-ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
+ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
 %\ksf{I don't think this is necesssary.}
 %let emp_lens = or(id(""),employees_lens) in
@@ -942,13 +939,11 @@ ins(header) . employees_lens : emp_salaries $\Leftrightarrow$ emp_insurance
 \bcp{I wonder whether the rest of this subsection can be cut... It is both
   hard to understand and too brief to really say much, and I wonder whether
   we need it for anything between here and where we give it a real
-  explanation.} 
+  explanation.} \afm{I believe it is necessary for 2.4. I tried giving it a more
+terse treatment, but that caused its own set of problems.}
 
-Most of the typing rules for lenses are syntax directed, where only a handful of
-rules result in a given type\bcp{syntax directed usually means that the
-  conclusion of at most
-  {\em one} rule will match a given goal; if that's not the case here, then
-  we need to speak more carefully}.  For example, the type of a
+Lenses are typed by pairs of regular expressions and only a handful of
+rules result in a given type.  For example, the type of a
 \ConcatLens lens is the concatenation of the regular expressions of the sub-lenses.
 \[
   \inferrule*
@@ -1022,9 +1017,9 @@ disconnect(emp_salaries, emp_insurance, ..., ...)
 %
 is another well-typed lens that satisfies the example in
 Figure~\ref{fig:minimized-representations} (where \lstinline{...} represents
-components of the example itself\bcp{huh?}). In general, {\em many} examples
+the example strings). In general, {\em many} examples
 may be 
-required to rule out all possible occurrences of nested\bcp{??} \Disconnect lenses,
+required to rule out all possible occurrences of \Disconnect lenses,
 particularly in complex formats.
 %\ksf{I don't understand the following.  We shouldn't explain the issue in
 %terms of \PutR and \PutL as we are focused on the combinators rather
@@ -1035,9 +1030,7 @@ particularly in complex formats.
 %examples, or by a carefully chosen input-output example on \PutR
 %or \PutL, this problem continues presenting itself for the sublenses,
 %and is highlighted even more on larger formats.
-\proposedelete{While we could ask programmers to provide detailed and precise specifications
-for their synthesis tasks, we would prefer an algorithm that can intelligently
-choose a lens despite the underspecification.} Instead of merely finding
+Instead of merely finding
 \emph{any} satisfying lens, we wish to synthesize a satisfying lens that is
 likely to please the user.
 
@@ -1050,10 +1043,10 @@ satisfying lens as the
 expected number of bits required to recover data in one format from 
 data in the other; higher likelihoods correspond to fewer bits. Two
 strings $s$ and $t$ are \emph{synchronized according to lens
-  $l$}\bcp{Earlier we used $\Lens$, now we are switching to $l$...} if $l.\PutR\
-s\ t = t$ and $l.\PutL\ t\ s = s$. We can \emph{recover} $s$ from 
-$t$ using bits $b$ and lens $l$ if we can reconstruct $s$ from $t$, $b$, and
-$l$. For example, given the \IdentityLens{} lens, we can recover $s$ from $t$
+  $\Lens$} if $\Lens.\PutR\
+s\ t = t$ and $\Lens.\PutL\ t\ s = s$. We can \emph{recover} $s$ from 
+$t$ using bits $b$ and lens $\Lens$ if we can reconstruct $s$ from $t$, $b$, and
+$\Lens$. For example, given the \IdentityLens{} lens, we can recover $s$ from $t$
 using no bits because, in this case, $s$ is just $t$. In contrast, given the
 \Disconnect{} lens, we need enough bits to fully encode $s$ in order to recover
 it from $t$ because all the information in $t$ gets thrown away. Thus, if both
@@ -1098,9 +1091,7 @@ $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
-assigns higher entropy (or cost\bcp{= lower likelihood?  I'm still confused
-  by these different ways of speaking about what seems to be the same
-  thing.}) to lenses where knowing the string on one side 
+assigns higher entropy (or likelihood) to lenses where knowing the string on one side 
 provides little information about the string on the other side. It assigns zero
 entropy to bijections because given a string $s \in \Regex$, the bijection
 exactly determines the corresponding string in $\RegexAlt$.
@@ -1118,26 +1109,21 @@ exactly determines the corresponding string in $\RegexAlt$.
 To obtain SREs from the plain regular expressions that users write, 
 we use a default heuristic that attempts to assign probability annotations
 giving
-each string in the language equal probablity. In other words, this heuristic
-tries to make each bit of data no more or less likely than any
-other.\bcp{huh?} 
-Alternatively, our synthesis algorithm could take as input a pair of stochastic
-regular expressions rather than plain ones, permitting users to specify a
-data-specific probability distribution (either manually calculated or inferred
-from some dataset of interest).\bcp{So why didn't we do it this way?}
+each string in the language equal probablity (not prioritizing one piece of
+information over another).
 
-However\bcp{``However'' means that something from before is being
-  contradicted.  What is it in this case?}, sometimes users already know that certain data should or should not be
+Sometimes users already know that certain data should or should not be
 used to construct the other format. We introduce relevance annotations to SREs
 that enable users to specify whether a piece of data should be used to construct
 the other format (with \SRequire) or not (with \Skip). In our example,
 \lstinline{salary} and \lstinline{company} could safely be skipped (as they are
 disconnected), where \lstinline{name} in \lstinline{emp_salary} and
 \lstinline{emp_ins} be annotated as required (as they are converted with the
-identity lens).  \bcp{That paragraph seems way too brief and high level.
-  These annotations were added in response to significant complaints from an
-earlier PC, but the paper reads as though they are an afterthought of little
-consequence; they deserve more attention and explanation.}
+identity lens). Doing so both constrains the problem (as \lstinline{name}s must
+be synchronized) and makes it easier (as the algorithm does not waste time
+looking for \lstinline{salary} information in the insurance format). In this
+way, users can tweak the
+lens likelihoods with their external knowledge.
 
 \subsection{Searching for Likely Lenses}
 Now that we have a way to calculate likelihood, we need a way to search for
@@ -1191,22 +1177,22 @@ to judge whether to return the current best satisfying lens to the user or to
 pass the next set of unrollings to \GreedySynth. The heuristics favor stopping
 if the current best satisfying lens is very likely, indicating the lens is very
 promising (for example, if the satisfying lens loses no information, the
-algorithm should terminate for no other lens will be more likely\bcp{this
-  case is 100\% obvious, which makes it not so interesting as an example.
-  The reader is left wondering what happens with pretty likely but not
-  maximally likely lenses?}). The
+algorithm should terminate for no other lens will be more likely). The
 heuristics also favor stopping if \Expand has delivered to \GreedySynth all
 pairs of stochastic regular expressions at a given rank and there is a large
 number of pairs at the next rank, because searching through all such pairs will
-take a long time. With this approach, the algorithm can quickly respond with a
+take a long time (for example, if the satisfying lens loses only a little
+information,
+but searching for a better one will take a long time, the discovered lens is
+returned).
+With this approach, the algorithm can quickly return a
 satisfying lens with relatively high likelihood. If the user is unhappy with the
 result, they can either refine the search by supplying additional examples,
 which serve both to rule out previously proposed lenses and to reduce the
 size of the search space by cutting down on the number of satisfying lenses, or
 they can supply annotations on the source and target SREs indicating that
 certain information either must be retained or must be discarded by the lens
-(see \S\ref{subsec:optimizations}). \bcp{Again, I feel like we're
-  downplaying this aspect too much.}
+(see \S\ref{subsec:relevanceannotations}).
 
 %Consider the trivial lens
 %\lstinline{disc(emp_salary,emp_row,rep(emp_salary),rep(emp_row))}. As this is
@@ -1748,10 +1734,9 @@ lens of type $S' \Leftrightarrow T'$ if $S$ is equivalent to $S'$ and $T$ is
 equivalent to $T'$. Type equivalence is useful both for addressing type
 annotations, and for making well-typed compositions.
 
-\subsection{Lens Costs}
-\label{subsec:lenscosts} \bcp{In the intro, we talked about ``likelihood.''
-Now we seem to be switching the terminology to ``cost.''}
-Our cost metric is based on the expected amount of information required to
+\subsection{Lens Likelihoods}
+\label{subsec:lenscosts}
+Our likelihood metric is based on the expected amount of information required to
 recover a string in one data format from the other. We use the function
 $\REntropyOf{\RegexAlt \Given \Lens, \Regex}$ to calculate bounds on the
 expected amount of information required to recover a string in $\RegexAlt$ from
@@ -1812,13 +1797,13 @@ typically calculate the conditional entropy exactly, as merges are relatively
 uncommon in practice; only 2 of the lenses sythesized in our benchmarks
 include merges.
 
-The cost of a lens between two SREs $cost(\Lens, \Regex, \RegexAlt) =
-\MaxOf{\LEntropyOf{\Regex \Given \Lens, \RegexAlt}} +
-\MaxOf{\REntropyOf{\RegexAlt \Given \Lens, \Regex}}$ is the sum of the maximum
-expected number of bits to
-recover the left format from the right, and the right from the left. We have
-proven theorems demonstrating the calculated entropy corresponds to the actual
-conditional entropy to recover the data.
+The likelihood of a lens is the negative of its \emph{cost}. The cost of a lens
+between two SREs $cost(\Lens, \Regex, \RegexAlt) = \MaxOf{\LEntropyOf{\Regex
+    \Given \Lens, \RegexAlt}} + \MaxOf{\REntropyOf{\RegexAlt \Given \Lens,
+    \Regex}}$ is the sum of the maximum expected number of bits to recover the
+left format from the right, and the right from the left. We have proven theorems
+demonstrating the calculated entropy corresponds to the actual conditional
+entropy to recover the data.
 
 \begin{theorem}
   Let $\Lens \OfType \Regex \Leftrightarrow \RegexAlt$, where $\Lens$ does not
@@ -1886,10 +1871,10 @@ condition defined by $\PCF{\Continue}$). Within each iteration of the loop, it:
 \item pops the next class ($S$, $T$) of lenses to
 search off of the priority queue ($\PCF{\PQ.Pop}$),
 \item executes $\GreedySynth$ to find a best lens in that class if
-one exists ($\LC$),
+one exists ($\Lens$),
 using the examples $exs$ to filter out potential lenses that do not satisfy
 the specification,
-\item replaces $best$ with $\LC$, if $\LC$ has lower cost according
+\item replaces $best$ with $\Lens$, if $\Lens$ is more likely according
 to our information-theoretic metric, and
 \item adds the SREs derived from rewriting $S$ and $T$ ($\Expand(S,T)$)
   to the priority queue.
@@ -1910,9 +1895,9 @@ further depth in the following subsections.
     \State $\Best \gets \None$
     \While{$\Call{\Continue}{\RXSearchState,\Best}$}
     \State $(\Regex,\RegexAlt) \gets \Call{\PQ.Pop}{\RXSearchState}$
-    \State $\LC \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
-    \If{$\Call{Cost}{\LC} < \Call{Cost}{\Best}$}
-    \State $\Best \gets \LC$
+    \State $\Lens \gets \Call{\GreedySynth}{\Examples,\Regex,\RegexAlt}$
+    \If{$\Call{Cost}{\Lens} < \Call{Cost}{\Best}$}
+    \State $\Best \gets \Lens$
     \EndIf
     \State $\Call{\PQ.Push}{\RXSearchState,\Expand(\Regex,\RegexAlt)}$
     \EndWhile
@@ -2200,6 +2185,7 @@ are iterated 4 times on average, and no individual choice in a series of
 disjunctions is chosen disproportionately often.
 
 \subsection{Relevance Annotations}
+\label{subsec:relevanceannotations}
 
 Even though our generated probability distribution works well in most
 situations, it is not perfect. Consider synthesizing a lens between the formats
@@ -2242,7 +2228,7 @@ Similarly, users can recognize that employee names are present in both files. By
 annotating instances of \lstinline{name} as \lstinline{require(name)}, users can
 add this knowledge to the specification to optimize the search and force the
 the generated lens to retain \lstinline{name} information. In practice, we
-define the cost of any lens that loses ``required'' information to be infinite.
+make any lens that loses ``required'' information infinitely unlikely.
 %
 \begin{center}
   \begin{tabular}{rcl}
@@ -2334,7 +2320,7 @@ examples, and if so, \GreedySynth returns \None immediately. Otherwise, \GreedyS
 the best lenses (given the examples that match them) between all sequence pairs
 $(SQ_i, TQ_j)$ drawn from the left and right DNF regular expressions. (The
 function \CartesianMap maps its argument across the cross product of the input
-lists). A priority queue containing these sequence lenses, ordered by cost, is
+lists). A priority queue containing these sequence lenses, ordered by likelihood, is
 then initialized with $\PCF{PQ.Create}$. The symmetric lens is then built up
 iteratively from these sequence lenses, where the state of the partially
 constructed lens is tracked in the lens builder, $lb$.
@@ -2374,7 +2360,7 @@ The inputs to \GreedySeqSynth are a suite of input-output examples and a pair of
 lists of stochastic atoms. As in \GreedySynth, \GreedySeqSynth returns \None early if
 there is no possible lens. Afterward, \GreedySeqSynth finds the best lenses
 between each atom pair of the left and right sequences, and organizes them into
-a priority queue ordered by cost with \PCF{PQ.Create}. The symmetric sequence
+a priority queue ordered by likelihood with \PCF{PQ.Create}. The symmetric sequence
 lens is built up iteratively from these atom lenses, where the state of the
 partially built lens is tracked in the sequence lens builder, $slb$.
 
@@ -2594,8 +2580,7 @@ provides a useful experimental stress test for the system.
 \begin{figure}
   \includegraphics{generated-graphs/times}
   \vspace{-4ex}
-  \caption{\bcp{What are the little tick marks on the top of the figure?
-      And why do we need a line for ``benchmark count''?}Number of
+  \caption{Number of
     benchmarks that can be solved by a given algorithm in a 
     given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
     \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
@@ -2630,9 +2615,9 @@ the specification but that was undesired.}
 To perform this comparison, we synthesized lenses in two modes:
 
 \begin{tabulary}{\linewidth}{rL}
-  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
   \BSOpt{}: & The existing bijective synthesis
               algorithm with all optimizations enabled.\\
+  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
 \end{tabulary}\\
 
 For each benchmark, we ran it in both modes with a
@@ -3129,7 +3114,7 @@ synthesis and integrated it into the Boomerang lens programming framework. Our
 experiments on 48 benchmarks demonstrate that we can synthesize complex lenses for
 real-life formats in under 30 seconds.
 
-\bcp{Future work??????????????}
+\bcp{Future work??????????????}\afm{I don't think there's room for it}
 
 % end conclusion
 
@@ -4672,10 +4657,7 @@ H(\mathcal{L}(S^{*p})) &= - \sum_{s \in \mathcal{L}(S^{*p})} P_{S^{*p}}(s) \log_
 \item
 ($S = S_1 \cdot S_2$)
 
-Since $S$ is unambigous, then $S_1$ and $S_2$ are also unambiguous, and for each $s \in \mathcal{L}(S_1 \cdot S_2)$ there exists a unique $s_1 \in \mathcal{L}(S_1)$ and a unique $s_2 \in \mathcal{L}(S_2)$ such that $s = s_1 \cdot s_2$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$, hence\bcp{Don't understand what's going on with the $-$
-  signs in the last few lines here.}\afm{in the definition of entropy there is a negative. this is to
-  address that we're taking the log of a probability, which inherently will
-  return a negative number}
+Since $S$ is unambigous, then $S_1$ and $S_2$ are also unambiguous, and for each $s \in \mathcal{L}(S_1 \cdot S_2)$ there exists a unique $s_1 \in \mathcal{L}(S_1)$ and a unique $s_2 \in \mathcal{L}(S_2)$ such that $s = s_1 \cdot s_2$. By the induction hypothesis, $H(\mathcal{L}(S_1)) = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) = \mathbb{H}(S_2)$, hence
 \begin{align*}
 H(\mathcal{L}(S_1 \cdot S_2))(s) &= -\sum_{s_1 \in S_1} \sum_{s_2 \in S_2}P_{S_1}(s_1)*P_{s_2}(s_2) \log_2(P_{S_1}(s_1)*P_{S_2}(s_2))\\
 &= -\sum_{s_1 \in S_1} P_{S_1}(s_1)\sum_{s_2 \in S_2}P_{s_2}(s_2) (\log_2(P_{S_1}(s_1) + \log_2 P_{S_2}(s_2)))\\
@@ -4691,8 +4673,7 @@ Since $S$ is unambiguous, it must be that $S_1$ and $S_2$ are also unambiguous, 
 every $s \in \mathcal{L}(S_1 \; |_p \; S_2)$ is either in $\mathcal{L}(S_1)$
 or in $\mathcal{L}(S_2)$. By the induction hypothesis, $H(\mathcal{L}(S_1))
 = \mathbb{H}(S_1)$ and $H(\mathcal{L}(S_2)) =
-\mathbb{H}(S_2)$. Then\bcp{Again, don't understand what's going on with the $-$
-  signs.}
+\mathbb{H}(S_2)$. Then
 \begin{align*}
 H(\mathcal{L}(S_1 \; |_p \; S_2)) &= -\sum_{s \in \mathcal{L}(S_1)}(p * P_{S_1}(s))\log_2 (p * P_{S_1}(s)) - \sum_{s \in \mathcal{L}(S_2)}((1-p) * P_{S_2}(s))\log_2 ((1-p) * P_{S_2}(s))\\
 &=- p\sum_{s \in \mathcal{L}(S_1)}P_{S_1}(s)(\log_2 p + \log_2 P_{S_1}(s)) - (1-p)\sum_{s \in \mathcal{L}(S_2)}P_{S_2}(s)(\log_2 (1-p) + \log_2 P_{S_2}(s))\\
