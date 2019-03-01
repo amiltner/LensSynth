@@ -1,4 +1,4 @@
-\newif\ifdraft\drafttrue  % set true to show comments
+\newif\ifdraft\draftfalse  % set true to show comments
 % \newif\ifdraft\draftfalse  % set true to show comments
 \newif\ifanon\anontrue    % set true to suppress names, etc.
 \newif\ifappendices\appendicesfalse
@@ -253,14 +253,14 @@ can be ``disconnected'' from the other side, there will, in general, be {\em
   many} lenses that agree with a given example. To guide the search process,
 we use {\em stochastic regular expressions} and ideas from information
 theory to estimate the amount of information propagated by a candidate
-lens, generally prefering lenses that propagate more information, 
+lens, generally preferring lenses that propagate more information, 
 as well as user annotations marking parts of the source and
 target data structures as either {\em irrelevant} or {\em essential}.
 
 
 We describe an implementation of simple symmetric lenses and our synthesis
 procedure as extensions to the Boomerang language. We evaluate its performance
-on 48 benchmark examples drawn from Flash Fill, Augeus, the bidirectional
+on 48 benchmark examples drawn from Flash Fill, Augeas, the bidirectional
 programming literature, and electronic file format synchronization tasks. Our
 implementation can synthesize each of these lenses in under 30 seconds.
 \end{abstract}
@@ -407,8 +407,8 @@ formats share just {\em some} of their information content.  For instance,
 one ad-hoc system-configuration
 file might include some format-specific metadata, such as a date or a
 reference number, while the same configuration file on another operating
-system does not.  Indeed among the 48 benchmark problems described in
-Section \ref{sec:evaluation} below, all of the benchmarks taken from Flash
+system does not.  Indeed among the benchmark problems described in
+Section \ref{sec:evaluation}, all of the benchmarks taken from Flash
 Fill~\cite{flashfill} and many of the benchmarks that synchronize between
 two ad hoc file formats have this characteristic.
 
@@ -417,7 +417,7 @@ lenses? Could we even imagine synthesizing all \emph{symmetric
   lenses}~\cite{symmetric-lenses}---a much larger class that includes
 bijective lenses, ``asymmetric'' lenses (where the transformation from a
 source structure to a target can throw away information that must
-then be restored when transferring from target to source), and even more flexibile
+then be restored when transferring from target to source), and even more flexible
 transformations that allow each side to throw away information?
 
 % A symmetric lens between $S$ and $T$ represents a pair of functions, $\PutR$
@@ -457,7 +457,7 @@ over three structures: a ``left'' structure $X$, a ``right'' structure
 $Y$ and a ``complement'' 
 $C$ that contains the information not
 present in either $X$ or $Y$. These complements must be stored
-and managed somehow.  More fundamentially, complements complicate
+and managed somehow.  More fundamentally, complements complicate
 synthesis {\em specifications}---instead of just giving single examples of
 source and target 
 pairings, users would have to give longer ``interaction sequences'' to 
@@ -792,7 +792,7 @@ file in the
 right-hand format. If the right-hand file is then edited, the \PutL function can
 update the left-hand file with the changed information.
 
-The round-tripping laws guarantee that pushing an ``un-edited'' value from one
+The round-tripping laws guarantee that pushing an ``unedited'' value from one
 side (the result of a put or create) back through a lens in the other direction
 will get back to exactly where we began. For example, consider a lens
 synchronizing the employee data formats in
@@ -801,7 +801,7 @@ salary file creates a insurance file with the same employee names in the file,
 with
 \lstinline{"UNK"} for each insurance company. The round-tripping
 laws guarantees that applying the \PutL function to the generated insurance file
-and the original salary file will return the original salary file, unmodified. If \KW{put}ting a string $s$ into a string $t$ results in the original string $s$, then $s$ and $t$ are considered \emph{synchronized}.
+and the original salary file will return the original salary file, unmodified.
 
 Simple symmetric lenses differ from ''classical'' symmetric lenses in that
 they do not involve a \emph{complement}. We give a detailed comparison in
@@ -936,14 +936,9 @@ ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
 % Using these combinators, we can build up a lens that synchronizes
 % management and HR employee files. 
 
-\bcp{I wonder whether the rest of this subsection can be cut... It is both
-  hard to understand and too brief to really say much, and I wonder whether
-  we need it for anything between here and where we give it a real
-  explanation.} \afm{I believe it is necessary for 2.4. I tried giving it a more
-terse treatment, but that caused its own set of problems.}
-
 Lenses are typed by pairs of regular expressions and only a handful of
-rules result in a given type.  For example, the type of a
+rules result in a given type.
+Many of these rules provide tight relationships between terms and types, for example, the type of a
 \ConcatLens lens is the concatenation of the regular expressions of the sub-lenses.
 \[
   \inferrule*
@@ -999,7 +994,7 @@ them from types and examples.
 That is, given a pair of regular expressions and a set of input-output
 examples, we want 
 to find a simple symmetric lens that is typed by the regular expression pair and
-satisfies all the input/output examples. We this a \emph{satisfying
+satisfies all the input/output examples. We call this a \emph{satisfying
   lens}. For our running example, suppose we wish to synthesize a lens between
 \lstinline{emp_salaries} and \lstinline{emp_insurance}, using as sole
 input-output example the data in Figure~\ref{fig:minimized-representations}.
@@ -1012,12 +1007,12 @@ expressions  \lstinline{emp_salaries} and \lstinline{emp_insurance},
 but 
 %
 \begin{lstlisting}
-disconnect(emp_salaries, emp_insurance, ..., ...)
+disconnect(emp_salaries, emp_insurance, $s$, $t$)
 \end{lstlisting}
 %
 is another well-typed lens that satisfies the example in
-Figure~\ref{fig:minimized-representations} (where \lstinline{...} represents
-the example strings). In general, {\em many} examples
+Figure~\ref{fig:minimized-representations} (where $s$ and $t$ represent
+the provided example strings). In general, {\em many} examples
 may be 
 required to rule out all possible occurrences of \Disconnect lenses,
 particularly in complex formats.
@@ -1067,9 +1062,9 @@ required to specify an element drawn from $S$---the
 probability of each element times its information content. Entropy captures
 the intuition that, if a data source contains many possible elements and
 none have 
-significantly higher probability than others, it will have high information
-content. Data sources where most elements have small
-probabilities have small entropy. When $P$ is clear from context, we will
+significantly higher probability than others, it will have high entropy. Data
+sources with just a few high probability elements have low
+entropy. When $P$ is clear from context, we will
 often use the shorthand of $\EntropyOf{S}$ for $\EntropyOf{S,P}$.
 
 In the present setting, we already have a way of expressing sets of data:
@@ -1109,7 +1104,7 @@ exactly determines the corresponding string in $\RegexAlt$.
 To obtain SREs from the plain regular expressions that users write, 
 we use a default heuristic that attempts to assign probability annotations
 giving
-each string in the language equal probablity (not prioritizing one piece of
+each string in the language equal probability (not prioritizing one piece of
 information over another).
 
 Sometimes users already know that certain data should or should not be
@@ -1118,7 +1113,7 @@ that enable users to specify whether a piece of data should be used to construct
 the other format (with \SRequire) or not (with \Skip). In our example,
 \lstinline{salary} and \lstinline{company} could safely be skipped (as they are
 disconnected), where \lstinline{name} in \lstinline{emp_salary} and
-\lstinline{emp_ins} be annotated as required (as they are converted with the
+\lstinline{emp_ins} could be annotated as required (as they are converted with the
 identity lens). Doing so both constrains the problem (as \lstinline{name}s must
 be synchronized) and makes it easier (as the algorithm does not waste time
 looking for \lstinline{salary} information in the insurance format). In this
@@ -1137,7 +1132,7 @@ equivalent to infinitely many others complicates the problem.
 Following existing work on bidirectional program
 synthesis~\cite{maina+:quotient-synthesis}, we 
 split our algorithm into two communicating
-searche procedures. The first,
+search procedures. The first,
 \Expand, navigates the space of semantically equivalent regular expressions
 by applying rewrite rules that preserve both semantics and
 probability distributions. This
@@ -1156,7 +1151,7 @@ disjunctions normalized to operating over lists.
 Then it uses the syntax of these n-ary DNF regular expressions to find
 normalized lenses in a form we call \emph{simple symmetric n-ary DNF lenses}.
 These involve neither a composition operator nor a type equivalence rule.
-These restrictions mean that there are only a few simple symmetric n-ary DNF
+These restrictions mean that there are comparatively few simple symmetric n-ary DNF
 lenses that are well typed between a given pair of stochastic n-ary DNF regular
 expressions, so \GreedySynth's search space for a given pair of regular
 expressions is finite. Finally, \GreedySynth yields a simple symmetric lens by
@@ -1174,16 +1169,16 @@ result. For example, if the algorithm has already found the lens in
 Figure~\ref{fig:example_lens}, we don't want to spend a lot of time searching
 for an even better lens. To resolve this tension, the algorithm uses heuristics
 to judge whether to return the current best satisfying lens to the user or to
-pass the next set of unrollings to \GreedySynth. The heuristics favor stopping
+pass the next set of equivalent SREs to \GreedySynth. The heuristics favor stopping
 if the current best satisfying lens is very likely, indicating the lens is very
 promising (for example, if the satisfying lens loses no information, the
 algorithm should terminate for no other lens will be more likely). The
 heuristics also favor stopping if \Expand has delivered to \GreedySynth all
 pairs of stochastic regular expressions at a given rank and there is a large
 number of pairs at the next rank, because searching through all such pairs will
-take a long time (for example, if the satisfying lens loses only a little
-information,
-but searching for a better one will take a long time, the discovered lens is
+take a long time (\IE, if a satisfying lens loses only a little
+information
+and searching for a better one will take a long time, the discovered lens is
 returned).
 With this approach, the algorithm can quickly return a
 satisfying lens with relatively high likelihood. If the user is unhappy with the
@@ -1363,7 +1358,7 @@ no empty subcomponents.
 \end{center}
 
 For example, the entropy of $\Regex =
-\PRegexOr{\lstinline{"a"}}{(\lstinline{"b"})}{.5}$ is 1. The best encoding of a
+\PRegexOr{\lstinline{"a"}}{\lstinline{"b"}}{.5}$ is 1. The best encoding of a
 stream of elements from $\Regex$ will use, on average, 1 bit per element to
 determine whether that element is \lstinline{"a"} or \lstinline{"b"}. As an
 additional example, a fixed string has no information content, and so has no
@@ -1794,7 +1789,7 @@ need to determine if the synchronized string is in $\RegexAlt_1$ or $\RegexAlt_2
 However, this information content is dependent on the how likely the
 synchronized string is to be in $\RegexAlt_1$ or $\RegexAlt_2$. Nevertheless, we
 typically calculate the conditional entropy exactly, as merges are relatively
-uncommon in practice; only 2 of the lenses sythesized in our benchmarks
+uncommon in practice; only 2 of the lenses synthesized in our benchmarks
 include merges.
 
 The likelihood of a lens is the negative of its \emph{cost}. The cost of a lens
@@ -1836,7 +1831,8 @@ can cancel, leaving a zero-entropy bijection composed from two non-zero entropy
 transformations. However, detecting such cancellations directly is complicated and
 this property is difficult to determine merely from syntax. Fortunately, we are able to
 sidestep such considerations by synthesizing \emph{DNF lenses}---simple symmetric
-lenses that inhabit a disjunctive normal form that does not include composition.
+lenses that inhabit a disjunctive normal form that does not include
+composition.
 
 %\begin{center}
 %  \begin{tabular}{@{}r@{\ }c@{\ }l@{}}
@@ -1857,7 +1853,7 @@ order one ``class'' at a time using a \GreedySynth subroutine. Each class is the
 set of lenses that can by typed by a pair of regular expressions, modulo a set
 of simple axioms such as associativity, commutativity, and distributivity. The
 \Expand subroutine generates new classes using the star-unrolling axioms
-(\UnrollstarLeftRule and \UnrollstarRightRule).
+(\UnrollstarLeftRule{} and \UnrollstarRightRule).
 
 To summarize, the input regular
 expressions are first converted into stochastic regular expressions with
@@ -1872,7 +1868,7 @@ condition defined by $\PCF{\Continue}$). Within each iteration of the loop, it:
 search off of the priority queue ($\PCF{\PQ.Pop}$),
 \item executes $\GreedySynth$ to find a best lens in that class if
 one exists ($\Lens$),
-using the examples $exs$ to filter out potential lenses that do not satisfy
+using the examples $\Examples$ to filter out potential lenses that do not satisfy
 the specification,
 \item replaces $best$ with $\Lens$, if $\Lens$ is more likely according
 to our information-theoretic metric, and
@@ -2227,7 +2223,7 @@ $\Skip(\Regex)$ to be zero.
 Similarly, users can recognize that employee names are present in both files. By
 annotating instances of \lstinline{name} as \lstinline{require(name)}, users can
 add this knowledge to the specification to optimize the search and force the
-the generated lens to retain \lstinline{name} information. In practice, we
+generated lens to retain \lstinline{name} information. In practice, we
 make any lens that loses ``required'' information infinitely unlikely.
 %
 \begin{center}
@@ -2284,7 +2280,7 @@ symmetric DNF lenses (\GreedySynth), one that greedily finds symmetric sequence
 lenses (\GreedySeqSynth), and one that finds symmetric atom lenses
 (\AtomSynth{}). These three algorithms are hierarchically structured:
 \GreedySynth relies on \GreedySeqSynth, \GreedySeqSynth relies on \AtomSynth,
-and \AtomSynth rlies on \GreedySynth. The structure of the algorithms mirrors
+and \AtomSynth relies on \GreedySynth. The structure of the algorithms mirrors
 the structure of symmetric DNF lenses and \SDNFREabbrevs.
 
 \begin{algorithm}[t]
@@ -2298,12 +2294,12 @@ the structure of symmetric DNF lenses and \SDNFREabbrevs.
     \State $\SLS \gets
     \Call{\CartesianMap}{\GreedySeqSynth(\Examples),\ListOf{\Sequence_1;\ldots;\Sequence_n},\ListOf{\SequenceAlt_1;\ldots;\SequenceAlt_m}}$
     \State $\GreedyState \gets \Call{PQ.Create}{\SLS}$
-    \State $lb \gets \Call{LensBuilder.Empty}{}$
+    \State $\LensBuilder \gets \Call{LensBuilder.Empty}{}$
     \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
     \State $\SSQLens \gets
     \Call{PQ.Pop}{\GreedyState}$
-    \If{$\Call{LensBuilder.UsefulAdd}{lb,\SSQLens,\Examples}$}
-    \State $lb \gets \Call{LensBuilder.AddSeq}{lb,\SSQLens}$
+    \If{$\Call{LensBuilder.UsefulAdd}{\LensBuilder,\SSQLens,\Examples}$}
+    \State $\LensBuilder \gets \Call{LensBuilder.AddSeq}{\LensBuilder,\SSQLens}$
     \EndIf
     \EndWhile
     \State \ReturnVal{\Call{LensBuilder.ToDNFLens}{\GreedyState}}
@@ -2323,7 +2319,7 @@ function \CartesianMap maps its argument across the cross product of the input
 lists). A priority queue containing these sequence lenses, ordered by likelihood, is
 then initialized with $\PCF{PQ.Create}$. The symmetric lens is then built up
 iteratively from these sequence lenses, where the state of the partially
-constructed lens is tracked in the lens builder, $lb$.
+constructed lens is tracked in the lens builder, \LensBuilder.
 
 \GreedySynth loops until there are no more sequence lenses in the priority
 queue. Within this loop, a sequence lens is popped from the queue and, if it is
@@ -2345,7 +2341,7 @@ is not bijective it is still better than the alternatives. As all sequences are
 now involved in sequence lenses, and there are no examples to make other lenses
 useful, no more sequence lenses would be added to the lens builder.
 
-Finally, after all sequences have been popped, the partial DNF lens $lb$ is
+Finally, after all sequences have been popped, the partial DNF lens \LensBuilder is
 converted into a symmetric DNF lens. This is only possible if all sequences are
 involved in some sequence lens: if they are not, \PCF{LensBuilder.ToDNFLens}
 instead returns \None.
@@ -2362,7 +2358,7 @@ there is no possible lens. Afterward, \GreedySeqSynth finds the best lenses
 between each atom pair of the left and right sequences, and organizes them into
 a priority queue ordered by likelihood with \PCF{PQ.Create}. The symmetric sequence
 lens is built up iteratively from these atom lenses, where the state of the
-partially built lens is tracked in the sequence lens builder, $slb$.
+partially built lens is tracked in the sequence lens builder, \SeqLensBuilder.
 
 \GreedySeqSynth loops until there are no more atom lenses in the priority
 queue. In the loop, a popped atom lens is considered 
@@ -2396,11 +2392,11 @@ returns \None otherwise.
     \State $\ALS \gets
     \Call{\CartesianMap}{\AtomSynth(\Examples),\ListOf{\Atom_1;\ldots;\Atom_n},\ListOf{\AtomAlt_1;\ldots;\AtomAlt_m}}$
     \State $\GreedyState \gets \Call{PQ.Init}{\ALS}$
-    \State $slb \gets \Call{SLensBuilder.Empty}{}$
+    \State $\SeqLensBuilder \gets \Call{SLensBuilder.Empty}{}$
     \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
     \State $\SAtomLens \gets
     \Call{PQ.Pop}{\GreedyState}$
-    \If{$\Call{SLensBuilder.UsefulAdd}{slb,\SAtomLens,\Examples}$}
+    \If{$\Call{SLensBuilder.UsefulAdd}{\SeqLensBuilder,\SAtomLens,\Examples}$}
     \State $\GreedyState \gets \Call{SLensBuilder.AddAtom}{\GreedyState,\SAtomLens}$
     \EndIf
     \EndWhile
@@ -2415,18 +2411,17 @@ returns \None otherwise.
 Our implementation includes a number of optimizations not described above:
 annotations that guide DNF conversion; an expansion inference algorithm;
 and compositional synthesis. The optimizations
-make the system performant enough for interactive use, and the annotations help
-ensure the desired information is projected.
+make the system performant enough for interactive use.
 
 \paragraph*{Open and Closed Regular Expressions} While \GreedySynth acts
 relatively efficiently, it can suffer from an exponential blowup when converting
-regular expressions to DNF form. This problem can be mitigated by avoiding the conversion
-of some REs to DNF form and by performing the conversion lazily when necessarily.
-More specifically, \Expand labels some uncoverted REs as ``closed,'' which means the
+SREs to DNF form. This problem can be mitigated by avoiding the conversion
+of some SREs to DNF form and by performing the conversion lazily when necessarily.
+More specifically, \Expand labels some unconverted SREs as ``closed,'' which means the
 type-directed \GreedySynth algorithm treats them as DNF atoms and does not dig into
 them recursively.  In other words,
-given a pair of closed REs, \GreedySynth can either construct
-the identity lens between them (it will do this if they are the same RE), or it can
+given a pair of closed SREs, \GreedySynth can either construct
+the identity lens between them (it will do this if they are the same SRE), or it can
 construct a disconnect lens between them.
 Regular expressions that are not annotated as closed are considered ``open.''
 
@@ -2505,7 +2500,7 @@ Our benchmarks are drawn from three different sources.
   Excel product team. Note that our tool produces bidirectional transformations
   rather than one-way transformers like Flash Fill. We ensure one direction of
   our bidirectional transformers performs the same unidirectional transformation
-  as Flash Fill -- the other direction is determined from the round-tripping
+  as Flash Fill---the other direction is determined from the round-tripping
   laws. None of these benchmarks were bijective.
 \item We adapted 29 benchmarks from Augeas~\cite{augeas}. Augeas is a utility
   that bidirectionally converts between Linux configuration files and an
@@ -2651,7 +2646,7 @@ relevance annotations.  To this end, we run our program in several different mod
   \FLOpt{}: &  Return the first highest ranked lens \GreedySynth returns (\IE,
               ignore the termination heuristic). \\
   \CCOpt{}: & Replace our information-theoretic cost metric with one where
-              the cost of the lens is the number of disonnects plus the number
+              the cost of the lens is the number of disconnects plus the number
               of merges.\\
   \NSOpt{}: & Ignore all \Skip annotations in the SRE specifications. \\
   \NROpt{}: & Ignore all \SRequire annotations in the SRE specifications. \\
@@ -3061,7 +3056,7 @@ in helping us understand how to formulate a search for a data transformation fun
 %% correspondence. While we have not integrated our system to permit QRE
 %% specifications, we see no reason the two systems cannot be integrated.
 
-While our tool uses types and examples to specify invertable transformations, other
+While our tool uses types and examples to specify invertible transformations, other
 tools have been shown to synthesize a backwards transformation from ordinary code designed
 to implement the forwards transformation.  For instance, \citet{program-inversion-symbolic-transducers} show how to invert transformations
 using symbolic finite automata, and
@@ -3076,7 +3071,7 @@ natural language understanding, machine translation, information retrieval, data
 extraction and grammatical inference (see \citet{pereira:info-theory},
 for an introduction). Indeed, our work was inspired, in part, by the PADS format
 inference tool~\cite{pads:synthesis}, which was in turn inspired by earlier work
-on probabilistic gramatical inference and information
+on probabilistic grammatical inference and information
 extraction~\cite{kushmerick-thesis,arasu:extracting}. PADS did not synthesize
 data transformers, and we are not aware of the use of information-theoretic
 principles in type-directed or syntax-guided synthesis of DSL programs.
@@ -5120,3 +5115,5 @@ H(\langle (SQ_1, p_1) \; | \; \ldots \; | \; (SQ_n, p_n)\rangle)
 %%% Local Variables:
 %%% TeX-master: "main"
 %%% End:
+
+%  LocalWords:  SREs SRE emp
