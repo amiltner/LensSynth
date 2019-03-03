@@ -1027,6 +1027,207 @@ lens for each of the 10 benchmark programs with nontrivial quotients.
 We find that \QOpt{} is able to synthesize all quotient lenses in
 under 10~seconds, and typically finishes in under 5~seconds.
 
+\subsection{Simple Symmetric Synthesis Algorithms}
+We implemented simple symmetric lenses as an extension to
+Boomerang~\cite{boomerang}.  
+We also integrated our synthesis engine into Boomerang, allowing users
+to write synthesis tasks 
+alongside lens combinators, incorporate synthesis results into manually-written
+lenses, and reference previously defined lenses during synthesis. All experiments
+were performed on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
+running macOS Mojave.
+
+\paragraph*{Benchmark Suite Construction}
+Our benchmarks are drawn from three different sources.
+\begin{enumerate}
+\item We adapted 8 data cleaning benchmarks from Flash Fill~\cite{flashfill}. Flash Fill data
+  cleaning tasks are either derived from online help forums or taken from the
+  Excel product team. Note that our tool produces bidirectional transformations
+  rather than one-way transformers like Flash Fill. We ensure one direction of
+  our bidirectional transformers performs the same unidirectional transformation
+  as Flash Fill---the other direction is determined from the round-tripping
+  laws. None of these benchmarks were bijective.
+\item We adapted 29 benchmarks from Augeas~\cite{augeas}. Augeas is a utility
+  that bidirectionally converts between Linux configuration files and an
+  in-memory dictionaries. In our benchmarks, we synthesize lenses between Linux
+  configuration files and serialized versions of Augeas dictionaries. Because
+  these benchmarks merely transformed the information into a structured form,
+  synthesized lenses were all bijective.
+\item We created 11 additional benchmarks 
+  derived from real-world examples and/or the bidirectional programming
+  literature. These tasks range from synchronizing REST and JSON web resource
+  descriptions to synchronizing BibTeX and EndNote citation descriptions. Five
+  of these benchmarks were not bijective lenses.
+\end{enumerate}
+
+\paragraph*{Synthesizing Correct Simple Symmetric Lenses}
+
+To determine whether the system can synthesize desired lenses, we ran
+it interactively on all 48 benchmark tasks, working with the system to
+create sufficient examples and provide useful relevance annotations
+(\IE, \emph{essential} and \emph{irrelevant} markings, written as
+\SRequire and \Skip, respectively).
+In all cases, the desired lens was obtained.
+%
+The majority of the tasks required only a single example and none required
+more than three examples to synthesize the desired lens.
+%
+Providing relevance annotations 
+was needed in only 8 of the 48 tasks. In
+practice, we found that adding such annotations was quite easy: if manual inspection
+of the lens showed there were too few \IdentityLens{}s, and too many
+\Disconnect{}s\footnote{
+A \Disconnect{} is a lens combinator that marks a place where
+information appears in one format but not the 
+other: there is a \emph{disconnect} between the two formats. 
+}
+  or merges, we would add \SRequire annotations. If synthesis took
+too long, we would add \Skip annotations.
+%
+We verified that the default running mode of our synthesis tool
+(\SSOpt{}) generated the 
+correct lenses the way programmers often validate their programs: we
+manually inspected the code and ran unit tests on the synthesized
+code. To determine whether the synthesis procedure generated the
+correct lens when running in modes other than \SSOpt{}, we compared
+generated lens to the lens synthesized by \SSOpt{}.
+
+
+\paragraph*{Effectiveness of Optimizations in Simple Symmetric Synthesis}
+
+Having determined appropriate examples and annotations for the 48
+benchmarks, we evaluate the performance of the system by measuring the running
+time of our algorithm in two modes:
+\vskip .5ex
+\begin{tabulary}{\linewidth}{rL}
+  \SSOpt{}: & Run the symmetric synthesis algorithm with all optimizations enabled.\\
+  \SSNCOpt{}: & Run the symmetric synthesis algorithm with no compositional synthesis enabled.\\
+\end{tabulary}\\
+\noindent
+Compositional synthesis allows users to break a benchmark into a
+series of smaller synthesis tasks, whose solutions are utilized in more complex
+synthesis procedures. Compositional synthesis (\SSOpt{} mode)
+allows our system to scale to arbitrarily large and complex formats; measuring
+it shows the responsiveness of the system when used as
+intended. \SSNCOpt{} mode, which synthesizes a complete lens all at once,
+provides a useful experimental stress test for the system.
+
+\begin{figure}
+  \centering
+  \includegraphics{times}
+  \vspace{-2ex}
+  \caption{Number of
+    benchmarks that can be solved by a given algorithm in a 
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
+    existing lenses. The symmetric synthesis algorithm is able to complete all
+    benchmarks in under 30 seconds elapsed total time. Without compositional
+    synthesis it is able to complete 26. Each benchmark specification includes
+    source and target (potentially annotated) regular expressions, and between
+    one and three sufficient examples.}
+  \label{fig:times}
+\end{figure}
+
+For each benchmark in the suite and each mode, we ran the system with a timeout
+of 60 seconds, averaging the result over 5 runs. Figure~\ref{fig:times}
+summarizes the results of these tests. We find that our algorithm is able to
+synthesize all of the benchmarks in under 30 seconds. Without compositional
+synthesis, the synthesis algorithm is able to solve 26 out of 48 problem instances.
+
+% Section~\ref{subsec:optimizations} that users may tune the termination metric.
+% Success on this set of benchmarks requires we tune that termination condition
+% (e.g. for some benchmarks, allowing the system flexibility to spend more time
+% considering more of the search space). In
+
+\paragraph*{Slowdown Compared to Bijective Synthesis}
+
+To compare to the existing bijective synthesis algorithm, we run our symmetric
+synthesis algorithm on the original Optician benchmarks, comprised of
+39 bijective synthesis tasks.\footnote{We had to slightly alter four of these
+benchmarks, either by providing additional examples or by adding \SRequire annotations.
+Without these alterations, symmetric synthesis yielded a lens that fit
+the specification but that was undesired.}
+To perform this comparison, we synthesized lenses in two modes:
+\vskip 2ex
+\begin{tabulary}{\linewidth}{rL}
+  \BSOpt{}: & The existing bijective synthesis
+              algorithm with all optimizations enabled.\\
+  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
+\end{tabulary}\\[2ex]
+\noindent
+For each benchmark, we ran it in both modes with a
+timeout of 60 seconds and averaged the result over 5 runs.
+Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
+average, \SSOpt{} took 1.3 times (0.5 seconds) longer to complete than
+\BSOpt{}. The slowest completed benchmark for both synthesis algorithms is
+\texttt{xml\_to\_augeas.boom}, a benchmark that converts arbitrary XML up to
+depth 3 into a serialized version of the structured dictionary representation
+used in Augeas. This benchmark takes 18.9 seconds for the symmetric synthesis
+algorithm to complete, and 9.3 seconds the bijective synthesis algorithm to
+complete. 
+
+\begin{figure}[t]
+  \includegraphics{times_bijective}
+  \vspace{-2ex}
+  \caption{Number of benchmarks that can be solved by a given algorithm in a
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \BSOpt{} is the full bijective lens synthesis algorithm.}
+  \label{fig:times_bijective}
+\end{figure}
+
+
+\paragraph*{The Effects of Heuristics and Relevance Annotations}
+We evaluate the usefulness of (1) our information-theoretic metric, (2) our
+termination heuristic and (3) our
+relevance annotations.  To this end, we run our program in several different modes:\\[2ex]
+\begin{tabulary}{\linewidth}{rL}
+  \AnyOpt{}: & Ignore the information-theoretic metric (\IE, all valid
+               lenses have cost 0). \\ 
+  \FLOpt{}: &  Return the first highest ranked lens \GreedySynth returns (\IE,
+              ignore the termination heuristic). \\
+  \CCOpt{}: & Replace our information-theoretic cost metric with one where
+              the cost of the lens is the number of disconnects plus the number
+              of merges.\\
+  \NSOpt{}: & Ignore all \Skip annotations in the SRE specifications. \\
+  \NROpt{}: & Ignore all \SRequire annotations in the SRE specifications. \\[2ex]
+\end{tabulary}
+
+\noindent
+We experimented with the \CCOpt{} mode to determine whether the
+complexity of the information-theoretic measure was really
+needed. Related work on string transformations has often used simpler
+measures such as ``avoid constants'' that align with, but are simpler
+than our measures. The \CCOpt{} mode is an example of such a simple
+measure---it operates by counting disconnects, which put a complete
+stop to information transfer, and merges, which
+eliminate the information in a union. 
+
+\begin{figure}[t]
+  \includegraphics{metrics_importance}
+  \vspace{-2ex}
+  \caption{Number of benchmarks that synthesize the correct lens by a given
+    algorithm. \AnyOpt{} provides no notion of cost, and merely returns the
+    first lens it finds that satisfies the specification. \FLOpt{} provides a
+    notion of cost to \GreedySynth, but once a satisfying lens is greedily
+    found, that lens is returned. \CCOpt{} synthesizes lenses, where the cost of
+    a lens is the number of disconnects plus the number of merges. \NSOpt{}
+    ignores all \Skip annotations while running the algorithm. \NROpt{} ignores
+    all \SRequire annotations while running the algorithm.}
+  \label{fig:metric}
+\end{figure}
+
+Figure~\ref{fig:metric} summarizes the result of these experiments. The data
+reveal that the information-theoretic metric is critical for finding the correct
+lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode. The
+termination condition is also quite important. When running in \FLOpt{} mode,
+the algorithm only discovers 5 lenses, which shows that the first class that
+contains a satisfying lens is rarely the correct class. However, our algorithm
+is not perfect and fails when either it is very difficult to find the desired
+lens (necessitating \SRequire) or when a large amount of data is projected
+(necessitating \Skip). Without any annotations, our algorithm finds the correct
+lens for 40 of our 48 benchmarks; eight required relevance annotations to find
+the correct lens.
+% end evaluation
 
 \section{Conclusions}
 
