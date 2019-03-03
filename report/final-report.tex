@@ -441,7 +441,7 @@ expression $T$.   Such a lens should satisfy the \textit{bijective lens laws}:
   \label{fig:schematic-diagram-synthesis}
 \end{figure}
 
-Figure~\Cref{fig:schematic-diagram-synthesis} shows a high-level,
+\Cref{fig:schematic-diagram-synthesis} shows a high-level,
 schematic diagram for \Optician{}.
 First, \Optician{} uses the function \ToDNFRegex{} to convert the input
 regular expressions into DNF regular expressions.  Next,
@@ -472,6 +472,97 @@ are given via a new language of \textit{quotient regular expressions}
 that we have defined.  Quotient regular expressions
 describe both  $S$ (or $T$) and $\equiv_S$ (or $\equiv_T$)
 simulataneously in one compact notation.
+
+\subsection{Simple symmetric lens synthesis}
+Although it is very useful to be able to synthesize bijective or
+quotient lenses between data formats, such lenses do not fully solve the
+problem. 
+Bijective and quotient lenses require the two data formats to have
+either precisely or morally the same information content. 
+Many related data formats in practice have overlapping
+information: some information may be present in one format but not the
+other and vice versa.  
+
+Symmetric lenses~\cite{HofmannPierceWagner10:POPL} address this
+limitation.  General symmetric lenses introduce the notion of 
+\textit{complement} that stores the information necessary to fully
+reconstruct one format from the other.  Because such complements would
+complicate the synthesis specificaiton problem, we instead define a
+more restricted language of \textit{simple symmetric lenses}, which
+are the largest class of symmetric lenses that do not rely on
+persistent internal state to synchronise between two related data
+formats, a property called \textit{forgetfulness}.  (Instead of a
+complement, simple symmetric lenses rely on defaults to replace
+missing information.)
+
+A challenge in adopting the type-directed synthesis approach to simple
+symmetric lenses is the number of such lenses.  Whereas the number of
+bijective lenses between two formats is typically tiny, the
+number of simple symmetric lenses is typically enormous. 
+If a na\"ive  search algorithm just selects the first simple symmetric
+lens it finds, the returned lens will generally not be the one the
+user wanted. Symmetric synthesis requires a new principle for
+identifying “more likely” lenses and a more sophisticated synthesis
+algorithm that uses this principle to search the space more
+intelligently.
+
+For these, we turn to information theory. We consider ``likely'' lenses to
+be ones that propagate ``a lot'' of information 
+from the left data format to the right and vice versa. Conversely, ``unlikely''
+lenses are ones that require a large amount of additional information to recover
+one of the formats given the other. By default, our synthesis algorithm prefers
+lenses that propagate more information.
+This preference is formalized using \emph{stochastic regular expressions}
+(SREs)~\cite{stoch-rnn,stoch-def}, which simultaneously define a set of
+strings and a probability distribution over those strings.  Using this
+probability distribution, we can calculate the likelihood of a given
+lens.
+We also allow users to override the default mechanism for
+calculating the information content of a SRE by
+asserting that certain strings are \emph{essential} or \emph{irrelevant},
+forcing certain data to either be retained or discarded during the
+transformations.
+
+
+
+\begin{figure}
+ \centering
+  \includegraphics[width=.63\textwidth]{high-level-algorithm.pdf}
+  \vspace{-2ex}
+  \caption{Schematic diagram for the simple symmetric lens synthesis algorithm.
+    The user provides regular expressions \BRegex and \BRegexAlt and a set of
+    examples \Examples{} as input. \Expand first converts \BRegex and \BRegexAlt
+    to stochastic regular expressions \Regex and \RegexAlt with default
+    probabilities. It then finds pairs of stochastic regular expressions
+    equivalent to \Regex and \RegexAlt and iteratively proposes them to
+    \GreedySynth. \GreedySynth finds a lens typed between the supplied SREs.
+    When the algorithm finds a likely lens, it returns it.}
+  \label{fig:high-level-algorithm}
+\end{figure}
+
+With simple symmetric lenses and this SRE-based likelihood measure in hand, we
+propose a new algorithm for synthesizing likely lenses. At its core, the
+algorithm performs a type-directed search between descriptions of the data
+formats, measuring success using the likelihood measure.
+
+Interesting complications arise from the need to deal with regular-expression
+equivalences. There are infinitely many regular expressions equivalent to a
+given one, and the lens returned by a type-directed search will in general
+depend on which of the possible representations are chosen for its source and
+target formats. Moreover, certain lenses may not be well-typed unless the
+format representations are replaced by equivalent ones:
+in general, the synthesis algorithm has to search through
+equivalent regular expression types to find the most likely lens. To tame
+this complexity, we divide the synthesis algorithm into two communicating search
+procedures (Figure~\ref{fig:high-level-algorithm}), following~\cite{optician}.
+The first, \Expand, uses rewriting rules to propose new pairs of
+stochastic regular expressions equivalent to the original pair. The second,
+\GreedySynth, uses a greedy, type-directed
+algorithm to find a simple symmetric lens between input SRE pairs, returning the lens and
+its likelihood score to \Expand. The whole synthesis algorithm heuristically
+terminates when a sufficiently likely lens is found.
+
+
 
 \section{Results and Discussion}
 
