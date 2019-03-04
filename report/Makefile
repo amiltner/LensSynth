@@ -2,6 +2,8 @@ all: quick
 
 quick:
 	pdflatex final-report
+	bibtex final-report
+
 bib:
 	pdflatex final-report
 	bibtex final-report
