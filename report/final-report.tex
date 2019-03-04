@@ -314,9 +314,21 @@ code~\cite{GitHub} that implements those algorithms.  In this report,
 we summarize some of our key methods, results and findings, focusing
 on the core algorithms for bijective synthesis and quotient synthesis.
 
-\section{Lenses}\bcp{Is a separate section the best place for this?  Is
-  this the kind of example we had in mind?  Is it OK that I cannibalized the
-later subsection on lenses?  (We could alternatively move all this there.)} 
+
+\section{Methods, Assumptions and Procedures}
+
+Our approach to lens synthesis combines two strategies.  First, 
+we use a \textit{domain-specific
+  programming language}, Boomerang~\cite{boomerang,Matching10},
+which is designed for writing bidirectional string
+transformations.  Second, we exploit \textit{type- and example-directed
+  program synthesis}, which uses enumerative techniques to search a space of
+candidate solutions.  The search is constrained by the type information
+about the program, as well as by example instances provided by the user.
+
+% \subsection{Lenses and lens domain-specific programming languages}
+
+\subsection{Lenses}
 
 \begin{figure}
 \small
@@ -399,7 +411,7 @@ let emp_insurance = header . ("\n" . emp_ins)$^*$
 \end{figure}
 
 Before surveying our methods and results on synthesis, we quickly sketch an
-example of what a lens looks like, using a simplified situation drawn from a
+example of what a Boomerang lens looks like, using a simplified situation drawn from a
 hypothetical U.S. company. In this company, management and human resources
 (HR) store information about employees in separate text files: management
 stores the names of employees and their salaries while HR stores the names
@@ -593,19 +605,6 @@ ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
   \caption{A lens that synchronizes management and HR employee files}
   \label{fig:example_lens}
 \end{figure}
-
-\section{Methods, Assumptions and Procedures}
-
-Our approach to lens synthesis combines two strategies.  First, as
-illustrated in the previous section, we use \textit{domain-specific
-  programming language}, specifically the Boomerang  language~\cite{boomerang,
-  Matching10}, which is designed for writing bidirectional string
-transformations.  Second, we exploit \textit{type- and example-directed
-  program synthesis}, which uses enumerative techniques to search a space of
-candidate solutions.  The search is constrained by the type information
-about the program, as well as by example instances provided by the user.
-
-% \subsection{Lenses and lens domain-specific programming languages}
 
 \subsection{Bijective lens synthesis}
 
@@ -829,7 +828,6 @@ terminates when a sufficiently likely lens is found.
 
 % From bijective lens paper
 
-
 % \newcommand{\SOptician}{Optician\textsubscript{S}}
 % \newcommand{\SynthSymLens}{\PCF{SynthSymLens}\xspace}
 % \newcommand{\RXSearchState}{\ensuremath{\mathit{pq}}}
@@ -876,23 +874,22 @@ terminates when a sufficiently likely lens is found.
 % \newcommand{\NSOpt}{\textbf{NS}}
 % \newcommand{\NROpt}{\textbf{NR}}
 
-We have implemented our synthesis algorithms in
-of OCaml and integrated them into Boomerang system,
-where they are available as open source code~\cite{GitHub}.
-Users of Boomerang can write lenses by hand, specify them as
-synthesis tasks, or do a combination of both.
+We implemented our synthesis algorithms in the OCaml programming language
+and integrated them into Boomerang system, where they are available as open
+source code~\cite{GitHub}\bcp{Two more pointers needed}.  Users of Boomerang
+can write lenses by hand, specify them as synthesis tasks, or do a
+combination of both.
 
-We have analyzed our algorithms theoretically, proving various
-soundness and completeness results.  We have also analyzed our
-algorithms empirically, studying their impact on a range of real and
-synthetic benchmarks.  Our full results have been published in a
-series of conference papers and technical
-reports~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}.  In the rest of this
-section, we summarize some of the key results.
+We analyzed our algorithms theoretically, proving various soundness and
+completeness results.  We also analyzed these algorithms empirically,
+studying their impact on a range of real and synthetic benchmarks.  Our
+results have been published in a series of conference papers and technical
+reports~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}.
+In the rest of this section, we summarize key results.
 
 \subsection{Bijective Synthesis Algorithms}
 
-We first study the effectiveness of the pure bijective synthesis
+We first show the effectiveness of the pure bijective synthesis
 algorithm by evaluating its performance on a set of 39
 benchmark programs.  
 %
@@ -905,30 +902,33 @@ Augeas~\cite{augeas} and
 Flash Fill~\cite{gulwani-popl-2014}.
 %
 Augeas is a configuration editing system for Linux that uses lens
-combinators similar to those in Boomerang. However, it transforms
-strings on the left to structured trees on the right rather than
-transforming strings to strings.
-We adapted these Augeas lenses to our setting by converting the
-right-hand sides to strings that correspond to serialized versions
-of the tree formats.  
+combinators similar to those in Boomerang.  
+% , with some small
+% differences. However, it transforms 
+% strings on the left to structured trees on the right rather than
+% transforming strings to strings.
+% We adapted these Augeas lenses to our setting by converting the
+% right-hand sides to strings that correspond to serialized versions
+% of the tree formats
 We derived 29 of the benchmark tests by
-adapting the first 27 lenses in alphabetical order, as well as the lenses
+adapting the first 27 lenses from the Augeas library in alphabetical order,
+as well as the lenses 
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
 by the `A' lenses.
 Furthermore, the 12 last synthesis problems derived
-from Augeas were tested after \Optician{} was
+from Augeas were tested after our synthesizer was was
 finalized, demonstrating that the optimizations were not
-overtuned to perform well on the testing data.
+over-tuned to perform well on the testing data.
 %
 Flash Fill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
-We derived three benchmarks from the first few examples in the
+We derived three benchmarks from the first few examples in this
 paper and one from the running example on
 extracting phone numbers.
 
 Both Augeas and Flash Fill permit non-bijective transformations.
 To test our system on these benchmarks, we had to convert them into
-bijective transformations by hand.  More specifically, in many of the
+bijective transformations (by hand).  Specifically, in many of the
 benchmarks, we normalized
 the whitespace in the documents so the amount of whitespace was equal
 in the source and target.  In a few of the benchmarks, either the
@@ -936,11 +936,14 @@ source or the target was missing information present in the other
 format.  We modified those benchmarks by adding the missing
 information back into the file. 
 
-Finally, we added custom examples to highlight weaknesses of
-our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
+Finally, we added a few custom examples designed to highlight known
+weaknesses of our algorithm
+%(\CF{cap-prob} and \CF{2-cap-prob}) 
 and to test situations for which we thought the tool would be
-particularly useful (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
-and \CF{addr-probs}).   These examples convert between work item formats, date
+particularly useful.
+% (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
+% and \CF{addr-probs}).
+These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
 \begin{figure}
