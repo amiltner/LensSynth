@@ -1001,23 +1001,24 @@ a generated lens size of 651).  On average, the size of the generated lens is
 
 To evaluate how many user-supplied examples the algorithm requires in
 practice, we \textit{randomly} generated appropriate source/target
-pairs, mimicking what a na\"{i}ve user might do.  We did not write the
+pairs, mimicking what a na\"{i}ve user might do.  (We did not write the
 examples by hand out of concern that our knowledge of the synthesis
-algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
+algorithm might bias the selection.) Figure~\ref{fig:exs-reqd} shows
 the number of randomly generated examples it takes to synthesize the
-correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only 5 benchmarks need a nonzero number of examples to
-synthesize the correct lens and only one, \CF{cust/workitem-probs} required over
+correct lens, averaged over ten runs.  Strikingly, the synthesis algorithm
+almost never needs 
+any examples at all: only 5 benchmarks need a nonzero number of examples to
+synthesize the correct lens and only one required more than
 10 randomly generated examples.
-A clever user may be able to reduce the
-number of examples further by selecting examples carefully; we
-synthesized \CF{cust/workitem-probs} with only 8 examples.
+(A clever user may be able to reduce the
+number of examples further by selecting examples carefully; we were able to
+synthesize this last test case with only 8 examples.)
 
 These numbers are low because there are relatively few well-typed
 bijective lenses between any two source and target regular expressions. 
 As one would expect, the benchmarks where there are multiple ways to
 map source data to the target (and vice versa) require the most examples.
-For example, the benchmark \CF{cust/workitem-probs} requires a large number of
+For example, one benchmark requires a large number of
 examples because it
 must differentiate between data in different text fields in both the
 source and target and map between them appropriately.  As these text fields are
@@ -1054,10 +1055,10 @@ read. We expect that most users would do the same.
 
 \paragraph*{Comparison Against Other Tools}
 %
-We are the first tool to synthesize bidirectional transformations between data
+Ours is the first tool to synthesize bidirectional transformations between data
 formats, so there is no tool to which we can make an apple-to-apples comparison.
-Instead, we compare against tools for generating unidirectional
-transformations instead. 
+Instead, we compared against tools for generating unidirectional
+transformations. 
 Figure~\ref{fig:synthesis-times} includes a comparison against two other
 well-known tools that synthesize
 text transformation and extraction functions from examples -- Flash Fill and FlashExtract.  For this
@@ -1095,24 +1096,26 @@ extracted.
 As these tools were designed for a broader audience, they put less of a burden
 on the user.  These tools only use input/output examples (for Flash
 Fill), or marked text regions (for FlashExtract), as opposed
-to \Optician{}'s use of regular expressions to constrain the format of
+to our use of regular expressions to constrain the format of
 the input and output.  By using regular expressions,
-\Optician{} is able to synthesize significantly more programs
+we can synthesize significantly more programs
 than either existing tool.
 
 Flash Fill and FlashExtract have two tasks: to determine how
 the data is transformed, they must also infer the structure of the data, a
 difficult job for complex formats.
 In particular, neither Flash Fill nor FlashExtract was able to synthesize
-transformations or extractions present under two iterations, a type of format
+transformations or extractions where the regular expressions describing the
+formats involved two nested iteration (Kleene-star) operators---a type of format
 that is notoriously hard to infer.
-These types of dual iterations are pervasive in Linux configuration
-files, making Flash Fill and FlashExtract ill suited for many of the synthesis
-tasks present in our test suite.
+However, this kind of nested iteration is pervasive in Linux configuration
+file formats, making Flash Fill and FlashExtract ill suited for many of the
+synthesis tasks in our test suite.
 
-Furthermore, as unidirectional transformations, Flash Fill and FlashExtract have
-a more expressive calculus.  To guarantee bidirectionality, our syntax must be
-highly restrictive, providing a smaller search space to traverse.
+Conversely, since they deal with only unidirectional transformations, Flash
+Fill and FlashExtract can offer a more expressive set of operators.  To
+guarantee bidirectionality, our syntax must be highly restrictive, providing
+a smaller search space to traverse.
 
 \subsection{Quotient Synthesis Algorithms}
 
@@ -1146,10 +1149,12 @@ highly restrictive, providing a smaller search space to traverse.
 \newcommand{\SystemOnBenchmarks}{\textbf{QQ}}
 \newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
 
-We have extended the bijective synthesis tool to synthesize quotient lenses. We will use 
-``\QOpt'' to denote our extended version of Optician, and just plain ``Optician'' to denote
-the pre-quotient version of Optician. The synthesis algorithm produces Boomerang lens
-values, so Boomerang gives synthesized lenses the same first-class status as hand-written ones. 
+Our next thread of work was extending the bijective synthesis tool to
+synthesize quotient lenses. In this subsection, we will use ``\QOpt'' to
+denote our extended version of Optician, and just plain ``Optician'' to
+denote the pre-quotient version of Optician. The synthesis algorithm
+produces Boomerang lens values, so Boomerang gives synthesized lenses the
+same first-class status as hand-written ones.
 %
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS High Sierra.
@@ -1157,20 +1162,20 @@ of 1600 MHz DDR3 running macOS High Sierra.
 
 \paragraph*{Benchmark Suite Construction}
 
-We analyzed the same 39 lens synthesis tasks from the original
+We analyzed the same 39 lens synthesis tasks as we did for the original
 Optician system.
 We also experimented using our tool to synthesize quotient lenses
 between XML, RDF and and JSON formats using data from the data.gov
 database; the data consisted of census statistics, demographic
 statistics, wage comparosion data, and crime index data).
-Recall that to use bijective synthesis,  we had to modify 10 of 39
-benchmarks make them bijective (for instance, by normalizing whitespace)
+Recall that, to use bijective synthesis, we had to modify some of the 
+benchmarks (10 of 39) to make them bijective---for instance, by normalizing whitespace.
 Because quotient lenses are more expressive, we were able avoid such
 modifications. This
 experience alone points to the benefits that quotient lens synthesis
 brings to the table. 
 
-\paragraph*{Evaluating programmer effort}
+\paragraph*{Evaluating Programmer Effort}
 
 \begin{figure}[t]
 \centering
@@ -1211,9 +1216,11 @@ programmer writes the lens between the source and target formats
 entirely by hand, including the descriptions of the source and target
 formats.
 
-For each problem in the benchmark suite, we calculate the following
-measures as proxies for the level of programmer effort when using each
-the three approaches:
+For each problem in the benchmark suite, we calculate the following measures
+as proxies for the level of programmer effort when using each the three
+approaches: \bcp{This seems very detailed, and it includes some technical
+  terms (like ``canonize(q)'') that readers of this summary may not
+  know.  But maybe it's OK?}
 
 %
 \begin{itemize}
