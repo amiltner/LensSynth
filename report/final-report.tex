@@ -61,6 +61,22 @@
 % \renewcommand*\thesection{\arabic{section}.0}
 % \renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
 
+% Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.2,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 240}
+\definecolor{vlightyellow}{RGB}{255, 255, 245}
+\definecolor{lightgreen}{RGB}{235, 255, 240}
+\definecolor{vlightgreen}{RGB}{247, 255, 250}
+\definecolor{lightblue}{RGB}{245, 255, 255}
+\definecolor{vlightblue}{RGB}{250, 255, 255}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
 
 \newtheorem*{theorem*}{Theorem}
 \newenvironment{centermath}
@@ -296,17 +312,138 @@ code~\cite{GitHub} that implements those algorithms.  In this report,
 we summarize some of our key methods, results and findings, focusing
 on the core algorithms for bijective synthesis and quotient synthesis.
 
-\section{Methods, Assumptions and Procedures}
+\section{Lenses}\bcp{Is a separate section the best place for this?  Is
+  this the kind of example we had in mind?  Is it OK that I cannibalized the
+later subsection on lenses?  (We could alternatively move all this there.)} 
 
-Our approach combines two strategies.  We use \textit{domain-specific programming
-  language}, specifically, the Boomerang~\cite{boomerang, Matching10} language,
-which is designed for writing bidirectional string transformations.  We also exploit
-\textit{type- and example-directed program synthesis}, which uses enumerative
-techniques to search a space of candidate solutions.  The search is constrained
-by the type information about the program, as well as by example instances
-provided by the user.
+\begin{figure}
+\small
+  % https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[
+stringstyle=\upshape\sffamily,
+xleftmargin=0pt,
+]
+Jane Doe: 38000
+John Public: 37500
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingA}{\box0}
 
-\subsection{Lenses and lens domain-specific programming languages}
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[
+xleftmargin=0pt,
+stringstyle=\upshape\sffamily
+]
+FirstLast,Company
+Jane Doe,Healthcare Inc.
+John Public,Insurance Co.
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingB}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[xleftmargin=0pt]
+let salary = number | "unk"
+let emp_salary =   name . " "
+                 . name . ": " 
+                 . salary
+let emp_salaries = "" 
+                 |   emp_salary
+                   . ("\n" emp_salary)$^*$
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingC}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[xleftmargin=0pt]
+let company = (co_name . ("Co." | "Inc." | "Ltd.")) 
+            | "UNK" 
+let emp_ins = name . " " . name "," company 
+let header = "FirstLast,Company" 
+let emp_insurance = header . ("\n" . emp_ins)$^*$
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingD}{\box0}
+  
+  \centering
+  \resizebox{\columnwidth}{!}{%
+    \begin{tabular}{|>{\columncolor{vlightyellow}}c|>{\columncolor{vlightblue}}c|}
+      \hline
+      Management's data & HR's data \\
+      \hline
+      \listingA & \listingB \\
+      \hline
+      \cellcolor{lightyellow}Management's type & 
+      \cellcolor{lightblue} HR's type\\
+      \hline
+      \cellcolor{lightyellow}\listingC & \cellcolor{lightblue}\listingD \\
+      \hline
+    \end{tabular}
+  }
+  \caption{Hypothetical example data files and corresponding regular expressions
+  used by management and HR at a US company to represent employee salaries and health
+  insurance providers, respectively.
+  }
+  \label{fig:minimized-representations}
+\end{figure}
+
+Before surveying our methods and results on synthesis, we quickly sketch an
+example of what a lens looks like, using a simplified situation drawn from a
+hypothetical U.S. company. In this company, management and human resources
+(HR) store information about employees in separate text files: management
+stores the names of employees and their salaries while HR stores the names
+of employees and their health insurance
+providers. Figure~\ref{fig:minimized-representations} gives examples of the
+two file formats and regular expressions describing them.
+
+The company uses a simple symmetric lens to keep these files
+synchronized. When management adds a new employee, say ``Chris Roe: 32500'',
+this lens 
+adds the corresponding entry ``Chris Roe, UNK'' to HR's file. The default value
+``UNK'' represents the fact that the employee's insurance company is currently
+unknown. A similar update happens if HR adds a new employee before
+management knows about them,
+in which case the sentinel value ``unk'' reflects unknown salary information
+on management's side.
+Furthermore, if HR corrects an error in an employee's name, say changing ``John
+Public'' to ``Jon Public'', the lens mirrors this change into management's
+file. Not all the data is mirrored, however: management's file is not updated
+in response to insurance changes, and HR's is oblivious to salary
+changes. Simple symmetric lenses are appropriate for keeping these two files
+synchronized because they contain a mix of shared and unshared information.
+
+%Consider the previously
+%described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
+%(scheduled.job) synchronized. These are each formats specifying when to run
+%recurring tasks. For the sake of exposition, we use simplified versions crontab
+%and scheduled.job formats, with examples and corresponding regular expressions
+%shown in Figure~\ref{fig:minimized-representations}. Each file contains a list
+%of tasks set to run at specific times every hour. In both formats, users
+%can either provide specific minutes at which they want the program to run, or they
+%can specify that the program should run at every minute.
+%
+%We wish for the jobs to be synchronized across our Windows and Linux devices.
+%However, the commands that need to be run are typically different for each
+%device. Paths are different in Windows and Linux, and, while there is typically a
+%Windows equvialent for a Linux command, that equivalent command is not always
+%named the same thing. So, while we want to be able to have the same number of
+%commands, with the commands running at the same times, we don't want to
+%align the actual commands that are run.
+
+In principle, programmers can define lenses just by writing four arbitrary
+functions by hand and showing they satisfy the round-tripping laws, but this
+can be tedious and error prone.  A better idea is to provide a set of
+combinators---a domain-specific language---for building complex, law-abiding
+lenses from simpler ones. 
 
 A lens comprises two functions,
 \emph{get} and \emph{put}.  The \emph{get} function translates
@@ -350,6 +487,123 @@ graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
 and
 XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}.
 
+
+If $\BRegex$ and $\BRegexAlt$ are regular expressions, then
+\lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that
+$\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
+$\LanguageOf{\BRegexAlt}$. (We will use undecorated variables later for
+stochastic regular expressions, so we mark plain REs with overbars.)
+We illustrate some of these
+combinators by defining lenses on subcomponents of the employee data formats.
+
+The simplest combinator is the identity lens \IdentityLens, which takes as an
+argument a regular expression $\BRegex$ and propagates data unchanged
+in both directions.
+%
+\begin{lstlisting}
+id(name)  :  name $\Leftrightarrow$ name
+\end{lstlisting}
+%
+The identity lens moves data back and forth from source to target without
+changing it. Both the \CreateR and \CreateL functions are the identity function
+($\CreateR \App s = s$), and the put functions merely return the first argument
+($\PutROf{\String}{\StringAlt} = \String$).
+
+In contrast, $\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}$ does not propagate any data at all
+from one format to the other.  The \Disconnect lens takes four arguments: two
+regular expressions ($\Regex, \RegexAlt$) and two strings ($\String, \StringAlt$). The regular expressions specify the formats
+on the two sides, while the strings provide default values. 
+%
+\begin{lstlisting}
+disconnect(salary, "", "unk", "")  :  salary $\Leftrightarrow$ ""
+\end{lstlisting}
+%
+On creates, the input values are thrown away, and default values are
+returned ($\CreateLOf{\StringAlt} =
+\lstinline{"unk"}$), and on puts, the second argument is used and the first is
+thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). For 
+example, the \lstinline{salary} field is only present in management files,
+so the disconnect lens can ensure salary edits do not cause updates to the
+HR file.
+With the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
+and \PutR will always return \lstinline{""}.
+
+The insert lens \lstinline{ins} and the delete lens \lstinline{del} are
+syntactic sugar for uses of the disconnect lens in which a string
+constant is omitted entirely from the source or target format.
+\begin{lstlisting}
+ ins($t$) = disconnect("", $t$, "", $t$)
+ del($s$) = disconnect($s$, "", $s$, "")
+\end{lstlisting}
+The \lstinline{ins} lens inserts a constant string when going from
+left to right, while \lstinline{del} inserts a string when going from right
+to left.
+
+Finally, there are a number of combinators that construct
+more complex lenses from simpler ones. These include concatenation
+($\ConcatLensOf{\Lens_1}{\Lens_2}$, often written $\Lens_1 . \Lens_2$), variation
+($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).
+For example, we could use the lens
+%
+\begin{lstlisting}
+id(name) . id(" ") . id(name) . del(": ") . ins(",")
+\end{lstlisting}
+%
+to transform ``\lstinline{Jane Doe: }'' to ``\lstinline{Jane Doe,}'' in
+the left-to-right direction.
+
+% concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
+%
+%\ksf{I don't think this example is necessary.}
+%Data can also appear in multiple forms. For example,
+%a list of employees with insurance information can either be empty or
+%be a sequence of employee/insurance records: \ksf{This example is
+%vacuous as you could eliminate the or in favor of the *.  Do somethign
+%else to introduce or?}
+%
+%\begin{lstlisting}
+%or(id(""),employees_lens) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_ins) . ("\n" emp_ins)*
+%\end{lstlisting}
+The \IterateLens lens is useful for synchronizing a series of items or rows in a
+table. For example given a
+lens \lstinline{employee_lens} that synchronizes data for a single employee, the
+lens
+%
+\begin{lstlisting}
+iterate(id("\n") . employee_lens)  :  ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
+\end{lstlisting}
+%
+transforms a list of employees in employees in the Management format to a list
+of employees in the HR format and vice versa. These combinators
+are combined in figure~\ref{fig:example_lens} to construct a complete lens
+between the employee formats.
+
+\begin{figure}
+\begin{lstlisting}
+let name_lens = id(name) . id(" ") . id(name) . del(": ") . ins(",") in
+let employee_lens = name_lens . disconnect(salary,"","unk","") 
+                                                    . disconnect("",company,"","UNK") in
+let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
+ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
+\end{lstlisting}
+%\ksf{I don't think this is necesssary.}
+%let emp_lens = or(id(""),employees_lens) in
+  \caption{A lens that synchronizes management and HR employee files}
+  \label{fig:example_lens}
+\end{figure}
+
+\section{Methods, Assumptions and Procedures}
+
+Our approach to lens synthesis combines two strategies.  First, as
+illustrated in the previous section, we use \textit{domain-specific
+  programming language}, specifically the Boomerang  language~\cite{boomerang,
+  Matching10}, which is designed for writing bidirectional string
+transformations.  Second, we exploit \textit{type- and example-directed
+  program synthesis}, which uses enumerative techniques to search a space of
+candidate solutions.  The search is constrained by the type information
+about the program, as well as by example instances provided by the user.
+
+% \subsection{Lenses and lens domain-specific programming languages}
 
 \subsection{Bijective lens synthesis}
 
@@ -1237,25 +1491,21 @@ the correct lens.
 
 \section{Conclusions}
 
-During the course of this project, we have designed, analyzed and
-implemented algorithms that demonstrate it is possible to synthesize
-three classes of bidirectional transformations: (1) pure bijective
-transformations, (2) bijections modulo equivalences classes (quotient
-lenses) and (3)
-bijections modulo projections (symmetric lenses).  The synthesis algorithms we have
-designed take inputs that include a format specification (which
-includes specification of equivalence classes) and a collection of
-examples.  As the class of transformations becomes richer, the number
-of potential programs grows dramatically.  As a result, the
-corresponding inference algorithm slows and its ability to guess the
-transformation desired by the user decreases, leading to reduced
-accuracy.  We found that it was possible to overcome such challenges
-through new heuristics that use information theory to help guide the
-search for program transformations.  In addition, we found the use of
-compositional synthesis, which is the process of breaking down a
-complex synthesis task into smaller, more mangeable subtasks critical
-when attempting to scale our prototype system up to be able to handle
-larger transformation task.
+In this project, we designed, analyzed and implemented algorithms that
+synthesize three classes of bidirectional transformations: (1) pure
+bijective transformations, (2) bijections modulo equivalences classes
+(quotient lenses) and (3) bijections modulo projections (simple symmetric
+lenses).  Our synthesis algorithms take as inputs a format specification
+(which includes specification of equivalence classes) and a collection of
+examples.  As the class of transformations becomes richer, the number of
+potential programs grows dramatically.  As a result, the corresponding
+inference algorithm slows and its ability to guess the transformation
+desired by the user decreases, leading to reduced accuracy.  We overcame
+these challenges through new heuristics that use information theory to help
+guide the search for program transformations.  In addition, to scale our
+prototype to larger transformation tasks, we found it necessary to work
+compositionally, by breaking down complex synthesis tasks into smaller, more
+mangeable subtasks.
 
 \bibliographystyle{apalike}
 \bibliography{local.bib,bcp.bib}
