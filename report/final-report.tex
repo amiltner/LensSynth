@@ -57,10 +57,27 @@
 \usepackage{bbm}
 \usepackage{fullpage}
 \usepackage[explicit]{titlesec}
+\usepackage{longtable}
 
 % \renewcommand*\thesection{\arabic{section}.0}
 % \renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
 
+% Colors
+\definecolor{dkblue}{rgb}{0,0.1,0.5}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{dkpurple}{rgb}{0.2,0,0.4}
+\definecolor{olive}{rgb}{0.4, 0.4, 0.0}
+\definecolor{teal}{rgb}{0.0,0.5,0.5}
+\definecolor{orange}{rgb}{0.9,0.6,0.2}
+\definecolor{lightyellow}{RGB}{255, 255, 240}
+\definecolor{vlightyellow}{RGB}{255, 255, 245}
+\definecolor{lightgreen}{RGB}{235, 255, 240}
+\definecolor{vlightgreen}{RGB}{247, 255, 250}
+\definecolor{lightblue}{RGB}{245, 255, 255}
+\definecolor{vlightblue}{RGB}{250, 255, 255}
+\definecolor{teal}{RGB}{141,211,199}
+\definecolor{darkbrown}{RGB}{121,37,0}
 
 \newtheorem*{theorem*}{Theorem}
 \newenvironment{centermath}
@@ -118,11 +135,13 @@ stringstyle=\sffamily\color{dkblue},
 
 \begin{center}
 
-  \large \textbf{Synthesizing Data Wranglers\\\vspace{1cm} FA8750-17-2-0028}
+  \vspace{1in}
+
+  \Large \textbf{Synthesizing Data Wranglers\\\vspace{1cm} FA8750-17-2-0028}
 
   \vspace{1in}
 
-  \normalsize
+  \large
   %\begin{tabular}{rl}
   Kathleen Fisher (Tufts University) \\
   Benjamin Pierce  (University of Pennsylvania) \\
@@ -156,22 +175,26 @@ Maintaining software systems that manage evolving representations of
 data is tedious and error prone.  In this study, we have developed
 algorithms for automatically synthesizing \emph{lenses}, which are
 software adaptors that convert between two different representations
-of the same information.  Lenses are a special form of program that
+of the same information~\cite{Focal2005}.  Lenses are a special form of
+programs that 
 guarantee so-called \emph{round-tripping properties} that ensure the
 transformations are well-behaved.  Our synthesis algorithms take as
-input (i) the \emph{type} of each source as a regular expression, as
-well as (ii) a small collection of representative \emph{examples} of
-the desired translation.  They produceas output \emph{bijective string
-  lenses}.  Bijective string lenses are a special class of lenses that
-only exist when the two data sources are related via a bijection.
-Despite this limitation, bijections and bijective synthesis form a
-useful foundation on top of which more general transformations between
-data sets may be built.  We explore two of these extensions: quotient
-lenses and symmetric lenses.  Quotient lenses apply when two formats
-are ``morally'' but not technically bijective.  Examples include two
+input (i) the \emph{type} of each source as a regular expression, and
+(ii) a small collection of representative \emph{examples} of
+the desired translation.  They produce as output different varieties of \emph{string
+  lenses}.
+
+We have investigated three specific varieties of string lenses in detail: {\em
+  bijective lenses}, {\em quotient
+lenses} and {\em simple symmetric lenses}.  Bijective lenses address the
+simplest case, when the two formats we want to convert between have exactly
+the same information content, modulo rearrangement and reformatting.  
+Quotient lenses apply when two
+formats are ``morally'' but not technically bijective.  Examples include two
 formats that differ in their use of white space or in the order of
-sequences of elements.  Symmetric lenses allow one side or the other to have
-information not present in the other.  When converting between the
+sequences of elements.  Simple symmetric lenses allow one side or the other
+to have 
+information not present in the other; when converting between the
 formats, defaults take the place of missing information. 
 
 We measured the effectiveness of our
@@ -187,12 +210,14 @@ We further found that as the formats diverge and the class of lenses
 between them becomes richer, the synthesis problem becomes more
 difficult and additional heuristics need to be considered.
 
-We have written
-papers~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}
-describing and evaluating our algorithms. We produced open-source 
-code~\cite{GitHub} that implements those algorithms.  In this report,
+The products of this investigation include several published
+papers~\cite{bijective-synthesis, quotient-synthesis, symmetric-synthesis}
+describing and evaluating our algorithms, as well as open-source 
+code~\cite{BijectiveOptician,QuotientOptician,SymmetricOptician} that implements those algorithms in (several variants of) a
+prototype tool called \Optician{}.  In this report,
 we summarize our key methods, results, and findings, focusing
-on the core algorithms for bijective synthesis and quotient synthesis.
+on the core algorithms for bijective synthesis, quotient synthesis, and
+simple symmetric synthesis.
 
 
 
@@ -268,10 +293,10 @@ so-called \emph{quotient lenses}~\cite{quotientlenses} we generate are capable o
 ``irrelevant'' differences between structures such as white space or
 permutations of items in a row of data set and hence expand the set of
 transformations our system can define significantly.  Finally, we explored the
-synthesis of \emph{symmetric lenses}~\cite{symmetric-lenses} , again building upon the
+synthesis of \emph{symmetric lenses}~\cite{symmetric-lenses}, again building upon the
 bijective platform that we started with.  Symmetric lenses are able to
 ignore arbitrary chunks of data in A when generating target data B,
-and vice-versa.  For example, a serial number specific to one data set
+and vice versa.  For example, a serial number specific to one data set
 may be ignored when we translate to a second.  Symmetric lenses
 further expand the set of allowed transformations.
 
@@ -286,22 +311,156 @@ generate transforms for all 39 of the Augeas file formats that we analyzed.
 
 We have written
 papers~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}
-describing and evaluating our algorithms and produced open-source 
-code~\cite{GitHub} that implements those algorithms.  In this report,
-we summarize some of our key methods, results and findings, focusing
-on the core algorithms for bijective synthesis and quotient synthesis.
+describing and evaluating our algorithms and produced open-source
+code~\cite{BijectiveOptician,QuotientOptician,SymmetricOptician} that implements those algorithms in (several variants of) a
+tool called \Optician{}.  In this report, we summarize some of our key methods,
+results and findings, focusing on the core algorithms for bijective synthesis
+and quotient synthesis.
+
 
 \section{Methods, Assumptions and Procedures}
 
-Our approach combines two strategies.  We use \textit{domain-specific programming
-  language}, specifically, the Boomerang~\cite{boomerang, Matching10} language,
-which is designed for writing bidirectional string transformations.  We also exploit
-\textit{type- and example-directed program synthesis}, which uses enumerative
-techniques to search a space of candidate solutions.  The search is constrained
-by the type information about the program, as well as by example instances
-provided by the user.
+Our approach to lens synthesis combines two strategies.  First, 
+we use a \textit{domain-specific
+  programming language}, Boomerang~\cite{boomerang,Matching10},
+which is designed for writing bidirectional string
+transformations.  Second, we exploit \textit{type- and example-directed
+  program synthesis}, which uses enumerative techniques to search a space of
+candidate solutions.  The search is constrained by the type information
+about the program, as well as by example instances provided by the user.
 
-\subsection{Lenses and lens domain-specific programming languages}
+% \subsection{Lenses and lens domain-specific programming languages}
+
+\subsection{Lenses}
+
+\begin{figure}
+\small
+  % https://tex.stackexchange.com/questions/168741/showing-two-listings-in-a-table-side-by-side
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[
+stringstyle=\upshape\sffamily,
+xleftmargin=0pt,
+]
+Jane Doe: 38000
+John Public: 37500
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingA}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[
+xleftmargin=0pt,
+stringstyle=\upshape\sffamily
+]
+FirstLast,Company
+Jane Doe,Healthcare Inc.
+John Public,Insurance Co.
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingB}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[xleftmargin=0pt]
+let salary = number | "unk"
+let emp_salary =   name . " "
+                 . name . ": " 
+                 . salary
+let emp_salaries = "" 
+                 |   emp_salary
+                   . ("\n" emp_salary)$^*$
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingC}{\box0}
+
+  \setbox0=\hbox{%
+    \begin{minipage}{3.5in}
+\begin{lstlisting}[xleftmargin=0pt]
+let company = (co_name . ("Co." | "Inc." | "Ltd.")) 
+            | "UNK" 
+let emp_ins = name . " " . name "," company 
+let header = "FirstLast,Company" 
+let emp_insurance = header . ("\n" . emp_ins)$^*$
+\end{lstlisting}
+    \end{minipage}
+  }
+  \savestack{\listingD}{\box0}
+  
+  \centering
+  \resizebox{\columnwidth}{!}{%
+    \begin{tabular}{|>{\columncolor{vlightyellow}}c|>{\columncolor{vlightblue}}c|}
+      \hline
+      Management's data & HR's data \\
+      \hline
+      \listingA & \listingB \\
+      \hline
+      \cellcolor{lightyellow}Management's type & 
+      \cellcolor{lightblue} HR's type\\
+      \hline
+      \cellcolor{lightyellow}\listingC & \cellcolor{lightblue}\listingD \\
+      \hline
+    \end{tabular}
+  }
+  \caption{Hypothetical example data files and corresponding regular expressions
+  used by management and HR at a US company to represent employee salaries and health
+  insurance providers, respectively.
+  }
+  \label{fig:minimized-representations}
+\end{figure}
+
+Before surveying our methods and results on synthesis, we quickly sketch an
+example of what a Boomerang lens looks like, using a simplified situation drawn from a
+hypothetical U.S. company. In this company, management and human resources
+(HR) store information about employees in separate text files: management
+stores the names of employees and their salaries while HR stores the names
+of employees and their health insurance
+providers. Figure~\ref{fig:minimized-representations} gives examples of the
+two file formats and regular expressions describing them.
+
+The company uses a simple symmetric lens to keep these files
+synchronized. When management adds a new employee, say ``Chris Roe: 32500'',
+this lens 
+adds the corresponding entry ``Chris Roe, UNK'' to HR's file. The default value
+``UNK'' represents the fact that the employee's insurance company is currently
+unknown. A similar update happens if HR adds a new employee before
+management knows about them,
+in which case the sentinel value ``unk'' reflects unknown salary information
+on management's side.
+Furthermore, if HR corrects an error in an employee's name, say changing ``John
+Public'' to ``Jon Public'', the lens mirrors this change into management's
+file. Not all the data is mirrored, however: management's file is not updated
+in response to insurance changes, and HR's is oblivious to salary
+changes. Simple symmetric lenses are appropriate for keeping these two files
+synchronized because they contain a mix of shared and unshared information.
+
+%Consider the previously
+%described goal of keeping Linux cron jobs (crontab) and Windows Scheduled Tasks
+%(scheduled.job) synchronized. These are each formats specifying when to run
+%recurring tasks. For the sake of exposition, we use simplified versions crontab
+%and scheduled.job formats, with examples and corresponding regular expressions
+%shown in Figure~\ref{fig:minimized-representations}. Each file contains a list
+%of tasks set to run at specific times every hour. In both formats, users
+%can either provide specific minutes at which they want the program to run, or they
+%can specify that the program should run at every minute.
+%
+%We wish for the jobs to be synchronized across our Windows and Linux devices.
+%However, the commands that need to be run are typically different for each
+%device. Paths are different in Windows and Linux, and, while there is typically a
+%Windows equvialent for a Linux command, that equivalent command is not always
+%named the same thing. So, while we want to be able to have the same number of
+%commands, with the commands running at the same times, we don't want to
+%align the actual commands that are run.
+
+In principle, programmers can define lenses just by writing four arbitrary
+functions by hand and showing they satisfy the round-tripping laws, but this
+can be tedious and error prone.  A better idea is to provide a set of
+combinators---a domain-specific language---for building complex, law-abiding
+lenses from simpler ones. 
 
 A lens comprises two functions,
 \emph{get} and \emph{put}.  The \emph{get} function translates
@@ -345,6 +504,110 @@ graph query languages~\cite{DBLP:conf/icfp/HidakaHIKMN10},
 and
 XML transformation languages~\cite{DBLP:conf/pepm/LiuHT07}.
 
+
+If $\BRegex$ and $\BRegexAlt$ are regular expressions, then
+\lstinline{$\Lens$ : $\BRegex \Leftrightarrow \BRegexAlt$} indicates that
+$\Lens$ is a simple symmetric lens between $\LanguageOf{\BRegex}$ and
+$\LanguageOf{\BRegexAlt}$. (We will use undecorated variables later for
+stochastic regular expressions, so we mark plain REs with overbars.)
+We illustrate some of these
+combinators by defining lenses on subcomponents of the employee data formats.
+
+The simplest combinator is the identity lens \IdentityLens, which takes as an
+argument a regular expression $\BRegex$ and propagates data unchanged
+in both directions.
+%
+\begin{lstlisting}
+id(name)  :  name $\Leftrightarrow$ name
+\end{lstlisting}
+%
+The identity lens moves data back and forth from source to target without
+changing it. Both the \CreateR and \CreateL functions are the identity function
+($\CreateR \App s = s$), and the put functions merely return the first argument
+($\PutROf{\String}{\StringAlt} = \String$).
+
+In contrast, $\DisconnectOf{\Regex}{\RegexAlt}{\String}{\StringAlt}$ does not propagate any data at all
+from one format to the other.  The \Disconnect lens takes four arguments: two
+regular expressions ($\Regex, \RegexAlt$) and two strings ($\String, \StringAlt$). The regular expressions specify the formats
+on the two sides, while the strings provide default values. 
+%
+\begin{lstlisting}
+disconnect(salary, "", "unk", "")  :  salary $\Leftrightarrow$ ""
+\end{lstlisting}
+%
+On creates, the input values are thrown away, and default values are
+returned ($\CreateLOf{\StringAlt} =
+\lstinline{"unk"}$), and on puts, the second argument is used and the first is
+thrown away ($\PutROf{\String}{\StringAlt} = \StringAlt$). For 
+example, the \lstinline{salary} field is only present in management files,
+so the disconnect lens can ensure salary edits do not cause updates to the
+HR file.
+With the above lens, $\PutL \App \lstinline{""} \App 60000$ will return 60000,
+and \PutR will always return \lstinline{""}.
+
+The insert lens \lstinline{ins} and the delete lens \lstinline{del} are
+syntactic sugar for uses of the disconnect lens in which a string
+constant is omitted entirely from the source or target format.
+\begin{lstlisting}
+ ins($t$) = disconnect("", $t$, "", $t$)
+ del($s$) = disconnect($s$, "", $s$, "")
+\end{lstlisting}
+The \lstinline{ins} lens inserts a constant string when going from
+left to right, while \lstinline{del} inserts a string when going from right
+to left.
+
+Finally, there are a number of combinators that construct
+more complex lenses from simpler ones. These include concatenation
+($\ConcatLensOf{\Lens_1}{\Lens_2}$, often written $\Lens_1 . \Lens_2$), variation
+($\OrLensOf{\Lens_1}{\Lens_2}$), and iteration ($\IterateLensOf{\Lens}$).
+For example, we could use the lens
+%
+\begin{lstlisting}
+id(name) . id(" ") . id(name) . del(": ") . ins(",")
+\end{lstlisting}
+%
+to transform ``\lstinline{Jane Doe: }'' to ``\lstinline{Jane Doe,}'' in
+the left-to-right direction.
+
+% concat(ins(header),employees_lens) : emp_salaries $\Leftrightarrow$ emp_insurance
+%
+%\ksf{I don't think this example is necessary.}
+%Data can also appear in multiple forms. For example,
+%a list of employees with insurance information can either be empty or
+%be a sequence of employee/insurance records: \ksf{This example is
+%vacuous as you could eliminate the or in favor of the *.  Do somethign
+%else to introduce or?}
+%
+%\begin{lstlisting}
+%or(id(""),employees_lens) : emp_salaries $\Leftrightarrow$ "" | ("\n" emp_ins) . ("\n" emp_ins)*
+%\end{lstlisting}
+The \IterateLens lens is useful for synchronizing a series of items or rows in a
+table. For example given a
+lens \lstinline{employee_lens} that synchronizes data for a single employee, the
+lens
+%
+\begin{lstlisting}
+iterate(id("\n") . employee_lens)  :  ("\n" . emp_salary)$^*$ $\Leftrightarrow$ ("\n" . emp_ins)$^*$
+\end{lstlisting}
+%
+transforms a list of employees in employees in the Management format to a list
+of employees in the HR format and vice versa. These combinators
+are combined in figure~\ref{fig:example_lens} to construct a complete lens
+between the employee formats.
+
+\begin{figure}
+\begin{lstlisting}
+let name_lens = id(name) . id(" ") . id(name) . del(": ") . ins(",") in
+let employee_lens = name_lens . disconnect(salary,"","unk","") 
+                                                    . disconnect("",company,"","UNK") in
+let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
+ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
+\end{lstlisting}
+%\ksf{I don't think this is necesssary.}
+%let emp_lens = or(id(""),employees_lens) in
+  \caption{A lens that synchronizes management and HR employee files}
+  \label{fig:example_lens}
+\end{figure}
 
 \subsection{Bijective lens synthesis}
 
@@ -441,7 +704,7 @@ expression $T$.   Such a lens should satisfy the \textit{bijective lens laws}:
   \label{fig:schematic-diagram-synthesis}
 \end{figure}
 
-Figure~\Cref{fig:schematic-diagram-synthesis} shows a high-level,
+\Cref{fig:schematic-diagram-synthesis} shows a high-level,
 schematic diagram for \Optician{}.
 First, \Optician{} uses the function \ToDNFRegex{} to convert the input
 regular expressions into DNF regular expressions.  Next,
@@ -473,10 +736,100 @@ that we have defined.  Quotient regular expressions
 describe both  $S$ (or $T$) and $\equiv_S$ (or $\equiv_T$)
 simulataneously in one compact notation.
 
+\subsection{Simple symmetric lens synthesis}
+Although it is very useful to be able to synthesize bijective or
+quotient lenses between data formats, such lenses do not fully solve the
+problem. 
+Bijective and quotient lenses require the two data formats to have
+either precisely or morally the same information content. 
+Many related data formats in practice have overlapping
+information: some information may be present in one format but not the
+other and vice versa.  
+
+Symmetric lenses~\cite{HofmannPierceWagner10:POPL} address this
+limitation.  General symmetric lenses introduce the notion of 
+\textit{complement} that stores the information necessary to fully
+reconstruct one format from the other.  Because such complements would
+complicate the synthesis specificaiton problem, we instead define a
+more restricted language of \textit{simple symmetric lenses}, which
+are the largest class of symmetric lenses that do not rely on
+persistent internal state to synchronise between two related data
+formats, a property called \textit{forgetfulness}.  (Instead of a
+complement, simple symmetric lenses rely on defaults to replace
+missing information.)
+
+A challenge in adopting the type-directed synthesis approach to simple
+symmetric lenses is the number of such lenses.  Whereas the number of
+bijective lenses between two formats is typically tiny, the
+number of simple symmetric lenses is typically enormous. 
+If a na\"ive  search algorithm just selects the first simple symmetric
+lens it finds, the returned lens will generally not be the one the
+user wanted. Symmetric synthesis requires a new principle for
+identifying “more likely” lenses and a more sophisticated synthesis
+algorithm that uses this principle to search the space more
+intelligently.
+
+For these, we turn to information theory. We consider ``likely'' lenses to
+be ones that propagate ``a lot'' of information 
+from the left data format to the right and vice versa. Conversely, ``unlikely''
+lenses are ones that require a large amount of additional information to recover
+one of the formats given the other. By default, our synthesis algorithm prefers
+lenses that propagate more information.
+This preference is formalized using \emph{stochastic regular expressions}
+(SREs)~\cite{stoch-rnn,stoch-def}, which simultaneously define a set of
+strings and a probability distribution over those strings.  Using this
+probability distribution, we can calculate the likelihood of a given
+lens.
+We also allow users to override the default mechanism for
+calculating the information content of a SRE by
+asserting that certain strings are \emph{essential} or \emph{irrelevant},
+forcing certain data to either be retained or discarded during the
+transformations.
+
+
+
+\begin{figure}
+ \centering
+  \includegraphics[width=.63\textwidth]{high-level-algorithm.pdf}
+  \vspace{-2ex}
+  \caption{Schematic diagram for the simple symmetric lens synthesis algorithm.
+    The user provides regular expressions \BRegex and \BRegexAlt and a set of
+    examples \Examples{} as input. \Expand first converts \BRegex and \BRegexAlt
+    to stochastic regular expressions \Regex and \RegexAlt with default
+    probabilities. It then finds pairs of stochastic regular expressions
+    equivalent to \Regex and \RegexAlt and iteratively proposes them to
+    \GreedySynth. \GreedySynth finds a lens typed between the supplied SREs.
+    When the algorithm finds a likely lens, it returns it.}
+  \label{fig:high-level-algorithm}
+\end{figure}
+
+With simple symmetric lenses and this SRE-based likelihood measure in hand, we
+propose a new algorithm for synthesizing likely lenses. At its core, the
+algorithm performs a type-directed search between descriptions of the data
+formats, measuring success using the likelihood measure.
+
+Interesting complications arise from the need to deal with regular-expression
+equivalences. There are infinitely many regular expressions equivalent to a
+given one, and the lens returned by a type-directed search will in general
+depend on which of the possible representations are chosen for its source and
+target formats. Moreover, certain lenses may not be well-typed unless the
+format representations are replaced by equivalent ones:
+in general, the synthesis algorithm has to search through
+equivalent regular expression types to find the most likely lens. To tame
+this complexity, we divide the synthesis algorithm into two communicating search
+procedures (Figure~\ref{fig:high-level-algorithm}), following~\cite{optician}.
+The first, \Expand, uses rewriting rules to propose new pairs of
+stochastic regular expressions equivalent to the original pair. The second,
+\GreedySynth, uses a greedy, type-directed
+algorithm to find a simple symmetric lens between input SRE pairs, returning the lens and
+its likelihood score to \Expand. The whole synthesis algorithm heuristically
+terminates when a sufficiently likely lens is found.
+
+
+
 \section{Results and Discussion}
 
 % From bijective lens paper
-
 
 % \newcommand{\SOptician}{Optician\textsubscript{S}}
 % \newcommand{\SynthSymLens}{\PCF{SynthSymLens}\xspace}
@@ -524,23 +877,20 @@ simulataneously in one compact notation.
 % \newcommand{\NSOpt}{\textbf{NS}}
 % \newcommand{\NROpt}{\textbf{NR}}
 
-We have implemented our synthesis algorithms in
-of OCaml and integrated them into Boomerang system,
-where they are available as open source code~\cite{GitHub}.
-Users of Boomerang can write lenses by hand, specify them as
-synthesis tasks, or do a combination of both.
+We implemented our synthesis algorithms in the OCaml programming language
+where they are available as open
+source code~\cite{BijectiveOptician,QuotientOptician,SymmetricOptician}. 
 
-We have analyzed our algorithms theoretically, proving various
-soundness and completeness results.  We have also analyzed our
-algorithms empirically, studying their impact on a range of real and
-synthetic benchmarks.  Our full results have been published in a
-series of conference papers and technical
-reports~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}.  In the rest of this
-section, we summarize some of the key results.
+We analyzed our algorithms theoretically, proving various soundness and
+completeness results.  We also analyzed these algorithms empirically,
+studying their impact on a range of real and synthetic benchmarks.  Our
+results have been published in a series of conference papers and technical
+reports~\cite{bijective-synthesis,quotient-synthesis,symmetric-synthesis}.
+In the rest of this section, we summarize key results.
 
 \subsection{Bijective Synthesis Algorithms}
 
-We first study the effectiveness of the pure bijective synthesis
+We first show the effectiveness of the pure bijective synthesis
 algorithm by evaluating its performance on a set of 39
 benchmark programs.  
 %
@@ -553,30 +903,33 @@ Augeas~\cite{augeas} and
 Flash Fill~\cite{gulwani-popl-2014}.
 %
 Augeas is a configuration editing system for Linux that uses lens
-combinators similar to those in Boomerang. However, it transforms
-strings on the left to structured trees on the right rather than
-transforming strings to strings.
-We adapted these Augeas lenses to our setting by converting the
-right-hand sides to strings that correspond to serialized versions
-of the tree formats.  
+combinators similar to those in Boomerang.  
+% , with some small
+% differences. However, it transforms 
+% strings on the left to structured trees on the right rather than
+% transforming strings to strings.
+% We adapted these Augeas lenses to our setting by converting the
+% right-hand sides to strings that correspond to serialized versions
+% of the tree formats
 We derived 29 of the benchmark tests by
-adapting the first 27 lenses in alphabetical order, as well as the lenses
+adapting the first 27 lenses from the Augeas library in alphabetical order,
+as well as the lenses 
 \CF{aug/xml-firstlevel} and \CF{aug/xml} that were referenced
 by the `A' lenses.
 Furthermore, the 12 last synthesis problems derived
-from Augeas were tested after \Optician{} was
+from Augeas were tested after our synthesizer was was
 finalized, demonstrating that the optimizations were not
-overtuned to perform well on the testing data.
+over-tuned to perform well on the testing data.
 %
 Flash Fill is a system that allows users to specify common string
 transformations by example~\cite{gulwani-popl-2014}.  
-We derived three benchmarks from the first few examples in the
+We derived three benchmarks from the first few examples in this
 paper and one from the running example on
 extracting phone numbers.
 
 Both Augeas and Flash Fill permit non-bijective transformations.
 To test our system on these benchmarks, we had to convert them into
-bijective transformations by hand.  More specifically, in many of the
+bijective transformations (by hand).  Specifically, in many of the
 benchmarks, we normalized
 the whitespace in the documents so the amount of whitespace was equal
 in the source and target.  In a few of the benchmarks, either the
@@ -584,11 +937,14 @@ source or the target was missing information present in the other
 format.  We modified those benchmarks by adding the missing
 information back into the file. 
 
-Finally, we added custom examples to highlight weaknesses of
-our algorithm (\CF{cap-prob} and \CF{2-cap-prob}) 
+Finally, we added a few custom examples designed to highlight known
+weaknesses of our algorithm
+%(\CF{cap-prob} and \CF{2-cap-prob}) 
 and to test situations for which we thought the tool would be
-particularly useful (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
-and \CF{addr-probs}).   These examples convert between work item formats, date
+particularly useful.
+% (\CF{workitem-probs}, \CF{date-probs}, \CF{bib-prob},
+% and \CF{addr-probs}).
+These examples convert between work item formats, date
 formats, bibliography formats, and address formats, respectively.
 
 \begin{figure}
@@ -631,35 +987,38 @@ a generated lens size of 651).  On average, the size of the generated lens is
   \centering
   \includegraphics{figs/examples.eps}
   \caption{Average number of random examples required to synthesize benchmark
-    programs.  {\bf Experimental Average} is the average number of randomly
-    generated examples needed to correctly synthesize the lens.  {\bf
-      Determinize Permutations} is the theoretical number of examples required
-    to determinize the choice all the permutations in \RigidSynth{}.
-    In practice, far fewer examples are
-    needed to synthesize the correct lens than would be predicted by the number
-    required to determinize permutations.}
+    programs. %  {\bf Examples Required} is the average number of randomly
+    % generated examples needed to correctly synthesize the lens.
+    % {\bf
+    %   Determinize Permutations} is the theoretical number of examples required
+    % to determinize the choice all the permutations in \RigidSynth{}.
+    % In practice, far fewer examples are
+    % needed to synthesize the correct lens than would be predicted by the number
+    % required to determinize permutations.
+  }
   \label{fig:exs-reqd}
 \end{figure}
 
 To evaluate how many user-supplied examples the algorithm requires in
 practice, we \textit{randomly} generated appropriate source/target
-pairs, mimicking what a na\"{i}ve user might do.  We did not write the
+pairs, mimicking what a na\"{i}ve user might do.  (We did not write the
 examples by hand out of concern that our knowledge of the synthesis
-algorithm might bias the selection. Figure~\ref{fig:exs-reqd} shows
+algorithm might bias the selection.) Figure~\ref{fig:exs-reqd} shows
 the number of randomly generated examples it takes to synthesize the
-correct lens averaged over ten runs.  The synthesis algorithm almost never needs
-any examples: only 5 benchmarks need a nonzero number of examples to
-synthesize the correct lens and only one, \CF{cust/workitem-probs} required over
+correct lens, averaged over ten runs.  Strikingly, the synthesis algorithm
+almost never needs 
+any examples at all: only 5 benchmarks need a nonzero number of examples to
+synthesize the correct lens and only one required more than
 10 randomly generated examples.
-A clever user may be able to reduce the
-number of examples further by selecting examples carefully; we
-synthesized \CF{cust/workitem-probs} with only 8 examples.
+(A clever user may be able to reduce the
+number of examples further by selecting examples carefully; we were able to
+synthesize this last test case with only 8 examples.)
 
 These numbers are low because there are relatively few well-typed
 bijective lenses between any two source and target regular expressions. 
 As one would expect, the benchmarks where there are multiple ways to
 map source data to the target (and vice versa) require the most examples.
-For example, the benchmark \CF{cust/workitem-probs} requires a large number of
+For example, one benchmark requires a large number of
 examples because it
 must differentiate between data in different text fields in both the
 source and target and map between them appropriately.  As these text fields are
@@ -675,7 +1034,7 @@ stop as soon as it finds a well typed lens that satisfies the supplied examples.
 This inferred lens may or may not 
 correctly handle unseen examples that correspond to
 unexercised portions of the source and target regular expressions.
-Figure~\ref{fig:exs-reqd} lists
+We also calculated
 the number of examples that are required to determinize the generation of
 permutations in \RigidSynth{}.
 Intuitively, this number represents the maximum number of
@@ -683,23 +1042,22 @@ examples that a user must supply to guide the synthesis engine if it
 always guesses the wrong permutation when multiple permutations can be used to
 satisfy the specification. 
 
-The average number of examples is so much lower than the maximum
-number of required examples because of correspondences in how we wrote
-the regular expressions for the source and target data formats. 
-Specifically, when we had corresponding disjunctions in both the
-source and the target, we ordered them the same way.  The algorithm
-uses the supplied ordering to guide its search, and so the system
-requires fewer examples.   We did not write the examples in this style
-to facilitate synthesis, but rather because maintaining similar
-subparts in similar orderings makes the types much easier to 
-read. We expect that most users would do the same.
+The average number of examples needed is much lower than the maximum number of
+required examples because of correspondences in how we wrote the regular
+expressions for the source and target data formats.  Specifically, when we had
+corresponding disjunctions in both the source and the target, we ordered them
+the same way.  The algorithm uses the supplied ordering to guide its search, and
+so the system requires fewer examples.  We did not write the examples in this
+style to facilitate synthesis, but rather because maintaining similar subparts
+in similar orderings makes the types much easier to read. We expect that most
+users would do the same.
 
 \paragraph*{Comparison Against Other Tools}
 %
-We are the first tool to synthesize bidirectional transformations between data
+Ours is the first tool to synthesize bidirectional transformations between data
 formats, so there is no tool to which we can make an apple-to-apples comparison.
-Instead, we compare against tools for generating unidirectional
-transformations instead. 
+Instead, we compared against tools for generating unidirectional
+transformations. 
 Figure~\ref{fig:synthesis-times} includes a comparison against two other
 well-known tools that synthesize
 text transformation and extraction functions from examples -- Flash Fill and FlashExtract.  For this
@@ -737,24 +1095,26 @@ extracted.
 As these tools were designed for a broader audience, they put less of a burden
 on the user.  These tools only use input/output examples (for Flash
 Fill), or marked text regions (for FlashExtract), as opposed
-to \Optician{}'s use of regular expressions to constrain the format of
+to our use of regular expressions to constrain the format of
 the input and output.  By using regular expressions,
-\Optician{} is able to synthesize significantly more programs
+we can synthesize significantly more programs
 than either existing tool.
 
 Flash Fill and FlashExtract have two tasks: to determine how
 the data is transformed, they must also infer the structure of the data, a
 difficult job for complex formats.
 In particular, neither Flash Fill nor FlashExtract was able to synthesize
-transformations or extractions present under two iterations, a type of format
+transformations or extractions where the regular expressions describing the
+formats involved two nested iteration (Kleene-star) operators---a type of format
 that is notoriously hard to infer.
-These types of dual iterations are pervasive in Linux configuration
-files, making Flash Fill and FlashExtract ill suited for many of the synthesis
-tasks present in our test suite.
+However, this kind of nested iteration is pervasive in Linux configuration
+file formats, making Flash Fill and FlashExtract ill suited for many of the
+synthesis tasks in our test suite.
 
-Furthermore, as unidirectional transformations, Flash Fill and FlashExtract have
-a more expressive calculus.  To guarantee bidirectionality, our syntax must be
-highly restrictive, providing a smaller search space to traverse.
+Conversely, since they deal with only unidirectional transformations, Flash
+Fill and FlashExtract can offer a more expressive set of operators.  To
+guarantee bidirectionality, our syntax must be highly restrictive, providing
+a smaller search space to traverse.
 
 \subsection{Quotient Synthesis Algorithms}
 
@@ -788,10 +1148,12 @@ highly restrictive, providing a smaller search space to traverse.
 \newcommand{\SystemOnBenchmarks}{\textbf{QQ}}
 \newcommand{\cd}[1]{\lstinline[backgroundcolor=\color{white}]$#1$}
 
-We have extended the bijective synthesis tool to synthesize quotient lenses. We will use 
-``\QOpt'' to denote our extended version of Optician, and just plain ``Optician'' to denote
-the pre-quotient version of Optician. The synthesis algorithm produces Boomerang lens
-values, so Boomerang gives synthesized lenses the same first-class status as hand-written ones. 
+Our next thread of work was extending the bijective synthesis tool to
+synthesize quotient lenses. In this subsection, we will use ``\QOpt'' to
+denote our extended version of Optician, and just plain ``Optician'' to
+denote the pre-quotient version of Optician. The synthesis algorithm
+produces Boomerang lens values, so Boomerang gives synthesized lenses the
+same first-class status as hand-written ones.
 %
 All evaluations were performed on a 2.5 GHz Intel Core i7 processor with 16 GB
 of 1600 MHz DDR3 running macOS High Sierra.
@@ -799,22 +1161,23 @@ of 1600 MHz DDR3 running macOS High Sierra.
 
 \paragraph*{Benchmark Suite Construction}
 
-We analyzed the same 39 lens synthesis tasks from the original
+We analyzed the same 39 lens synthesis tasks as we did for the original
 Optician system.
 We also experimented using our tool to synthesize quotient lenses
 between XML, RDF and and JSON formats using data from the data.gov
 database; the data consisted of census statistics, demographic
 statistics, wage comparosion data, and crime index data).
-Recall that to use bijective synthesis,  we had to modify 10 of 39
-benchmarks make them bijective (for instance, by normalizing whitespace)
+Recall that, to use bijective synthesis, we had to modify some of the 
+benchmarks (10 of 39) to make them bijective---for instance, by normalizing whitespace.
 Because quotient lenses are more expressive, we were able avoid such
 modifications. This
 experience alone points to the benefits that quotient lens synthesis
 brings to the table. 
 
-\paragraph*{Evaluating programmer effort}
+\paragraph*{Evaluating Programmer Effort}
 
 \begin{figure}[t]
+\centering
 \includegraphics{qfigs/asts.eps}
 \caption{AST node measurements for each of the three approaches
 on each of the 10 non-bijective benchmark problems.
@@ -852,9 +1215,9 @@ programmer writes the lens between the source and target formats
 entirely by hand, including the descriptions of the source and target
 formats.
 
-For each problem in the benchmark suite, we calculate the following
-measures as proxies for the level of programmer effort when using each
-the three approaches:
+For each problem in the benchmark suite, we calculate the following measures
+as proxies for the level of programmer effort when using each the three
+approaches: 
 
 %
 \begin{itemize}
@@ -863,8 +1226,10 @@ the three approaches:
   target formats, including examples. 
   \item[\canonizeAndSpecSize{}:] 
   The sum of (1) the number of AST nodes in $W(q)$ for each QRE $q$ in the source and target
-  formats, (2) the number of AST nodes in $\canonize(q)$ for each QRE $q$ with a
-  non-trivial canonizer, and (3) the number of AST nodes in the
+  formats, (2) the number of AST nodes in $\canonize(q)$ for each QRE $q$
+  requiring a  non-trivial canonizer (``canonizers'' as transformations that
+  project a string to its equivalence class representative; they are written as
+  programs in Boomerang), and (3) the number of AST nodes in the
   examples.  We use (1) to estimate the burden of describing
   the external source and target formats and (2) to estimate the
   burden of writing the requisite canonizers
@@ -906,7 +1271,7 @@ Boomerang.
 \caption{}
 \label{subfig:examplesused}
 \end{subfigure}
-\caption{Runtimes measurements. In (a), we run Optician and \QOpt{}
+\caption{Runtime measurements. In (a), we run Optician and \QOpt{}
   on the Optician benchmarks.  We find that there is only a negligible
   performance overhead incurred by using QREs. 
   In (b), we run \QOpt{} on the 10 Optician benchmarks
@@ -936,36 +1301,282 @@ lens for each of the 10 benchmark programs with nontrivial quotients.
 We find that \QOpt{} is able to synthesize all quotient lenses in
 under 10~seconds, and typically finishes in under 5~seconds.
 
+\subsection{Simple Symmetric Lens Synthesis}
+In addition to the results above, we implemented simple symmetric lenses as an extension to
+Boomerang~\cite{boomerang}.  
+This allows users
+to write synthesis tasks 
+alongside lens combinators, incorporate synthesis results into manually-written
+lenses, and reference previously defined lenses during synthesis. All experiments
+were performed on a 2.5 GHz Intel Core i7 processor with 16 GB of 1600 MHz DDR3
+running macOS Mojave.
+
+\paragraph*{Benchmark Suite Construction}
+Our benchmarks for this experiment are drawn from three different sources.
+\begin{enumerate}
+\item We adapted 8 data cleaning benchmarks from Flash Fill~\cite{flashfill}. Flash Fill data
+  cleaning tasks are either derived from online help forums or taken from the
+  Excel product team. Note that our tool produces bidirectional transformations
+  rather than one-way transformers like Flash Fill. We ensure one direction of
+  our bidirectional transformers performs the same unidirectional transformation
+  as Flash Fill---the other direction is determined from the round-tripping
+  laws. None of these benchmarks were bijective.
+\item We adapted 29 benchmarks from Augeas~\cite{augeas}. Because
+  these benchmarks merely transform the information into a structured form,
+  synthesized lenses were all bijective.
+\item We created 11 additional benchmarks 
+  derived from real-world examples and/or the bidirectional programming
+  literature. These tasks range from synchronizing REST and JSON web resource
+  descriptions to synchronizing BibTeX and EndNote citation descriptions. Five
+  of these benchmarks were not bijective lenses.
+\end{enumerate}
+
+\paragraph*{Synthesizing Correct Simple Symmetric Lenses}
+
+To determine whether the system can synthesize desired lenses, we ran
+it interactively on all 48 benchmark tasks, working with the system to
+create sufficient examples and provide useful relevance annotations
+(\IE, \emph{essential} and \emph{irrelevant} markings, written as
+\SRequire and \Skip, respectively).
+In all cases, the desired lens was obtained.
+%
+The majority of the tasks required only a single example and none required
+more than three examples to synthesize the desired lens.
+%
+Providing relevance annotations 
+was needed in only 8 of the 48 tasks. In
+practice, we found that adding such annotations was quite easy: if manual inspection
+of the lens showed there were too few \IdentityLens{}s, and too many
+\Disconnect{}s\footnote{
+Recall that \Disconnect{} is a lens combinator that marks a place where
+information appears in one format but not the 
+other: there is a \emph{disconnect} between the two formats. 
+}
+  or merges, we would add \SRequire annotations. If synthesis took
+too long, we would add \Skip annotations.
+%
+We verified that the default running mode of our synthesis tool
+(\SSOpt{}) generated the 
+correct lenses the way programmers often validate their programs: we
+manually inspected the code and ran unit tests on the synthesized
+code. To determine whether the synthesis procedure generated the
+correct lens when running in modes other than \SSOpt{}, we compared
+generated lens to the lens synthesized by \SSOpt{}.
+
+
+\paragraph*{Effectiveness of Optimizations in Simple Symmetric Synthesis}
+
+Having determined appropriate examples and annotations for the 48
+benchmarks, we evaluate the performance of the system by measuring the running
+time of our algorithm in two modes:
+\vskip .5ex
+\begin{tabulary}{\linewidth}{rL}
+  \SSOpt{}: & Run the symmetric synthesis algorithm with all optimizations enabled.\\
+  \SSNCOpt{}: & Run the symmetric synthesis algorithm with no compositional synthesis enabled.\\
+\end{tabulary}\\
+\noindent
+Compositional synthesis allows users to break a benchmark into a
+series of smaller synthesis tasks, whose solutions are utilized in more complex
+synthesis procedures. Compositional synthesis (\SSOpt{} mode)
+allows our system to scale to arbitrarily large and complex formats; measuring
+it shows the responsiveness of the system when used as
+intended. \SSNCOpt{} mode, which synthesizes a complete lens all at once,
+provides a useful experimental stress test for the system.
+
+\begin{figure}
+  \centering
+  \includegraphics{times}
+  \vspace{-2ex}
+  \caption{Number of
+    benchmarks that can be solved by a given algorithm in a 
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
+    existing lenses. The symmetric synthesis algorithm is able to complete all
+    benchmarks in under 30 seconds elapsed total time. Without compositional
+    synthesis it is able to complete 26. Each benchmark specification includes
+    source and target (potentially annotated) regular expressions, and between
+    one and three sufficient examples.}
+  \label{fig:times}
+\end{figure}
+
+For each benchmark in the suite and each mode, we ran the system with a timeout
+of 60 seconds, averaging the result over 5 runs. Figure~\ref{fig:times}
+summarizes the results of these tests. We found that our algorithm is able to
+synthesize all of the benchmarks in under 30 seconds. Without compositional
+synthesis, the synthesis algorithm is able to solve 26 out of 48 problem instances.
+
+% Section~\ref{subsec:optimizations} that users may tune the termination metric.
+% Success on this set of benchmarks requires we tune that termination condition
+% (e.g. for some benchmarks, allowing the system flexibility to spend more time
+% considering more of the search space). In
+
+\paragraph*{Slowdown Compared to Bijective Synthesis}
+
+To compare to the existing bijective synthesis algorithm, we ran our symmetric
+synthesis algorithm on the original Optician benchmarks, comprised of
+39 bijective synthesis tasks.\footnote{We had to slightly alter four of these
+benchmarks, either by providing additional examples or by adding \SRequire annotations.
+Without these alterations, symmetric synthesis yielded a lens that fit
+the specification but that was not what the programmer wanted.}
+To perform this comparison, we synthesized lenses in two modes:
+\vskip 2ex
+\begin{tabulary}{\linewidth}{rL}
+  \BSOpt{}: & The existing bijective synthesis
+              algorithm with all optimizations enabled.\\
+  \SSOpt{}: & The symmetric synthesis algorithm with all optimizations enabled.\\
+\end{tabulary}\\[2ex]
+\noindent
+For each benchmark, we ran it in both modes with a
+timeout of 60 seconds and averaged the result over 5 runs.
+Figure~\ref{fig:times_bijective} summarizes the results of these tests. On
+average, \SSOpt{} took 1.3 times (0.5 seconds) longer to complete than
+\BSOpt{}. The slowest completed benchmark for both synthesis algorithms is
+\texttt{xml\_to\_augeas.boom}, a benchmark that converts arbitrary XML up to
+depth 3 into a serialized version of the structured dictionary representation
+used in Augeas. This benchmark takes 18.9 seconds for the symmetric synthesis
+algorithm to complete, and 9.3 seconds the bijective synthesis algorithm to
+complete. 
+
+\begin{figure}[t]
+  \includegraphics{times_bijective}
+  \vspace{-2ex}
+  \caption{Number of benchmarks that can be solved by a given algorithm in a
+    given amount of time. \SSOpt{} is the full symmetric synthesis algorithm.
+    \BSOpt{} is the full bijective lens synthesis algorithm.}
+  \label{fig:times_bijective}
+\end{figure}
+
+
+\paragraph*{The Effects of Heuristics and Relevance Annotations}
+We evaluate the usefulness of (1) our information-theoretic metric, (2) our
+termination heuristic and (3) our
+relevance annotations.  To this end, we run our program in several different modes:\\[2ex]
+\begin{tabulary}{\linewidth}{rL}
+  \AnyOpt{}: & Ignore the information-theoretic metric (\IE, all valid
+               lenses have cost 0). \\ 
+  \FLOpt{}: &  Return the first highest ranked lens \GreedySynth returns (\IE,
+              ignore the termination heuristic). \\
+  \CCOpt{}: & Replace our information-theoretic cost metric with one where
+              the cost of the lens is the number of disconnects plus the number
+              of merges.\\
+  \NSOpt{}: & Ignore all \Skip annotations in the SRE specifications. \\
+  \NROpt{}: & Ignore all \SRequire annotations in the SRE specifications. \\[2ex]
+\end{tabulary}
+
+\noindent
+We experimented with the \CCOpt{} mode to determine whether the
+complexity of the information-theoretic measure was really
+needed. Related work on string transformations has often used simpler
+measures such as ``avoid constants'' that align with, but are simpler
+than our measures. The \CCOpt{} mode is an example of such a simple
+measure---it operates by counting disconnects, which put a complete
+stop to information transfer, and merges, which
+eliminate the information in a union. 
+
+\begin{figure}[t]
+  \includegraphics{metrics_importance}
+  \vspace{-2ex}
+  \caption{Number of benchmarks that synthesize the correct lens by a given
+    algorithm. \AnyOpt{} provides no notion of cost, and merely returns the
+    first lens it finds that satisfies the specification. \FLOpt{} provides a
+    notion of cost to \GreedySynth, but once a satisfying lens is greedily
+    found, that lens is returned. \CCOpt{} synthesizes lenses, where the cost of
+    a lens is the number of disconnects plus the number of merges. \NSOpt{}
+    ignores all \Skip annotations while running the algorithm. \NROpt{} ignores
+    all \SRequire annotations while running the algorithm.}
+  \label{fig:metric}
+\end{figure}
+
+Figure~\ref{fig:metric} summarizes the result of these experiments. The data
+reveal that the information-theoretic metric is critical for finding the correct
+lens: Only 10 of the benchmarks succeeded when running in \CCOpt{} mode. The
+termination condition is also quite important. When running in \FLOpt{} mode,
+the algorithm only discovers 5 lenses, which shows that the first class that
+contains a satisfying lens is rarely the correct class. However, our algorithm
+is not perfect and fails when either it is very difficult to find the desired
+lens (necessitating \SRequire) or when a large amount of data is projected
+(necessitating \Skip). Without any annotations, our algorithm finds the correct
+lens for 40 of our 48 benchmarks; the other eight required relevance
+annotations to find the correct lens.
+% end evaluation
 
 \section{Conclusions}
 
-During the course of this project, we have designed, analyzed and
-implemented algorithms that demonstrate it is possible to synthesize
-three classes of bidirectional transformations: (1) pure bijective
-transformations, (2) bijections modulo equivalences classes (quotient
-lenses) and (3)
-bijections modulo projections (symmetric lenses).  The synthesis algorithms we have
-designed take inputs that include a format specification (which
-includes specification of equivalence classes) and a collection of
-examples.  As the class of transformations becomes richer, the number
-of potential programs grows dramatically.  As a result, the
-corresponding inference algorithm slows and its ability to guess the
-transformation desired by the user decreases, leading to reduced
-accuracy.  We found that it was possible to overcome such challenges
-through new heuristics that use information theory to help guide the
-search for program transformations.  In addition, we found the use of
-compositional synthesis, which is the process of breaking down a
-complex synthesis task into smaller, more mangeable subtasks critical
-when attempting to scale our prototype system up to be able to handle
-larger transformation task.
+In this project, we designed, analyzed and implemented algorithms that
+synthesize three classes of bidirectional transformations: (1) pure
+bijective transformations, (2) bijections modulo equivalences classes
+(quotient lenses) and (3) bijections modulo projections (simple symmetric
+lenses).  Our synthesis algorithms take as inputs a format specification
+(which includes specification of equivalence classes) and a collection of
+examples.  As the class of transformations becomes richer, the number of
+potential programs grows dramatically.  As a result, the na\"{i}ve
+inference algorithm slows and its ability to guess the transformation
+desired by the user decreases, leading to reduced accuracy.  We overcame
+these challenges by applying heuristics that use information theory to help
+guide the search for program transformations.  In addition, to scale our
+prototypes to larger transformation tasks, we found it necessary to work
+compositionally, by breaking down complex synthesis tasks into smaller, more
+mangeable subtasks.  The resulting system, embodied by (variants of) our
+prototype \Optician{} implementation, out perform existing state-of-the-art
+tools for synthesis tasks in this domain.
 
 \bibliographystyle{apalike}
 \bibliography{local.bib,bcp.bib}
 
 \section{List of Symbols, Abbreviations, and Acronyms}
-\begin{tabular}{ll}
-  DARPA & Defense Advanced Research Project Agency \\
-\end{tabular}
+\begin{longtable}{p{1in}p{5in}}
+  \ToDNFRegex{}         & An operation that converts regular   expressions into DNF form\\
+  \ToLens{}             & An operation that converts a DNF lens to a  lens \\
+  $\equiv_S$, $\equiv_T$ & Equivalence relations on data matching
+                           regular expressions $S$ and $T$
+                           respectively \\
+  \AnyOpt{}             & Mode for simple symmetric synthesis that ignores the information-theoretic metric \\ 
+  AST     & Abstract syntax tree\\  
+  \BSOpt{}              & Bijective lens synthesis algorithm\\
+  DARPA   & Defense Advanced Research Project Agency \\
+  \CCOpt{}              & Mode for simple symmetric synthesis that
+                          replace our information-theoretic cost metric with one where 
+                          the cost of the lens is the number of disconnects plus the number
+                          of merges.\\
+  \DNFLens{}            & Lens in disjunctive normal form\\
+  DNF                   & Disjunctive normal form\\
+  \DNFRegex{}, \DNFRegexAlt{}  & Regular expression in disjunctive normal form\\
+  \Examples{}           & Examples \\
+  \Expand       & A component of the synthesis algorithm that proposes candidate
+                  types equivalent to the input \\
+  \FLOpt{}              & Mode for simple symmetric synthesis that
+                          returns the first highest ranked lens found
+                          by  \GreedySynth \\
+  \footnotesize{\GreedySynth} & Synthesis procedure that searches greedily for candidate
+                 solutions \\
+  HR & Human Resources \\
+  HTML & Hyptertext Markup Language \\
+  JSON & JavaScript Object Notation---a standard file format used to
+         encode data objects\\
+  \Lens{}               & A lens \\
+  $\mathcal{L}(\BRegex{})$  & The language of strings for the regular expression
+                             \BRegex{} \\
+  \NROpt{}              & Mode for simple symmetric synthesis that
+                          ignores all \SRequire annotations in the SRE specifications. \\
+  \NSOpt{}              & Mode for simple symmetric syntehsis that
+                          ignores all \Skip annotations in the SRE specifications. \\ 
+  \Optician{} & Our prototype implementation of the lens synthesis algorithms \\
+  \Optician{}$_Q$ & Optician enhanced with support for QRE synthesis \\
+  QRE                   & Quotient regular expression\\
+  \textbf{QS}  & Number of nodes in the abstract syntax of QRE specifications \\
+  RDF & Resource Description Framework---used to model web resources \\
+  REST & Representational State Transfer\\
+  SRE                   & Stochastic regular expression\\
+  \BRegex and \BRegexAlt & Regular expressions provided by the user\\
+  \Regex{}, \RegexAlt{} & Regular expressions\\
+  $S \Leftrightarrow T$ & Type of a lens that maps between data
+                          described by regular expressions $S$ and $T$\\
+  \SSOpt{}              & Full symmetric synthesis algorithm\\
+  \SSNCOpt{}            & Symmetric synthesis algorithm without using a library of
+    existing lenses.\\
+  {\footnotesize \SynthDNFLens{}} & A type-directed lens synthesis algorithm \\
+  XML & Extensible Markup Language---used in web services \\
+\end{longtable}
 
 \end{document}
 
