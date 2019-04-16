@@ -1,0 +1,129 @@
+Thank you for your feedback. We respond the major questions and concerns, then
+provide an (optional) point-by-point response to individual concerns. We are
+happy to include any of the information presented in this rebuttal in the final
+version of the paper.
+
+
+
+    - Why is writing two regexes easier for the user than writing a lens? Do
+      input formats often come equipped with regexes already? Can the
+      synthesizer use such pre-existing regexes out of the box, or do they have
+      to be "massaged" by the user?
+
+While we require users to write regular expressions, programming regular
+expressions is easier than programming lenses:
+
+* Regular expressions are widely understood.  Few programmers know about
+  programming with lenses.
+
+* A regular expression describes one data format, while a lens deals with two
+  at the same time.
+
+* In the (common) case where the two formats have Kleene stars in different
+  places, manual lens programming requires mentally transforming both to a
+  common "aligned" form.  Our synthesis algorithm does this alignment
+  automatically.  This alignment can be quite challenging for programmers.
+
+As an explicit example, consider the following function:
+
+        let last_head = NAME . "," . (WSP . NAME)*
+        let last_tail = (NAME . WSP)* NAME
+
+        let name_conversion : last_head <=> last_tail =
+            lens_swap
+                (NAME . del ",")
+                (lens_swap WSP NAME)*
+
+While the name_conversion expression may have more AST nodes than the two
+regular expressions, we find it much harder to write.
+
+Engineering best practices dictate that we annotate the lenses with their
+types.  While Boomerang does not require these annotations - being able to
+infer the types from the terms - the types of the term serve as
+documentation for future programmers to understand what formats the lens
+maps between.  Furthermore, the types provide resilience in the face of future
+lens modifications, as the types ensure that the lens maps exactly
+between strings of the provided formats. Invalid inputs are not accepted
+nor are the outputs ever invalid.  Consequently, we are not requiring
+additional work. Instead, we are saving programmers from having to 
+writing the lens by leveraging work they should already be performing.
+
+In our experiments, we manually programmed the regular expressions. While
+writing these regular expressions, we did not massage them to be amenable to
+synthesis. In general, the synthesizer is able to handle regular expressions
+expressed in multiple different ways, due to the traversal of regular expression
+equivalences. However, if the regular expressions require a transformation that
+was not a star-semiring transformation, such a massaging would be required.
+
+
+
+    - What is the relationship between our information-theoretic ranking, and
+      prior work like Unsupervised Learning by Program Synthesis
+
+Unsupervised Learning by Program Synthesis (ULPS) expands upon previous research
+in unsupervised machine learning. Unsupervised learning attempts to "induce good
+latent representations of a data set" [Ellis et al. 2015]. Given a set of data
+points, or "outputs," ULPS attempts to find good representations of these
+outputs as a combination of finding a single function, and a sequence of
+"inputs" that correspond to the outputs. The latent representation is a
+combination of the corresponding input, and the transformation from inputs to
+outputs.
+
+Our work is similar to this work in that we both use information-theoretic
+principles to find the desired programs, but the use of information theory in
+each is different. In ULPS, minimizing the information theoretic cost metric is
+the only goal. In this metric, the desire is to encode the output data in as few
+bits as possible, so the example data is tightly coupled with the problem. In
+our work, we use information theory to formalize the notion of "more bijective,"
+providing a firm theoretical foundation for previous ad-hoc ranking functions.
+In our case, the examples serve merely as a specification, but the inclusion or
+exclusion of such examples does not impact "how bijective" certain functions
+are. We do not consider this a weakness, but an inherent aspect to our
+formalization. Furthermore, we would not consider it a good idea to assume that
+we should try to minimize the data recovery costs on the examples more than on
+other pieces of data -- non-bijective input/output pairs are often useful.
+
+
+
+    - The authors do not consider lens compositions in their synthesis. Are
+      there any justifications not to consider them? In existing results that
+      synthesize bijective (quotient) lenses, one of the reasons not to consider
+      lens composition in their synthesis is that ruling out them does not
+      change the expressive power? Can you say a similar argument for this case?
+
+We do not synthesize lens compositions for the same reasons as previous work --
+such compositions are quite difficult to generate. You are correct that we do
+not prove that such a restriction does not limit the expressive power. We do not
+consider the symmetric DNF lens language a core contribution (we do not even
+include a definition outside of the appendix) and do not believe such a proof
+would add much to the paper. However, we do provide experimental evidence that
+the composition operator is not needed in practice; we were able to synthesize
+all our benchmarks.
+
+
+
+    - There is no explanation of the selection of the benchmarks. What are their
+      characteristics and why those exercise interesting aspects of the
+      algorithm.
+
+We describe the selection of the benchmark suite in section 6.1. 29 of the
+benchmarks are taken from Augeas, a bidirectional tool for editing Linux
+configuration files. These examples were quite large, and involved some very
+complex transformations, though these benchmarks were typically bijective. These
+demonstrated how our tool performed at large, complex transformations. The 8
+benchmarks from Flash Fill provided a range of transformations, none of which
+were not bijective. These demonstrated how our tool performed on tasks that lost
+large amounts of data, and sometimes required extended transformations through
+Expand. The remaining 11 benchmarks tested how our tool performed at the type of
+transformations we are familiar with, from transformations that would be useful
+in day-to-day software engineering or classic transformations from the
+bidirectional programming literature.
+
+    - There is no attempt to explain what are the sources of worse performance
+      for SS.
+
+The primary impact on speed is the use of GreedySynth, instead of the bijective
+RigidSynth. For GreedySynth, lenses are found between regular expressions that,
+ultimately, do not show up in the final lens. RigidSynth does not incur this
+performance penalty -- it only synthesizes lenses between regular expressions
+for which there exists a bijective lens between them.
