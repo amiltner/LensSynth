@@ -60,6 +60,9 @@ was not a star-semiring transformation, such a massaging would be required.
     - What is the relationship between our information-theoretic ranking, and
       prior work like Unsupervised Learning by Program Synthesis
 
+(afm: this can potentially go after the fold, as it was only mentioned in
+passing, not as a critical question of the reviewer)
+
 Unsupervised Learning by Program Synthesis (ULPS) expands upon previous research
 in unsupervised machine learning. Unsupervised learning attempts to "induce good
 latent representations of a data set" [Ellis et al. 2015]. Given a set of data
@@ -93,12 +96,12 @@ other pieces of data -- non-bijective input/output pairs are often useful.
 
 We do not synthesize lens compositions for the same reasons as previous work --
 such compositions are quite difficult to generate. You are correct that we do
-not prove that such a restriction does not limit the expressive power. We do not
-consider the symmetric DNF lens language a core contribution (we do not even
-include a definition outside of the appendix) and do not believe such a proof
-would add much to the paper. However, we do provide experimental evidence that
-the composition operator is not needed in practice; we were able to synthesize
-all our benchmarks.
+not prove that such a restriction does not limit the expressive power. However,
+we do not consider the symmetric DNF lens language a core contribution
+(symmetric DNF lenses are not even defined outside of the appendix) and do not
+believe such a proof would add much to the paper. However, we do provide
+experimental evidence that the composition operator is not needed in practice;
+we are able to synthesize all our benchmarks.
 
 
 
@@ -127,3 +130,94 @@ RigidSynth. For GreedySynth, lenses are found between regular expressions that,
 ultimately, do not show up in the final lens. RigidSynth does not incur this
 performance penalty -- it only synthesizes lenses between regular expressions
 for which there exists a bijective lens between them.
+
+
+=================================================================================
+Reviewer A
+=================================================================================
+
+    - Moreover, on top of the regexes, the user needs to provide examples and
+      relevance annotations, and the only way to do so seems to be through an
+      iterative process (by inspecting the synthesized lens and adding more
+      examples / annotations when needed). Such iterative approach would be
+      challenging for a user who is not sufficiently familiar with lenses to
+      write one themselves.
+
+We described the iterative process assuming a lazy user who didn't want to
+provide more specifications than were necessary. However, such an iterative
+process is not required, and if the user is confident that certain information
+is "required" or may safely "skipped," they can safely add this information --
+it will not slow down synthesis. Similarly, if the user already has a benchmark
+suite, they may safely include such examples.
+
+
+
+    - To add to the previous point: the evaluation could do a better job
+      quantifying these limitations. For example, it would be good to see for
+      each benchmark the size of annotations required, as well as how many
+      "existing lenses" were used in compositional synthesis and where they came
+      from (some standard library of lenses? or did the authors manually
+      decompose each problem into subproblems? if so, then how many subproblems
+      were there?)
+
+There were a total of 12 uses of "require" in the benchmark suite. There were a
+total of 4 uses of "skip" in the benchmark suite. In total 73 existing lenses
+were used in compositional synthesis (about 1.5 per benchmark on average).
+Typically, we manually decomposed these lenses, though some used the to_upper
+function. We are happy to include a figure detailing the subtasks specified
+during compositional synthesis in the final version of the paper (similar to the
+one on p24 of Synthesizing Bijective Lenses).
+
+
+
+    - Finally, the evaluation could also do a better job confirming that there's
+      indeed a benefit to synthesizing a lens, rather than using a tool like
+      FlashFill to synthesize the two functions independently. The related work
+      section mentions that FlashFill cannot handle nested loops. However,
+      FlashFill has evolved a lot since its original publication in 2011, so it
+      would be interesting to see an empirical comparison.
+
+We included an extended comparison to FlashFill in previous work, and did not
+include such a comparison for lack of space. We are happy to make comparison to
+FlashFill cited more explicitly.
+
+
+
+    - The introduction mentions that stochastic regular expressions guide the
+      search process. I would like to see it better explained in the main text
+      of the paper: do they actually guide the search or merely rank the
+      results?
+
+Due to the Greedy nature of GreedySynth, the stochastic regular expressions
+guide the search (but the stochastic annotations only guide the search insofar
+as the lens costs guide the search).
+
+
+
+    - L 284: please explain why this rule is needed for the lens in Fig. 3 to be
+      well-typed.
+
+Without the type equivalence rule, the lens would be well-typed between
+emp_salaries and header . ("" | ("\n" . emp_ins) . ("\n" . emp_ins)∗). To be
+well-typed between emp_salaries and emp_insurance, the right-hand type needs to
+be transformed into an equivalent form.
+
+
+
+    - Section 5.6: expansion inference seems to be a crucial part of the
+      algorithm but is described very briefly. I would like to see more detail.
+
+Expansion inference is the same as is performed in bijective lens inference, and
+we did not include it for space. We will gladly make such a citation more
+explicit.
+
+
+
+    - Can you explain why you need the lower bound [for intervals]?
+
+While we do not need it in the algorithm, we include it to make formal claims
+about bounding the cost. We describe the need for intervals in 4.1.
+
+
+
+
