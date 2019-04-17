@@ -1,0 +1,372 @@
+Thank you for the thoughtful feedback. We first respond briefly to major
+questions and concerns, then provide an (optional, "below the fold")
+point-by-point response to individual concerns. We are happy to include any
+of the information presented in this rebuttal in the final version of the
+paper.
+
+    - Why is writing two regexes easier for the user than writing a lens? Do
+      input formats often come equipped with regexes already? Can the
+      synthesizer use such pre-existing regexes out of the box, or do they have
+      to be "massaged" by the user?
+
+Writing regular expressions is significantly easier than programming lenses:
+
+* Regular expressions are widely understood, while few programmers know
+  about programming with lenses.
+
+* Each of the two regular expressions describes just one data format, while
+  a lens has to deal with both at the same time.
+
+* In the (common, in our experience) case where the natural way of writing
+  the two formats puts Kleene stars in different places, manual lens
+  programming requires mentally transforming both to a common "aligned"
+  form, which can be quite challenging for programmers.  Our synthesis
+  algorithm does this alignment automatically.
+
+In our experiments, we manually programmed the regular expressions. While
+writing these regular expressions, we did not massage them to be amenable to
+synthesis. In general, the synthesizer is able to handle regular expressions
+expressed in multiple different ways, due to the traversal of regular expression
+equivalences. However, if the regular expressions require a transformation that
+was not a star-semiring transformation, such a massaging would be required.
+
+BCP: What would be an example of the last point?
+AFM: Consider creating a lens of the following type: (a+b)* <=> (a*b)*a*.
+Finding the identity lens between these two regular expressions would require
+using sumstar, a regular expression equivalence we do not traverse.
+
+
+
+    - What is the relationship between our information-theoretic ranking, and
+      prior work like Unsupervised Learning by Program Synthesis
+
+(afm: this can potentially go after the fold, as it was only mentioned in
+passing, not as a critical question of the reviewer)
+BCP: Maybe a short version here?
+AFM: I couldn't find a natural way to split it into main component/subcomponent
+so I just made it more terse
+
+Unsupervised Learning by Program Synthesis (ULPS) expands upon previous research
+in unsupervised machine learning. Given a set of data points, or "outputs," ULPS
+attempts to find good representations of these outputs as a combination of
+finding a single function, and a sequence of "inputs" that correspond to the
+outputs. The latent representation of the example data is a combination of the
+corresponding input, and the transformation from inputs to outputs.
+
+Our work is similar to ULPS in that we both use information-theoretic principles
+to find the desired programs, but the use of information theory in each is quite
+different. In ULPS, the synthesizer aims to encode the example data in as few
+bits as possible, so the example data is tightly coupled with the problem (this
+is very similar to the approach in "From Dirt To Shovels", Fisher et al.). In
+our work, we use information theory to formalize the notion of "more bijective,"
+providing a firm theoretical foundation for previous ad-hoc ranking functions.
+In our case, the examples serve merely as a specification, but the inclusion or
+exclusion of such examples does not impact "how bijective" certain functions
+are. This is not a weakness, merely a consequence of solving a different
+problem. We shouldn't prioritize minimizing the data recovery costs on the
+examples more than on other pieces of data -- non-bijective input/output pairs
+are often useful.
+
+
+
+    - The authors do not consider lens compositions in their synthesis. Are
+      there any justifications not to consider them? In existing results that
+      synthesize bijective (quotient) lenses, one of the reasons not to consider
+      lens composition in their synthesis is that ruling out them does not
+      change the expressive power? Can you say a similar argument for this case?
+
+We do not synthesize lens compositions for the same reasons as previous work --
+such compositions are quite difficult to generate. You are correct that we do
+not prove that such a restriction does not limit the expressive power. However,
+we do not consider the symmetric DNF lens language a core contribution
+(symmetric DNF lenses are not even defined outside of the appendix) and do not
+believe such a proof would add much to the paper. However, we do provide
+experimental evidence that the composition operator is not needed in practice;
+we are able to synthesize all our benchmarks.
+
+The omission of this proof is pragmatic -- the proof would be similar to that
+required for bijective lenses, which was nearly 100 pages. Due to the
+enhancements to DNF Lenses, Symmetric DNF lenses would need to be reproven
+bisimilar and confluent with respect to the regular expression rewrite rules.
+
+BCP: I had not actually realized that we didn't prove that composition is
+admissible!  This is a significant technical shortcoming, no?  Is the proof
+hard?  Or is it maybe noit true?
+AFM: The proof is quite hard, comparable to the near 100 page one done in
+bijective lenses, not simpler like the QRE one. I don't personally consider
+it a major shortcoming -- as I don't think it really is part of our core
+contributions. I included a brief description of why it is hard.
+
+
+
+    - There is no explanation of the selection of the benchmarks. What are their
+      characteristics and why those exercise interesting aspects of the
+      algorithm.
+
+We describe the selection of the benchmark suite in section 6.1. 29 of the
+benchmarks are taken from Augeas, a bidirectional tool for editing Linux
+configuration files. These examples were quite large, and involved some very
+complex transformations, though these benchmarks were typically bijective. These
+demonstrated how our tool performed at large, complex transformations. The 8
+benchmarks from Flash Fill provided a range of transformations, none of which
+were not bijective. These demonstrated how our tool performed on tasks that lost
+large amounts of data, and sometimes required extended transformations through
+Expand. The remaining 11 benchmarks tested how our tool performed at the type of
+transformations we are familiar with, from transformations that would be useful
+in day-to-day software engineering or classic transformations from the
+bidirectional programming literature.
+
+
+
+    - There is no attempt to explain what are the sources of worse performance
+      for SS.
+
+The primary impact on speed is the use of GreedySynth, instead of the bijective
+RigidSynth. For GreedySynth, lenses are found between regular expressions that,
+ultimately, do not show up in the final lens. RigidSynth does not incur this
+performance penalty -- it only synthesizes lenses between regular expressions
+for which there exists a bijective lens between them.
+
+
+=================================================================================
+Reviewer A
+=================================================================================
+
+    - Why is writing two regexes easier for the user than writing a lens? Do
+      input formats often come equipped with regexes already? Can the
+      synthesizer use such pre-existing regexes out of the box, or do they have
+      to be "massaged" by the user? (Extended Response)
+
+Below is an explicit example of of the difficulty of writing lenses vs writing
+regular expressions.
+
+        let last_head = NAME . "," . (WSP . NAME)*
+        let last_tail = (NAME . WSP)* NAME
+
+        let name_conversion : last_head <=> last_tail =
+            lens_swap
+                (NAME . del ",")
+                (lens_swap WSP NAME)*
+
+While the name_conversion expression has about as many AST nodes than the two
+regular expressions, we find it much harder to write.
+
+BCP: The point in this paragraph seems weaker than the others.  We can still
+  make it, but we should acknowledge that it is less important.
+AFM: I moved it down from the main response, is that sufficient?
+
+Engineering best practices dictate that we annotate the lenses with their
+types.  While Boomerang does not require these annotations - being able to
+infer the types from the terms - the types of the term serve as
+documentation for future programmers to understand what formats the lens
+maps between.  Furthermore, the types provide resilience in the face of future
+lens modifications, as the types ensure that the lens maps exactly
+between strings of the provided formats. Invalid inputs are not accepted
+nor are the outputs ever invalid.  Consequently, we are not requiring
+additional work. Instead, we are saving programmers from having to 
+writing the lens by leveraging work they should already be performing.
+
+
+
+    - Moreover, on top of the regexes, the user needs to provide examples and
+      relevance annotations, and the only way to do so seems to be through an
+      iterative process (by inspecting the synthesized lens and adding more
+      examples / annotations when needed). Such iterative approach would be
+      challenging for a user who is not sufficiently familiar with lenses to
+      write one themselves.
+
+We described the iterative process assuming a lazy user who didn't want to
+provide more specifications than were necessary. However, such an iterative
+process is not required, and if the user is confident that certain information
+is "required" or may safely "skipped," they can safely add this information --
+it will not slow down synthesis. Similarly, if the user already has a benchmark
+suite, they may safely include such examples.
+
+
+
+    - To add to the previous point: the evaluation could do a better job
+      quantifying these limitations. For example, it would be good to see for
+      each benchmark the size of annotations required, as well as how many
+      "existing lenses" were used in compositional synthesis and where they came
+      from (some standard library of lenses? or did the authors manually
+      decompose each problem into subproblems? if so, then how many subproblems
+      were there?)
+
+There were a total of 12 uses of "require" in the benchmark suite. There were a
+total of 4 uses of "skip" in the benchmark suite. In total 73 existing lenses
+were used in compositional synthesis (about 1.5 per benchmark on average).
+Typically, we manually decomposed these lenses, though some used the to_upper
+function. We are happy to include a figure detailing the subtasks specified
+during compositional synthesis in the final version of the paper (similar to the
+one on p24 of Synthesizing Bijective Lenses).
+
+
+
+    - Finally, the evaluation could also do a better job confirming that there's
+      indeed a benefit to synthesizing a lens, rather than using a tool like
+      FlashFill to synthesize the two functions independently. The related work
+      section mentions that FlashFill cannot handle nested loops. However,
+      FlashFill has evolved a lot since its original publication in 2011, so it
+      would be interesting to see an empirical comparison.
+
+We included an extended comparison to FlashFill in previous work, and did not
+include such a comparison for lack of space. We are happy to make comparison to
+FlashFill cited more explicitly.
+
+
+
+    - The introduction mentions that stochastic regular expressions guide the
+      search process. I would like to see it better explained in the main text
+      of the paper: do they actually guide the search or merely rank the
+      results?
+
+Due to the Greedy nature of GreedySynth, the stochastic regular expressions
+guide the search (insofar as the lens costs guide the search).
+
+
+
+    - L 284: please explain why this rule is needed for the lens in Fig. 3 to be
+      well-typed.
+
+Without the type equivalence rule, the lens would be well-typed between
+emp_salaries and header . ("" | ("\n" . emp_ins) . ("\n" . emp_ins)∗). To be
+well-typed between emp_salaries and emp_insurance, the right-hand type needs to
+be transformed into an equivalent form, without the explicit star unrolling.
+
+
+
+    - Section 5.6: expansion inference seems to be a crucial part of the
+      algorithm but is described very briefly. I would like to see more detail.
+
+Expansion inference is the same as is performed in bijective lens inference, and
+we did not include it for space. We will gladly make such a citation more
+explicit.
+
+
+
+    - Can you explain why you need the lower bound [for intervals]?
+
+While we do not need it in the algorithm, we include it to make formal claims
+about bounding the cost. We describe why we need intervals for the formal claims
+in 4.1.
+
+
+
+=================================================================================
+Reviewer B
+=================================================================================
+
+    - Theorem 1 is about the soundness of the equational theory shown in Fig. 4.
+      Can you say the completeness?
+
+The equational theory shown in Fig. 4. is incomplete, for it does not include
+some of the non-star-semiring equivalences (for example: the regular expression
+equivalence of (A | B)* = (A*B)*A* does not currently have an analogue in this
+equational theory). Furthermore, it is currently unclear whether the natural
+extensions to Conway's equational theory is sufficient for completeness, or
+whether Kozen and Solomaa's deductive systems are easily amenable to SREs.
+
+
+
+    - p10:L466 for other reasons
+
+The other reasons are to guarantee that any lens that is synthesized by our
+synthesis algorithm is guaranteed to be well-typed.
+
+
+
+    - p10:L489 relaxing this restrict is not problemantic
+
+For all these combinators, we can merely straightforwardly follow the style of
+unambiguity requirements on the types that was used in prior lens work. For
+example, the original Boomerang paper explicitly includes such unambiguity
+checks within the typing judgments, these unambiguity checks can be used in the
+same way for the symmetric lens variants of these combinators.
+
+
+
+    - p12:L563-572 I would like to read more explanations on why
+      \mathbb{H}^{\to} is defined as this.
+
+In general, these derivations follow the information theory, so as to make
+Theorem 3 true. Most of these strictly follow the rules of information theory,
+the only ones that are more complex are merges. Calculating the expected
+information to recover a string from a lens using merges does not involve a
+simple inductive calculation, but requires reasoning about the probilities of
+individual strings in the unioned format, conditioned on the probabilities of
+the source format.
+
+
+
+    - p13:L559 Cost(\ell) < Cost(best). What is the meaning of "<"? Since
+      Cost(\ell) can return a range instead of a number, the definition of "<"
+      is not so obvious.
+
+We define the cost as the sum of the maximum of \mathbb{H}^{\to} and the maximum
+of \mathbb{H}^{\leftarrow}.
+
+
+
+    - p14:L650 distance d.  What is "distance"?
+
+The distance is the number of star-semiring equivalences that must be applied to
+the pair of regular expressions to convert to the pair.
+
+
+
+    - p17:L806 CannotMap determines whether there is no lens satisfying the
+      examples.
+
+This is done by looking at the example parses. For example, given two regular
+expressions "a" | "b" and "c", and the example data putl "c" "b" = "a", we can
+determine that there cannot be a lens between "c" and "b".
+
+
+
+    - p17:L806 CannotMap determines whether there is no lens satisfying the
+      examples. How do you determine this?
+
+This is done by looking at the example parses. For example, given two regular
+expressions "a" | "b" and "c", and the example data putl "c" "b" = "a", we can
+determine that there cannot be a lens between "c" and "b".
+
+
+
+=================================================================================
+Reviewer C
+=================================================================================
+
+    - 5 runs per benchmark are not sufficient to draw statistically significant
+      conclusions. There is no report of errors or confidence intervals for the
+      mean time calculations.
+
+We only ran 5 times because there was so little variance between the times, as
+our procedure is deterministic. Rerunning, we found our average standard
+deviation while running the full symmetric algorithm was .0162. We are happy
+to both include standard deviations and rerun additional times.
+
+
+
+    - The graphs drop a lot of useful information. In particular they do not
+      show for which benchmark SS does better than SSNC or BS. This information
+      together with an analysis of the benchmarks can help understand the
+      performance of the proposed algorithm. The number of benchmarks that
+      terminate in less than 30s offers almost no insight.
+
+In general, SS always performs better than SSNC and SS always performs worse
+than BS. We ran for 30s under the assumption that users would be unwilling to
+wait for responses much longer than that. We are happy to rerun with a longer
+timeout.
+
+
+
+    - Similar to the above, the graph in figure 8 and the accompanying
+      discussion are not sufficient to understand what features of the algorithm
+      help or do not help with what kind of inputs.
+
+Requires help with continuing searching when the desired lenses require a large
+number of Expand applications. Skips help when the desired lenses require
+projecting large amounts of information. Using the DC metric only works for
+lenses where the desired lens appears quite early. FL is the same as DC, but is
+even more dependent on the desired lens appearing early (it *must* appear in the
+first cluster containing a satisfying program).
