@@ -350,8 +350,8 @@ implementation can synthesize each of these lenses in under 30 seconds.
 \noindent
 In today's data-rich world, similar information is often stored in different
 places and in different formats. For instance, electronic calendars come in
-iCalendar, vCalendar, and h-event formats~\cite{calendar-formats}; U.S. taxation
-data can be transmitted via Tax XML (used by the U.S. government for e-filing) or
+iCalendar, vCalendar, and h-event formats~\cite{calendar-formats}; US taxation
+data can be transmitted via Tax XML (used by the US government for e-filing) or
 TXF (used by TurboTax)~\cite{tax-formats}; configuration files can be stored in
 ad-hoc or structured file formats~\cite{augeas} (for example, scheduled commands
 can be stored in a crontab or as Windows's Scheduled Tasks xml).
@@ -378,11 +378,8 @@ demonstrated the feasibility of synthesizing quite complex examples, albeit
 only for a restricted class of lenses---so-called bijective lenses.
 Given source and target formats plus a small number of examples of
 corresponding data, Optician's synthesis algorithm is guaranteed to find a
-bijective lens matching the examples, if one exists, often requiring no
-examples at all. While specifying regular expressions can be cumbersome, doing so
-is much easier than programming lenses -- regular expressions are widely
-understood whereas few programmers are fluent in lenses, and writing lenses
-require users reason about how to align two formats at once.
+bijective lens matching the examples, if one exists. Indeed, it can often find
+an appropriate lens in less than a second with no examples at all.
 %, with just types describing the source and target formats.
 % \dpw{I would cite the ICFP paper (cite string:
 %   maina+:quotient-synthesis) as to appear but I'm not sure how to do that
@@ -611,8 +608,8 @@ remain valid when extended to stochastic regular expressions, preserving
 probability distributions as well as languages (\S\ref{sec:sre}).
 We close with related work (\S\ref{sec:related}) and
 concluding thoughts (\S\ref{sec:conc}).
-Elided proofs can be found
-\ifappendices in the appendices\else in the full version of the paper~\cite{sslfull}\fi.
+Elided proofs can be found in the appendices
+\ifappendices\else included with the supplemental material\fi.
 
 %Such synthesis efforts
 %make it easier to use lenses as programmers do not need to be familiar with the syntax
@@ -668,9 +665,9 @@ let emp_salaries = "" | emp_salary . ("\n" emp_salary)$^*$
   \setbox0=\hbox{%
     \begin{minipage}{3.5in}
 \begin{lstlisting}
-let company = (co_name . ("Co." | "Inc." | "Ltd.")) | "UNK"
-let emp_ins = name . " " . name "," company
-let header = "FirstLast,Company"
+let company = (co_name . ("Co." | "Inc." | "Ltd.")) | "UNK" in
+let emp_ins = name . " " . name "," company in
+let header = "FirstLast,Company" in
 let emp_insurance = header . ("\n" . emp_ins)$^*$
 \end{lstlisting}
     \end{minipage}
@@ -693,7 +690,7 @@ let emp_insurance = header . ("\n" . emp_ins)$^*$
     \end{tabular}
   }
   \caption{Hypothetical example data files and corresponding regular expressions
-  used by management and HR at a company to represent employee salaries and health
+  used by management and HR at a US company to represent employee salaries and health
   insurance providers, respectively.
   }
   \label{fig:minimized-representations}
@@ -701,7 +698,7 @@ let emp_insurance = header . ("\n" . emp_ins)$^*$
 
 We begin with an overview of simple symmetric lenses and our
 synthesis algorithm, using a simplified example drawn from a hypothetical
-company. In this company, management and human resources (HR) store
+U.S. company. In this company, management and human resources (HR) store
 information about employees in separate text files: management stores the
 names of 
 employees and their salaries while HR stores the names of employees and their
@@ -799,7 +796,7 @@ side (the result of a put or create) back through a lens in the other direction
 will get back to exactly where we began. For example, consider a lens
 synchronizing the employee data formats in
 Figure~\ref{fig:minimized-representations}. Applying the \CreateR function to a
-salary file creates an insurance file with the same employee names in the file,
+salary file creates a insurance file with the same employee names in the file,
 with
 \lstinline{"UNK"} for each insurance company. The round-tripping
 laws guarantees that applying the \PutL function to the generated insurance file
@@ -923,11 +920,11 @@ between the employee formats.
 
 \begin{figure}
 \begin{lstlisting}
-let name_lens = id(name) . id(" ") . id(name) . del(": ") . ins(",")
+let name_lens = id(name) . id(" ") . id(name) . del(": ") . ins(",") in
 let employee_lens = name_lens . disconnect(salary,"","unk","") 
-                                                    . disconnect("",company,"","UNK")
-let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens)
-let full_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance = ins(header) . employees_lens
+                                                    . disconnect("",company,"","UNK") in
+let employees_lens = ins("\n") . employee_lens . iterate(id("\n") . employee_lens) in
+ins(header) . employees_lens  :  emp_salaries $\Leftrightarrow$ emp_insurance
 \end{lstlisting}
 %\ksf{I don't think this is necesssary.}
 %let emp_lens = or(id(""),employees_lens) in
@@ -954,7 +951,7 @@ Many of these rules provide tight relationships between terms and types, for exa
     \BRegexAlt_1 \Concat \BRegexAlt_2
   }
 \]
-The typing  rules maintain structural similarity
+The typing  rules for maintain structural similarity
 between regular expression types and lens terms, with one exception: The
 type equivalence rule permits a well-typed lens to be well-typed among any
 equivalent regular expression pair.
@@ -1088,7 +1085,7 @@ $\LanguageOf{\Regex}$. This expectation is the \emph{conditional entropy of
     \Lens.\PutROf{s}{t} = t}}$. The likelihood we assign to $\Lens$ is the sum
 of the conditional entropy of $\Regex$ given $\RegexAlt$ and $\Lens$ and the
 conditional entropy of $\RegexAlt$ given $\Regex$ and $\Lens$. This metric
-assigns higher entropy (or lower likelihood) to lenses where knowing the string on one side 
+assigns higher entropy (or likelihood) to lenses where knowing the string on one side 
 provides little information about the string on the other side. It assigns zero
 entropy to bijections because given a string $s \in \Regex$, the bijection
 exactly determines the corresponding string in $\RegexAlt$.
@@ -1286,10 +1283,11 @@ constant SRE $\String$ always generates the string $\String$ and never any other
 string. The SRE $\PRegexOr{\Regex_1}{\Regex_2}{\Probability}$ generates a string
 from $\Regex_1$ with probability $\Probability$ and generates a string from
 $\Regex_2$ with probability $1-\Probability$. The SRE
+$\PRegexStar{\lstinline{"c"}}{\Probability}$ generates the empty string with
+probability $1-\Probability$, and generates any other string in the language with
+probability $\Probability$. More generally,
 $\PRegexStar{\Regex}{\Probability}$ generates strings in $\Regex^n$ with
-probability $\Probability^n(1-\Probability)$. For example, if the empty string
-is not in $\Regex$, $\PRegexStar{\Regex}{\Probability}$ will generate the empty
-string with probability $1-\Probability$.
+probability $\Probability^n(1-\Probability)$.
 
 \begin{figure}
   \begin{tabular}{@{}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r@{\hspace*{3em}}r@{\hspace{1em}}c@{\hspace{1em}}l@{}r}
@@ -1316,17 +1314,18 @@ string with probability $1-\Probability$.
 The $\Expand$ algorithm enumerates SREs that are
 ``equivalent'' to a given one. However, existing work does not define any notion
 of stochastic regular expression equivalence. Figure~\ref{fig:ssr-sre} shows how
-we extend the \emph{star-semiring}~\cite{starsemiring} equivalences (a
+we to extend the \emph{star-semiring}~\cite{starsemiring} equivalences (a
 \emph{finer} notion of equivalence than semantic equivalence) to
 SREs.  
 
 \begin{theorem}
-  If $\Regex \SSREquiv \RegexAlt$ and $\String$ is a string, then
-  $\ProbabilityOf{\Regex}{\String} = \ProbabilityOf{\RegexAlt}{\String}$.
+  If $\Regex \SSREquiv \RegexAlt$ then $\ProbabilityOf{\Regex}{\String} =
+  \ProbabilityOf{\RegexAlt}{\String}$, for all strings $\String \in \LanguageOf{\Regex}$.
 \end{theorem}
 
-\ifappendices(For the proof, see the appendix 
-Theorem~\ref{thm:semantics-correctness}.) \else\fi  This theorem will come in handy as we traverse
+(For the proof, see the appendix \ifappendices
+Theorem~\ref{thm:semantics-correctness} \else{} included with the
+supplemental material\fi.)  This theorem will come in handy as we traverse
 (with \Expand) or normalize across (as part of \GreedySynth) star-semiring
 equivalences.
 
@@ -1377,11 +1376,11 @@ generated string will be \lstinline{"a"}). Similar issues occur when trying to
 find the entropy when $\emptyset$ is a subterm (what should the entropy of
 $\PRegexStar{\emptyset}{.5}$ be?), so we do not define entropy on~$\emptyset$.
 
-Fortunately, we already require unambiguous regular expressions as input to our
-synthesis procedure to guarantee the synthesized lenses are well-typed, and we
-can easily preprocess empty subexpressions out of SREs that are themselves
-nonempty using the star-semiring equivalences (\EG,
-$\PRegexOr{\emptyset}{\lstinline{"s"}}{.5} \SSREquiv \lstinline{"s"}$).
+Fortunately, we already require unambiguous regular expressions as input to
+our synthesis procedure for other reasons, and we can easily preprocess
+empty subexpressions out of SREs that are themselves nonempty using the
+star-semiring equivalences (\EG, $\PRegexOr{\emptyset}{\lstinline{"s"}}{.5}
+\SSREquiv \lstinline{"s"}$).
 
 % \caption{Regular Expression Equivalences}
 % \label{fig:regex-equivalence-rules}
@@ -1417,8 +1416,8 @@ We now give typing rules and semantics for (some of) these combinators. We write
 $\Lens \OfType \BRegex \Leftrightarrow \BRegexAlt$ to indicate that $\Lens$ is a
 well typed lens between the language of \BRegex and the language of \BRegexAlt.
 We present just \CreateR and \PutR in cases where \CreateL and \PutL are
-symmetric; full details can be found in\ifappendices{} appendix
-\S\ref{sec:appendixlenses} \else{} the full version of the paper\fi. For
+symmetric; full details can be found in an appendix\ifappendices
+\S\ref{sec:appendixlenses} \else{} (in the supplemental materials)\fi. For
 simplicity of presentation, we use unambiguous regular expressions everywhere,
 even though the identity and disconnect lenses can actually be defined over
 ambiguous regular expressions; relaxing this restriction is not problematic.
@@ -1629,7 +1628,7 @@ $
 \end{tabular}
 \end{centermath}
 
-The \MergeR lens is interesting because it merges data where one piece of data can be in
+The \MergeR lens is interesting because it merges data where one data can be in
 two formats, and one data has only one format. In previous
 work~\cite{boomerang}, this was combined into \OrLens{}, where
 \OrLens{} could have ambiguous types, but we find it more clear to have explicit
@@ -1738,8 +1737,8 @@ expected amount of information required to recover a string in $\RegexAlt$ from
 a string in $\Regex$, synchronized by $\Lens$. Similarly, we use the function
 $\LEntropyOf{\Regex \Given \Lens, \RegexAlt}$ to calculate bounds on the
 expected amount of information required to recover a string in $\Regex$ from a
-string in $\RegexAlt$, synchronized by $\Lens$. We write $a[b,c]$ to
-mean $[ab,ac]$, and $[a,b]+[c,d]$ to mean $[a+c,b+d]$.
+string in $\RegexAlt$, synchronized by $\Lens$. We write $a(b,c)$ to
+mean $(a*b,a*c)$, and $(a,b)+(c,d)$ to mean $(a+c,b+d)$.
 \begin{center}
   \begin{tabular}{rcl}
     $\REntropyOf{\RegexAlt \Given \IdentityLensOf{\RegexAlt}, \RegexAlt}$
@@ -1772,7 +1771,7 @@ mean $[ab,ac]$, and $[a,b]+[c,d]$ to mean $[a+c,b+d]$.
     
     $\REntropyOf{\PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt} \Given \MergeLOf{\Lens_1}{\Lens_2}, \Regex}$
     & =
-    & $[0,\REntropyOf{\RegexAlt_1 \Given \Lens_1, \Regex}+\REntropyOf{\RegexAlt_2 \Given \Lens_2, \Regex}+1]$\\
+    & $(0,\REntropyOf{\RegexAlt_1 \Given \Lens_1, \Regex}+\REntropyOf{\RegexAlt_2 \Given \Lens_2, \Regex}+1)$\\
     
     $\REntropyOf{\Regex \Given \InvertOf{\Lens}, \RegexAlt}$
     & =
@@ -1786,7 +1785,7 @@ calculate the conditional entropy, were it not for \MergeL and \MergeR. If
 $\MergeLOf{\Lens_1}{\Lens_2} \OfType \Regex \Leftrightarrow
 \PRegexOr{\RegexAlt_1}{\RegexAlt_2}{\ProbabilityAlt}$, given a string in $s$, we
 need to determine if the synchronized string is in $\RegexAlt_1$ or $\RegexAlt_2$.
-However, this information content is dependent on how likely the
+However, this information content is dependent on the how likely the
 synchronized string is to be in $\RegexAlt_1$ or $\RegexAlt_2$. Nevertheless, we
 typically calculate the conditional entropy exactly, as merges are relatively
 uncommon in practice; only 2 of the lenses synthesized in our benchmarks
@@ -1989,7 +1988,7 @@ has zero cost, it will immediately return.
 The \GreedySynth subroutine converts input SREs into a temporary pseudo-normal
 form, \emph{Stochastic DNF regular expressions} (\SDNFREabbrev{}s).
 \SDNFREabbrev{}s normalize across many of the star-semiring equivalences -- if
-two regular expressions are equivalent modulo differences in associativity,
+two regular expressions are equal modulo differences in associativity,
 commutativity, or distributivity, their corresponding SREs are syntactically
 equal.
 
@@ -2269,12 +2268,9 @@ string in $\DNFRegex$ from a string in $\DNFRegexAlt$, synchronized by
 $\SDNFLens$.
 
 The details of these definitions are syntactically tedious, but not
-intellectually difficult. We elide them here but include them in
-\ifappendices appendix \S\ref{sec:appendixdnf}.  \else{}the full version of the
-paper.  \fi In the original Optician paper~\cite{optician}, DNF lenses were
-proven equivalent in expressiveness to standard lenses. While we conjecture
-symmetric DNF lenses are equivalent in expressivity to our standard symmetric
-lenses, we have not proven this equivalence.
+intellectually difficult. We elide them here but include them in the
+appendix \ifappendices \S\ref{sec:appendixdnf}.  \else{} (in the supplemental
+materials).\fi
 
 \subsection{\GreedySynth}
 \label{subsec:greedy-synth}
@@ -2335,11 +2331,9 @@ sequence lenses have the same source, the second one to be popped gets a higher
 cost than it originally had; information must now be stored for including that
 source of non-bijectivity.
 
-As an example, consider searching for a lens between \lstinline{"" | name.name$^*$}
-and \lstinline{"" | name}. \GreedySynth might first the
-sequence lens between the
-sequences \lstinline{""} and \lstinline{""}, because it is a bijective
-sequence lens between. As neither \lstinline{""} is involved in a sequence
+As an example, consider searching for a lens between \lstinline{"" | name.name$^*$} and \lstinline{"" | name}. \GreedySynth might first pop the
+sequence pair \lstinline{""} and \lstinline{""}, because there is a bijective
+sequence lens between them. As neither \lstinline{""} is involved in a sequence
 lens, this lens is considered useful. Next, the sequence lens between
 \lstinline{name.name$^*$} and \lstinline{name} would be popped: while that lens
 is not bijective it is still better than the alternatives. As all sequences are
@@ -2396,7 +2390,7 @@ returns \None otherwise.
     \EndIf
     \State $\ALS \gets
     \Call{\CartesianMap}{\AtomSynth(\Examples),\ListOf{\Atom_1;\ldots;\Atom_n},\ListOf{\AtomAlt_1;\ldots;\AtomAlt_m}}$
-    \State $\GreedyState \gets \Call{PQ.Create}{\ALS}$
+    \State $\GreedyState \gets \Call{PQ.Init}{\ALS}$
     \State $\SeqLensBuilder \gets \Call{SLensBuilder.Empty}{}$
     \While{$\Call{PQ.IsNonempty}{\GreedyState}$}
     \State $\SAtomLens \gets
@@ -2446,8 +2440,7 @@ closed, and \Expand rewrites selected closed regular expressions to open ones
 \paragraph*{Expansion Inference} These additional rewrites make the search
 through possible regular expressions harder. Our algorithm identifies when
 certain closed regular expressions can \emph{only} be involved in a disconnect
-lens (unless opened). Such regular expressions will automatically be opened. The
-full details of expansion inference are explained in \citet{optician}.
+lens (unless opened). Such regular expressions will automatically be opened.
 
 \paragraph*{Compositional Synthesis} Compositional synthesis allows \GreedySynth to use
 previously defined (by users or synthesis) lenses. As the synthesizer processes a Boomerang file, it accumulates
@@ -2503,8 +2496,7 @@ Our benchmarks are drawn from three different sources.
 \begin{enumerate}
 \item We adapted 8 data cleaning benchmarks from Flash Fill~\cite{flashfill}. Flash Fill data
   cleaning tasks are either derived from online help forums or taken from the
-  Excel product team. The 8 we chose are merely the first 8 found in the Flash
-  Fill paper. Note that our tool produces bidirectional transformations
+  Excel product team. Note that our tool produces bidirectional transformations
   rather than one-way transformers like Flash Fill. We ensure one direction of
   our bidirectional transformers performs the same unidirectional transformation
   as Flash Fill---the other direction is determined from the round-tripping
@@ -2512,11 +2504,9 @@ Our benchmarks are drawn from three different sources.
 \item We adapted 29 benchmarks from Augeas~\cite{augeas}. Augeas is a utility
   that bidirectionally converts between Linux configuration files and an
   in-memory dictionaries. In our benchmarks, we synthesize lenses between Linux
-  configuration files and serialized versions of Augeas dictionaries. We
-  selected the first 28 benchmarks from Augeas in alphabetical order, and
-  included one additional benchmark we considered particularly difficult,
-  \texttt{xml\_to\_augeas.boom}. Because these benchmarks merely transformed the
-  information into a structured form, synthesized lenses were all bijective.
+  configuration files and serialized versions of Augeas dictionaries. Because
+  these benchmarks merely transformed the information into a structured form,
+  synthesized lenses were all bijective.
 \item We created 11 additional benchmarks 
   derived from real-world examples and/or the bidirectional programming
   literature. These tasks range from synchronizing REST and JSON web resource
@@ -2525,13 +2515,9 @@ Our benchmarks are drawn from three different sources.
 \end{enumerate}
 
 Each task consists of a source and target regular expression and a set of
-examples. We manually programmed the regular expressions. However, when writing
-these regular expressions, we did not massage them to be amenable to synthesis.
-The synthesizer implements the star-semiring regular expression equivalence
-axioms, so that users do not have to worry about the way they write expressions
-themselves. We are synthesizing transformations between real formats, so these
-tasks are can be quite large -- on average, the size of each RE in the
-specification is 1637 and the size of the synthesized lens is 3254.
+examples. We are synthesizing transformations between real formats, so these
+tasks are can be quite large -- on average, the size of each RE
+in the specification is 1637 and the size of the synthesized lens is 3254.
 
 \subsection{Synthesizing Correct Lenses}
 
@@ -2594,7 +2580,7 @@ provides a useful experimental stress test for the system.
     \SSNCOpt{} is the symmetric synthesis algorithm without using a library of
     existing lenses. The symmetric synthesis algorithm is able to complete all
     benchmarks in under 30 seconds elapsed total time. Without compositional
-    synthesis it is able to complete 31. Each benchmark specification includes
+    synthesis it is able to complete 26. Each benchmark specification includes
     source and target (potentially annotated) regular expressions, and between
     one and three sufficient examples.}
   \label{fig:times}
@@ -2604,7 +2590,7 @@ For each benchmark in the suite and each mode, we ran the system with a timeout
 of 60 seconds, averaging the result over 5 runs. Figure~\ref{fig:times}
 summarizes the results of these tests. We find that our algorithm is able to
 synthesize all of the benchmarks in under 30 seconds. Without compositional
-synthesis, the synthesis algorithm is able to solve 31 out of 48 problem instances.
+synthesis, the synthesis algorithm is able to solve 26 out of 48 problem instances.
 
 % Section~\ref{subsec:optimizations} that users may tune the termination metric.
 % Success on this set of benchmarks requires we tune that termination condition
@@ -2637,17 +2623,7 @@ average, \SSOpt{} took 1.3 times (0.5 seconds) longer to complete than
 depth 3 into a serialized version of the structured dictionary representation
 used in Augeas. This benchmark takes 18.9 seconds for the symmetric synthesis
 algorithm to complete, and 9.3 seconds the bijective synthesis algorithm to
-complete.
-
-Both the bijective synthesis and the symmetric synthesis engines use a pair of
-collaborating synthesizers that involves (1) a search for a compatible pair of
-regular expressions and (2) search for a lens given those regular expressions.
-Bijective synthesis is faster than symmetric synthesis because part (2) is much
-faster. Specifically, a bijection must translate all data on the left into data
-on the right, and this fact constrains the search. By contrast, a symmetric
-synthesis problem has a choice of which data on the left to translate into data
-on the right. This gives rise to a large set of possible choices, and symmetric
-synthesis must consider all of them.
+complete. 
 
 \begin{figure}[t]
   \includegraphics{generated-graphs/times_bijective}
@@ -2677,7 +2653,7 @@ relevance annotations.  To this end, we run our program in several different mod
 
 
 We experimented with the \CCOpt{} mode to determine whether the
-complexity of the information-theoretic measure is really
+complexity of the information-theoretic measure was really
 needed. Related work on string transformations has often used simpler
 measures such as ``avoid constants'' that align with, but are simpler
 than our measures. The \CCOpt{} mode is an example of such a simple
@@ -2722,8 +2698,8 @@ techniques.  In this section, we analyze the relationship
 between our simple symmetric
 lenses and two previous lens languages:  classical symmetric lenses
 and asymmetric lenses. Proofs about these relationships are included in
-\ifappendices appendix \S\ref{sec:appendixforget}. \else{}the full version of
-the paper.  \fi We also comment on related
+the appendix \ifappendices  \S\ref{sec:appendixforget}. \else{}included with the supplemental
+material.  \fi We also comment on related
 program synthesis techniques.
 
 \subsection{Relationship with Classical Lens Languages}
@@ -2947,7 +2923,7 @@ Next, we define \emph{forgetful symmetric
     \def\extraVskip{.5pt}
     \noLine 
     \UnaryInfC{$\Lens.putl(y,c_2) = (\_,c_2')$}
-    \AxiomC{$\Lens.putr(x,c_1') = (\_,c_1'')$}
+    \AxiomC{$putr(x,c_1') = (\_,c_1'')$}
     \def\extraVskip{.5pt}
     \noLine 
     \UnaryInfC{$\Lens.putr(x,c_2') = (\_,c_2'')$}
@@ -3008,7 +2984,7 @@ or both.
 %more generally under the rubric of syntax-guided synthesis~\cite{sygus}.
 
 Automation of string transformations, in particular, has been the focus
-of much prior attention.  For example, Gulwani's and others' work on FlashFill
+of much prior attention.  For example, Gulwani and others work on FlashFill
 generates one-way spreadsheet transformations from input/output
 examples~\cite{flashfill,le-pldi-2014}.  On the one hand,
 FlashFill is easier to use because one need not specify the type of
@@ -3016,8 +2992,7 @@ the data being transformed.  On the other hand, this type information
 makes it possible to transform more complex formats. For example, Flash Fill
 does not synthesize programs with nested loops~\cite{flashfill},
 and hence is incapable of synthesizing the majority of our
-benchmarks, even in one direction. A comparison of Optician (on
-bijective benchmarks) to these synthesis tools is included in~\citet{optician}.
+benchmarks, even in one direction.
 %% Flashfill, designed
 %% for transformation of the cells of spreadsheets, does not scale to
 %% more complex formats
@@ -3092,21 +3067,13 @@ the transformation).
 
 More broadly, information theory and probabilistic languages are common tools in
 natural language understanding, machine translation, information retrieval, data
-extraction and grammatical inference (see \citet{pereira:info-theory}, for an
-introduction). Indeed, our work was inspired, in part, by the PADS format
+extraction and grammatical inference (see \citet{pereira:info-theory},
+for an introduction). Indeed, our work was inspired, in part, by the PADS format
 inference tool~\cite{pads:synthesis}, which was in turn inspired by earlier work
 on probabilistic grammatical inference and information
 extraction~\cite{kushmerick-thesis,arasu:extracting}. PADS did not synthesize
 data transformers, and we are not aware of the use of information-theoretic
-principles in type-directed or syntax-guided synthesis of DSL programs. More
-recently, the principles used in \citet{pads:synthesis} have been applied in
-unsupervised learning~\cite{ULPS}. These works learn compact descriptions of a
-single data set. Ideally, such descriptions are compact and information theory
-is used as a measure of the compactness of the description learned. In contrast,
-we are attempting to learn a translation from data set to another. However,
-there are many different candidate translations. To select amongst the candidate
-translations, we choose the translation that preserves as much information from
-source to target (and vice versa) as possible.
+principles in type-directed or syntax-guided synthesis of DSL programs.
 
 %% Other work synthesizing invertible transformations was done by inverting a
 %% previously defined transformation.  This has been done by exploiting
@@ -3140,14 +3107,11 @@ of these ideas, we designed and implemented a new tool for symmetric lens
 synthesis and integrated it into the Boomerang lens programming framework. Our
 experiments on 48 benchmarks demonstrate that we can synthesize complex lenses for
 real-life formats in under 30 seconds.
+
 % end conclusion
 
 % begin acknowledgements
 \begin{acks}
-  We thank our anonymous reviewers for their useful feedback and discussions and
-  Nate Foster and Michael Greenberg for their help integrating Optician into
-  Boomerang. This research has been supported in part by DARPA award
-  FA8750-17-2-0028 and ONR 568751 (SynCrypt).
 \end{acks}
 % end acknowledgements
 
