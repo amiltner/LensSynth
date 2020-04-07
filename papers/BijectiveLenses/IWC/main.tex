@@ -1,0 +1,522 @@
+% easychair.tex,v 3.5 2017/03/15
+
+\documentclass{easychair}
+%\documentclass[EPiC]{easychair}
+%\documentclass[EPiCempty]{easychair}
+%\documentclass[debug]{easychair}
+%\documentclass[verbose]{easychair}
+%\documentclass[notimes]{easychair}
+%\documentclass[withtimes]{easychair}
+%\documentclass[a4paper]{easychair}
+%\documentclass[letterpaper]{easychair}
+
+\usepackage{doc}
+
+%\newif\ifdraft\drafttrue      % Uncomment to turn on comments
+\newif\ifdraft\draftfalse   % Uncomment to turn off comments
+
+% use this if you have a long article and want to create an index
+% \usepackage{makeidx}
+
+% In order to save space or manage large tables or figures in a
+% landcape-like text, you can use the rotating and pdflscape
+% packages. Uncomment the desired from the below.
+%
+% \usepackage{rotating}
+% \usepackage{pdflscape}
+
+% Some of our commands for this guide.
+%
+\newcommand{\easychair}{\textsf{easychair}}
+\newcommand{\miktex}{MiK{\TeX}}
+\newcommand{\texniccenter}{{\TeX}nicCenter}
+\newcommand{\makefile}{\texttt{Makefile}}
+\newcommand{\latexeditor}{LEd}
+
+%\makeindex
+
+%% Front Matter
+%%
+% Regular title as in the article class.
+%
+%
+\title{Confluence in Lens Synthesis}
+
+% Authors are joined by \and. Their affiliations are given by \inst, which indexes
+% into the list defined using \institute
+%
+\author{
+Anders Miltner\inst{1}
+\and
+Kathleen Fisher\inst{2}
+\and
+Benjamin C. Pierce\inst{3}
+\and
+David Walker\inst{4}
+\and
+Steve Zdancewic\inst{5}
+}
+
+% Institutes for affiliations are also joined by \and,
+\institute{
+  Princeton University\\
+  \email{amiltner@cs.princeton.edu}
+\and
+   Tufts University\\
+   \email{kfisher@eecs.tufts.edu}\\
+\and
+   University of Pennsylvania\\
+   \email{bcpierce@cis.upenn.edu}\\
+\and
+   Princeton University\\
+  \email{dpw@cs.princeton.edu}
+\and
+  University of Pennsylvania\\
+  \email{stevez@cis.upenn.edu}\\
+}
+
+%  \authorrunning{} has to be set for the shorter version of the authors' names;
+% otherwise a warning will be rendered in the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \authorrunning
+% will be rejected by EasyChair
+
+\authorrunning{Miltner, Fisher, Pierce, Walker and Zdancewic}
+
+% \titlerunning{} has to be set to either the main title or its shorter
+% version for the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \titlerunning
+% will be rejected by EasyChair
+\titlerunning{Confluence in Lens Synthesis}
+
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{bussproofs}
+\usepackage{amsthm}
+\usepackage{csvsimple}
+\usepackage{thmtools,thm-restate}
+\usepackage{changepage}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage[inline]{enumitem}
+\usepackage{multirow,bigdelim}
+\usepackage{multicol}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{sansmath}
+\usepackage{url}
+\usepackage{flushend}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage{mathpartir}
+\usepackage{empheq}
+\usepackage{array}
+\usepackage{pgfplots}
+\usepackage{stmaryrd}
+\usepackage{courier}
+\usepackage{qtree}
+\usepackage[normalem]{ulem}
+\usepackage{relsize}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{textcomp}
+\usepackage{tabularx}
+\usepackage{stackengine}
+\usepackage{caption}
+\usepackage{wrapfig}
+\usepackage{remreset}
+\usepackage{tabulary}
+
+\usetikzlibrary{
+  er,
+  matrix,
+  shapes,
+  arrows,
+  positioning,
+  fit,
+  calc,
+  pgfplots.groupplots,
+  arrows.meta
+}
+\tikzset{>={Latex}}
+
+\input{macros}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Bidirectional programs are programs where a single expression has multiple
+  interpretations, encoding a number of functions with a single piece of syntax.
+  Lenses are bidirectional programs with semantic guarantees, and lens languages
+  have been developed for synchronizing string formats, building updatable views
+  in databases, and more. These languages often are typed, where a well-typed
+  expression will provide the semantic guarantees. Recent research has shown how
+  string lenses can be synthesized from their types, pairs of regular
+  expressions. However, providing completeness guarantees is quite tricky on
+  these languages, due in large part to the many equivalences on regular
+  expressions.
+
+  In proving a completeness guarantee, a confluence-like property,
+  $R$-confluence, must be shown. This property can be thought of as a
+  generalization of standard confluence. Where standard confluence is
+  parameterized by a set $S$ and a binary relation $\rightarrow$, indexed
+  confluence is parameterized by an additional binary relation $R \subseteq S
+  \times S$. In this model, confluence is the specific case where $R$ is just
+  equality. We show how the proof that the transitive closure of a rewrite
+  system is $R$-confluent differs from the proof strategy for standard
+  confluence.
+\end{abstract}
+
+\section{Introduction}
+
+Bidirectional transformations are pervasive in modern software systems, occuring
+as database views and view updaters, parsers and pretty-printers, data
+synchronization tools, and more. Instead of manually building the functions that
+comprise a bidirectional transformation, programmers can build them both ``at
+once'' using a bidirectional programming language. Bidirectional programming
+languages have been developed for creating view updaters~\cite{?}, Linux
+configuration file editors~\cite{?}, direct manipulation programming
+systems~\cite{?}, and more~\cite{?,?,?}. Lenses are a particularly well-behaved
+class of bidirectional programs, where the underlying transformations are
+guaranteed to satisfy a number of ``round-tripping'' laws. Lens-based
+bidirectional programming languages often provide round-tripping guarantees
+through a set of typing rules; well-typed lens expressions are guaranteed to
+satisfy the round-tripping laws.
+
+To make bidirectional programming easier, Optician~\cite{?,?,?} synthesizes
+bidirectional programs from these types, specifically in Boomerang, a language
+for synchronizing string data. Optician takes as input two regular expressions
+(which serve as the type of a Boomerang lens) and a set of examples specifying
+input-output behavior, and synthesizes a well-typed lens between the languages
+of those regular expressions.
+
+The judgement $\Lens : \Regex \Leftrightarrow \RegexAlt$ means that $\Lens$
+bidirectionally converts between $\LanguageOf{\Regex}$ and
+$\LanguageOf{\RegexAlt}$. For synthesis, given $\Regex$ and $\RegexAlt$, we must
+find a lens $\Lens$ such that $\Lens : \Regex \Leftrightarrow \RegexAlt$. There
+are a number of typing rules for lenses, but the rules for type-equivalence and
+composition (shown below) do not permit an efficient search algorithm. Note that
+in type equivalence we use a finer notion of equivalence than language
+equivalence, we instead use star-semiring equivalence. We were unable to make
+our proof strategy work for language equivalence, so instead guarantee
+completeness only on the subset of lenses well-typed with star-semiring
+equivalence.
+\begin{mathpar}
+  \inferrule[\RewriteRegexLensRule{}]
+  {
+    \Lens \OfType \Regex \Leftrightarrow \RegexAlt\\
+    \Regex \SSREquiv \Regex'\\
+    \RegexAlt \SSREquiv \RegexAlt'
+  }
+  {
+    \Lens \OfType \Regex' \Leftrightarrow \RegexAlt'
+  }
+  
+  \inferrule[\ComposeLensRule{}]
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+  }
+  {
+    \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
+  }
+\end{mathpar}
+
+Trying to synthesize a lens from the types by applying typing rules ``in
+reverse'' gets confounded by these two rules. They require no significant
+restriction on the output types, and so can be applied at any time. Furthermore,
+applying them in reverse requires pulling regular expressions ``out of thin
+air.'' For \RewriteRegexLensRule, these regular expressions need only be
+equivalent to the input regular expressions, and for \ComposeLensRule, there are
+no restrictions at all!
+
+Our solution is to synthesize in an alternative language of disjunctive normal
+form lenses (DNF lenses), typed by disjunctive number form regular expressions
+(DNF REs). Both DNF lenses and DNF REs can be thought of as lenses and regular
+expressions, put into a pseudonormal form.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[auto,node distance=1.5cm]
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
+    
+    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
+    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
+    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
+    
+    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
+    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
+
+    \node[text width=2.9cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
+    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
+    
+    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
+    
+    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
+    
+    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
+    
+    
+    \path[->] (regex1.east) edge (todnfregex.north west);
+    \path[->] (regex2.east) edge (todnfregex.south west);
+    
+    \path[->] (todnfregex.north east) edge (dnfregex1.west);
+    \path[->] (todnfregex.south east) edge (dnfregex2.west);
+    
+    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
+    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
+    
+    \path[->] (synthdnflens) edge (dnflens);
+    
+    \path[->] (dnflens) edge (tolens);
+    
+    \path[->] (tolens) edge (lens);
+    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
+    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
+    % Now place a relation (ID=rel1)
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
+    %\node (below-gen) [below=.5cm of sketch-gen] {};
+    %\node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
+    %     [right = .25cm of sketch-gen] {\RigidSynth{}};
+    %\node (below-compl) [below=.5cm of sketch-compl] {};
+    %\node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
+    %% Draw an edge between rel1 and node1; rel1 and node2
+    %\path[->] (spec) edge node (start-alg) {} (sketch-gen);
+    %\path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
+    %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
+    %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
+
+    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
+    %
+    %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
+  \end{tikzpicture}
+  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
+    \RegexAlt{}, and examples, \Examples{}, are given as input.
+    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
+    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
+    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
+    \RegexAlt{}, and \Examples{}.
+    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
+    that is equivalent to \DNFLens{}.}
+  \label{fig:schematic-diagram-synthesis}
+\end{figure}
+
+Two typing judgements are involved in typing a DNF lens, $\DNFLens : \DNFRegex
+\Leftrightarrow \DNFRegexAlt$ and $\DNFLens \OfRewritelessType \DNFRegex
+\Leftrightarrow \DNFRegexAlt$. In both instances, the judgement means $\DNFLens$
+is a DNF lens that converts between $\LanguageOf{\DNFRegex}$ and
+$\LanguageOf{\DNFRegexAlt}$. If $\DNFLens \OfRewritelessType \DNFRegex
+\Leftrightarrow \DNFRegexAlt$, then the typing derivation of $\DNFLens$ never
+rewrites the DNF REs. The only typing rule for $\DNFLens : \DNFRegex
+\Leftrightarrow \DNFRegexAlt$ is:
+\begin{mathpar}
+  \inferrule[\RewriteDNFRegexLensRule{}]
+  {
+    \DNFRegex' \StarOf{\Rewrite} \DNFRegex\\
+    \DNFRegexAlt' \StarOf{\Rewrite} \DNFRegexAlt \\
+    \DNFLens \OfRewritelessType \MapsBetweenTypeOf{\DNFRegex}{\DNFRegexAlt}
+  }
+  {
+    \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
+  }
+\end{mathpar}
+To type a DNF lens, one first applies a number of rewrites to the DNF REs, then
+builds up a DNF lens using rewriteless typing rules. Because of this, equivalent
+types only need to be generated once, and composition never need be applied.
+This permits an efficient algorithm that first searchest through type
+equivalences with rewrites, and second builds up a rewriteless DNF lens purely
+through the syntax of the DNF RE. This then permits the full synthesis
+algorithm, shown in Figure~\ref{fig:schematic-diagram-synthesis}. The input
+regular expressions are converted into DNF form with $\ToDNFRegex$. Next, a
+well-typed DNF lens is synthesized, and then converted back into a standard lens
+language with $\ToLens$.
+
+Proving this search procedure complete reduces to proving DNF lenses complete
+with respect to our standard lens language. In particular, we wish the prove the
+following theorem:
+\begin{theorem}
+  If $\Lens : \Regex \Leftrightarrow \RegexAlt$, then there exists a DNF lens,
+  $\DNFLens$, such that $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow
+  \ToDNFRegexOf{\RegexAlt}$, such that the semantics of $\Lens$ and $\DNFLens$
+  are equivalent.
+\end{theorem}
+
+We prove this by induction, and particular difficulty lies in the lens
+equivalence rule. We begin this case below:
+  
+\begin{mathpar}
+  \inferrule
+  {
+    \Lens \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+    \Regex \SSREquiv \Regex_2\\
+    \RegexAlt \SSREquiv \RegexAlt_2
+  }
+  {
+    \Lens \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
+  }
+\end{mathpar}
+
+By induction assumption, there exists $\DNFLens \OfType \ToDNFRegexOf{\Regex_1}
+\Leftrightarrow \ToDNFRegexOf{\RegexAlt_1}$, where the semantics of $\DNFLens$
+are equivalent to those of $\Lens$. By inversion
+\begin{mathpar}
+  \inferrule
+  {
+    \ToDNFRegexOf{\Regex_1} \StarOf{\Rewrite} \DNFRegex_1\\
+    \ToDNFRegexOf{\RegexAlt_1} \StarOf{\Rewrite} \DNFRegexAlt_1\\
+    \DNFLens \OfRewritelessType \DNFRegex_1 \Leftrightarrow \DNFRegexAlt_1
+  }
+  {
+    \DNFLens \OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow \ToDNFRegexOf{\RegexAlt_1}
+  }
+\end{mathpar}
+
+To complete this case, we need to find a DNF lens $\DNFLens' \OfType
+\ToDNFRegexOf{\Regex_2} \Leftrightarrow \ToDNFRegexOf{\RegexAlt_2}$ with
+equivalent semantics to $\Lens$.
+
+We first show that there exists $\DNFRegex_2$ and $\DNFRegexAlt_2$ such that
+$\ToDNFRegexOf{\Regex_2} \StarOf{\rightarrow} \DNFRegex_2$ and
+$\ToDNFRegexOf{\DNFRegex_1} \StarOf{\rightarrow} \DNFRegex_2$ and
+$\ToDNFRegexOf{\RegexAlt_2} \StarOf{\rightarrow} \DNFRegexAlt_2$ and
+$\ToDNFRegexOf{\DNFRegexAlt_1} \StarOf{\rightarrow} \DNFRegexAlt_2$. To do this,
+we first prove that $\StarOf{\rightarrow}$ is confluent, and that if $\Regex
+\SSREquiv \RegexAlt$, then $\ToDNFRegexOf{\Regex}$ is related to
+$\ToDNFRegexOf{\RegexAlt}$ through the transitive, reflexive closure of
+$\rightarrow$. We then apply a corollary of confluence to show the existance of
+such a $\DNFRegex_2$ and $\DNFRegexAlt_2$
+
+\begin{figure}
+  \centering
+    \includegraphics[scale=.4]{equiv-case.pdf}
+    \caption{Diagram constructing a well-typed DNF lens between
+      \ToDNFRegexOf{\Regex_2} and \ToDNFRegexOf{\RegexAlt_2}.}
+    \label{fig:equiv-case}
+\end{figure}
+
+After this, we have $\DNFLens \OfRewritelessType \DNFRegex_1 \Leftrightarrow
+\DNFRegexAlt_1$ and $\DNFRegex_1 \StarOf{\rightarrow} \DNFRegex_2$ and
+$\DNFRegexAlt_1 \StarOf{\rightarrow} \DNFRegexAlt_2$. If we can prove a
+confluence-like property that would show the existance of some $\DNFLens'
+\OfRewritelessType \DNFRegex_3 \Leftrightarrow \DNFRegexAlt_3$, where
+$\DNFRegex_2 \StarOf{\rightarrow} \DNFRegex_3$ and $\DNFRegexAlt_2
+\StarOf{\rightarrow} \DNFRegexAlt_3$, we would be done. This property is
+$R$-confluence for a properly chosen $R$. This case is diagrammed in Figure~\ref{fig:equiv-case}
+
+\section{$R$-Confluence Formulation}
+Let $S$ be an underlying set, and $\rightarrow$ and $R$ be binary relations. The
+indexed rewrite system $(S,\rightarrow)$ is $R$-confluent, if for all $s_1,s_2 \in
+S$, if $R(s_1,s_2)$, $s_1 \rightarrow s_1'$, and $s_2 \rightarrow s_2'$, then
+there exist $s_1''$ and $s_2''$ such that $R(s_1'',s_2'')$, $s_1' \rightarrow
+s_1''$, and $s_2 \rightarrow s_2''$.
+
+In the context of lens synthesis, $S$ is the set of DNF REs,
+the rewrites are $\StarOf{\rightarrow}$, and given a DNF lens $\DNFLens$,
+$R_\DNFLens(\DNFRegex,\DNFRegexAlt)$ is true if there exists a DNF lens $\DNFLens'$ such
+that $\DNFLens' \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ and
+$\DNFLens$ is equivalent to $\DNFLens'$.
+
+If we followed the standard way to prove a rewrite system confluent, we would
+find a set of rewrite rules $\ParallelRewrite$ such that
+$\StarOf{\ParallelRewrite} = \StarOf{\Rewrite}$ and $(S,\ParallelRewrite)$ is
+$R_\DNFLens$-confluent. Then, we need to prove that
+$(S,\StarOf{\ParallelRewrite})$ is $R_\DNFLens$-confluent from knowledge that
+$(S,\ParallelRewrite)$ is $R_\DNFLens$-confluent. However, we will show this
+approach does not work.
+
+\section{Proving (S,\StarOf{\rightarrow}) $R$-Confluent}
+
+\begin{figure}
+  \centering
+    \includegraphics[scale=.4]{proof-attempt.pdf}
+    \caption{If trying to prove $R$-confluence for the transitive closure of a
+      rewrite system in the standard way, we get stuck at this point in the
+      inductive case.}
+    \label{fig:proof-attempt}
+\end{figure}
+
+The standard way of proving $(S,\StarOf{\rightarrow})$ to be $=$-confluent is to
+first prove $(S,\rightarrow)$ to be $=$-confluent, then to perform two
+inductions, first on the left arrows then on the right arrows. This approach
+does not work for arbitrary $R$-confluence. Consider the inductive case, where
+$R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $s_2 \rightarrow s_3$ and
+$t_1 \StarOf{\rightarrow} t_2$, shown in Figure~\ref{fig:proof-attempt}. By
+applying the inducion hypothesis, we know there exists $s_4, t_4$ such that $s_2
+\rightarrow s_4$ and $t_2 \StarOf{\rightarrow} t_4$, and $R(s_4,t_4)$. We know
+that $s_2 \rightarrow s_3$ and $s_2 \rightarrow s_4$, but we only know that
+$(S,\rightarrow)$ is $R$-confluent, and so we are now stuck.
+
+To get around this issue, we require a different set of properties.
+\begin{enumerate}
+\item $(S,\rightarrow)$ must be $=$-confluent.
+\item $(S,\rightarrow)$ must be \emph{$R$-bisimilar}. In other words,
+  if $R(s_1,t_1)$, and $s_1 \rightarrow s_2$, then there exists $t_2$ such that
+  $t_1 \rightarrow t_2$ and $R(s_2,t_2)$; and if $R(s_1,t_1)$, and $t_1
+  \rightarrow t_2$, then there exists $s_2$ such that $s_1 \rightarrow s_2$ and
+  $R(s_2,t_2)$.
+\end{enumerate}
+
+Now we can proceed with our proof.
+
+\begin{theorem}
+  \label{lem:right-side}
+  Let $(S,\rightarrow)$ be $=$-confluent, and $(S,\rightarrow)$ be
+  $R$-bisimilar. If $R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $t_1
+  \StarOf{\rightarrow} t_2$, then there exists $s_3,t_3$ such that $s_2
+  \StarOf{\rightarrow} s_3$ and $t_2 \rightarrow t_3$ and $R(s_3,t_3)$.
+\end{theorem}
+\begin{proof}
+  By induction on $s_1 \StarOf{\rightarrow} s_2$
+  \begin{case}[Base Case]
+    Let $R(s_1,t_1)$ and $t_1 \StarOf{\rightarrow} t_2$. As
+    $(S,\StarOf{\rightarrow})$ is $R$-bisimilar, there exists $s_2$ such that
+    $s_1 \StarOf{\rightarrow} s_2$ and $R(s_2,t_2)$, as desired.
+  \end{case}
+
+  \begin{figure}
+    \centering
+    \includegraphics[scale=.4]{solved-proof.pdf}
+    \caption{Diagram showing how we prove the inductive case of $R$-confluence
+      of the transitive closure of a rewrite system. $R(s_4,t_4)$ comes from the
+      inductive hypothesis. The existance of $s_5$ is guaranteed through
+      $=$-confluence. $R(s_5,t_5)$ comes from $R$-bisimilarity.}
+    \label{fig:solved-proof}
+  \end{figure}
+  
+  \begin{case}[Inductive Case]
+    Let $R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $s_2 \rightarrow
+    s_3$ and $t_1 \StarOf{\rightarrow} t_2$. By the induction hypothesis, there
+    exists $s_4,t_4$ such that $R(s_4,t_4)$ and $s_3 \StarOf{\rightarrow} s_4$
+    and $t_3 \rightarrow t_4$.
+
+    As $(S,\rightarrow)$ is $=$-confluent, we know from prior work
+    $(S,\StarOf{\rightarrow})$ is $=$-confluent. Because of this, there exists
+    $s_5$ such that $s_3 \StarOf{\rightarrow} s_5$ and $s_4 \StarOf{\rightarrow}
+    s_5$. As $(S,\StarOf{\rightarrow})$ is $R$-bisimilar, there exists $t_5$
+    such that $t_4 \StarOf{\rightarrow} t_5$ and $R(s_5,t_5)$, as desired. This
+    case is diagrammed in Figure~\ref{fig:solved-proof}.
+  \end{case}
+\end{proof}
+
+%------------------------------------------------------------------------------
+
+\label{sect:bib}
+\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+%\bibliographystyle{abbrv}
+\bibliography{local}
+
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+% Index
+%\printindex
+
+%------------------------------------------------------------------------------
+\end{document}
+
