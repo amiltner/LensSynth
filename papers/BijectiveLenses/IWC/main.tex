@@ -159,7 +159,8 @@ Steve Zdancewic\inst{5}
   large part to the many equivalences on regular expressions.
 
   Our proof that we can synthesize all string lenses involves proving a
-  confluence-like property, indexed by a an additional binary relation $R$. In
+  confluence-like property, indexed by a an additional binary relation $R$. We
+  call this property $R$-confluence. In
   this model, standard confluence is the specific case where $R$ is equality. We
   show how our proof that the transitive closure of a rewrite system is
   $R$-confluent differs from the proof strategy for standard confluence.
@@ -191,15 +192,51 @@ input-output behavior, and synthesizes a well-typed lens between the languages
 of those regular expressions.
 
 To indicate a lens $\Lens$ is well typed, and converts between the languages of
-$\Regex$ and $\RegexAlt$, we write $\Lens : \Regex \Leftrightarrow \RegexAlt$ For synthesis, given $\Regex$ and $\RegexAlt$, we must
-find a lens $\Lens$ such that $\Lens : \Regex \Leftrightarrow \RegexAlt$. There
-are a number of typing rules for lenses, but the rules for type-equivalence and
-composition (shown below) do not permit an efficient search algorithm. Note that
-in type equivalence we use a finer notion of equivalence than language
-equivalence, we instead use star-semiring equivalence, denoted $\SSREquiv$. We were unable to make
-our proof strategy work for language equivalence, so instead guarantee
-completeness only on the subset of lenses well-typed with star-semiring
-equivalence.
+$\Regex$ and $\RegexAlt$, we write $\Lens : \Regex \Leftrightarrow \RegexAlt$
+For synthesis, given $\Regex$ and $\RegexAlt$, we must find a lens $\Lens$ such
+that $\Lens : \Regex \Leftrightarrow \RegexAlt$. In the context of lens
+synthesis, there are three sorts of lens typing rules: syntax-directed rules,
+composition, and type equivalence.
+
+For syntax-directed rules, the syntax for the types closely mirrors the syntax
+of the expressions. As an example, consider the following rule for
+disjunction:
+\begin{mathpar}
+  \inferrule[\OrLensRule{}]
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \RegexAlt_2\\\\
+    \UnambigOrOf{\Regex_1}{\Regex_2}\\
+    \UnambigOrOf{\RegexAlt_1}{\RegexAlt_2}
+  }
+  {
+    \OrLensOf{\Lens_1}{\Lens_2} \OfType
+    \Regex_1 \Or \Regex_2
+    \Leftrightarrow \RegexAlt_1 \Or \RegexAlt_2
+  }
+\end{mathpar}
+Consider finding a lens of type $\Regex_1 \Or \Regex_2 \Leftrightarrow
+\RegexAlt_1 \Or \RegexAlt_2$. With only syntax-directed rules, the only lens
+that can be well-typed would be an or lens.
+
+Composition sequentially composes two lenses.
+\begin{mathpar}
+  \inferrule[\ComposeLensRule{}]
+  {
+    \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
+    \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
+  }
+  {
+    \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
+  }
+\end{mathpar}
+Composition is difficult in the context of lens synthesis. If trying to
+synthesize a composition lens, one has to pull the central regular expression
+``out of thin air.''
+
+The last typing rule is type-equivalence. If two regular expressions are
+star-semiring equivalent to the type of a lens, those equivalent regular
+expressions also serve as the type of the lens.
 \begin{mathpar}
   \inferrule[\RewriteRegexLensRule{}]
   {
@@ -210,104 +247,98 @@ equivalence.
   {
     \Lens \OfType \Regex' \Leftrightarrow \RegexAlt'
   }
-  
-  \inferrule[\ComposeLensRule{}]
-  {
-    \Lens_1 \OfType \Regex_1 \Leftrightarrow \Regex_2\\
-    \Lens_2 \OfType \Regex_2 \Leftrightarrow \Regex_3\\
-  }
-  {
-    \ComposeLensOf{\Lens_1}{\Lens_2} \OfType \Regex_1 \Leftrightarrow \Regex_3
-  }
 \end{mathpar}
+This rule is difficult in the context of synthesis, as it forces a search
+through equivalent regular expressions.  This rule can also be applied at any
+point in the derivation, which makes the search even harder.
 
-Trying to synthesize a lens from the types by applying typing rules ``in
-reverse'' gets confounded by these two rules. They require no significant
-restriction on the output types, and so can be applied at any time. Furthermore,
-applying them in reverse requires pulling regular expressions ``out of thin
-air.'' For \RewriteRegexLensRule, these regular expressions need only be
-equivalent to the input regular expressions, and for \ComposeLensRule, there are
-no restrictions at all!
+%\begin{figure}
+%  \centering
+%  \begin{tikzpicture}[auto,node distance=1.5cm]
+%    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
+%    
+%    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
+%    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
+%    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
+%    
+%    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
+%    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
+%
+%    \node[text width=2.9cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
+%    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
+%    
+%    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
+%    
+%    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
+%    
+%    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
+%    
+%    
+%    \path[->] (regex1.east) edge (todnfregex.north west);
+%    \path[->] (regex2.east) edge (todnfregex.south west);
+%    
+%    \path[->] (todnfregex.north east) edge (dnfregex1.west);
+%    \path[->] (todnfregex.south east) edge (dnfregex2.west);
+%    
+%    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
+%    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
+%    
+%    \path[->] (synthdnflens) edge (dnflens);
+%    
+%    \path[->] (dnflens) edge (tolens);
+%    
+%    \path[->] (tolens) edge (lens);
+%    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
+%    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
+%    % Now place a relation (ID=rel1)
+%    %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
+%    %\node (below-gen) [below=.5cm of sketch-gen] {};
+%    %\node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
+%    %     [right = .25cm of sketch-gen] {\RigidSynth{}};
+%    %\node (below-compl) [below=.5cm of sketch-compl] {};
+%    %\node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
+%    %% Draw an edge between rel1 and node1; rel1 and node2
+%    %\path[->] (spec) edge node (start-alg) {} (sketch-gen);
+%    %\path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
+%    %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
+%    %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
+%
+%    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
+%    %
+%    %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
+%  \end{tikzpicture}
+%  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
+%    \RegexAlt{}, and examples, \Examples{}, are given as input.
+%    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
+%    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
+%    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
+%    \RegexAlt{}, and \Examples{}.
+%    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
+%    that is equivalent to \DNFLens{}.}
+%  \label{fig:schematic-diagram-synthesis}
+%\end{figure}
 
-Our solution is to synthesize in an alternative language of disjunctive normal
-form lenses (DNF lenses), typed by disjunctive normal form regular expressions
-(DNF REs). Both DNF lenses and DNF REs can be thought of as lenses and regular
-expressions, put into a pseudonormal form.
+To address the difficulties with composition and type-equivalence rules, we
+synthesize lenses in an alternative language of disjunctive normal form (DNF)
+lenses. DNF lenses are in pseudonormal form, containing no composition operator,
+and so their synthesis never needs to pull regular expressions ``out of thin
+air.'' The types of DNF lenses are pairs of regular expressions in a
+pseudonormal form, DNF regular expressions. Because DNF regular expressions are
+in a pseudonormal form, fewer equivalent regular expressions need to be searched
+through.
 
-\begin{figure}
-  \centering
-  \begin{tikzpicture}[auto,node distance=1.5cm]
-    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] (todnfregex) {\ToDNFRegex{}};
-    
-    \node[align=right, anchor=east] (regex1) [left = .6cm of todnfregex.north west]{\Regex{}};
-    \node[align=right, anchor=east] (regex2) [left = .6cm of todnfregex.south west]{\RegexAlt{}};
-    \node[align=right, anchor=east] (exs) [below = .2cm of regex2]{ \Examples{} };
-    
-    \node[align=center] (dnfregex1) [right = .4cm of todnfregex.north east]{\DNFRegex{}};
-    \node[align=center] (dnfregex2) [right = .4cm of todnfregex.south east]{\DNFRegexAlt{}};
-
-    \node[text width=2.9cm,minimum height=.6cm,align=center,draw,rectangle] [right = 1.45cm of todnfregex.east] (synthdnflens) {\SynthDNFLens{}};
-    \node[align=center] [above = .7cm of synthdnflens] (optician) {\Optician{}};
-    
-    \node[align=center] [right = .4cm of synthdnflens] (dnflens) {\DNFLens{}};
-    
-    \node[text width=1.5cm,minimum height=.6cm,align=center,draw,rectangle] [right = .4cm of dnflens] (tolens) {\ToLens{}};
-    
-    \node[align=center] [right = .6cm of tolens] (lens) {\Lens{}};
-    
-    
-    \path[->] (regex1.east) edge (todnfregex.north west);
-    \path[->] (regex2.east) edge (todnfregex.south west);
-    
-    \path[->] (todnfregex.north east) edge (dnfregex1.west);
-    \path[->] (todnfregex.south east) edge (dnfregex2.west);
-    
-    \path[->] (dnfregex1.east) edge (synthdnflens.north west);
-    \path[->] (dnfregex2.east) edge (synthdnflens.south west);
-    
-    \path[->] (synthdnflens) edge (dnflens);
-    
-    \path[->] (dnflens) edge (tolens);
-    
-    \path[->] (tolens) edge (lens);
-    \draw[->] ($(exs.east)+(-3pt,0)$) -| node(exsedge) {} (synthdnflens);
-    \node[fit={($(todnfregex.west)+(-4pt,0)$) ($(tolens.east)+(4pt,0)$) (exsedge) (dnfregex1) (optician) (dnfregex2)},draw] (surrounding) {};
-    % Now place a relation (ID=rel1)
-    %\node[text width=2cm,align=center,draw, rectangle] (sketch-gen) [right = .75cm of spec] {\TypeProp{}};
-    %\node (below-gen) [below=.5cm of sketch-gen] {};
-    %\node[text width=2cm,align=center,draw, rectangle] (sketch-compl)
-    %     [right = .25cm of sketch-gen] {\RigidSynth{}};
-    %\node (below-compl) [below=.5cm of sketch-compl] {};
-    %\node[align=center] (lens) [right = .75cm of sketch-compl] {Lens}; 
-    %% Draw an edge between rel1 and node1; rel1 and node2
-    %\path[->] (spec) edge node (start-alg) {} (sketch-gen);
-    %\path[->] (sketch-gen) edge node(middle) {} (sketch-compl);
-    %\path[->] (sketch-compl) edge node[near start](success) {\Success{}} (lens);
-    %\draw[<-] (sketch-gen.south) -- +(0,-.5) -| node[above left](failure){\Failure{}} (sketch-compl.south);
-
-    %\node (synth-name) [above=.5cm of middle] {\Optician{}};
-    %
-    %\node[fit=(sketch-gen) (sketch-compl) (start-alg) (synth-name) (failure) (success) ,draw] (surrounding) {};
-  \end{tikzpicture}
-  \caption{Schematic Diagram for \Optician{}.  Regular expressions, \Regex{} and
-    \RegexAlt{}, and examples, \Examples{}, are given as input.
-    First, the function \ToDNFRegex{} converts \Regex{} and \RegexAlt{} into
-    their respective DNF forms, \DNFRegex{} and \DNFRegexAlt{}.
-    Next, \SynthDNFLens{} synthesizes a DNF lens, \DNFLens{}, from \Regex{},
-    \RegexAlt{}, and \Examples{}.
-    Finally, \ToLens{} converts \DNFLens{} into \Lens{}, a lens in Boomerang
-    that is equivalent to \DNFLens{}.}
-  \label{fig:schematic-diagram-synthesis}
-\end{figure}
-
-Two typing judgements are involved in typing a DNF lens, $\DNFLens : \DNFRegex
-\Leftrightarrow \DNFRegexAlt$ and $\DNFLens \OfRewritelessType \DNFRegex
-\Leftrightarrow \DNFRegexAlt$. In both instances, the judgement means $\DNFLens$
-is a DNF lens that converts between $\LanguageOf{\DNFRegex}$ and
-$\LanguageOf{\DNFRegexAlt}$. If $\DNFLens \OfRewritelessType \DNFRegex
-\Leftrightarrow \DNFRegexAlt$, then the typing derivation of $\DNFLens$ never
-rewrites the DNF REs. The only typing rule for $\DNFLens : \DNFRegex
-\Leftrightarrow \DNFRegexAlt$ is:
+In our search algorithm, we only search through equivalent regular expressions
+once, before processing any syntax directed-rules. We formalize this in the
+typing of DNF regular expressions by only permitting the application of
+type-equivalence once, after all syntactic rules have been applied. This is
+enforced by having two typing judgements: one for the ``rewriteless'' type of
+the lens (meaning no type-equivalence rules were applied) and one of the
+``full'' type of the lens. If $\DNFLens \OfRewritelessType \DNFRegex
+\Leftrightarrow \DNFRegexAlt$, then $\DNFLens$ is a DNF lens of rewriteless type
+$\DNFRegex \Leftrightarrow \DNFRegexAlt$. If $\DNFLens \OfType \DNFRegex
+\Leftrightarrow \DNFRegexAlt$, then $\DNFLens$ is a DNF lens of full type
+$\DNFRegex \Leftrightarrow \DNFRegexAlt$. The following rule is used to get the
+full type of a DNF lens from the rewriteless type.
 \begin{mathpar}
   \inferrule[\RewriteDNFRegexLensRule{}]
   {
@@ -319,23 +350,21 @@ rewrites the DNF REs. The only typing rule for $\DNFLens : \DNFRegex
     \DNFLens \OfType \MapsBetweenTypeOf{\DNFRegex'}{\DNFRegexAlt'}
   }
 \end{mathpar}
-To type a DNF lens, one first applies a number of rewrites to the DNF REs, then
-builds up a DNF lens using rewriteless typing rules. Because of this
-phase distinction, equivalent
-types only need to be generated once, and composition never need be applied.
-This structure corresponds to an efficient algorithm that first searches through type
-equivalences with rewrites and then builds up a rewriteless DNF
-lens as directed by the syntax of the DNF RE. 
-Figure~\ref{fig:schematic-diagram-synthesis} shows the full synthesis
-algorithm. The input
-regular expressions are converted into DNF form using the
-$\ToDNFRegex$ function. Next, a
-well-typed DNF lens is synthesized and then converted back into a standard lens
-language with the $\ToLens$ function.
+Note that instead of using directionless equivalences,
+\RewriteDNFRegexLensRule{} uses directioned rewrites. The relationship between
+the two is formalized by the following theorem:
+\begin{theorem}
+  \label{thm:thm1}
+  If $\Regex \SSREquiv \RegexAlt$, then $\ToDNFRegexOf{\Regex}
+  \equiv_{\rightarrow} \ToDNFRegexOf{\RegexAlt}$, where $\ToDNFRegexOf{\Regex}$
+  and $\ToDNFRegexOf{\RegexAlt}$ are $\Regex$ and $\RegexAlt$ in DNF form
+  (respectively), and $\equiv_{\rightarrow}$ is the transitive, reflexive, and
+  symmetric closure of $\rightarrow$.
+\end{theorem}
 
-Proving this search procedure complete reduces to proving DNF lenses complete
-with respect to our standard lens language. In particular, we wish the prove the
-following theorem:
+Proving that our search procedure can generate any lens reduces to proving DNF
+lenses complete with respect to our standard lens language. In particular, we
+wish the prove the following theorem:
 \begin{theorem}
   If $\Lens : \Regex \Leftrightarrow \RegexAlt$, then there exists a DNF lens,
   $\DNFLens$, such that $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow
@@ -343,8 +372,9 @@ following theorem:
   are equivalent.
 \end{theorem}
 
-We prove this propety by induction. The particular difficulty lies in the lens
-equivalence rule. We begin this case below:
+We prove this propety by induction on the structure of the typing derivation.
+The particular difficulty lies in the lens equivalence rule. We begin this case
+below:
   
 \begin{mathpar}
   \inferrule
@@ -360,7 +390,9 @@ equivalence rule. We begin this case below:
 
 By induction assumption, there exists $\DNFLens \OfType \ToDNFRegexOf{\Regex_1}
 \Leftrightarrow \ToDNFRegexOf{\RegexAlt_1}$, where the semantics of $\DNFLens$
-are equivalent to those of $\Lens$. By inversion
+are equivalent to those of $\Lens$. By inversion on the derivation of $\DNFLens
+\OfType \ToDNFRegexOf{\Regex_1} \Leftrightarrow \ToDNFRegexOf{\RegexAlt_1}$,
+there exists $\DNFRegex_1$ and $\DNFRegexAlt_1$ such that:
 \begin{mathpar}
   \inferrule
   {
@@ -382,11 +414,10 @@ $\ToDNFRegexOf{\Regex_2} \StarOf{\rightarrow} \DNFRegex_2$ and
 $\ToDNFRegexOf{\DNFRegex_1} \StarOf{\rightarrow} \DNFRegex_2$ and
 $\ToDNFRegexOf{\RegexAlt_2} \StarOf{\rightarrow} \DNFRegexAlt_2$ and
 $\ToDNFRegexOf{\DNFRegexAlt_1} \StarOf{\rightarrow} \DNFRegexAlt_2$. To do this,
-we first prove that $\StarOf{\rightarrow}$ is confluent, and that if $\Regex
-\SSREquiv \RegexAlt$, then $\ToDNFRegexOf{\Regex}$ is related to
-$\ToDNFRegexOf{\RegexAlt}$ through the transitive, reflexive closure of
-$\rightarrow$. We then apply a corollary of confluence to show the existance of
-such a $\DNFRegex_2$ and $\DNFRegexAlt_2$
+we first prove that $\StarOf{\rightarrow}$ is confluent. By
+Theorem~\ref{thm:thm1}, we know that $\ToDNFRegexOf{\Regex_1} \equiv_\rightarrow
+\ToDNFRegexOf{\Regex_2}$. Such $\DNFRegex_2$ and $\DNFRegexAlt_2$ are guaranteed
+to exist by a corollary to confluence.
 
 \begin{figure}
   \centering
@@ -403,7 +434,8 @@ confluence-like property that would show the existance of some $\DNFLens'
 \OfRewritelessType \DNFRegex_3 \Leftrightarrow \DNFRegexAlt_3$, where
 $\DNFRegex_2 \StarOf{\rightarrow} \DNFRegex_3$ and $\DNFRegexAlt_2
 \StarOf{\rightarrow} \DNFRegexAlt_3$, we would be done. This property is
-$R$-confluence for a properly chosen $R$. This case is diagrammed in Figure~\ref{fig:equiv-case}
+$R$-confluence for a properly chosen $R$. This case is diagrammed in
+Figure~\ref{fig:equiv-case}.
 
 \section{$R$-Confluence Formulation}
 Let $S$ be an underlying set, and $\rightarrow$ and $R$ be binary relations. The
@@ -499,6 +531,29 @@ Now we can proceed with our proof.
     case is diagrammed in Figure~\ref{fig:solved-proof}.
   \end{case}
 \end{proof}
+
+\section{Related Work}
+
+The full proof of completeness is contained in the appendix of the full version
+of the original optician paper~\cite{extended-version}. The original proof of
+$R$-confluence for the transitive closure of $\rightarrow$ previously required
+additional assumptions. These unnecessary assumptions have been identified and
+removed in this version of the proof. Future work used the proof of completeness
+over our lens language to show that quotient bijective lenses are also
+synthesizeable~\cite{maina+:quotient-synthesis}. Lastly, while synthesizeability
+was not proven for symmetric lenses~\cite{soptician}, such a proof would likely
+have proven $R$-confluence in a similar manner. Our proof used approaches
+inspired by the original Church-Rosser paper~\cite{Church1936SomePO}.
+
+This work continues a trend in making programming easier through
+synthesis~\cite{gulwani2017program}. While synthesis is one approach to make
+bidirectional programming easier, it is not the only approach. Recent work has
+gone into building lenses without requiring the point-free combinator
+style~\cite{10.1007/978-3-319-89884-1_2}. Other work has found
+applicative~\cite{10.1145/2858949.2784750} and
+monadic~\cite{10.1007/978-3-030-17184-1_6} approaches to compositionally
+building lenses.
+
 
 %------------------------------------------------------------------------------
 
