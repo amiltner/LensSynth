@@ -158,12 +158,13 @@ Steve Zdancewic\inst{5}
   can synthesize all possible lenses is quite tricky on these languages, due in
   large part to the many equivalences on regular expressions.
 
-  Our proof that we can synthesize all string lenses involves proving a
-  confluence-like property, indexed by a an additional binary relation $R$. We
-  call this property $R$-confluence. In
-  this model, standard confluence is the specific case where $R$ is equality. We
-  show how our proof that the transitive closure of a rewrite system is
-  $R$-confluent differs from the proof strategy for standard confluence.
+  The proof that all string lenses are synthesizeable involves proving a
+  confluence-like property, parameterized by a an additional binary relation
+  $R$. We call this property $R$-confluence. In this model, standard confluence
+  is the specific case where $R$ is equality. In this paper, we show how
+  existing techniques for demonstrating confluence do not work in the domain of
+  $R$-confluence, and find that if the rewrite system is $=$-confluent and
+  satisfies a commutativity property with $R$, then the system is $R$-confluent.
 \end{abstract}
 
 \section{Introduction}
@@ -187,12 +188,17 @@ guaranteed to satisfy the round-tripping laws.
 Optician~\cite{optician}, an extension of Boomerang, makes bidirectional
 programming easier by supporting synthesis of bidirectional string
 transformations. More specifically, it takes as input two regular expressions
-($\Regex$ and $\RegexAlt$, which serve as the type of a Boomerang lens) and a set of examples specifying
-input-output behavior, and synthesizes a well-typed lens between the languages
-of those regular expressions.
+($\Regex$ and $\RegexAlt$, which serve as the type of a Boomerang lens) and a
+set of examples specifying input-output behavior, and synthesizes a well-typed
+lens between the languages of those regular expressions. For brevity, we will
+not provide formal definitions for some aspects of Optician; the interested
+reader can find such definitions in the original Optician paper~\cite{optician}.
+Furthermore, examples detailing the use of synthesized lenses in practice (which
+we also elide for space) can be found in that paper and follow-up
+work~\cite{maina+:quotient-synthesis,soptician}.
 
 To indicate a lens $\Lens$ is well typed, and converts between the languages of
-$\Regex$ and $\RegexAlt$, we write $\Lens : \Regex \Leftrightarrow \RegexAlt$
+$\Regex$ and $\RegexAlt$, we write $\Lens : \Regex \Leftrightarrow \RegexAlt$.
 For synthesis, given $\Regex$ and $\RegexAlt$, we must find a lens $\Lens$ such
 that $\Lens : \Regex \Leftrightarrow \RegexAlt$. In the context of lens
 synthesis, there are three sorts of lens typing rules: syntax-directed rules,
@@ -358,13 +364,13 @@ the two is formalized by the following theorem:
   If $\Regex \SSREquiv \RegexAlt$, then $\ToDNFRegexOf{\Regex}
   \equiv_{\rightarrow} \ToDNFRegexOf{\RegexAlt}$, where $\ToDNFRegexOf{\Regex}$
   and $\ToDNFRegexOf{\RegexAlt}$ are $\Regex$ and $\RegexAlt$ in DNF form
-  (respectively), and $\equiv_{\rightarrow}$ is the transitive, reflexive, and
+  (respectively), and $\equiv_{\rightarrow}$ is the reflexive, transitive, and
   symmetric closure of $\rightarrow$.
 \end{theorem}
 
 Proving that our search procedure can generate any lens reduces to proving DNF
 lenses complete with respect to our standard lens language. In particular, we
-wish the prove the following theorem:
+wish the prove:
 \begin{theorem}
   If $\Lens : \Regex \Leftrightarrow \RegexAlt$, then there exists a DNF lens,
   $\DNFLens$, such that $\DNFLens \OfType \ToDNFRegexOf{\Regex} \Leftrightarrow
@@ -373,15 +379,15 @@ wish the prove the following theorem:
 \end{theorem}
 
 We prove this propety by induction on the structure of the typing derivation.
-The particular difficulty lies in the lens equivalence rule. We begin this case
+Particular difficulty lies in the lens equivalence rule. We begin this case
 below:
   
 \begin{mathpar}
   \inferrule
   {
     \Lens \OfType \Regex_1 \Leftrightarrow \RegexAlt_1\\
-    \Regex \SSREquiv \Regex_2\\
-    \RegexAlt \SSREquiv \RegexAlt_2
+    \Regex_1 \SSREquiv \Regex_2\\
+    \RegexAlt_1 \SSREquiv \RegexAlt_2
   }
   {
     \Lens \OfType \Regex_2 \Leftrightarrow \RegexAlt_2
@@ -409,21 +415,22 @@ To complete this case, we need to find a DNF lens $\DNFLens' \OfType
 \ToDNFRegexOf{\Regex_2} \Leftrightarrow \ToDNFRegexOf{\RegexAlt_2}$ with
 equivalent semantics to $\Lens$.
 
-We first show that there exists $\DNFRegex_2$ and $\DNFRegexAlt_2$ such that
+We first show that there exist $\DNFRegex_2$ and $\DNFRegexAlt_2$ such that
 $\ToDNFRegexOf{\Regex_2} \StarOf{\rightarrow} \DNFRegex_2$ and
 $\ToDNFRegexOf{\DNFRegex_1} \StarOf{\rightarrow} \DNFRegex_2$ and
 $\ToDNFRegexOf{\RegexAlt_2} \StarOf{\rightarrow} \DNFRegexAlt_2$ and
 $\ToDNFRegexOf{\DNFRegexAlt_1} \StarOf{\rightarrow} \DNFRegexAlt_2$. To do this,
-we first prove that $\StarOf{\rightarrow}$ is confluent. By
+we first prove that $\rightarrow$ is confluent. By
 Theorem~\ref{thm:thm1}, we know that $\ToDNFRegexOf{\Regex_1} \equiv_\rightarrow
-\ToDNFRegexOf{\Regex_2}$. Such $\DNFRegex_2$ and $\DNFRegexAlt_2$ are guaranteed
-to exist by a corollary to confluence.
+\ToDNFRegexOf{\Regex_2}$, so confluence implies the existance of such a $\DNFRegex_2$ and $\DNFRegexAlt_2$.
 
 \begin{figure}
   \centering
     \includegraphics[scale=.4]{equiv-case.pdf}
     \caption{Diagram constructing a well-typed DNF lens between
-      \ToDNFRegexOf{\Regex_2} and \ToDNFRegexOf{\RegexAlt_2}.}
+      \ToDNFRegexOf{\Regex_2} and \ToDNFRegexOf{\RegexAlt_2}. Single lined
+      arrows indicate rewrites ($\rightarrow$), and triple lines indicate
+      equivalence ($\equiv_{\rightarrow}$).}
     \label{fig:equiv-case}
 \end{figure}
 
@@ -434,15 +441,17 @@ confluence-like property that would show the existance of some $\DNFLens'
 \OfRewritelessType \DNFRegex_3 \Leftrightarrow \DNFRegexAlt_3$, where
 $\DNFRegex_2 \StarOf{\rightarrow} \DNFRegex_3$ and $\DNFRegexAlt_2
 \StarOf{\rightarrow} \DNFRegexAlt_3$, we would be done. This property is
-$R$-confluence for a properly chosen $R$. This case is diagrammed in
-Figure~\ref{fig:equiv-case}.
+$R$-confluence for a properly chosen $R$ (which we describe in \S\ref{sec:rcf}).
+This case is diagrammed in Figure~\ref{fig:equiv-case}.
 
 \section{$R$-Confluence Formulation}
-Let $S$ be an underlying set, and $\rightarrow$ and $R$ be binary relations. The
-indexed rewrite system $(S,\rightarrow)$ is $R$-confluent, if for all $s_1,s_2 \in
-S$, if $R(s_1,s_2)$, $s_1 \rightarrow s_1'$, and $s_2 \rightarrow s_2'$, then
-there exist $s_1''$ and $s_2''$ such that $R(s_1'',s_2'')$, $s_1' \rightarrow
-s_1''$, and $s_2 \rightarrow s_2''$.
+\label{sec:rcf}
+Let $S$ be an underlying set, and $\rightarrow$ and $R$ be
+binary relations. The rewrite system $(S,\rightarrow)$ is $R$-confluent, if for
+all $s_1,s_2 \in S$, if $R(s_1,s_2)$, $s_1 \StarOf{\rightarrow} s_1'$, and $s_2
+\StarOf{\rightarrow} s_2'$, then there exist $s_1''$ and $s_2''$ such that
+$R(s_1'',s_2'')$, $s_1' \StarOf{\rightarrow} s_1''$, and $s_2
+\StarOf{\rightarrow} s_2''$.
 
 In the context of lens synthesis, $S$ is the set of DNF REs,
 the rewrites are $\StarOf{\rightarrow}$, and given a DNF lens $\DNFLens$,
@@ -450,60 +459,68 @@ $R_\DNFLens(\DNFRegex,\DNFRegexAlt)$ is true if there exists a DNF lens $\DNFLen
 that $\DNFLens' \OfRewritelessType \DNFRegex \Leftrightarrow \DNFRegexAlt$ and
 $\DNFLens$ is equivalent to $\DNFLens'$.
 
-If we followed the standard way to prove a rewrite system confluent, we would
-find a set of rewrite rules $\ParallelRewrite$ such that
-$\StarOf{\ParallelRewrite} = \StarOf{\Rewrite}$ and $(S,\ParallelRewrite)$ is
-$R_\DNFLens$-confluent. Then, we need to prove that
-$(S,\StarOf{\ParallelRewrite})$ is $R_\DNFLens$-confluent from knowledge that
-$(S,\ParallelRewrite)$ is $R_\DNFLens$-confluent. However, we will show this
-approach does not work.
+Now that $R$-confluence has been formally defined, we can ask ourselves: ``What
+is a good approach to proving $R$-confluence?'' One approach is to prove that
+our rewrite system is locally confluent, which is equivalent to $=$-confluence
+in a terminating system~\cite{huetconf}. Unfortunately, our rewrites are not
+terminating, so this approach does not work.
+
+An approach pioneered by Tait and Martin-L\"{o}f~\cite{barendrecht} still works
+in non-terminating systems. This approach uses the \emph{diamond property}: A
+rewrite system $(S,\rightarrow)$ satisfies the diamond property if $s_1
+\rightarrow s_2$ and $s_1 \rightarrow s_3$ implies that there exists $s_4$ such
+that $s_2 \rightarrow s_4$, and $s_2 \rightarrow s_4$. If a rewrite system
+satisfies the diamond property, then it is also confluent. Unfortunately, this
+approach does not work, as the parameterized version of the diamond property
+does not imply $R$-confluence.
 
 \section{Proving (S,\StarOf{\rightarrow}) $R$-Confluent}
 
 \begin{figure}
   \centering
-    \includegraphics[scale=.4]{proof-attempt.pdf}
-    \caption{If trying to prove $R$-confluence for the transitive closure of a
-      rewrite system in the standard way, we get stuck at this point in the
-      inductive case.}
-    \label{fig:proof-attempt}
+    \includegraphics[scale=.4]{cex.pdf}
+    \caption{Rewrite system that satisfies the $R$-diamond property, but is not
+      $R$-confluent.}
+    \label{fig:cex}
 \end{figure}
 
-The standard way of proving $(S,\StarOf{\rightarrow})$ to be $=$-confluent is to
-first prove $(S,\rightarrow)$ to be $=$-confluent, then to perform two
-inductions, first on the left arrows then on the right arrows. This approach
-does not work for arbitrary $R$-confluence. Consider the inductive case, where
-$R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $s_2 \rightarrow s_3$ and
-$t_1 \StarOf{\rightarrow} t_2$, shown in Figure~\ref{fig:proof-attempt}. By
-applying the induction hypothesis, we know there exists $s_4, t_4$ such that $s_2
-\rightarrow s_4$ and $t_2 \StarOf{\rightarrow} t_4$, and $R(s_4,t_4)$. We know
-that $s_2 \rightarrow s_3$ and $s_2 \rightarrow s_4$, but we only know that
-$(S,\rightarrow)$ is $R$-confluent, and so we are now stuck.
+In the Tait and Martin-L\"{o}f approach to proving $(S,\rightarrow)$ confluent,
+one must first prove $(S,\rightarrow)$ satisfies the diamond property. Consider
+a parameterized property analogous to the diamond property, the
+\emph{$R$-diamond property}: A rewrite system $(S,\rightarrow)$ satisfies the
+$R$-diamond property if $s_1 \rightarrow s_2$ and $t_1 \rightarrow t_2$ and
+$R(s_1,t_1)$ implies that there exists $s_3,t_3$ such that $s_2 \rightarrow s_3$
+and $t_2 \rightarrow t_3$ and $R(s_3,t_3)$.
+
+However, satisfying the $R$-diamond property is not sufficient for
+$R$-confluence. Consider the simple rewrite system shown in
+Figure~\ref{fig:cex}. In this rewrite system, there are 3 elements, $s_1,s_2$,
+and $t$. In this setup, $R(s_1,t)$ and $s_1 \rightarrow s_2$. $R$-confluence
+requires some $s_3,t'$ such that $s_2 \StarOf{\rightarrow} s_3$ and $t
+\StarOf{\rightarrow} t'$ and $R(s_3,t')$, but no such values exist.
 
 To get around this issue, we require a different set of properties.
 \begin{enumerate}
 \item $(S,\rightarrow)$ must be $=$-confluent.
-\item $(S,\rightarrow)$ must be \emph{$R$-bisimilar}. In other words,
-  if $R(s_1,t_1)$, and $s_1 \rightarrow s_2$, then there exists $t_2$ such that
-  $t_1 \rightarrow t_2$ and $R(s_2,t_2)$; and if $R(s_1,t_1)$, and $t_1
-  \rightarrow t_2$, then there exists $s_2$ such that $s_1 \rightarrow s_2$ and
-  $R(s_2,t_2)$.
+\item $R$ must be a bisimilulation relation for $(S,\StarOf{\rightarrow})$. In
+  other words if $R(s_1,t_1)$, and $s_1 \StarOf{\rightarrow} s_2$, then there
+  exists $t_2$ such that $t_1 \StarOf{\rightarrow} t_2$ and $R(s_2,t_2)$; and if
+  $R(s_1,t_1)$, and $t_1 \StarOf{\rightarrow} t_2$, then there exists $s_2$ such
+  that $s_1 \StarOf{\rightarrow} s_2$ and $R(s_2,t_2)$.
 \end{enumerate}
-
-Now we can proceed with our proof.
 
 \begin{theorem}
   \label{lem:right-side}
-  Let $(S,\rightarrow)$ be $=$-confluent, and $(S,\rightarrow)$ be
-  $R$-bisimilar. If $R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $t_1
-  \StarOf{\rightarrow} t_2$, then there exists $s_3,t_3$ such that $s_2
-  \StarOf{\rightarrow} s_3$ and $t_2 \rightarrow t_3$ and $R(s_3,t_3)$.
+  Let $(S,\rightarrow)$ be $=$-confluent, and $R$ be a bisimilulation relation
+  for $(S,\StarOf{\rightarrow})$. If $R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow}
+  s_2$ and $t_1 \StarOf{\rightarrow} t_2$, then there exists $s_3,t_3$ such that
+  $s_2 \StarOf{\rightarrow} s_3$ and $t_2 \rightarrow t_3$ and $R(s_3,t_3)$.
 \end{theorem}
 \begin{proof}
-  By induction on $s_1 \StarOf{\rightarrow} s_2$
+  By induction length of the reduction of $s_1 \StarOf{\rightarrow} s_2$
   \begin{case}[Base Case]
     Let $R(s_1,t_1)$ and $t_1 \StarOf{\rightarrow} t_2$. As
-    $(S,\StarOf{\rightarrow})$ is $R$-bisimilar, there exists $s_2$ such that
+    $R$ is a bisimulation relation for $(S,\StarOf{\rightarrow})$, there exists $s_2$ such that
     $s_1 \StarOf{\rightarrow} s_2$ and $R(s_2,t_2)$, as desired.
   \end{case}
 
@@ -513,42 +530,56 @@ Now we can proceed with our proof.
     \caption{Diagram showing how we prove the inductive case of $R$-confluence
       of the transitive closure of a rewrite system. $R(s_4,t_4)$ comes from the
       inductive hypothesis. The existance of $s_5$ is guaranteed through
-      $=$-confluence. $R(s_5,t_5)$ comes from $R$-bisimilarity.}
+      $=$-confluence. $R(s_5,t_5)$ is guaranteed because $R$ is a bisimulation
+      relation.}
     \label{fig:solved-proof}
   \end{figure}
   
   \begin{case}[Inductive Case]
     Let $R(s_1,t_1)$ and $s_1 \StarOf{\rightarrow} s_2$ and $s_2 \rightarrow
     s_3$ and $t_1 \StarOf{\rightarrow} t_2$. By the induction hypothesis, there
-    exists $s_4,t_4$ such that $R(s_4,t_4)$ and $s_3 \StarOf{\rightarrow} s_4$
-    and $t_3 \rightarrow t_4$.
+    exists $s_4,t_4$ such that $R(s_4,t_4)$ and $s_2 \StarOf{\rightarrow} s_4$
+    and $t_2 \rightarrow t_4$.
 
-    As $(S,\rightarrow)$ is $=$-confluent, we know from prior work
-    $(S,\StarOf{\rightarrow})$ is $=$-confluent. Because of this, there exists
-    $s_5$ such that $s_3 \StarOf{\rightarrow} s_5$ and $s_4 \StarOf{\rightarrow}
-    s_5$. As $(S,\StarOf{\rightarrow})$ is $R$-bisimilar, there exists $t_5$
-    such that $t_4 \StarOf{\rightarrow} t_5$ and $R(s_5,t_5)$, as desired. This
-    case is diagrammed in Figure~\ref{fig:solved-proof}.
+    Because $(S,\rightarrow)$ is $=$-confluent, there
+    exists $s_5$ such that $s_3 \StarOf{\rightarrow} s_5$ and $s_4
+    \StarOf{\rightarrow} s_5$. As $(S,\StarOf{\rightarrow})$ is a bisimilulation
+    relation on $(S,\StarOf{\rightarrow})$,
+    there exists $t_5$ such that $t_4 \StarOf{\rightarrow} t_5$ and
+    $R(s_5,t_5)$, as desired. This case is diagrammed in
+    Figure~\ref{fig:solved-proof}.
   \end{case}
 \end{proof}
 
 \section{Related Work}
 
+The concept of $R$-confluence is related to the notion of \emph{confluence
+  modulo $\sim$}~\cite{huetconf}. The definition of confluent modulo $\sim{}$ is
+almost the same as $\sim$-confluence, the only difference is that confluence
+modulo $\sim{}$ requires $\sim{}$ to an equivalence relation. Conditions that suffice to prove a rewrite system confluent modulo
+$\sim$ are not generally sufficient to prove $R$-confluence (and vice versa).
+Furthermore, our bisimulation relations are closely related to local coherence
+modulo $\sim{}$.
+
+Bisimulation relations come from concurrency theory~\cite{bisimcoind}, but a
+related notion, commuting rewrites~\cite{commut}, appear in the confluence
+literature. We require a single rewrite of $R$ to commute with an arbitrary
+number of rewrites of $\rightarrow$, which commuting rewrites do not express.
+
 The full proof of completeness is contained in the appendix of the full version
 of the original optician paper~\cite{extended-version}. The original proof of
-$R$-confluence for the transitive closure of $\rightarrow$ previously required
+$R$-confluence for the transitive closure of $\rightarrow$ required
 additional assumptions. These unnecessary assumptions have been identified and
-removed in this version of the proof. Future work used the proof of completeness
+removed in this paper. Future work used the proof of completeness
 over our lens language to show that quotient bijective lenses are also
 synthesizeable~\cite{maina+:quotient-synthesis}. Lastly, while synthesizeability
 was not proven for symmetric lenses~\cite{soptician}, such a proof would likely
-have proven $R$-confluence in a similar manner. Our proof used approaches
-inspired by the original Church-Rosser paper~\cite{Church1936SomePO}.
+have proven $R$-confluence in a similar manner.
 
 This work continues a trend in making programming easier through
 synthesis~\cite{gulwani2017program}. While synthesis is one approach to make
-bidirectional programming easier, it is not the only approach. Recent work has
-gone into building lenses without requiring the point-free combinator
+bidirectional programming easier, it is not the only approach. Work has
+gone into building lenses without requiring a point-free combinator
 style~\cite{10.1007/978-3-319-89884-1_2}. Other work has found
 applicative~\cite{10.1145/2858949.2784750} and
 monadic~\cite{10.1007/978-3-030-17184-1_6} approaches to compositionally
